@@ -661,4 +661,4 @@ Follow-up issues: <IDs and severity>
 Next: <lowest numbered unblocked deliverable>
 ```
 
-**Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/five-view architecture.
+**Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/six-view architecture.
