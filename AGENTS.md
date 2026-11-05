@@ -13,7 +13,8 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Browser (WebAssembly/WebGL 2) and native Linux/Windows/macOS are required release targets.
 - Godot 4 C# runtime is excluded. Prefer standard Godot nodes over third-party runtime dependencies.
 - X = horizontal, Y = vertical/gravity, Z = depth.
-- Native F1–F5 views; browser-safe Ctrl+1–5 and on-screen selection also required.
+- Six view profiles: F1 Side, F2 Beat'em up, F3 tilted Isometric, F4 Third person, F5 First person, F6 true-overhead Retro Top-Down (NES Commando/Zelda).
+- Native F1–F6; Web uses remappable number-row 1–6 and a mandatory six-mode selector. Ctrl+number is browser-reserved, not a safe fallback.
 - All shipped code/content must be license-compatible and sourced.
 
 ## Working cycle
@@ -34,7 +35,10 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Don't use detailed mesh collision to decide punching/kicking/weapon damage.
 - Don't reset attack/weapon/AI state on view changes.
 - Don't read raw keyboard input in Combat, Actor or Weapon classes.
-- Don't assume F5 can be caught in web browsers.
+- Don't assume F1/F5 or Ctrl+number shortcuts can be caught in web browsers.
+- Do not collapse F3 tilted isometric and F6 true vertical overhead into one view profile.
+- Do not project camera-forward onto X/Z for F6; it is zero at 90-degree downward pitch. Use projected camera-right/up or explicit world axes.
+- Do not hardcode facing quantization into the combat core: F6 supports optional Zelda-style 4-way sword attacks, Commando-style 8-way shooting and independent aim.
 - Don't claim deterministic rollback support from using a fixed physics tick.
 - Don't introduce proprietary assets, unverified packages, or unnecessary engine plugins.
 
