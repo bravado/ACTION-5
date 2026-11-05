@@ -80,14 +80,16 @@ The Godot project, runtime folders and executable test commands will be delivere
 
 | Release | Deliverables | Exit goal |
 |---|---|---|
-| **v0.1 — Foundation** | D01–D03 | Godot project, CI, all six cameras and controls, moving actor; Web and native smoke builds |
-| **v0.2 — Combat** | D04–D07 | Animated character, attack system, bat/shovel/gun, enemy AI |
-| **v0.3 — Gameplay & Tooling** | D08–D10 | Arena/dungeon interactions, playable six-mode demo, debugging and authoring tools |
-| **v1.0 — Distribution** | D11–D12 | Full regression/export matrix, installable addon, documentation and release artifacts |
+| **[v0.1 — Foundation](https://github.com/objectivebot/ACTION-5/milestone/1)** | D01–D03 · 8 issues | Godot project, CI, all six cameras and controls, moving actor; Web and native smoke builds |
+| **[v0.2 — Combat](https://github.com/objectivebot/ACTION-5/milestone/2)** | D04–D07 · 7 issues | Animated character, attack system, bat/shovel/gun, enemy AI |
+| **[v0.3 — Gameplay & Tooling](https://github.com/objectivebot/ACTION-5/milestone/3)** | D08–D10 · 4 issues | Arena/dungeon interactions, playable six-mode demo, debugging and authoring tools |
+| **[v1.0 — Distribution](https://github.com/objectivebot/ACTION-5/milestone/4)** | D11–D12 · 2 issues | Full regression/export matrix, installable addon, documentation and release artifacts |
 
 See [the full product and implementation plan](PLAN.md) for D01–D12, detailed requirements and acceptance cases VT-01–VT-23. See [agent instructions](AGENTS.md) before implementing changes.
 
-GitHub milestones and the DXX-YY issues are the intended execution backlog. Each issue should carry a specific scope, acceptance criteria, dependencies and test evidence; changes should be reviewed as independently testable pull requests.
+All **four GitHub milestones** and **21 DXX-YY implementation issues** are now created and assigned. See [the full issue backlog](https://github.com/objectivebot/ACTION-5/issues). Each issue has a scope, acceptance criteria, dependencies and test evidence requirements; changes should be reviewed as independently testable pull requests.
+
+The milestone mapping is maintained by [the idempotent roadmap synchronization workflow](.github/workflows/sync-roadmap.yml) and [its script](tools/sync_roadmap.py). It runs when the plan or workflow changes and can be started manually using GitHub Actions. If the backlog gains new issue IDs, create those issues first; the synchronizer will reject an incomplete set rather than silently assign only some of them.
 
 ## Working on ACTION-5
 
