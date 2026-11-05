@@ -1,0 +1,29 @@
+name: Sync ACTION-5 roadmap
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - PLAN.md
+      - tools/sync_roadmap.py
+      - .github/workflows/sync-roadmap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: action5-roadmap-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v4
+      - name: Create and assign release milestones
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/sync_roadmap.py
