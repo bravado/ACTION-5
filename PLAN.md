@@ -57,7 +57,7 @@ Online multiplayer, rollback netcode, competitive fighting-game move lists, proc
 
 ### 2.3 Success criteria
 
-- User can switch F1–F6 (native), Ctrl+1–Ctrl+5 and UI selector (all) **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
+- User can switch F1–F6 (native), remappable number-row 1–6 and six-option UI selector (Web and native) **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
 - Movement and aiming make sense for each profile. F1 locks the actor to the **current** Z lane; leaving F1 restores X/Z freedom.
 - Punch, kick, bat, shovel and gun hit the same target correctly regardless of view; perspective changes cannot damage a target by themselves.
 - Player, AI and objects continue updating when the camera switches.
@@ -526,7 +526,7 @@ godot --headless --path . --import
 godot --headless --path . --script res://tests/run_all.gd
 # Exact export preset names are defined in export_presets.cfg.
 godot --headless --path . --export-release "Web" build/web/index.html
-godot --headless --path . --export-release "Linux" build/linux/gaf-demo
+godot --headless --path . --export-release "Linux" build/linux/action5-demo
 ```
 
 Create output directories first; pin matching export templates. Ensure the test script exits nonzero on failure. CI should preserve screenshots/logs from failures.
@@ -540,7 +540,7 @@ Create output directories first; pin matching export templates. Ensure the test 
 - [ ] Feature implemented and exercised in an actual Godot scene, not only pseudocode.
 - [ ] Relevant headless tests added/passing; no red tests hidden by disabling checks.
 - [ ] Code typed where practical, small classes, consistent resource naming and signal usage.
-- [ ] No demo-specific references inside `addons/action_framework`.
+- [ ] No demo-specific references inside `addons/action5/`.
 - [ ] Native + web compatibility considered; browser smoke repeated for changed camera/input/combat/render logic.
 - [ ] Player state preserved on view switch; test added for new edge cases.
 - [ ] Docs, controls screen, and export/asset attribution updated where applicable.
@@ -611,13 +611,15 @@ An agent may run all roles sequentially, but evidence must remain independently 
 | D10 | 2–4 | D05–D09 |
 | D11 | 3–5 | D01–D10 |
 | D12 | 2–3 | D11 |
-| **Total** | **27–47** | Scope estimate only |
+| **Total** | **28–48** | Scope estimate only |
 
 **Optional 1.1+:** animation retarget wizard, advanced ledge/platform traversal, richer combat data editor, local split-screen, dynamic camera split, more equipment types, ranged projectiles, abilities/magic, inventory/loot, procedural dungeon rooms, training-mode frame graphs. **Major separate roadmap:** competitive deterministic simulation/rollback networking, replay serialization, multiplayer authoritative state, advanced third-person locomotion. Do not merge these into 1.0 by default.
 
 ---
 
 ## 11. Initial backlog / recommended PR sequence
+
+**GitHub tracking contract:** Release milestones are **0.1 Foundation (D01–D03)**, **0.2 Combat (D04–D07)**, **0.3 Gameplay & Tools (D08–D10)**, and **1.0 Distribution (D11–D12)**. Create one actionable GitHub issue per DXX-YY backlog item and assign it to the corresponding release milestone. The issue title begins with its immutable DXX-YY ID; include scope, acceptance, dependencies, test evidence and a link to this plan. Issue closure requires verified results and is not implied by plan text. Keep release milestone descriptions aligned with their release gates. Updates must not duplicate existing issues or milestones.
 
 - `D01-01` Bootstrap pinned project, scripts, asset license policy.
 - `D01-02` Headless test runner, CI import smoke, Web/Linux export smoke.
