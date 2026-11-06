@@ -52,7 +52,7 @@ func _run_tests() -> void:
         "West wall includes a physical collision shape")
     _check(level.get_node_or_null("EastWall/CollisionShape3D") is CollisionShape3D,
         "East wall includes a physical collision shape")
-    _check(level.get_node_or_null("Camera3D") is Camera3D,
+    _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
     _check(level.get_node_or_null("Hud/Help") is Label,
         "D01 help text is visible in the scene")
@@ -65,6 +65,81 @@ func _run_tests() -> void:
         var original_position: Vector3 = player.global_position
         _check(original_position.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
             "Actor begins at documented spawn")
+
+    # D02: all six camera profiles must share the exact same world/actor.
+    var manager := level.get_node_or_null("ViewManager") as Action5ViewManager
+    var input_adapter := level.get_node_or_null("ViewInput") as Action5ViewInput
+    _check(manager != null and input_adapter != null, "View manager and input adapter present")
+    if manager != null and player != null:
+        _check(manager.profiles.size() == 6, "Exactly six editable camera profiles")
+        _check(manager.active_index == 1, "Initial beat'em-up camera is selected")
+        _check(manager.camera_rig.camera == level.get_node("ViewManager/CameraRig/Camera3D"),
+            "One persistent Camera3D is shared across all modes")
+        var player_id: int = player.get_instance_id()
+        var camera_id: int = manager.get_active_camera().get_instance_id()
+        var original_transform: Transform3D = player.global_transform
+        var original_velocity: Vector3 = player.velocity
+        var next_index := 0
+        for repeat_index in range(20):
+            for index in range(6):
+                next_index = index
+                _check(manager.switch_view(index), "Switch camera to %d, cycle %d" % [index + 1, repeat_index + 1])
+        _check(manager.switch_count >= 120, "All six profiles cycled 20 times")
+        _check(player.get_instance_id() == player_id and manager.get_active_camera().get_instance_id() == camera_id,
+            "Camera/actor identities preserved for 120 switches")
+        _check(player.global_transform == original_transform and player.velocity == original_velocity,
+            "Camera switching never changes actor transform or velocity")
+        _check(manager.last_position_delta < 0.0001,
+            "Camera switching preserves actor position exactly")
+        _check(manager.active_index == next_index, "Selected camera index tracks last switch")
+
+        manager.switch_view(2)
+        _check(manager.current_profile.mode == Action5ViewProfile.Mode.ISOMETRIC,
+            "F3 loads tilted isometric camera resource")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "F3 uses orthographic projection")
+        manager.switch_view(5)
+        _check(manager.current_profile.mode == Action5ViewProfile.Mode.RETRO_TOPDOWN,
+            "F6 loads distinct retro top-down camera resource")
+        _check(manager.camera_rig.is_vertical_overhead(),
+            "F6 camera orientation is exactly vertical")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "F6 uses orthographic projection")
+        _check(manager.current_profile.orthographic_size < manager.profiles[2].orthographic_size,
+            "F6 has independently editable zoom")
+        manager.switch_view(4)
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_PERSPECTIVE,
+            "F5 uses perspective projection")
+        _check(not player.get_node("Visual").visible,
+            "First-person mode hides local player model only")
+        manager.switch_view(3)
+        _check(player.get_node("Visual").visible, "F4 restores local player model")
+
+        var gui_button := level.get_node("Hud/ModeButtons/Mode1") as Button
+        gui_button.pressed.emit()
+        _check(manager.active_index == 0, "In-game view selector switches to F1")
+        _check((level.get_node("Hud/Status") as Label).text.contains("VIEW 1 / 6"),
+            "HUD displays active view and switch instrumentation")
+
+        if input_adapter != null:
+            var key_one := InputEventKey.new()
+            key_one.keycode = KEY_1
+            key_one.pressed = true
+            _check(InputMap.event_is_action(key_one, &"view_1"),
+                "Primary number key 1 is registered in InputMap")
+            var key_six := InputEventKey.new()
+            key_six.keycode = KEY_6
+            key_six.pressed = true
+            _check(InputMap.event_is_action(key_six, &"view_6"),
+                "Primary number key 6 is registered in InputMap")
+            input_adapter._unhandled_input(key_six)
+            _check(manager.active_index == 5, "Pressing 6 activates retro top-down")
+            input_adapter._unhandled_input(key_one)
+            _check(manager.active_index == 0, "Pressing 1 activates side camera")
+            _check(manager.cycle_view(-1) and manager.active_index == 5,
+                "View cycling wraps from F1 to F6")
+            _check(manager.cycle_view(1) and manager.active_index == 0,
+                "View cycling wraps from F6 to F1")
 
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
