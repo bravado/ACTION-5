@@ -9,6 +9,14 @@ var _time_left: float = 0.0
 var _direction: Vector2 = Vector2.ZERO
 
 
+func _init() -> void:
+    move_id = &"dodge"
+    action_name = &"actor_dodge"
+    default_key = KEY_ALT
+    default_gamepad_button = JOY_BUTTON_B
+    priority = 50
+
+
 func can_enter(ctx: ContextScript) -> bool:
     return ctx.intent != null and ctx.intent.world_move.length_squared() > 0.01
 
