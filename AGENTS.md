@@ -17,6 +17,17 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Both native and Web use number row **1–6 as primary**; optional F1–F6 secondary, with mandatory six-mode selector in Web. Ctrl+number is browser-reserved, not a safe fallback.
 - All shipped code/content must be license-compatible and sourced.
 
+## Local development and CI
+
+**The supported workflow is import-first using GNU Make**:
+
+- `make import` regenerates the local Godot registry/resource imports.
+- `make run` imports, then launches the game; `make editor` opens the editor.
+- `make test` imports, runs Godot headless tests and checks parser/runtime logs.
+- `make web`, `make linux`, and `make build` import before exporting.
+- The Makefile must fail closed on Godot errors and retain `.godot/` as a generated, ignored cache.
+- CI must exercise Makefile targets rather than maintaining a conflicting implementation of the import/build steps. Do not add a requirement to commit the generated class registry.
+
 ## Working cycle
 
 1. Check current repository and existing completion records; identify next incomplete DXX.
