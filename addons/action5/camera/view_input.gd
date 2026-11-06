@@ -1,4 +1,6 @@
 extends Node
+
+const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 class_name Action5ViewInput
 ## Raw camera selection input is kept separate from player movement/combat.
 ## Number row 1–6 is PRIMARY on native and web; F1–F6 is optional secondary.
@@ -8,11 +10,11 @@ class_name Action5ViewInput
 @export var bind_function_keys: bool = true
 @export var bind_controller_cycle: bool = true
 
-var manager: Action5ViewManager
+var manager: ViewManagerScript
 
 
 func _ready() -> void:
-    manager = get_node_or_null(manager_path) as Action5ViewManager
+    manager = get_node_or_null(manager_path) as ViewManagerScript
     if manager == null:
         push_error("ACTION5: ViewInput needs a ViewManager")
         return
