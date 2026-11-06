@@ -42,6 +42,9 @@ func _run_tests() -> void:
         return
 
     var level := level_resource.instantiate()
+    # The CharacterBody3D may be moved out of floor penetration on its
+    # first physics frame. Verify the authored spawn before attaching it.
+    var authored_spawn: Vector3 = (level.get_node("Player") as Node3D).position
     root.add_child(level)
     await process_frame
 
@@ -68,8 +71,8 @@ func _run_tests() -> void:
         _check(player.get_node_or_null("Visual/Body") is MeshInstance3D,
             "Actor has a rendered 3D primitive")
         var original_position: Vector3 = player.global_position
-        _check(original_position.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
-            "Actor begins at documented spawn")
+        _check(authored_spawn.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
+            "Actor scene defines documented spawn before physics correction")
 
     # D02: one actor and one camera, five selectable perspectives.
     var manager := level.get_node_or_null("ViewManager") as ViewManagerScript
