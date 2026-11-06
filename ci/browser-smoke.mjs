@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 
 const errors = [];
+const cameraChanges = [];
+const settingsVisibility = [];
 const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl'],
@@ -13,7 +15,10 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   page.on('pageerror', error => errors.push('pageerror: ' + error.message));
   page.on('console', message => {
-    if (message.type() === 'error') errors.push('console: ' + message.text());
+    const line = message.text();
+    if (message.type() === 'error') errors.push('console: ' + line);
+    if (line.includes('ACTION5_VIEW_CHANGED')) cameraChanges.push(line);
+    if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
   page.on('requestfailed', req => errors.push('request: ' + req.url() + ': ' + req.failure()?.errorText));
   const url = process.env.ACTION5_WEB_URL || 'http://127.0.0.1:8765/';
@@ -116,6 +121,39 @@ try {
     errors.push('Camera settings C shortcut did not close controls');
   }
   if (errors.length) throw Error(errors.join('\\n'));
+  // Reproduce the user-reported focus bug with *real* canvas events.
+  // Clicking mode 3, pressing 2, and then jumping must not re-activate 3.
+  await page.mouse.click(391, 169);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const cameraCountBeforeSpace = cameraChanges.length;
+  if (cameraCountBeforeSpace === 0 ||
+      !cameraChanges.at(-1).includes('index=2')) {
+    errors.push('Cannot confirm selected view from Godot browser logs');
+  }
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(300);
+  if (cameraChanges.length !== cameraCountBeforeSpace) {
+    errors.push('Space activated previously clicked camera button');
+  }
+  // Likewise Camera Settings must not reopen when Space is pressed after C.
+  await page.mouse.click(1130, 168);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('c');
+  await page.waitForTimeout(200);
+  const visibilityBeforeSpace = settingsVisibility.length;
+  if (visibilityBeforeSpace === 0 ||
+      !settingsVisibility.at(-1).includes('closed')) {
+    errors.push('Cannot confirm camera settings closed before Space');
+  }
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(300);
+  if (settingsVisibility.length !== visibilityBeforeSpace) {
+    errors.push('Space reactivated the Camera Settings button');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_FOCUS_OK view=1 settings=1 jump=1');
   console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
   console.log('ACTION5_BROWSER_FIVE_VIEWS_OK unique=' + hashes.size + ' selector=1');
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
