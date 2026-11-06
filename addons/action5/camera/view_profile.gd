@@ -6,7 +6,6 @@ enum Mode {
     SIDE,
     BEATEMUP,
     ISOMETRIC,
-    THIRD_PERSON,
     FIRST_PERSON,
     RETRO_TOPDOWN,
 }
@@ -22,8 +21,11 @@ enum Mode {
 @export var bound_camera_target: bool = true
 @export var bounds_min: Vector2 = Vector2(-11.0, -6.0)
 @export var bounds_max: Vector2 = Vector2(11.0, 6.0)
-@export_range(1.0, 14.0, 0.25) var chase_distance: float = 4.5
-## Third-person shoulder composition, in character/camera heading space.
+@export_range(2.0, 30.0, 0.25) var chase_distance: float = 17.0
+@export_range(1.5, 10.0, 0.1) var close_chase_distance: float = 2.9
+@export_range(0.0, 70.0, 1.0) var close_pitch_degrees: float = 16.0
+@export_range(-180.0, 180.0, 1.0) var close_yaw_degrees: float = 0.0
+## Shared isometric camera: zoom can approach an over-shoulder composition.
 @export_range(-2.0, 2.0, 0.05) var shoulder_offset: float = 0.0
 @export_range(0.0, 3.0, 0.05) var shoulder_lift: float = 0.0
 @export_range(0.0, 6.0, 0.1) var aim_ahead: float = 0.0
@@ -39,7 +41,7 @@ enum Mode {
 
 
 func is_orbit_mode() -> bool:
-    return mode == Mode.THIRD_PERSON or mode == Mode.FIRST_PERSON
+    return mode == Mode.ISOMETRIC or mode == Mode.FIRST_PERSON
 
 
 func is_overhead() -> bool:
