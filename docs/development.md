@@ -53,3 +53,19 @@ CI uploads import/test/export logs and screenshots to the `d01-evidence` artifac
 - [ ] MIT license and procedural-asset inventory committed.
 
 D02 must not begin until D01 gate is reviewed and approved or the owner explicitly records an exception.
+
+## D02 — Six-camera demo
+
+The current D02 branch adds one persistent camera and six runtime presets. Use **1–6** in the native editor run or Web build; F1–F6 are optional alternate shortcuts. WASD/arrows move a placeholder capsule; F4 and F5 allow click-to-capture mouse look, and Esc releases it. A six-button HUD provides a browser-safe fallback. Gamepad shoulder buttons cycle views.
+
+All camera profile values are editable in `addons/action5/views/*.tres`. The reusable camera components are under `addons/action5/camera/`. See [cameras.md](cameras.md) for API and integration instructions.
+
+```bash
+godot --path .
+godot --headless --path . --import
+godot --headless --path . --script res://tests/run_all.gd
+```
+
+The D02 visual evidence suite captures `native-view-1.png` to `native-view-6.png` and corresponding `web-view-*.png` screenshots into the GitHub Actions `d01-evidence` artifact (the historical CI artifact name is retained). These screenshots show each perspective on the same world and are reviewed as part of D02 acceptance.
+
+No D03 locomotion, D04 animation, D05 combat or weapons are claimed as part of D02.
