@@ -114,6 +114,8 @@ jobs:
             test -s "build/evidence/web-view-$i.png"
           done
           test -s build/evidence/web-selector-view-1.png
+          test -s build/evidence/web-camera-settings.png
+          grep -q 'ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_SIX_VIEWS_OK unique=6 selector=1' build/evidence/browser-smoke.log
 
       - name: Upload build logs, screenshots and verification
