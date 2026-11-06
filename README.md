@@ -13,7 +13,7 @@ It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawle
 | Key (native and Web) | Mode | Camera and controls | Inspiration |
 |---|---|---|---|
 | **1** | Side-scroller | True horizontal orthographic camera (Mario / Altered Beast), X movement, fixed depth lane | Classic 2D platform/action scrolling |
-| **2** | Beat'em up | Fixed angled camera; free ground-plane X/Z movement | Arcade beat'em ups |
+| **2** | Beat'em up | Close, shallow-angle orthographic framing, X/Z movement | *Streets of Rage*, *Golden Axe* |
 | **3** | Isometric | Tilted orthographic camera; camera/screen-relative ground movement | Dungeon action RPGs |
 | **4** | Third person | Close over-the-shoulder follow, adjustable height and look-ahead | Third-person action |
 | **5** | First person | Eye-level perspective; mouse look and crosshair aiming | First-person dungeon action |
