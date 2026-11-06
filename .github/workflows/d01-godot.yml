@@ -38,16 +38,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/evidence build/web build/linux
-          godot --headless --path . --import 2>&1 | tee build/evidence/import.log
+          make import 2>&1 | tee build/evidence/import.log
           python3 tools/check_godot_log.py build/evidence/import.log
-          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/headless-scene.log
+          make run RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/headless-scene.log
           python3 tools/check_godot_log.py build/evidence/headless-scene.log
 
       - name: Run real Godot tests
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --script res://tests/run_all.gd 2>&1 | tee build/evidence/tests.log
+          make test 2>&1 | tee build/evidence/tests.log
           grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
           grep -q 'failures=0' build/evidence/tests.log
           python3 tools/check_godot_log.py build/evidence/tests.log
@@ -68,9 +68,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --export-release Linux build/linux/action5-demo.x86_64 2>&1 | tee build/evidence/export-linux.log
-          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee build/evidence/export-web.log
-          python3 tools/check_godot_log.py build/evidence/export-linux.log build/evidence/export-web.log
+          make build 2>&1 | tee build/evidence/export-build.log
+          cp build/logs/export-linux.log build/evidence/export-linux.log
+          cp build/logs/export-web.log build/evidence/export-web.log
+          python3 tools/check_godot_log.py build/evidence/export-build.log build/evidence/export-linux.log build/evidence/export-web.log
           python3 tools/check_exports.py
 
       - name: Run exported Linux executable
