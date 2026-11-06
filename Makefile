@@ -8,6 +8,7 @@
 .NOTPARALLEL:
 SHELL := /bin/bash
 GODOT ?= godot
+RUN_ARGS ?=
 PYTHON ?= python3
 PORT ?= 8765
 
@@ -41,7 +42,7 @@ test: import
 	@$(PYTHON) tools/check_godot_log.py build/logs/test.log
 
 run: import
-	$(GODOT) --path .
+	$(GODOT) --path . $(RUN_ARGS)
 
 editor: import
 	$(GODOT) --editor --path .
