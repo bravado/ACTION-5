@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Action5ViewProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/camera/view_profile.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "First Person (F5)"
+mode = 4
+orthographic = false
+field_of_view = 80.0
+follow_speed = 0.0
+bound_camera_target = false
+default_pitch_degrees = 0.0
+eye_height = 1.55
+camera_collision = false
