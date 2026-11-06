@@ -5,6 +5,7 @@ extends "res://addons/action5/actor/moves/move.gd"
 var enter_count: int = 0
 var exit_count: int = 0
 var tick_count: int = 0
+var allow_exit: bool = true
 
 
 func _init() -> void:
@@ -33,3 +34,7 @@ func physics_update(ctx: ContextScript, _delta: float) -> void:
 
 func exit(_ctx: ContextScript) -> void:
     exit_count += 1
+
+
+func can_exit(_ctx: ContextScript) -> bool:
+    return allow_exit
