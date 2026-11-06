@@ -7,10 +7,10 @@ script = ExtResource("1_script")
 display_name = "Beat'em Up (Arcade)"
 mode = 1
 ; Close-in arcade brawler framing: larger character and shallow stage angle.
-fixed_offset = Vector3(0, 6.0, 10.0)
+fixed_offset = Vector3(0, 4.5, 10.0)
 focus_height = 1.05
 orthographic = true
-orthographic_size = 8.5
+orthographic_size = 7.0
 follow_speed = 9.0
 bound_camera_target = true
 bounds_min = Vector2(-9.5, -4.5)
