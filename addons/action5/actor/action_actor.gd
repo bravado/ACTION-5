@@ -19,6 +19,8 @@ var _planar_intent: Vector2 = Vector2.ZERO
 
 func apply_move_intent(intent: IntentScript) -> void:
     if not alive or not controls_enabled or intent == null:
+        _planar_intent = Vector2.ZERO
+        _latest = IntentScript.new()
         locomotion.stop()
         return
     _latest = intent
@@ -45,6 +47,8 @@ func exit_side_view() -> void:
 
 func set_controls_enabled(next_enabled: bool) -> void:
     controls_enabled = next_enabled
+    if not controls_enabled:
+        _planar_intent = Vector2.ZERO
     locomotion.set_enabled(alive and controls_enabled)
 
 
