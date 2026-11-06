@@ -15,14 +15,14 @@ Build **one 3D gameplay simulation**, not six games and not six renderers. All s
 
 | Shortcut | View | Camera | Locomotion | Aim/facing |
 |---|---|---|---|---|
-| F1 | Side | Fixed orthographic, stage-facing | X only; lock current Z as lane | Left/right, optional lock-on |
-| F2 | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
-| F3 | Isometric dungeon | Tilted orthographic, 30–60 degrees downward | X/Z, screen/camera-relative | Cursor world point, movement or lock-on |
-| F4 | Third person | Perspective chase camera | X/Z, camera-relative | Camera/lock-on, optional strafe |
-| F5 | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
-| F6 | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
+| 1 (F1 alternate) | Side | Fixed orthographic, stage-facing | X only; lock current Z as lane | Left/right, optional lock-on |
+| 2 (F2 alternate) | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
+| 3 (F3 alternate) | Isometric dungeon | Tilted orthographic, 30–60 degrees downward | X/Z, screen/camera-relative | Cursor world point, movement or lock-on |
+| 4 (F4 alternate) | Third person | Perspective chase camera | X/Z, camera-relative | Camera/lock-on, optional strafe |
+| 5 (F5 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
+| 6 (F6 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
 
-**Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F5), and Ctrl+number normally switches browser tabs. Native uses F1–F6; Web uses remappable number-row 1–6 plus a mandatory six-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
+**Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F5), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–6 as the primary mapping**; F1–F6 remain optional alternate mappings. Web additionally requires a six-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
 
 **Non-negotiable artifacts:**
 1. `addons/action5/` — reusable, self-contained framework with no dependency on the demo.
@@ -57,7 +57,7 @@ Online multiplayer, rollback netcode, competitive fighting-game move lists, proc
 
 ### 2.3 Success criteria
 
-- User can switch F1–F6 (native), remappable number-row 1–6 and six-option UI selector (Web and native) **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
+- User can switch with **1–6** (native and Web primary), optional F1–F6 and six-option UI selector **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
 - Movement and aiming make sense for each profile. F1 locks the actor to the **current** Z lane; leaving F1 restores X/Z freedom.
 - Punch, kick, bat, shovel and gun hit the same target correctly regardless of view; perspective changes cannot damage a target by themselves.
 - Player, AI and objects continue updating when the camera switches.
@@ -172,7 +172,7 @@ EquipmentComponent.weapon_equipped(weapon_id)
 ### 4.4 Input routing, including browser keys
 
 - Define actions `view_1` ... `view_6`, `view_next`, `view_previous`, `move_*`, `jump`, `attack_light`, `attack_heavy`, `interact`, `reload`, `pause`, `lock_target`, `debug_overlay`.
-- Native: F1–F6. Browser fallback: remappable number-row 1–6 and always-visible six-view selector; gamepad view next/previous. Preserve input rebinding when numbers also serve as equipment shortcuts.
+- Native and Web: number-row 1–6 is primary. F1–F6 is optional secondary; Web must offer an always-visible six-view selector. Gamepad view next/previous. Preserve input rebinding when numbers also serve as equipment shortcuts.
 - Web: do not rely on reserved browser/OS function keys or Ctrl+number tab shortcuts. Provide discoverable view selector and instructions, and test number-row binding in Chromium and Firefox.
 - Focus loss: release capture, pause or clear held movement/attack buttons; no stuck inputs. Gamepad disconnected: gracefully fall back.
 - UI dialogs consume input before player actions. InputAdapter emits intent; movement and combat are unaware of physical key codes.
@@ -290,7 +290,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 **Tasks**
 - Implement `ViewProfile`, `ViewManager`, `CameraRig` and six `.tres` resources: `side`, `beatemup`, `isometric`, `third_person`, `first_person`, `retro_topdown`.
-- Support native F1–F6, browser-safe remappable number-row 1–6, a six-option on-screen selector and controller next/previous view.
+- Support primary number-row **1–6 in both native and Web**, optional F1–F6, a six-option on-screen selector, remappable InputMap actions and controller next/previous view.
 - Fixed orthographic F1/F2, tilted isometric F3, perspective chase F4, eye-level perspective F5, true vertical overhead F6; separate follow/zoom/bounds options.
 - Implement camera follow, offsets, bounds, spring-arm/obstacle avoidance, pitch clamps and basic transition smoothing.
 - Handle input focus/mouse capture, pause and projection change transitions.
@@ -487,7 +487,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 | Test ID | Scenario | Expected result | Primary deliverables |
 |---|---|---|---|
-| VT-01 | Press each F1–F6 native | Correct view, uninterrupted world | D02/D03 |
+| VT-01 | Press number row 1–6 native | Correct view, uninterrupted world | D02/D03 |
 | VT-02 | Web number-row 1–6 / on-screen six-mode selector | All views usable; no reserved shortcut required | D02/D11 |
 | VT-03 | Switch from F4 to F1 at nonzero Z | Position unchanged; lane anchors to current Z | D03 |
 | VT-04 | Switch from F1 to F3 | Free X/Z resumes, no teleport | D03 |
@@ -625,7 +625,7 @@ An agent may run all roles sequentially, but evidence must remain independently 
 - `D01-02` Headless test runner, CI import smoke, Web/Linux export smoke.
 - `D02-01` Fixed view profiles (F1–F3/F6) with distinct isometric and retro-top-down cameras.
 - `D02-02` Third/first person camera, projection transitions and collision.
-- `D02-03` All six shortcuts, browser-safe bindings, selector and controller cycling.
+- `D02-03` Primary number keys 1–6 (native/Web), optional F keys, browser-safe bindings, selector and controller cycling.
 - `D03-01` Actor locomotion and intent contracts.
 - `D03-02` View-specific ground-plane mapping, depth lock and jumping.
 - `D03-03` Vertical-camera F6 mapping, 4-/8-way facing and independent-aim tests.
