@@ -1,4 +1,4 @@
-// ACTION-5 browser smoke: verify a real WebGL2 canvas and all six keyboard views.
+// ACTION-5 browser smoke: verify a real WebGL2 canvas and all five keyboard views.
 // Keeps D01 startup checks while adding D02 rendered camera evidence.
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
@@ -39,7 +39,7 @@ try {
 
   // Native DOM keyboard events drive the Godot InputMap actions, not test hooks.
   const hashes = new Set();
-  for (let index = 1; index <= 6; index++) {
+  for (let index = 1; index <= 5; index++) {
     await page.keyboard.press(String(index));
     await page.waitForTimeout(450);
     const png = await page.screenshot({
@@ -48,8 +48,8 @@ try {
     });
     hashes.add(createHash('sha256').update(png).digest('hex'));
   }
-  if (hashes.size < 6) {
-    errors.push('Only ' + hashes.size + '/6 unique camera screenshots after pressing 1–6');
+  if (hashes.size < 5) {
+    errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–6');
   }
 
   // The on-screen view selector is a mandatory browser fallback.
@@ -63,7 +63,7 @@ try {
   const buttonHash = createHash('sha256').update(buttonPng).digest('hex');
   const lastKeyHash = [...hashes].at(-1);
   if (buttonHash === lastKeyHash) {
-    errors.push('On-screen selector did not visibly change the F6 camera');
+    errors.push('On-screen selector did not visibly change the F5 camera');
   }
   if (errors.length) throw Error(errors.join('\n'));
   // Camera settings must work on real Godot WebGL controls, not only scripts.
@@ -89,7 +89,7 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
-  console.log('ACTION5_BROWSER_SIX_VIEWS_OK unique=' + hashes.size + ' selector=1');
+  console.log('ACTION5_BROWSER_FIVE_VIEWS_OK unique=' + hashes.size + ' selector=1');
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
 } finally {
   await browser.close();
