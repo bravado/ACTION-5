@@ -3,12 +3,14 @@ extends Node3D
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
+const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
 @onready var _views: ViewManagerScript = $ViewManager
 @onready var _input: InputAdapterScript = $ActorInput
+@onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _status: Label = $Hud/Status
 @onready var _help: Label = $Hud/Help
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
@@ -20,6 +22,7 @@ var _has_window_focus: bool = true
 
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
+    _moves.move_changed.connect(_on_move_changed)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
@@ -91,18 +94,30 @@ func _unhandled_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
 
 
+## Diagnostic display and CI log are generic: no checks for specific moves.
+func _on_move_changed(previous: StringName, current: StringName) -> void:
+    print("ACTION5_MOVE_CHANGED previous=%s current=%s" % [previous, current])
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
+
+
+func _refresh_status(profile: ViewProfileScript) -> void:
+    _status.text = "VIEW %d / 5  |  %s  |  Move: %s  |  Switches: %d  |  Delta: %.5f" % [
+        _views.active_index + 1, profile.display_name,
+        _moves.active_id, _views.switch_count, _views.last_position_delta
+    ]
+
+
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if current == null:
         return
     # Remove stale GUI focus left by view buttons or camera sliders.
     _release_ui_focus()
-    _status.text = "VIEW %d / 5  |  %s  |  Switches: %d  |  Position delta: %.5f" % [
-        _views.active_index + 1, current.display_name, _views.switch_count, _views.last_position_delta
-    ]
+    _refresh_status(current)
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D03 LOCOMOTION & FACING\n1–5: view | WASD/arrows: move | Space: jump | Shift: run | Alt: dodge\n3/4: click to look, Esc: release | C: camera settings"
+    _help.text = "ACTION-5 // D03 LOCOMOTION & FACING\n1–5: view | WASD/arrows: move | Space: jump | Shift: run | Alt: dodge | X: slide\n3/4: click to look, Esc: release | C: camera settings"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE
