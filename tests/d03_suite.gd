@@ -6,6 +6,7 @@ const PolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 const ActorScript = preload("res://addons/action5/actor/action_actor.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const AdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
+const CustomDashScript = preload("res://tests/fixtures/custom_dash_move.gd")
 
 
 func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
@@ -16,6 +17,36 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(adapter != null and player != null, "D03 reusable actor/input adapter available")
     verify.call(player.get_node("Locomotion") != null and player.get_node("Visual") != null,
         "Locomotion and facing are independent actor components")
+
+    # A reusable controller discovers components directly from the actor
+    # scene; bindings come from components, not the input adapter's switch.
+    var demo_moves = player.locomotion.move_controller
+    verify.call(demo_moves.get_moves().size() == 4,
+        "Four default move components auto-register (grounded/air/dodge/slide)")
+    verify.call(demo_moves.get_move(&"grounded") != null
+        and demo_moves.get_move(&"airborne") != null
+        and demo_moves.get_move(&"dodge") != null
+        and demo_moves.get_move(&"slide") != null,
+        "Every shipped state is discoverable by its public move ID")
+    verify.call(InputMap.has_action(&"actor_dodge") and InputMap.has_action(&"actor_slide"),
+        "InputMap bindings are registered from move components")
+    verify.call(not demo_moves.request_move(&"not_installed"),
+        "Unknown move ID is rejected safely")
+
+    # Dynamically install an entirely new move without touching Actor,
+    # InputAdapter or the locomotion solver.
+    var injected = CustomDashScript.new()
+    verify.call(demo_moves.add_move(injected),
+        "Custom move registers at runtime as a separate child component")
+    verify.call(demo_moves.get_move(&"test_dash") == injected
+        and demo_moves.get_moves().size() == 5,
+        "The controller automatically discovers the newly installed move")
+    verify.call(InputMap.has_action(&"actor_test_dash")
+        and not InputMap.action_get_events(&"actor_test_dash").is_empty(),
+        "Custom move registers its default InputMap action via registry signal")
+    verify.call(not demo_moves.add_move(CustomDashScript.new()),
+        "Controller rejects duplicate move IDs without replacing existing moves")
+
 
     verify.call(PolicyScript.deadzone(Vector2(0.10, 0.0), 0.20).is_zero_approx(),
         "Analogue stick drift is ignored by the configurable deadzone")
@@ -178,6 +209,61 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Deceleration returns horizontal speed to zero")
     verify.call(actor.is_on_floor(), "Actor remains grounded after braking")
 
+    # Same plug-in installed on a second actor: AI/programmatic move requests
+    # are interpreted by the registry and solved through one CharacterBody3D.
+    var actor_moves = actor.locomotion.move_controller
+    var custom = CustomDashScript.new()
+    verify.call(actor_moves.add_move(custom),
+        "Independent actor installs the test-only move with no solver changes")
+    var custom_intent := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
+    custom_intent.request_move(&"test_dash")
+    var before_custom: float = actor.global_position.x
+    actor.apply_move_intent(custom_intent)
+    verify.call(actor_moves.active_id == &"test_dash" and custom.enter_count == 1,
+        "Custom move becomes active via generic MoveIntent.request_move")
+    await tree.physics_frame
+    verify.call(actor.velocity.x > actor.locomotion.walk_speed + 1.0,
+        "Custom move controls horizontal motion through central physics")
+    for i in range(8):
+        await tree.physics_frame
+    verify.call(custom.exit_count == 1
+        and actor_moves.active_id != &"test_dash"
+        and actor.global_position.x > before_custom + 0.4,
+        "Custom move finishes, exits, and resumes fallback movement state")
+
+    # Slide is another installed component. The solver never checks a
+    # slide flag or imports a Slide class.
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(26):
+        await tree.physics_frame
+    var slide_early := MoveIntentScript.new(Vector2.RIGHT)
+    slide_early.request_move(&"slide")
+    actor.apply_move_intent(slide_early)
+    verify.call(actor_moves.active_id != &"slide",
+        "Slide component rejects low-speed entry itself")
+    actor.set_move_intent(Vector2.RIGHT)
+    for i in range(16):
+        await tree.physics_frame
+    var slide_cmd := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
+    slide_cmd.request_move(&"slide")
+    actor.apply_move_intent(slide_cmd)
+    verify.call(actor_moves.active_id == &"slide",
+        "Slide activates as an exclusive state with no global is_sliding flag")
+    var before_slide: float = actor.global_position.x
+    for i in range(12):
+        await tree.physics_frame
+    verify.call(actor.global_position.x > before_slide + 1.0
+        and actor.velocity.x > actor.locomotion.walk_speed + 2.0,
+        "Slide produces a fast, collision-solved movement interval")
+    for i in range(32):
+        await tree.physics_frame
+    verify.call(actor_moves.active_id != &"slide",
+        "Slide duration ends automatically and restores fallback locomotion")
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(30):
+        await tree.physics_frame
+
+
     var before_jump_y: float = actor.global_position.y
     var jump_intent := MoveIntentScript.new()
     jump_intent.jump_pressed = true
@@ -198,7 +284,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     var before_dodge: float = actor.global_position.x
     var dodge := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
-    dodge.dodge_pressed = true
+    dodge.request_move(&"dodge")
     actor.apply_move_intent(dodge)
     await tree.physics_frame
     verify.call(actor.velocity.x > actor.locomotion.walk_speed + 2.0,
