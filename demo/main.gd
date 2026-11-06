@@ -1,9 +1,12 @@
 extends Node3D
+
+const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## D02 reference scene: character and world stay alive while camera profiles change.
 ## D03 will replace the temporary movement mapping with reusable locomotion intents.
 
 @onready var _player: CharacterBody3D = $Player
-@onready var _views: Action5ViewManager = $ViewManager
+@onready var _views: ViewManagerScript = $ViewManager
 @onready var _status: Label = $Hud/Status
 @onready var _help: Label = $Hud/Help
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
@@ -28,17 +31,17 @@ func _process(_delta: float) -> void:
 
 
 func _map_demo_movement(axes: Vector2) -> Vector2:
-    var mode: Action5ViewProfile.Mode = _views.current_profile.mode
-    if mode == Action5ViewProfile.Mode.SIDE:
+    var mode: ViewProfileScript.Mode = _views.current_profile.mode
+    if mode == ViewProfileScript.Mode.SIDE:
         return Vector2(axes.x, 0.0)
 
-    if mode == Action5ViewProfile.Mode.BEATEMUP:
+    if mode == ViewProfileScript.Mode.BEATEMUP:
         return axes
 
     var camera_basis: Basis = _views.get_active_camera().global_basis
     var right := Vector3(camera_basis.x.x, 0.0, camera_basis.x.z).normalized()
     var forward := Vector3.ZERO
-    if mode == Action5ViewProfile.Mode.ISOMETRIC or mode == Action5ViewProfile.Mode.RETRO_TOPDOWN:
+    if mode == ViewProfileScript.Mode.ISOMETRIC or mode == ViewProfileScript.Mode.RETRO_TOPDOWN:
         # Vertical overhead view must use screen-up; camera forward projects to zero.
         forward = Vector3(camera_basis.y.x, 0.0, camera_basis.y.z).normalized()
     else:
@@ -54,7 +57,7 @@ func _on_mode_button_pressed(index: int) -> void:
     _views.switch_view(index)
 
 
-func _on_view_changed(current: Action5ViewProfile, _previous: Action5ViewProfile) -> void:
+func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if current == null:
         return
     _status.text = "VIEW %d / 6  |  %s  |  Switches: %d  |  Position delta: %.5f" % [
