@@ -249,10 +249,16 @@ func _save_preferences() -> void:
     for i in range(_manager.profiles.size()):
         var section := "view_%d" % (i + 1)
         var profile: ViewProfileScript = _manager.profiles[i]
+        var defaults: Dictionary = _defaults[i]
         for field in FIELDS:
             var key: String = field["key"]
             if not _field_visible(key, profile):
                 continue
-            config.set_value(section, key, _get_value(profile, key))
+            # Persist explicit user overrides only. Unmodified properties
+            # keep receiving improved defaults in later addon releases.
+            var actual: float = _get_value(profile, key)
+            if is_equal_approx(actual, float(defaults[key])):
+                continue
+            config.set_value(section, key, actual)
     if config.save(preferences_path) != OK:
         push_warning("ACTION5: could not save camera preferences: " + preferences_path)
