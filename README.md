@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D02 five-camera foundation under review.** A runnable Godot 4.7.2 project, five configurable camera profiles, native/Web smoke builds and tests exist. Generalized movement, weapons, combat and finished game content remain future deliverables.
+> **Project status: D03 locomotion and input abstraction under review.** A runnable Godot 4.7.2 project, five configurable camera profiles, native/Web smoke builds and tests exist. Reusable world-space locomotion, jumping, run/dodge, facing and camera-aware input are part of D03; weapons, combat and finished game content remain future deliverables.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -75,7 +75,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. The temporary movement adapter will be replaced by a reusable locomotion component in D03. See [development](docs/development.md) and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. See [development](docs/development.md) and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
@@ -94,12 +94,12 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01 is merged; D02 implements the five-camera foundation; D03 is next after D02 approval.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
+Development is incremental. **D01 and D02 are merged. D03 locomotion is being implemented in PR #24; D04 begins only after D03's gate is accepted.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
 ```bash
-make run          # Import, then launch the game (press 1–5 to switch cameras)
+make run          # Import, run (1–5 view; WASD move; Space jump; Shift run; Alt dodge)
 make test         # Import, then run headless tests
 make editor       # Import, then open the Godot editor
 make build        # Import and export Linux + Web
