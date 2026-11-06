@@ -155,7 +155,7 @@ EquipmentComponent.weapon_equipped(weapon_id)
 
 ### 4.3 View policy behavior
 
-**F1 Side:** fixed world-space camera; keep X movement; when entering F1, record current Z anchor; prevent user-input Z changes, *do not teleport*. Physics knockback may be restricted per game rule, configurable. Side facing maps to signed X. Jump still uses Y. Enemies/world continue fully 3D.
+**F1 Side (Mario / Altered Beast):** a *true horizontal side-on* orthographic camera, viewing the world strictly along -Z. Screen-right is world +X, screen-up is world +Y; no elevation, downward tilt, yaw-follow or perspective skew, including during follow smoothing and view transitions. Keep X movement; when entering F1, record the current Z anchor; prevent user-input Z changes, *do not teleport*. Physics knockback may be restricted per game rule, configurable. Side facing maps to signed X. Jump still uses Y. Enemies/world continue fully 3D.
 
 **F2 Beat'em up:** fixed stage-facing camera with mild elevation; X/Z movement in stage axes. Facing follows last meaningful input, current target, or configured soft lock. Stage bounds are independent of camera.
 
