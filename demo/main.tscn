@@ -203,23 +203,23 @@ theme_override_constants/separation = 8
 
 [node name="Mode1" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "1 · SIDE"
+text = "1 · SIDE-SCROLLER"
 
 [node name="Mode2" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "2 · BEAT'EM UP"
+text = "2 · BEAT 'EM UP"
 
 [node name="Mode3" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "3 · ISO / SHOULDER"
+text = "3 · ISO / 3RD PERSON"
 
 [node name="Mode4" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "4 · 1ST PERSON"
+text = "4 · FIRST-PERSON"
 
 [node name="Mode5" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "5 · TOP DOWN"
+text = "5 · RETRO TOP-DOWN"
 
 [node name="SettingsToggle" type="Button" parent="Hud"]
 offset_left = 1031.0
