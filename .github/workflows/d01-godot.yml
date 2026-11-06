@@ -120,6 +120,7 @@ jobs:
           test -s build/evidence/web-d03-walking.png
           test -s build/evidence/web-d03-jumping.png
           grep -q 'ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1' build/evidence/browser-smoke.log
+          grep -q 'ACTION5_BROWSER_FOCUS_OK view=1 settings=1 jump=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_FIVE_VIEWS_OK unique=5 selector=1' build/evidence/browser-smoke.log
 
