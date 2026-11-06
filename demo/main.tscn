@@ -1,7 +1,10 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://addons/action5/camera/view_manager.gd" id="3_manager"]
+[ext_resource type="Script" path="res://addons/action5/camera/camera_rig.gd" id="4_rig"]
+[ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="5_input"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -115,11 +118,20 @@ shape = SubResource("BoxShape3D_pillar")
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.15, 0)
 
-[node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(10, 15, 22)
+[node name="ViewManager" type="Node" parent="."]
+script = ExtResource("3_manager")
+initial_view_index = 1
+
+[node name="CameraRig" type="Node3D" parent="ViewManager"]
+script = ExtResource("4_rig")
+
+[node name="Camera3D" type="Camera3D" parent="ViewManager/CameraRig"]
 projection = 1
-size = 22.0
+size = 16.0
 current = true
+
+[node name="ViewInput" type="Node" parent="."]
+script = ExtResource("5_input")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, 24, 0)
@@ -130,8 +142,47 @@ shadow_enabled = true
 
 [node name="Help" type="Label" parent="Hud"]
 offset_left = 24.0
-offset_top = 20.0
-offset_right = 725.0
-offset_bottom = 118.0
+offset_top = 18.0
+offset_right = 1160.0
+offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5   //   D01 FOUNDATION\nWASD / Arrow keys: move   |   Camera modes F1–F6 arrive in D02\n3D world  •  Built-in physics  •  Compatibility renderer"
+text = "ACTION-5 // D02 SIX VIEW PROFILES\n1–6: switch camera | WASD/arrows: move | F4/F5: click to look, Esc: release"
+
+[node name="Status" type="Label" parent="Hud"]
+offset_left = 24.0
+offset_top = 107.0
+offset_right = 1160.0
+offset_bottom = 135.0
+theme_override_font_sizes/font_size = 17
+text = "VIEW 2 / 6 | Beat'em Up"
+
+[node name="ModeButtons" type="HBoxContainer" parent="Hud"]
+offset_left = 24.0
+offset_top = 146.0
+offset_right = 1150.0
+offset_bottom = 190.0
+theme_override_constants/separation = 8
+
+[node name="Mode1" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "1 · SIDE"
+
+[node name="Mode2" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "2 · BEAT'EM UP"
+
+[node name="Mode3" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "3 · ISOMETRIC"
+
+[node name="Mode4" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "4 · 3RD PERSON"
+
+[node name="Mode5" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "5 · 1ST PERSON"
+
+[node name="Mode6" type="Button" parent="Hud/ModeButtons"]
+custom_minimum_size = Vector2(142, 44)
+text = "6 · TOP DOWN"
