@@ -11,6 +11,14 @@ var _time_left: float = 0.0
 var _direction: Vector2 = Vector2.ZERO
 
 
+func _init() -> void:
+    move_id = &"slide"
+    action_name = &"actor_slide"
+    default_key = KEY_X
+    default_gamepad_button = JOY_BUTTON_Y
+    priority = 40
+
+
 func can_enter(ctx: ContextScript) -> bool:
     return (
         ctx.body.is_on_floor()
