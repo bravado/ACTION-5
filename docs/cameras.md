@@ -48,6 +48,21 @@ Clicks on the view buttons do not activate attacks; scene UI events are handled 
 - **F5:** snaps to the actor eye position on entry and hides local third-person visuals; no camera reparenting.
 - Fixed/angled cameras clamp the tracking target to configurable bounds; follow smoothing can be disabled (speed 0). Switching between orthographic and perspective changes projection immediately; transforms are smoothed except when head clipping or exact overhead alignment requires an immediate snap.
 
+## Fresh clones and Godot's script registry
+
+The reusable components retain `class_name` declarations for convenient use in the Godot editor, but consumers **explicitly preload dependent scripts by path**. This prevents a direct game launch on a freshly cloned project from failing with cascading `Could not find type "Action5ViewProfile"` / `Action5ViewManager` errors before Godot has generated `.godot/global_script_class_cache.cfg`.
+
+```bash
+# Directly run the game on a fresh checkout:
+godot --path .
+
+# Editor or asset-import workflow (also valid):
+godot --headless --path . --import
+godot --editor --path .
+```
+
+The CI workflow runs a **cold-start smoke before any import/editor scan**, then runs the full import and test/export matrix. Avoid using the generated `.godot/` directory as a committed dependency.
+
 ## Tests and evidence
 
 ```bash
