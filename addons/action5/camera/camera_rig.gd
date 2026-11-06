@@ -24,7 +24,11 @@ func apply_profile(next_profile: Action5ViewProfile, next_target: Node3D) -> voi
     camera.fov = profile.field_of_view
     camera.current = true
     # No temporary camera inside the player's head when changing projection.
-    _snap_next = profile.mode == Action5ViewProfile.Mode.FIRST_PERSON or transition_count == 0
+    _snap_next = (
+        profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
+        or profile.mode == Action5ViewProfile.Mode.RETRO_TOPDOWN
+        or transition_count == 0
+    )
     transition_count += 1
     _update_camera(1.0 / 60.0)
 
