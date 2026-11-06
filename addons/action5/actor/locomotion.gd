@@ -47,6 +47,14 @@ func apply_intent(next: IntentScript) -> void:
     if desired.dodge_pressed and _dodge_left <= 0.0 and desired.world_move.length_squared() > 0.01:
         _dodge_left = dodge_seconds
         _dodge_direction = desired.world_move.normalized()
+        if side_lane_locked:
+            _dodge_direction.y = 0.0
+            _dodge_direction = _dodge_direction.normalized()
+        # Dodge is a short *burst*, not an acceleration target the
+        # character cannot reach before the dodge timer expires.
+        var burst: float = walk_speed + dodge_speed_bonus
+        body.velocity.x = _dodge_direction.x * burst
+        body.velocity.z = _dodge_direction.y * burst
 
 
 func lock_side_lane() -> void:
