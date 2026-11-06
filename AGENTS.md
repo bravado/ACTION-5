@@ -36,6 +36,7 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Don't reset attack/weapon/AI state on view changes.
 - Don't read raw keyboard input in Combat, Actor or Weapon classes.
 - Don't assume F1/F5 or Ctrl+number shortcuts can be caught in web browsers.
+- F1 is a genuine Mario/Altered Beast side-scrolling projection: camera screen plane is world X/Y (zero pitch, fixed world -Z view). Do not confuse F1 with the elevated X/Z beat'em-up view F2 or rotate F1 toward the actor during follow.
 - Do not collapse F3 tilted isometric and F6 true vertical overhead into one view profile.
 - Do not project camera-forward onto X/Z for F6; it is zero at 90-degree downward pitch. Use projected camera-right/up or explicit world axes.
 - Do not hardcode facing quantization into the combat core: F6 supports optional Zelda-style 4-way sword attacks, Commando-style 8-way shooting and independent aim.
