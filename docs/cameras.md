@@ -4,7 +4,7 @@ D02 provides **six live camera/control profiles**, a single persistent `Camera3D
 
 | Number | Profile resource | Rendering and camera | Temporary D02 movement |
 |---|---|---|---|
-| **1** | `side.tres` | Fixed side-on orthographic | X only (depth restricted in demo; full policy D03) |
+| **1** | `side.tres` | True horizontal XY side-scroller (Mario/Altered Beast), looking along world -Z, zero pitch | X only (depth restricted in demo; full policy D03) |
 | **2** | `beatemup.tres` | Elevated side-on orthographic | World X/Z |
 | **3** | `isometric.tres` | Tilted orthographic | Screen-relative X/Z |
 | **4** | `third_person.tres` | Following perspective, orbit + wall avoidance | Camera-relative X/Z |
@@ -42,7 +42,7 @@ Clicks on the view buttons do not activate attacks; scene UI events are handled 
 
 ## Camera rules
 
-- **F1:** camera follows the character while facing a fixed stage direction, orthographic. The demo's simple X-only restriction is intentionally upgraded in D03.
+- **F1:** true horizontal Mario/Altered Beast camera: screen axes are strictly +X and +Y, camera looks along -Z with an identity basis regardless of follow interpolation. The demo hides the SouthWall **mesh** when F1 is selected (collision is unchanged), since an arena's foreground wall would otherwise block the side view. F2 restores the wall. The demo's X-only movement restriction is generalized in D03.
 - **F3 vs F6:** F3 preserves tilted geometry; F6 is exactly vertical, and uses camera up/right ground-plane mapping rather than the projected camera-forward vector (which becomes zero at vertical pitch).
 - **F4:** a raycast between focus and desired chase-camera position (against the configured collision mask) moves the camera in front of obstacles.
 - **F5:** snaps to the actor eye position on entry and hides local third-person visuals; no camera reparenting.
