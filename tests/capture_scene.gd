@@ -40,6 +40,24 @@ func _capture() -> void:
         if not _save_image(output_dir.path_join("native-view-%d.png" % (i + 1))):
             quit(1)
             return
+        if i == 2:
+            # Same isometric profile at two zoom levels; no sixth view.
+            var settings := scene.get_node("Hud/CameraSettings")
+            settings.call("set_current_value", "orthographic_size", 4.0)
+            for frame in range(12):
+                await process_frame
+            await RenderingServer.frame_post_draw
+            if not _save_image(output_dir.path_join("native-isometric-shoulder.png")):
+                quit(1)
+                return
+            (scene.get_node("Hud/SettingsToggle") as Button).pressed.emit()
+            await process_frame
+            await RenderingServer.frame_post_draw
+            if not _save_image(output_dir.path_join("native-isometric-settings.png")):
+                quit(1)
+                return
+            (scene.get_node("Hud/SettingsToggle") as Button).pressed.emit()
+            settings.call("reset_current_camera")
 
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 6")
     quit(0)
