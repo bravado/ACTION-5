@@ -1,7 +1,8 @@
 extends Node
 
-const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 class_name Action5ViewInput
+
+const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 ## Raw camera selection input is kept separate from player movement/combat.
 ## Number row 1–6 is PRIMARY on native and web; F1–F6 is optional secondary.
 
