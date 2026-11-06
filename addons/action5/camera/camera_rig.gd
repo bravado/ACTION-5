@@ -1,7 +1,8 @@
 extends Node3D
 
-const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 class_name Action5CameraRig
+
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## One persistent Camera3D for all six profiles; never owns gameplay state.
 
 @onready var camera: Camera3D = $Camera3D
