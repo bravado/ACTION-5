@@ -11,6 +11,7 @@ const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
 @export_range(1.0, 100.0, 0.5) var deceleration: float = 31.0
 @export_range(1.0, 20.0, 0.1) var jump_speed: float = 6.3
 @export_range(0.0, 1.0, 0.01) var floor_snap_distance: float = 0.30
+@export_range(0.0, 0.6, 0.01) var max_step_height: float = 0.35
 @export_range(5.0, 65.0, 1.0) var floor_slope_max_degrees: float = 45.0
 @export_range(0.0, 0.25, 0.01) var coyote_seconds: float = 0.10
 @export_range(0.0, 0.25, 0.01) var jump_buffer_seconds: float = 0.12
@@ -115,6 +116,7 @@ func _physics_process(delta: float) -> void:
         _jump_buffer_left = 0.0
         _coyote_left = 0.0
 
+    _attempt_step(delta)
     _apply_gravity(delta)
     body.move_and_slide()
 
@@ -125,6 +127,25 @@ func _physics_process(delta: float) -> void:
         fixed_position.z = side_lane_z
         body.global_position = fixed_position
         body.velocity.z = 0.0
+
+
+## Optional low-obstacle step assist; never bypasses collision.
+## It checks rise clearance and an unblocked horizontal path before lifting.
+func _attempt_step(delta: float) -> void:
+    if max_step_height <= 0.0 or not body.is_on_floor():
+        return
+    var horizontal := Vector3(body.velocity.x, 0.0, body.velocity.z) * delta
+    if horizontal.length_squared() < 0.000001:
+        return
+    var transform: Transform3D = body.global_transform
+    if not body.test_move(transform, horizontal):
+        return
+    var rise := Vector3.UP * max_step_height
+    if body.test_move(transform, rise):
+        return
+    if body.test_move(transform.translated(rise), horizontal):
+        return
+    body.global_position += rise
 
 
 func _apply_gravity(delta: float) -> void:
