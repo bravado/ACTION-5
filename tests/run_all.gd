@@ -77,6 +77,13 @@ func _run_tests() -> void:
     _check(manager != null and input_adapter != null, "View manager and input adapter present")
     if manager != null and player != null:
         _check(manager.profiles.size() == 5, "Exactly five camera profiles")
+        var expected_names := [
+            "Side-Scroller", "Beat 'em Up", "Isometric / Third-Person",
+            "First-Person", "Retro Top-Down"
+        ]
+        for index in range(5):
+            _check(manager.profiles[index].display_name == expected_names[index],
+                "View %d uses consistent human-readable camera name" % (index + 1))
         _check(manager.active_index == 1, "Initial brawler camera selected")
         _check(manager.camera_rig.camera == level.get_node("ViewManager/CameraRig/Camera3D"),
             "One persistent Camera3D across all five views")
