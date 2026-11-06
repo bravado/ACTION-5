@@ -52,10 +52,26 @@ func _ready() -> void:
 func _build_panel() -> void:
     custom_minimum_size = Vector2(338.0, 0.0)
     mouse_filter = Control.MOUSE_FILTER_STOP
+    var background := StyleBoxFlat.new()
+    background.bg_color = Color(0.10, 0.13, 0.19, 0.97)
+    background.corner_radius_top_left = 6
+    background.corner_radius_top_right = 6
+    background.corner_radius_bottom_left = 6
+    background.corner_radius_bottom_right = 6
+    add_theme_stylebox_override("panel", background)
+
+    var padding := MarginContainer.new()
+    padding.name = "Padding"
+    padding.add_theme_constant_override("margin_left", 12)
+    padding.add_theme_constant_override("margin_right", 12)
+    padding.add_theme_constant_override("margin_top", 12)
+    padding.add_theme_constant_override("margin_bottom", 12)
+    add_child(padding)
+
     var outer := VBoxContainer.new()
     outer.name = "Controls"
     outer.add_theme_constant_override("separation", 9)
-    add_child(outer)
+    padding.add_child(outer)
 
     _title = Label.new()
     _title.add_theme_font_size_override("font_size", 20)
