@@ -4,6 +4,7 @@ class_name Action5ActorInputAdapter
 ## Does not own the actor physics nor camera, and does not read input in actors.
 
 const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+const MoveScript = preload("res://addons/action5/actor/moves/move.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 const ActorScript = preload("res://addons/action5/actor/action_actor.gd")
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
@@ -32,6 +33,10 @@ func _ready() -> void:
         set_physics_process(false)
         return
     _register_default_actions()
+    var controller := actor.locomotion.move_controller
+    for move in controller.get_moves():
+        _register_move_action(move)
+    controller.move_registered.connect(_register_move_action)
     views.view_changed.connect(_on_view_changed)
     Input.joy_connection_changed.connect(_on_joy_connection_changed)
     if views.current_profile != null:
@@ -57,8 +62,7 @@ func _physics_process(_delta: float) -> void:
         axes,
         aim_axes,
         Input.is_action_just_pressed(&"actor_jump"),
-        Input.is_action_pressed(&"actor_run"),
-        Input.is_action_just_pressed(&"actor_dodge")
+        Input.is_action_pressed(&"actor_run")
     )
     actor.apply_move_intent(command)
     last_intent = command
@@ -68,8 +72,7 @@ func compose_intent(
     axes: Vector2,
     aim_axes: Vector2 = Vector2.ZERO,
     jump: bool = false,
-    running: bool = false,
-    dodge: bool = false
+    running: bool = false
 ) -> IntentScript:
     var mode: int = views.current_profile.mode
     var basis: Basis = views.get_active_camera().global_basis
@@ -85,7 +88,11 @@ func compose_intent(
     var intent: IntentScript = IntentScript.new(movement, facing, aim)
     intent.jump_pressed = jump
     intent.running = running
-    intent.dodge_pressed = dodge
+    # Every move component declares its own action. New moves can be
+    # installed without adding a new branch, boolean or key here.
+    for move in actor.locomotion.move_controller.get_moves():
+        if move.action_name != &"" and Input.is_action_just_pressed(move.action_name):
+            intent.request_move(move.move_id)
     intent.view_mode = mode
     last_raw_axis = axes
     return intent
@@ -139,7 +146,25 @@ func _register_default_actions() -> void:
     _ensure(&"aim_down", [], JOY_AXIS_RIGHT_Y, 1.0)
     _ensure_button(&"actor_jump", [KEY_SPACE], JOY_BUTTON_A)
     _ensure_button(&"actor_run", [KEY_SHIFT], JOY_BUTTON_LEFT_STICK)
-    _ensure_button(&"actor_dodge", [KEY_ALT], JOY_BUTTON_B)
+
+
+## Components own their input defaults. Existing user InputMap bindings win.
+## Also runs when a move component is added at runtime.
+func _register_move_action(move: MoveScript) -> void:
+    if move == null or move.action_name == &"":
+        return
+    if not InputMap.has_action(move.action_name):
+        InputMap.add_action(move.action_name)
+    if not InputMap.action_get_events(move.action_name).is_empty():
+        return
+    if move.default_key != 0:
+        var keyboard := InputEventKey.new()
+        keyboard.keycode = move.default_key
+        InputMap.action_add_event(move.action_name, keyboard)
+    if move.default_gamepad_button >= 0:
+        var gamepad := InputEventJoypadButton.new()
+        gamepad.button_index = move.default_gamepad_button
+        InputMap.action_add_event(move.action_name, gamepad)
 
 
 func _ensure(action: StringName, keys: Array, joy_axis: int, axis_value: float) -> void:
