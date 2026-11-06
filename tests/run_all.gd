@@ -241,9 +241,9 @@ func _run_tests() -> void:
         if settings != null and settings_button != null:
             settings_button.pressed.emit()
             _check(settings.visible, "Settings toggle opens the camera panel")
-            _check(settings.get_node("Controls/Row_shoulder_offset").visible,
+            _check(settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
                 "Shoulder offset slider is available in F4")
-            _check(not settings.get_node("Controls/Row_orthographic_size").visible,
+            _check(not settings.get_node("Padding/Controls/Row_orthographic_size").visible,
                 "Perspective mode hides orthographic zoom slider")
             var transform_before: Transform3D = player.global_transform
             _check(settings.call("set_current_value", "shoulder_offset", -0.65),
@@ -259,20 +259,20 @@ func _run_tests() -> void:
                 "Reset button restores the F4 default shoulder")
 
             manager.switch_view(1)
-            _check(settings.get_node("Controls/Row_orthographic_size").visible,
+            _check(settings.get_node("Padding/Controls/Row_orthographic_size").visible,
                 "Orthographic zoom slider is available in F2")
-            _check(settings.get_node("Controls/Row_fixed_height").visible,
+            _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
                 "Brawler elevation slider is available in F2")
-            _check(settings.get_node("Controls/Row_fixed_distance").visible,
+            _check(settings.get_node("Padding/Controls/Row_fixed_distance").visible,
                 "Brawler depth slider is available in F2")
-            _check(not settings.get_node("Controls/Row_shoulder_offset").visible,
+            _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
                 "F2 hides F4-only shoulder controls")
             var zoom_before: float = manager.current_profile.orthographic_size
             _check(settings.call("set_current_value", "orthographic_size", 6.5),
                 "Brawler zoom changes through the settings API")
             _check(absf(manager.get_active_camera().size - 6.5) < 0.01,
                 "Camera immediately applies live F2 zoom")
-            var zoom_slider := settings.get_node("Controls/Row_orthographic_size/Slider") as HSlider
+            var zoom_slider := settings.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
             zoom_slider.value = 7.25
             _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
                 "Actual UI zoom slider signal immediately changes the rendered camera")
