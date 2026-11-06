@@ -15,11 +15,13 @@ It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawle
 | **1** | Side-scroller | True horizontal orthographic camera (Mario / Altered Beast), X movement, fixed depth lane | Classic 2D platform/action scrolling |
 | **2** | Beat'em up | Fixed angled camera; free ground-plane X/Z movement | Arcade beat'em ups |
 | **3** | Isometric | Tilted orthographic camera; camera/screen-relative ground movement | Dungeon action RPGs |
-| **4** | Third person | Following perspective camera; mouse/right-stick look | Third-person action |
+| **4** | Third person | Close over-the-shoulder follow, adjustable height and look-ahead | Third-person action |
 | **5** | First person | Eye-level perspective; mouse look and crosshair aiming | First-person dungeon action |
 | **6** | Retro top-down | True overhead orthographic; configurable four-/eight-way movement, facing and aiming | *The Legend of Zelda*, *Commando* |
 
 All modes use **one shared 3D scene and authoritative player actor**. Switching views changes the camera, input-to-movement mapping, aiming policy and local visual presentation—not the world simulation or combat state.
+
+**Camera tuning:** Click **Camera Settings [C]** or press **C** to adjust the active view's zoom, height and follow characteristics. Third-person includes shoulder offset, pitch and look-ahead. Settings persist per view between sessions; **Reset this camera** restores the shipped defaults. See [camera system documentation](docs/cameras.md).
 
 **Camera controls:** Press **1–6** on the number row in native or Web builds to switch cameras instantly. F1–F6 are optional alternate bindings (browser function keys can be reserved, especially F5). The demo also offers six on-screen view buttons and gamepad shoulder-button cycling. See [camera system documentation](docs/cameras.md).
 
