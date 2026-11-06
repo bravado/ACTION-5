@@ -23,6 +23,16 @@ jobs:
       - name: Install pinned Godot and matching templates
         run: bash ci/install-godot.sh
 
+      - name: Cold-start scene without class cache or editor import
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/evidence
+          test ! -f .godot/global_script_class_cache.cfg
+          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/cold-start.log
+          python3 tools/check_godot_log.py build/evidence/cold-start.log
+          echo ACTION5_COLD_START_OK
+
       - name: Import and verify scripts/scenes
         shell: bash
         run: |
