@@ -4,14 +4,18 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Third Person (F4)"
+display_name = "Third Person (Over Shoulder)"
 mode = 3
+focus_height = 1.15
 orthographic = false
-field_of_view = 75.0
-follow_speed = 12.0
+field_of_view = 71.0
+follow_speed = 14.0
 bound_camera_target = false
-chase_distance = 4.0
-default_pitch_degrees = 17.0
+chase_distance = 2.9
+default_pitch_degrees = 16.0
+shoulder_offset = 0.75
+shoulder_lift = 0.65
+aim_ahead = 2.5
 camera_collision = true
 camera_collision_mask = 1
 wall_margin = 0.28
