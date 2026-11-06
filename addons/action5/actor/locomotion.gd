@@ -121,7 +121,9 @@ func _physics_process(delta: float) -> void:
     # The side lane is an X/Y plane, not a second 2D world. Prevent
     # collision-sliding Z drift without snapping to a different lane.
     if side_lane_locked and absf(body.global_position.z - side_lane_z) < 0.20:
-        body.global_position.z = side_lane_z
+        var fixed_position: Vector3 = body.global_position
+        fixed_position.z = side_lane_z
+        body.global_position = fixed_position
         body.velocity.z = 0.0
 
 
