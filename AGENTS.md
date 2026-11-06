@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the deliverable sequence D01–D12 and the explicit exit gates. **D01 is merged; D02 is under review. Do not begin D03 until the D02 gate is approved.** Do not generate the entire framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the deliverable sequence D01–D12 and the explicit exit gates. **D01 and D02 are merged. D03 is the current deliverable under review in PR #24. Do not begin D04 until the D03 gate is accepted.** Do not generate the entire framework in one untested change.
 
 ## Product invariant
 
@@ -57,4 +57,4 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 
 ## Starting task
 
-**D01 is implemented and squash-merged. D02 is the current task:** five configurable view profiles (including unified F3 isometric/shoulder zoom), number keys 1–5, per-profile camera UI, one persistent Camera3D, browser/native regression tests and a reviewed PR. Do not start D03 until D02's gate is accepted.
+**D01 and D02 are merged. D03 is current:** authoritative Actor and Locomotion components, camera-independent MoveIntent, InputMap adapter, world X/Z movement in five modes, real Y jump, F1 depth-lane retention, 4-/8-way F5 facing, optional independent aim, run/dodge, and native/Web regressions. Do not start D04 without review.
