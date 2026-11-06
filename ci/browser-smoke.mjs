@@ -66,6 +66,29 @@ try {
     errors.push('On-screen selector did not visibly change the F6 camera');
   }
   if (errors.length) throw Error(errors.join('\n'));
+  // Camera settings must work on real Godot WebGL controls, not only scripts.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(500);
+  const collapsed = createHash('sha256').update(await page.screenshot()).digest('hex');
+  // SettingsToggle is at x=1031..1255, y=145..191 on the reference viewport.
+  await page.mouse.click(1130, 168);
+  await page.waitForTimeout(350);
+  const openPng = await page.screenshot({
+    path: 'build/evidence/web-camera-settings.png',
+    fullPage: true,
+  });
+  const openHash = createHash('sha256').update(openPng).digest('hex');
+  if (openHash === collapsed) {
+    errors.push('Camera settings button did not open visible controls');
+  }
+  await page.keyboard.press('c');
+  await page.waitForTimeout(350);
+  const closedHash = createHash('sha256').update(await page.screenshot()).digest('hex');
+  if (closedHash === openHash) {
+    errors.push('Camera settings C shortcut did not close controls');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
   console.log('ACTION5_BROWSER_SIX_VIEWS_OK unique=' + hashes.size + ' selector=1');
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
 } finally {
