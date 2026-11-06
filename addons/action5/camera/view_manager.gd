@@ -1,17 +1,20 @@
 extends Node
+
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
+const CameraRigScript = preload("res://addons/action5/camera/camera_rig.gd")
 class_name Action5ViewManager
 ## Owns only view selection and instrumentation. Never modifies actor physics or HP.
 
-signal view_changed(current_profile: Action5ViewProfile, previous_profile: Action5ViewProfile)
+signal view_changed(current_profile: ViewProfileScript, previous_profile: ViewProfileScript)
 
 @export var actor_path: NodePath = ^"../Player"
 @export var initial_view_index: int = 1
-@export var profiles: Array[Action5ViewProfile] = []
+@export var profiles: Array[ViewProfileScript] = []
 
-@onready var camera_rig: Action5CameraRig = $CameraRig
+@onready var camera_rig: CameraRigScript = $CameraRig
 
 var actor: Node3D
-var current_profile: Action5ViewProfile
+var current_profile: ViewProfileScript
 var active_index: int = -1
 var switch_count: int = 0
 var last_position_delta: float = 0.0
@@ -31,7 +34,7 @@ func _ready() -> void:
             "res://addons/action5/views/first_person.tres",
             "res://addons/action5/views/retro_topdown.tres",
         ]:
-            profiles.append(load(path) as Action5ViewProfile)
+            profiles.append(load(path) as ViewProfileScript)
     if profiles.size() != 6:
         push_error("ACTION5: ViewManager requires six ViewProfile resources")
         return
@@ -45,13 +48,13 @@ func _ready() -> void:
 func switch_view(index: int) -> bool:
     if actor == null or index < 0 or index >= profiles.size():
         return false
-    var next_profile: Action5ViewProfile = profiles[index]
+    var next_profile: ViewProfileScript = profiles[index]
     if next_profile == null:
         return false
     if active_index == index:
         return true
 
-    var previous_profile: Action5ViewProfile = current_profile
+    var previous_profile: ViewProfileScript = current_profile
     var position_before: Vector3 = actor.global_position
     var velocity_before: Vector3 = Vector3.ZERO
     if actor is CharacterBody3D:
@@ -86,4 +89,4 @@ func get_active_camera() -> Camera3D:
 func _apply_local_presentation() -> void:
     var visuals: Node3D = actor.get_node_or_null("Visual") as Node3D
     if visuals != null:
-        visuals.visible = current_profile.mode != Action5ViewProfile.Mode.FIRST_PERSON
+        visuals.visible = current_profile.mode != ViewProfileScript.Mode.FIRST_PERSON
