@@ -46,6 +46,8 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Don't use detailed mesh collision to decide punching/kicking/weapon damage.
 - Don't reset attack/weapon/AI state on view changes.
 - Don't read raw keyboard input in Combat, Actor or Weapon classes.
+- **Player moves are plug-in nodes:** adding a move must not require new `is_x` flags, per-move branches or concrete imports in `Action5Actor`, `Action5Locomotion` or `Action5ActorInputAdapter`. New moves subclass `Action5Move` and declare their move ID/action; `Action5MovementController` resolves transitions while only Locomotion writes the physical body velocity and calls `move_and_slide`.
+- Preserve distinct grounded/airborne fallback and verify custom moves register through their own script and InputMap defaults without modifying core code.
 - Don't assume F1/F5 or Ctrl+number shortcuts can be caught in web browsers; the visible five-button selector is required.
 - F1 is a genuine Mario/Altered Beast side-scrolling projection: camera screen plane is world X/Y (zero pitch, fixed world -Z view). Do not confuse F1 with the elevated X/Z beat'em-up view F2 or rotate F1 toward the actor during follow.
 - F3 is the **one combined isometric/third-person shoulder profile**: wide and close zoom share a resource and Camera3D. Do not bring back a separate F4 third-person profile, and do not turn F3 into a perspective camera on zoom.
