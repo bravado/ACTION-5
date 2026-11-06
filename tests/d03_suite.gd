@@ -192,6 +192,27 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(actor.is_on_floor() and actor.global_position.y < before_jump_y + 0.12,
         "Gravity and floor snap return actor to the floor after jump")
 
+    actor.global_position = Vector3(0.0, 0.2, -5.0)
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(12):
+        await tree.physics_frame
+    var before_dodge: float = actor.global_position.x
+    var dodge := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
+    dodge.dodge_pressed = true
+    actor.apply_move_intent(dodge)
+    await tree.physics_frame
+    verify.call(actor.velocity.x > actor.locomotion.walk_speed + 2.0,
+        "Dodge action creates an immediate configurable movement burst")
+    for i in range(8):
+        await tree.physics_frame
+    verify.call(actor.global_position.x > before_dodge + 0.7,
+        "Dodge burst visibly changes actor position using real physics")
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(30):
+        await tree.physics_frame
+    verify.call(absf(actor.velocity.x) < 0.05,
+        "Dodge finishes and normal deceleration resumes")
+
     actor.global_position = Vector3(0.0, 0.18, -4.0)
     actor.enter_side_view()
     var lane: float = actor.global_position.z
