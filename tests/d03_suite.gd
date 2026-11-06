@@ -100,6 +100,32 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(player.global_position.distance_to(world_pos) < 0.0001,
         "Rapid view changes preserve actor world position")
 
+    # Holding one motion input through every camera transition must preserve
+    # the single actor's transform/velocity at switch time and obey speed caps.
+    adapter.set_physics_process(false)
+    var saved_world_transform: Transform3D = player.global_transform
+    player.set_move_intent(Vector2.RIGHT)
+    for i in range(12):
+        await tree.physics_frame
+    var speed_limit: float = player.locomotion.run_speed + 0.5
+    for index in range(5):
+        var current_position: Vector3 = player.global_position
+        var current_velocity: Vector3 = player.velocity
+        manager.switch_view(index)
+        verify.call(player.global_position.distance_to(current_position) < 0.0001,
+            "Moving camera switch %d never teleports the actor" % (index + 1))
+        verify.call(player.velocity == current_velocity,
+            "Moving camera switch %d never changes physical velocity" % (index + 1))
+        var held: MoveIntentScript = adapter.compose_intent(Vector2.RIGHT)
+        player.apply_move_intent(held)
+        await tree.physics_frame
+        var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+        verify.call(planar_speed <= speed_limit,
+            "Held input across camera %d stays within safe speed cap" % (index + 1))
+    player.set_move_intent(Vector2.ZERO)
+    player.global_transform = saved_world_transform
+    manager.switch_view(1)
+
     # Input safety: disabled actor and controller disconnect clear pending input.
     adapter.set_enabled(false)
     adapter.require_neutral = false
