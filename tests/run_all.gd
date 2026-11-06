@@ -272,6 +272,10 @@ func _run_tests() -> void:
                 "Brawler zoom changes through the settings API")
             _check(absf(manager.get_active_camera().size - 6.5) < 0.01,
                 "Camera immediately applies live F2 zoom")
+            var zoom_slider := settings.get_node("Controls/Row_orthographic_size/Slider") as HSlider
+            zoom_slider.value = 7.25
+            _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
+                "Actual UI zoom slider signal immediately changes the rendered camera")
             settings.call("reset_current_camera")
             _check(absf(manager.current_profile.orthographic_size - zoom_before) < 0.01,
                 "Reset restores F2 default zoom")
