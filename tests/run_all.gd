@@ -188,6 +188,10 @@ func _run_tests() -> void:
         var toggle := level.get_node("Hud/SettingsToggle") as Button
         toggle.pressed.emit()
         _check(settings.visible, "Camera settings panel can be opened")
+        player.call("set_move_intent", Vector2.RIGHT)
+        level._process(0.0)
+        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
+            "Open camera settings prevent raw movement keys from moving the actor")
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
@@ -249,6 +253,15 @@ func _run_tests() -> void:
             "Reset restores a wide isometric view")
         toggle.pressed.emit()
         _check(not settings.visible, "Settings panel can be closed")
+        player.call("set_move_intent", Vector2.RIGHT)
+        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
+            "Losing window focus immediately clears movement intent")
+        _check(not bool(level.get("_has_window_focus")),
+            "Focus-out event disables demo movement polling")
+        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
+        _check(bool(level.get("_has_window_focus")),
+            "Focus-in event restores input processing")
 
         # Near zoom camera collision must keep the camera in front of walls.
         player.global_position = Vector3(0.0, 0.15, 7.35)
