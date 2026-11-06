@@ -182,6 +182,38 @@ func _run_tests() -> void:
             "Temporary side-view movement ignores depth input")
         manager.switch_view(1)
 
+        # F1 must be a strict side-scroller: X horizontal, Y vertical,
+        # camera looks directly down -Z, never pitched or orbiting the actor.
+        manager.switch_view(0)
+        var side_camera: Camera3D = manager.get_active_camera()
+        _check(side_camera.global_basis.x.is_equal_approx(Vector3.RIGHT),
+            "F1 screen-right is world +X, with no camera roll or yaw")
+        _check(side_camera.global_basis.y.is_equal_approx(Vector3.UP),
+            "F1 screen-up is world +Y, with no overhead pitch")
+        _check(side_camera.global_basis.z.is_equal_approx(Vector3.BACK),
+            "F1 camera looks strictly along world -Z")
+        _check(is_zero_approx(manager.current_profile.fixed_offset.y),
+            "F1 side-camera preset never elevates its viewing angle")
+        _check(side_camera.projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "F1 uses classic orthographic side projection")
+        var front_wall_visual := level.get_node("SouthWall/MeshInstance3D") as MeshInstance3D
+        var front_wall_body := level.get_node("SouthWall") as StaticBody3D
+        _check(not front_wall_visual.visible,
+            "F1 hides foreground arena wall visual to reveal the player")
+        _check(front_wall_body.collision_layer != 0,
+            "F1 retains foreground wall collision while hiding its mesh")
+
+        # Follow smoothing must not rotate the fixed side-view camera.
+        manager.camera_rig._update_camera(0.25)
+        _check(side_camera.global_basis == Basis.IDENTITY,
+            "F1 remains perfectly side-on after camera follow update")
+        manager.switch_view(1)
+        _check(front_wall_visual.visible,
+            "F2 restores foreground wall visuals")
+        manager.camera_rig._update_camera(1.0)
+        _check(manager.get_active_camera().global_basis.z.y > 0.05,
+            "F2 retains its intentionally elevated beat'em-up view")
+
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
     root.add_child(actor)
