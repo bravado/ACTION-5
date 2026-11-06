@@ -208,11 +208,79 @@ func _run_tests() -> void:
         _check(side_camera.global_basis == Basis.IDENTITY,
             "F1 remains perfectly side-on after camera follow update")
         manager.switch_view(1)
-        _check(front_wall_visual.visible,
-            "F2 restores foreground wall visuals")
+        _check(not front_wall_visual.visible,
+            "F2 also hides the foreground mesh for clear arcade-brawler framing")
         manager.camera_rig._update_camera(1.0)
         _check(manager.get_active_camera().global_basis.z.y > 0.05,
             "F2 retains its intentionally elevated beat'em-up view")
+        _check(manager.current_profile.orthographic_size <= 9.0,
+            "F2 uses an arcade-scale orthographic zoom, not a distant arena view")
+        _check(manager.current_profile.fixed_offset.y < manager.current_profile.fixed_offset.z,
+            "F2 uses a low, shallow stage viewing angle")
+
+        # Over-the-shoulder camera should be close and offset behind player.
+        manager.switch_view(3)
+        var shoulder: Vector3 = manager.get_active_camera().global_position - player.global_position
+        _check(shoulder.x > 0.5,
+            "F4 camera is laterally offset to the player's right shoulder")
+        _check(shoulder.y > 2.0,
+            "F4 camera is elevated above the player's shoulder")
+        _check(shoulder.z > 1.0 and shoulder.z < 4.0,
+            "F4 camera stays close behind the player instead of far chase")
+        _check(manager.current_profile.aim_ahead > 1.0,
+            "F4 aims into the world ahead of the actor")
+        _check(manager.current_profile.field_of_view < 75.0,
+            "F4 keeps a shoulder-oriented field of view")
+
+        # All live camera controls operate on the active Resource without
+        # touching the actor's transform or forcing a scene reload.
+        var settings := level.get_node("Hud/CameraSettings")
+        var settings_button := level.get_node("Hud/SettingsToggle") as Button
+        _check(settings != null and settings_button != null,
+            "Runtime camera settings UI and toggle exist")
+        if settings != null and settings_button != null:
+            settings_button.pressed.emit()
+            _check(settings.visible, "Settings toggle opens the camera panel")
+            _check(settings.get_node("VBoxContainer/Row_shoulder_offset").visible,
+                "Shoulder offset slider is available in F4")
+            _check(not settings.get_node("VBoxContainer/Row_orthographic_size").visible,
+                "Perspective mode hides orthographic zoom slider")
+            var transform_before: Transform3D = player.global_transform
+            _check(settings.call("set_current_value", "shoulder_offset", -0.65),
+                "Live UI changes shoulder side")
+            _check(absf(manager.current_profile.shoulder_offset + 0.65) < 0.01,
+                "Shoulder offset updates editable active profile")
+            _check(manager.get_active_camera().global_position.x < -0.4,
+                "Camera repositions to the selected shoulder immediately")
+            _check(player.global_transform == transform_before,
+                "Editing the camera never changes the player's transform")
+            settings.call("reset_current_camera")
+            _check(manager.current_profile.shoulder_offset > 0.5,
+                "Reset button restores the F4 default shoulder")
+
+            manager.switch_view(1)
+            _check(settings.get_node("VBoxContainer/Row_orthographic_size").visible,
+                "Orthographic zoom slider is available in F2")
+            _check(settings.get_node("VBoxContainer/Row_fixed_height").visible,
+                "Brawler elevation slider is available in F2")
+            _check(settings.get_node("VBoxContainer/Row_fixed_distance").visible,
+                "Brawler depth slider is available in F2")
+            _check(not settings.get_node("VBoxContainer/Row_shoulder_offset").visible,
+                "F2 hides F4-only shoulder controls")
+            var zoom_before: float = manager.current_profile.orthographic_size
+            _check(settings.call("set_current_value", "orthographic_size", 6.5),
+                "Brawler zoom changes through the settings API")
+            _check(absf(manager.get_active_camera().size - 6.5) < 0.01,
+                "Camera immediately applies live F2 zoom")
+            settings.call("reset_current_camera")
+            _check(absf(manager.current_profile.orthographic_size - zoom_before) < 0.01,
+                "Reset restores F2 default zoom")
+            _check(not settings.call("set_current_value", "shoulder_offset", 0.0),
+                "Hidden camera-specific controls cannot edit unrelated profiles")
+            settings_button.pressed.emit()
+            _check(not settings.visible, "Settings toggle closes the panel")
+            _check(player.global_transform == transform_before,
+                "All settings interactions preserve the player state")
 
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
