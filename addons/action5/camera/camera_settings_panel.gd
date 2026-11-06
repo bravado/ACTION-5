@@ -6,12 +6,16 @@ class_name Action5CameraSettingsPanel
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
+const PROFILE_IDS = ["side", "beatemup", "isometric", "first_person", "retro_topdown"]
+
 const FIELDS = [
     {"key": "orthographic_size", "label": "Zoom", "min": 4.0, "max": 28.0, "step": 0.25},
     {"key": "fixed_height", "label": "Camera height", "min": 1.0, "max": 14.0, "step": 0.25},
     {"key": "fixed_distance", "label": "Camera depth", "min": 5.0, "max": 22.0, "step": 0.25},
-    {"key": "chase_distance", "label": "Follow distance", "min": 1.5, "max": 9.0, "step": 0.1},
-    {"key": "pitch", "label": "Overhead angle", "min": 0.0, "max": 70.0, "step": 1.0},
+    {"key": "chase_distance", "label": "Wide distance", "min": 4.0, "max": 26.0, "step": 0.25},
+    {"key": "close_chase_distance", "label": "Close distance", "min": 1.5, "max": 9.0, "step": 0.1},
+    {"key": "pitch", "label": "Isometric pitch", "min": 10.0, "max": 70.0, "step": 1.0},
+    {"key": "close_pitch_degrees", "label": "Shoulder pitch", "min": 0.0, "max": 65.0, "step": 1.0},
     {"key": "shoulder_offset", "label": "Shoulder offset", "min": -1.5, "max": 1.5, "step": 0.05},
     {"key": "shoulder_lift", "label": "Shoulder height", "min": 0.0, "max": 2.0, "step": 0.05},
     {"key": "aim_ahead", "label": "Look ahead", "min": 0.0, "max": 5.0, "step": 0.1},
@@ -129,10 +133,11 @@ func _field_visible(key: String, profile: ViewProfileScript) -> bool:
             return profile.orthographic
         "fixed_height", "fixed_distance":
             return profile.mode == ViewProfileScript.Mode.BEATEMUP
-        "chase_distance", "pitch", "shoulder_offset", "shoulder_lift", "aim_ahead":
-            return profile.mode == ViewProfileScript.Mode.THIRD_PERSON
+        "chase_distance", "close_chase_distance", "pitch", "close_pitch_degrees", "shoulder_offset", "shoulder_lift", "aim_ahead":
+            return profile.mode == ViewProfileScript.Mode.ISOMETRIC
         "field_of_view":
-            return profile.mode == ViewProfileScript.Mode.THIRD_PERSON or profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+            # The combined isometric/shoulder mode is orthographic at all zooms.
+            return profile.mode == ViewProfileScript.Mode.FIRST_PERSON
         "eye_height":
             return profile.mode == ViewProfileScript.Mode.FIRST_PERSON
         "follow_speed":
@@ -211,7 +216,7 @@ func refresh_controls() -> void:
     if _manager == null or _manager.current_profile == null or _title == null:
         return
     var profile: ViewProfileScript = _manager.current_profile
-    _title.text = "%d / 6 · %s" % [_manager.active_index + 1, profile.display_name]
+    _title.text = "%d / 5 · %s" % [_manager.active_index + 1, profile.display_name]
     for field in FIELDS:
         var key: String = field["key"]
         var row_data: Dictionary = _rows[key]
@@ -243,18 +248,48 @@ func _load_preferences() -> void:
     var config := ConfigFile.new()
     if config.load(preferences_path) != OK:
         return
+
+    var current_schema: bool = int(config.get_value("meta", "schema", 1)) >= 2
     for i in range(_manager.profiles.size()):
-        var section := "view_%d" % (i + 1)
         var profile: ViewProfileScript = _manager.profiles[i]
+        var section: String = "profile_" + PROFILE_IDS[i]
+        if not current_schema:
+            # v1 had six numbered slots: old F4 shoulder -> new F3 isometric,
+            # old F5 first person -> new F4, old F6 overhead -> new F5.
+            var old_slot: int = i + 1
+            if i >= 3:
+                old_slot += 1
+            section = "view_%d" % old_slot
+
         for field in FIELDS:
             var key: String = field["key"]
-            # Never apply F2's fixed camera Y/Z offsets to side/overhead views.
             if not _field_visible(key, profile):
                 continue
-            if config.has_section_key(section, key):
-                var raw: Variant = config.get_value(section, key)
+            if not config.has_section_key(section, key):
+                continue
+            var raw: Variant = config.get_value(section, key)
+            if raw is float or raw is int:
+                _write_value(profile, key, _clamped(key, float(raw)))
+
+    if not current_schema:
+        # Import older third-person settings into the *close* portion of the
+        # combined isometric profile. Keep existing wide-isometric zoom.
+        var isometric: ViewProfileScript = _manager.profiles[2]
+        var legacy_map := {
+            "chase_distance": "close_chase_distance",
+            "pitch": "close_pitch_degrees",
+            "shoulder_offset": "shoulder_offset",
+            "shoulder_lift": "shoulder_lift",
+            "aim_ahead": "aim_ahead",
+        }
+        for old_key in legacy_map:
+            if config.has_section_key("view_4", old_key):
+                var raw: Variant = config.get_value("view_4", old_key)
                 if raw is float or raw is int:
-                    _write_value(profile, key, _clamped(key, float(raw)))
+                    var new_key: String = legacy_map[old_key]
+                    _write_value(isometric, new_key, _clamped(new_key, float(raw)))
+        _save_preferences()
+
     _manager.camera_rig.refresh_settings()
 
 
@@ -262,16 +297,17 @@ func _save_preferences() -> void:
     if not save_user_settings:
         return
     var config := ConfigFile.new()
+    config.set_value("meta", "schema", 2)
     for i in range(_manager.profiles.size()):
-        var section := "view_%d" % (i + 1)
+        var section: String = "profile_" + PROFILE_IDS[i]
         var profile: ViewProfileScript = _manager.profiles[i]
         var defaults: Dictionary = _defaults[i]
         for field in FIELDS:
             var key: String = field["key"]
             if not _field_visible(key, profile):
                 continue
-            # Persist explicit user overrides only. Unmodified properties
-            # keep receiving improved defaults in later addon releases.
+            # Persist only explicit overrides; future built-in defaults may
+            # change independently and must not be frozen by preferences.
             var actual: float = _get_value(profile, key)
             if is_equal_approx(actual, float(defaults[key])):
                 continue
