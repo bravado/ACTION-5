@@ -3,6 +3,7 @@ extends SceneTree
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
+const D03SuiteScript = preload("res://tests/d03_suite.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
 ## Run: godot --headless --path . --script res://tests/run_all.gd
 ## Expected failing proof: append -- --self-test-failure (must exit nonzero).
@@ -330,6 +331,9 @@ func _run_tests() -> void:
         "Zero intent decelerates actor")
 
     actor.queue_free()
+
+    var d03_suite := D03SuiteScript.new()
+    await d03_suite.run_tests(self, level, Callable(self, "_check"))
     level.queue_free()
 
     if OS.get_cmdline_user_args().has("--self-test-failure"):
