@@ -34,11 +34,25 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
         leaving_first_person
         or profile.mode == ViewProfileScript.Mode.FIRST_PERSON
         or profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN
+        # Shoulder camera must not sweep through geometry when entered.
+        or profile.mode == ViewProfileScript.Mode.THIRD_PERSON
         # A platformer-style side view must be exactly horizontal immediately.
         or profile.mode == ViewProfileScript.Mode.SIDE
         or transition_count == 0
     )
     transition_count += 1
+    _update_camera(1.0 / 60.0)
+
+
+## Apply live UI tuning without resetting current mouse yaw or the player.
+func refresh_settings(update_pitch: bool = false) -> void:
+    if profile == null or target == null:
+        return
+    camera.size = profile.orthographic_size
+    camera.fov = profile.field_of_view
+    if update_pitch and profile.mode == ViewProfileScript.Mode.THIRD_PERSON:
+        orbit_pitch = deg_to_rad(profile.default_pitch_degrees)
+    _snap_next = true
     _update_camera(1.0 / 60.0)
 
 
@@ -64,6 +78,7 @@ func _update_camera(delta: float) -> void:
     var actor_position: Vector3 = target.global_position
     var focus: Vector3 = actor_position + Vector3.UP * profile.focus_height
     var desired: Vector3 = focus + profile.fixed_offset
+    var look_target: Vector3 = focus
     var up_axis: Vector3 = Vector3.UP
 
     if profile.is_orbit_mode():
@@ -78,17 +93,26 @@ func _update_camera(delta: float) -> void:
                 cos(orbit_yaw) * cos_pitch
             ) * profile.chase_distance
             desired = focus + orbit_offset
+            # Right-handed shoulder composition follows the camera heading
+            # (not the actor's mesh rotation, which belongs to locomotion).
+            var right_axis := Vector3(cos(orbit_yaw), 0.0, -sin(orbit_yaw))
+            var facing_axis := Vector3(-sin(orbit_yaw), 0.0, -cos(orbit_yaw))
+            desired += right_axis * profile.shoulder_offset
+            desired += Vector3.UP * profile.shoulder_lift
+            look_target += facing_axis * profile.aim_ahead
     elif profile.bound_camera_target:
         focus.x = clampf(focus.x, profile.bounds_min.x, profile.bounds_max.x)
         focus.z = clampf(focus.z, profile.bounds_min.y, profile.bounds_max.y)
         desired = focus + profile.fixed_offset
 
+    var collided_with_wall: bool = false
     if profile.camera_collision and profile.mode == ViewProfileScript.Mode.THIRD_PERSON:
         var query := PhysicsRayQueryParameters3D.create(focus, desired, profile.camera_collision_mask)
         if target is CollisionObject3D:
             query.exclude = [(target as CollisionObject3D).get_rid()]
         var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
         if not hit.is_empty():
+            collided_with_wall = true
             var collision_position: Vector3 = hit["position"]
             var approach: Vector3 = (desired - focus).normalized()
             desired = collision_position - approach * profile.wall_margin
@@ -98,7 +122,8 @@ func _update_camera(delta: float) -> void:
         up_axis = Vector3.FORWARD
 
     var alpha: float = 1.0
-    if not _snap_next and profile.follow_speed > 0.0:
+    # A blocked shoulder camera must not interpolate through the wall.
+    if not _snap_next and profile.follow_speed > 0.0 and not collided_with_wall:
         alpha = 1.0 - exp(-profile.follow_speed * maxf(delta, 0.0))
     camera.global_position = camera.global_position.lerp(desired, alpha)
     _snap_next = false
@@ -110,7 +135,7 @@ func _update_camera(delta: float) -> void:
         # the actor here; smoothing would introduce yaw/pitch and ruin the XY view.
         camera.global_basis = Basis.IDENTITY
     else:
-        camera.look_at(focus, up_axis)
+        camera.look_at(look_target, up_axis)
 
 
 func is_vertical_overhead() -> bool:
