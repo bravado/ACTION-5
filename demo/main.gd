@@ -72,6 +72,7 @@ func _on_camera_settings_visibility_changed() -> void:
     # This also handles the Close button inside the settings panel.
     _release_ui_focus()
     _input.set_enabled(not _camera_settings.visible and _has_window_focus)
+    print("ACTION5_CAMERA_SETTINGS_VISIBLE ", "open" if _camera_settings.visible else "closed")
 
 
 func _release_ui_focus() -> void:
