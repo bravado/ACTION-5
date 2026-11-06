@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D03 locomotion and input abstraction under review.** A runnable Godot 4.7.2 project, five configurable camera profiles, native/Web smoke builds and tests exist. Reusable world-space locomotion, jumping, run/dodge, facing and camera-aware input are part of D03; weapons, combat and finished game content remain future deliverables.
+> **Project status: D03 locomotion and input abstraction under review.** A runnable Godot 4.7.2 project, five configurable camera profiles, native/Web smoke builds and tests exist. Reusable world-space locomotion, jumping, plug-in Dodge/Slide moves, facing and camera-aware input are part of D03; weapons, combat and finished game content remain future deliverables.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
