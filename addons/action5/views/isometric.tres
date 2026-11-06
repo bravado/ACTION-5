@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Isometric / Shoulder"
+display_name = "Isometric / Third-Person"
 mode = 2
 focus_height = 0.95
 orthographic = true
