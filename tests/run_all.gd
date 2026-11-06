@@ -341,6 +341,67 @@ func _run_tests() -> void:
 
     var d03_suite := D03SuiteScript.new()
     await d03_suite.run_tests(self, level, Callable(self, "_check"))
+
+    # Regression: clicking a camera/menu button must never steal Space from
+    # actor_jump. This used to re-select the previously focused camera.
+    var ui_buttons := level.get_node("Hud/ModeButtons") as HBoxContainer
+    var settings_button := level.get_node("Hud/SettingsToggle") as Button
+    var settings_panel := level.get_node("Hud/CameraSettings") as PanelContainer
+    for i in range(5):
+        var mode_button := ui_buttons.get_node("Mode" + str(i + 1)) as Button
+        _check(mode_button.focus_mode == Control.FOCUS_NONE,
+            "View selector %d never captures Space-to-jump focus" % (i + 1))
+    _check(settings_button.focus_mode == Control.FOCUS_NONE,
+        "Camera Settings toggle never captures Space-to-jump focus")
+    settings_button.pressed.emit()
+    var reset_button := settings_panel.get_node("Padding/Controls/HBoxContainer/ResetCamera") as Button
+    var close_button := settings_panel.get_node("Padding/Controls/HBoxContainer/CloseSettings") as Button
+    _check(reset_button.focus_mode == Control.FOCUS_NONE
+        and close_button.focus_mode == Control.FOCUS_NONE,
+        "Reset and Close controls cannot reactivate on Space")
+    var slider := settings_panel.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
+    slider.grab_focus()
+    await process_frame
+    _check(get_viewport().gui_get_focus_owner() == slider,
+        "Camera settings slider remains keyboard-accessible")
+    close_button.pressed.emit()
+    _check(not settings_panel.visible
+        and get_viewport().gui_get_focus_owner() != slider,
+        "Closing camera settings releases slider focus")
+    var previously_clicked := ui_buttons.get_node("Mode3") as Button
+    previously_clicked.pressed.emit()
+    previously_clicked.grab_focus()
+    await process_frame
+    _check(get_viewport().gui_get_focus_owner() != previously_clicked,
+        "Clicked view button cannot retain keyboard focus")
+    var views := level.get_node("ViewManager") as ViewManagerScript
+    views.switch_view(1)
+    var count_before_space: int = views.switch_count
+    var space_down := InputEventKey.new()
+    space_down.keycode = KEY_SPACE
+    space_down.pressed = true
+    Input.parse_input_event(space_down)
+    await physics_frame
+    var space_up := InputEventKey.new()
+    space_up.keycode = KEY_SPACE
+    space_up.pressed = false
+    Input.parse_input_event(space_up)
+    await process_frame
+    _check(views.active_index == 1 and views.switch_count == count_before_space,
+        "Space after switching with 1–5 cannot activate previous view")
+    settings_button.pressed.emit()
+    settings_button.grab_focus()
+    settings_button.pressed.emit()
+    var count_after_settings: int = views.switch_count
+    Input.parse_input_event(space_down)
+    await physics_frame
+    Input.parse_input_event(space_up)
+    await process_frame
+    _check(not settings_panel.visible
+        and views.switch_count == count_after_settings
+        and get_viewport().gui_get_focus_owner() != settings_button,
+        "Space after closing Camera Settings cannot reopen it or switch views")
+
     level.queue_free()
 
     if OS.get_cmdline_user_args().has("--self-test-failure"):
