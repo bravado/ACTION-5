@@ -34,6 +34,8 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
         leaving_first_person
         or profile.mode == ViewProfileScript.Mode.FIRST_PERSON
         or profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN
+        # A platformer-style side view must be exactly horizontal immediately.
+        or profile.mode == ViewProfileScript.Mode.SIDE
         or transition_count == 0
     )
     transition_count += 1
