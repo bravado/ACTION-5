@@ -31,13 +31,12 @@ func _ready() -> void:
             "res://addons/action5/views/side.tres",
             "res://addons/action5/views/beatemup.tres",
             "res://addons/action5/views/isometric.tres",
-            "res://addons/action5/views/third_person.tres",
             "res://addons/action5/views/first_person.tres",
             "res://addons/action5/views/retro_topdown.tres",
         ]:
             profiles.append(load(path) as ViewProfileScript)
-    if profiles.size() != 6:
-        push_error("ACTION5: ViewManager requires six ViewProfile resources")
+    if profiles.size() != 5:
+        push_error("ACTION5: ViewManager requires five ViewProfile resources")
         return
     for profile in profiles:
         if profile == null:
