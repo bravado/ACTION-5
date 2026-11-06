@@ -14,7 +14,7 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Godot 4 C# runtime is excluded. Prefer standard Godot nodes over third-party runtime dependencies.
 - X = horizontal, Y = vertical/gravity, Z = depth.
 - Six view profiles: F1 Side, F2 Beat'em up, F3 tilted Isometric, F4 Third person, F5 First person, F6 true-overhead Retro Top-Down (NES Commando/Zelda).
-- Native F1–F6; Web uses remappable number-row 1–6 and a mandatory six-mode selector. Ctrl+number is browser-reserved, not a safe fallback.
+- Both native and Web use number row **1–6 as primary**; optional F1–F6 secondary, with mandatory six-mode selector in Web. Ctrl+number is browser-reserved, not a safe fallback.
 - All shipped code/content must be license-compatible and sourced.
 
 ## Working cycle
@@ -44,4 +44,4 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 
 ## Starting task
 
-Implement **D01 — Repository, engine baseline, CI, smoke exports** as defined in PLAN.md. Deliver an actual project and evidence. Then review gate D01 and proceed to D02 only after approval/completion.
+**D01 is implemented and squash-merged. D02 is the current task:** six configurable view profiles, number keys 1–6, one persistent Camera3D, browser/native regression tests and a reviewed PR. Do not start D03 until D02's gate is accepted.
