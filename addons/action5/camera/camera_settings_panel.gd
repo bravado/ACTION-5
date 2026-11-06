@@ -232,6 +232,9 @@ func _load_preferences() -> void:
         var profile: ViewProfileScript = _manager.profiles[i]
         for field in FIELDS:
             var key: String = field["key"]
+            # Never apply F2's fixed camera Y/Z offsets to side/overhead views.
+            if not _field_visible(key, profile):
+                continue
             if config.has_section_key(section, key):
                 var raw: Variant = config.get_value(section, key)
                 if raw is float or raw is int:
@@ -248,6 +251,8 @@ func _save_preferences() -> void:
         var profile: ViewProfileScript = _manager.profiles[i]
         for field in FIELDS:
             var key: String = field["key"]
+            if not _field_visible(key, profile):
+                continue
             config.set_value(section, key, _get_value(profile, key))
     if config.save(preferences_path) != OK:
         push_warning("ACTION5: could not save camera preferences: " + preferences_path)
