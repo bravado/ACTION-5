@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Action5ViewProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/camera/view_profile.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Side-scroller (Mario / Altered Beast)"
+mode = 0
+; Camera looks horizontally along -Z. Screen X is world X; screen Y is world Y.
+; Offset has no Y component: F1 must NEVER tilt down at the stage.
+fixed_offset = Vector3(0, 0, 7.0)
+focus_height = 2.8
+orthographic = true
+orthographic_size = 9.5
+follow_speed = 8.0
+bound_camera_target = true
+bounds_min = Vector2(-9, -5)
+bounds_max = Vector2(9, 5)

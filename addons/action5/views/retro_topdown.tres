@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Action5ViewProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/camera/view_profile.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Retro Top-Down (5)"
+mode = 4
+fixed_offset = Vector3(0, 24, 0)
+focus_height = 0.8
+orthographic = true
+orthographic_size = 15.5
+follow_speed = 8.0
+bound_camera_target = true
+bounds_min = Vector2(-8, -3.5)
+bounds_max = Vector2(8, 3.5)

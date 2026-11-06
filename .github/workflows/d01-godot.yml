@@ -1,4 +1,4 @@
-name: D01 Godot Foundation CI
+name: ACTION-5 Godot CI (D01–D02)
 
 on:
   pull_request:
@@ -23,21 +23,31 @@ jobs:
       - name: Install pinned Godot and matching templates
         run: bash ci/install-godot.sh
 
+      - name: Cold-start scene without class cache or editor import
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/evidence
+          test ! -f .godot/global_script_class_cache.cfg
+          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/cold-start.log
+          python3 tools/check_godot_log.py build/evidence/cold-start.log
+          echo ACTION5_COLD_START_OK
+
       - name: Import and verify scripts/scenes
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/evidence build/web build/linux
-          godot --headless --path . --import 2>&1 | tee build/evidence/import.log
+          make import 2>&1 | tee build/evidence/import.log
           python3 tools/check_godot_log.py build/evidence/import.log
-          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/headless-scene.log
+          make run RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/headless-scene.log
           python3 tools/check_godot_log.py build/evidence/headless-scene.log
 
       - name: Run real Godot tests
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --script res://tests/run_all.gd 2>&1 | tee build/evidence/tests.log
+          make test 2>&1 | tee build/evidence/tests.log
           grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
           grep -q 'failures=0' build/evidence/tests.log
           python3 tools/check_godot_log.py build/evidence/tests.log
@@ -58,9 +68,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --export-release Linux build/linux/action5-demo.x86_64 2>&1 | tee build/evidence/export-linux.log
-          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee build/evidence/export-web.log
-          python3 tools/check_godot_log.py build/evidence/export-linux.log build/evidence/export-web.log
+          make build 2>&1 | tee build/evidence/export-build.log
+          cp build/logs/export-linux.log build/evidence/export-linux.log
+          cp build/logs/export-web.log build/evidence/export-web.log
+          python3 tools/check_godot_log.py build/evidence/export-build.log build/evidence/export-linux.log build/evidence/export-web.log
           python3 tools/check_exports.py
 
       - name: Run exported Linux executable
@@ -79,6 +90,12 @@ jobs:
           xvfb-run -a -s '-screen 0 1280x720x24' godot --audio-driver Dummy --path . --script res://tests/capture_scene.gd 2>&1 | tee build/evidence/native-screenshot.log
           python3 tools/check_godot_log.py build/evidence/native-screenshot.log
           test -s build/evidence/native-scene.png
+          for i in {1..5}; do
+            test -s "build/evidence/native-view-$i.png"
+          done
+          test -s build/evidence/native-isometric-shoulder.png
+          test -s build/evidence/native-isometric-settings.png
+          grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
 
       - name: Verify real WebGL2 browser startup
         shell: bash
@@ -95,12 +112,19 @@ jobs:
           npx playwright install --with-deps chromium
           node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log
           test -s build/evidence/web-scene.png
+          for i in {1..5}; do
+            test -s "build/evidence/web-view-$i.png"
+          done
+          test -s build/evidence/web-selector-view-1.png
+          test -s build/evidence/web-camera-settings.png
+          grep -q 'ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1' build/evidence/browser-smoke.log
+          grep -q 'ACTION5_BROWSER_FIVE_VIEWS_OK unique=5 selector=1' build/evidence/browser-smoke.log
 
       - name: Upload build logs, screenshots and verification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: d01-evidence
+          name: d02-evidence
           path: build/evidence/
           if-no-files-found: warn
           retention-days: 14
@@ -109,7 +133,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: d01-exports
+          name: d02-exports
           path: |
             build/linux/
             build/web/
