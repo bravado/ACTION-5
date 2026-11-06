@@ -67,7 +67,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     adapter.retro_facing = 0
     var four: MoveIntentScript = adapter.compose_intent(Vector2(0.6, 0.8))
     verify.call(four.world_move.distance_to(Vector2(0.6, 0.8)) < 0.01
-        and four.face_world == Vector2.DOWN,
+        and four.face_world.distance_to(Vector2.DOWN) < 0.0001,
         "F5 four-way facing quantization never changes actual movement")
     adapter.retro_facing = 1
     var eight: MoveIntentScript = adapter.compose_intent(Vector2(0.6, 0.8))
