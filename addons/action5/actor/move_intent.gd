@@ -8,7 +8,7 @@ var face_world: Vector2 = Vector2.ZERO
 var aim_world: Vector2 = Vector2.ZERO
 var jump_pressed: bool = false
 var running: bool = false
-var dodge_pressed: bool = false
+var requested_moves: Array[StringName] = []
 var view_mode: int = 1
 
 
@@ -28,4 +28,11 @@ func clear() -> void:
     aim_world = Vector2.ZERO
     jump_pressed = false
     running = false
-    dodge_pressed = false
+    requested_moves.clear()
+
+
+## Gameplay or AI may request a move by ID; the actor remains unaware of
+## which move components are installed.
+func request_move(id: StringName) -> void:
+    if id != &"" and not requested_moves.has(id):
+        requested_moves.append(id)
