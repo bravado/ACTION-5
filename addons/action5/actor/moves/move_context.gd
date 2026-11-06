@@ -3,9 +3,11 @@ class_name Action5MoveContext
 ## Shared read-only actor/intent context plus one-tick movement commands.
 ## Only Action5Locomotion writes CharacterBody3D.velocity/move_and_slide.
 
+const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+
 var body: CharacterBody3D
 var locomotion: Node
-var intent: RefCounted
+var intent: IntentScript
 var delta: float = 0.0
 
 var has_horizontal_override: bool = false
@@ -18,7 +20,7 @@ func _init(character: CharacterBody3D, solver: Node) -> void:
     locomotion = solver
 
 
-func begin_tick(next_intent: RefCounted, physics_delta: float) -> void:
+func begin_tick(next_intent: IntentScript, physics_delta: float) -> void:
     intent = next_intent
     delta = physics_delta
     has_horizontal_override = false
