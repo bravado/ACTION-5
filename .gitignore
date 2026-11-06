@@ -1,0 +1,16 @@
+# Godot 4 generated editor state/cache
+.godot/
+.import/
+*.translation
+# Generated exports and evidence
+/build/
+/dist/
+/artifacts/
+# Local platform noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Python helpers
+__pycache__/
+*.pyc
