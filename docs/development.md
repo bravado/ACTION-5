@@ -66,6 +66,6 @@ godot --headless --path . --import
 godot --headless --path . --script res://tests/run_all.gd
 ```
 
-The D02 visual evidence suite captures `native-view-1.png` to `native-view-6.png` and corresponding `web-view-*.png` screenshots into the GitHub Actions `d01-evidence` artifact (the historical CI artifact name is retained). These screenshots show each perspective on the same world and are reviewed as part of D02 acceptance.
+The D02 visual evidence suite captures `native-view-1.png` to `native-view-6.png` and corresponding `web-view-*.png` screenshots into the GitHub Actions `d02-evidence` artifact. These screenshots show each perspective on the same world and are reviewed as part of D02 acceptance.
 
 No D03 locomotion, D04 animation, D05 combat or weapons are claimed as part of D02.
