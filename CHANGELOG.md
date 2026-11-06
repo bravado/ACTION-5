@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### D03 — Actor movement and view-independent input (PR #24)
+
+- Extract authoritative 3D actor, reusable locomotion, visual facing, movement-intent data contracts and camera-specific input policy modules.
+- Add 60 Hz acceleration/deceleration, walking/running, grounded jump with coyote/buffer support, gravity, optional dodge, floor snap and bounded physical low-step assist.
+- Respect camera-specific movement in all five views; F1 locks its current Z lane without teleportation, and F5 uses stable up/right vectors at exact overhead pitch.
+- Separate independent aim and 4-/8-way facing quantization from actual world-space movement.
+- Add keyboard/controller actions, deadzones, input reset on focus loss and gamepad disconnect, dead/disabled actor state.
+- Extend procedural demo arena with a ramp and step, runtime controls, Godot regression suite and browser walk/jump smoke.
+
+
 ### D02 — Five view profiles and camera settings (PR #23, pending review)
 
 - Implement a persistent camera rig and five configurable views: true side-scroller, arcade beat'em up, unified isometric/over-the-shoulder, first person and retro top-down.
