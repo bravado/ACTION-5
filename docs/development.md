@@ -35,7 +35,7 @@ make test
 make run
 ```
 
-Press **1–5** to switch between five camera modes and **WASD/arrow keys** to move the diagnostic player. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
+Press **1–5** to switch between five camera modes, **WASD/arrow keys** to walk, **Space** to jump, **Shift** to run and **Alt** to dodge. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 
@@ -101,4 +101,4 @@ The existing `.github/workflows/d01-godot.yml` runs:
 
 Passing CI uploads `d02-evidence` (logs and native/browser camera captures) and `d02-exports` (Linux and Web builds). A screenshot capture is not a substitute for the real runtime tests; both are required at the D02 gate.
 
-D02 delivers configurable camera profiles only. Full player locomotion/jumping, directional facing, weapons and combat remain future deliverables D03–D07.
+D02 delivers the camera system; **D03 implements reusable walking, running, gravity/jump, optional dodge, gamepad aiming, five-mode input policies and visual facing**. Weapons and combat remain D05–D07. See [locomotion.md](locomotion.md).
