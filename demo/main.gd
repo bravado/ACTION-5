@@ -13,6 +13,8 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _settings_toggle: Button = $Hud/SettingsToggle
 
+var _has_window_focus: bool = true
+
 
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
@@ -24,6 +26,11 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+    # Do not keep moving if the browser/window loses focus, or allow controls
+    # in a camera-settings dialog to drive the world-space actor.
+    if not _has_window_focus or _camera_settings.visible:
+        _player.call("set_move_intent", Vector2.ZERO)
+        return
     var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT))
     x -= float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT))
     var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN))
@@ -48,12 +55,21 @@ func _map_demo_movement(axes: Vector2) -> Vector2:
         # Vertical overhead view must use screen-up; camera forward projects to zero.
         forward = Vector3(camera_basis.y.x, 0.0, camera_basis.y.z).normalized()
     else:
-        # Third/first person use camera heading, even at level pitch.
+        # First-person uses camera heading, even at level pitch.
         forward = Vector3(-camera_basis.z.x, 0.0, -camera_basis.z.z).normalized()
     var world_move: Vector3 = right * axes.x - forward * axes.y
     if world_move.length_squared() > 1.0:
         world_move = world_move.normalized()
     return Vector2(world_move.x, world_move.z)
+
+
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+        _has_window_focus = false
+        if is_instance_valid(_player):
+            _player.call("set_move_intent", Vector2.ZERO)
+    elif what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+        _has_window_focus = true
 
 
 func _on_mode_button_pressed(index: int) -> void:
