@@ -354,9 +354,10 @@ func _run_tests() -> void:
     _check(settings_button.focus_mode == Control.FOCUS_NONE,
         "Camera Settings toggle never captures Space-to-jump focus")
     settings_button.pressed.emit()
-    var reset_button := settings_panel.get_node("Padding/Controls/HBoxContainer/ResetCamera") as Button
-    var close_button := settings_panel.get_node("Padding/Controls/HBoxContainer/CloseSettings") as Button
-    _check(reset_button.focus_mode == Control.FOCUS_NONE
+    var reset_button := settings_panel.find_child("ResetCamera", true, false) as Button
+    var close_button := settings_panel.find_child("CloseSettings", true, false) as Button
+    _check(reset_button != null and close_button != null
+        and reset_button.focus_mode == Control.FOCUS_NONE
         and close_button.focus_mode == Control.FOCUS_NONE,
         "Reset and Close controls cannot reactivate on Space")
     var slider := settings_panel.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
