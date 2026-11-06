@@ -23,6 +23,10 @@ enum Mode {
 @export var bounds_min: Vector2 = Vector2(-11.0, -6.0)
 @export var bounds_max: Vector2 = Vector2(11.0, 6.0)
 @export_range(1.0, 14.0, 0.25) var chase_distance: float = 4.5
+## Third-person shoulder composition, in character/camera heading space.
+@export_range(-2.0, 2.0, 0.05) var shoulder_offset: float = 0.0
+@export_range(0.0, 3.0, 0.05) var shoulder_lift: float = 0.0
+@export_range(0.0, 6.0, 0.1) var aim_ahead: float = 0.0
 @export_range(-70.0, 80.0, 1.0) var default_pitch_degrees: float = 18.0
 @export_range(-180.0, 180.0, 1.0) var default_yaw_degrees: float = 0.0
 @export_range(0.5, 2.3, 0.05) var eye_height: float = 1.55
