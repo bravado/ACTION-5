@@ -282,6 +282,27 @@ func _run_tests() -> void:
             _check(player.global_transform == transform_before,
                 "All settings interactions preserve the player state")
 
+            var saved_preferences := ConfigFile.new()
+            _check(saved_preferences.load(settings.preferences_path) == OK,
+                "UI camera adjustments persist to a user settings file")
+            _check(not saved_preferences.has_section_key("view_1", "fixed_height"),
+                "F1 persistence never writes F2-only camera elevation")
+            _check(not saved_preferences.has_section_key("view_6", "fixed_distance"),
+                "F6 persistence never writes F2-only camera depth")
+            manager.switch_view(0)
+            var side_height: float = manager.current_profile.fixed_offset.y
+            manager.switch_view(5)
+            var overhead_depth: float = manager.current_profile.fixed_offset.z
+            settings.call("_load_preferences")
+            _check(is_zero_approx(side_height)
+                and is_zero_approx(manager.profiles[0].fixed_offset.y),
+                "F1 remains exactly side-on after saved preferences reload")
+            _check(is_zero_approx(overhead_depth)
+                and is_zero_approx(manager.current_profile.fixed_offset.z)
+                and manager.camera_rig.is_vertical_overhead(),
+                "F6 remains exactly vertical after saved preferences reload")
+            manager.switch_view(1)
+
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
     root.add_child(actor)
