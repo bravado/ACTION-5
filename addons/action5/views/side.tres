@@ -6,8 +6,8 @@
 script = ExtResource("1_script")
 display_name = "Side-scroller (Mario / Altered Beast)"
 mode = 0
-# Camera looks horizontally along -Z. Screen X is world X; screen Y is world Y.
-# Offset has no Y component: F1 must NEVER tilt down at the stage.
+; Camera looks horizontally along -Z. Screen X is world X; screen Y is world Y.
+; Offset has no Y component: F1 must NEVER tilt down at the stage.
 fixed_offset = Vector3(0, 0, 7.0)
 focus_height = 2.8
 orthographic = true
