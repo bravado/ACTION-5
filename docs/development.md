@@ -29,13 +29,13 @@ To get started after cloning:
 git clone https://github.com/bravado/ACTION-5.git
 cd ACTION-5
 # Until D02 is merged:
-git switch feat/d02-five-view-camera-profiles
+git switch feat/d02-six-view-camera-profiles
 
 make test
 make run
 ```
 
-Press **1–5** to switch between five camera modes and **WASD/arrow keys** to move the diagnostic player. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The six view buttons offer a browser-friendly fallback.
+Press **1–5** to switch between five camera modes and **WASD/arrow keys** to move the diagnostic player. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 
