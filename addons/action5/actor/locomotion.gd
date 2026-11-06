@@ -4,6 +4,8 @@ class_name Action5Locomotion
 ## Uses a fixed physics tick, floor snapping and slope-compatible move_and_slide.
 
 const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
+const ContextScript = preload("res://addons/action5/actor/moves/move_context.gd")
 
 @export_range(0.1, 20.0, 0.1) var walk_speed: float = 4.5
 @export_range(0.1, 30.0, 0.1) var run_speed: float = 7.5
@@ -15,10 +17,9 @@ const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
 @export_range(5.0, 65.0, 1.0) var floor_slope_max_degrees: float = 45.0
 @export_range(0.0, 0.25, 0.01) var coyote_seconds: float = 0.10
 @export_range(0.0, 0.25, 0.01) var jump_buffer_seconds: float = 0.12
-@export_range(0.0, 12.0, 0.5) var dodge_speed_bonus: float = 4.0
-@export_range(0.0, 0.6, 0.05) var dodge_seconds: float = 0.16
 
 @onready var body: CharacterBody3D = get_parent() as CharacterBody3D
+@onready var move_controller: MoveControllerScript = $MovementController
 
 var desired: IntentScript = IntentScript.new()
 var enabled: bool = true
@@ -26,8 +27,6 @@ var side_lane_locked: bool = false
 var side_lane_z: float = 0.0
 var _coyote_left: float = 0.0
 var _jump_buffer_left: float = 0.0
-var _dodge_left: float = 0.0
-var _dodge_direction: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -44,17 +43,10 @@ func apply_intent(next: IntentScript) -> void:
     desired = next if next != null else IntentScript.new()
     if desired.jump_pressed:
         _jump_buffer_left = jump_buffer_seconds
-    if desired.dodge_pressed and _dodge_left <= 0.0 and desired.world_move.length_squared() > 0.01:
-        _dodge_left = dodge_seconds
-        _dodge_direction = desired.world_move.normalized()
-        if side_lane_locked:
-            _dodge_direction.y = 0.0
-            _dodge_direction = _dodge_direction.normalized()
-        # Dodge is a short *burst*, not an acceleration target the
-        # character cannot reach before the dodge timer expires.
-        var burst: float = walk_speed + dodge_speed_bonus
-        body.velocity.x = _dodge_direction.x * burst
-        body.velocity.z = _dodge_direction.y * burst
+    # No checks for slide/dodge/other move types in the solver: the intent
+    # carries registered move IDs, and the controller dispatches them.
+    for move_id in desired.requested_moves:
+        move_controller.request_move(move_id, desired)
 
 
 func lock_side_lane() -> void:
@@ -70,8 +62,8 @@ func unlock_side_lane() -> void:
 func stop() -> void:
     desired = IntentScript.new()
     _jump_buffer_left = 0.0
-    _dodge_left = 0.0
-    _dodge_direction = Vector2.ZERO
+    if is_instance_valid(move_controller):
+        move_controller.cancel()
     if body != null:
         body.velocity.x = 0.0
         body.velocity.z = 0.0
@@ -96,28 +88,31 @@ func _physics_process(delta: float) -> void:
 
     _coyote_left = coyote_seconds if body.is_on_floor() else maxf(_coyote_left - delta, 0.0)
     _jump_buffer_left = maxf(_jump_buffer_left - delta, 0.0)
-    _dodge_left = maxf(_dodge_left - delta, 0.0)
 
+    # A move component may request a different X/Z velocity this tick,
+    # but only this solver assigns velocity and calls move_and_slide().
+    var ctx: ContextScript = move_controller.tick(desired, delta)
     var movement: Vector2 = desired.world_move.limit_length(1.0)
     if side_lane_locked:
         movement.y = 0.0
-        # A view switch does not edit the actor's position or velocity.
-        # Stop depth *acceleration* on the next physics tick.
+        # Never change the actor's position or velocity at view-switch time.
+        # The new lane policy takes effect on the next physical tick.
         body.velocity.z = 0.0
 
-    var speed: float = run_speed if desired.running else walk_speed
-    if _dodge_left > 0.0:
-        movement = _dodge_direction
+    if ctx.has_horizontal_override:
+        var override: Vector2 = ctx.horizontal_override
         if side_lane_locked:
-            movement.y = 0.0
-        speed += dodge_speed_bonus
-
-    var target_x: float = movement.x * speed
-    var target_z: float = movement.y * speed
-    var accel_x: float = acceleration if absf(target_x) > absf(body.velocity.x) else deceleration
-    var accel_z: float = acceleration if absf(target_z) > absf(body.velocity.z) else deceleration
-    body.velocity.x = move_toward(body.velocity.x, target_x, accel_x * delta)
-    body.velocity.z = move_toward(body.velocity.z, target_z, accel_z * delta)
+            override.y = 0.0
+        body.velocity.x = override.x
+        body.velocity.z = override.y
+    else:
+        var speed: float = run_speed if desired.running else walk_speed
+        var target_x: float = movement.x * speed
+        var target_z: float = movement.y * speed
+        var accel_x: float = acceleration if absf(target_x) > absf(body.velocity.x) else deceleration
+        var accel_z: float = acceleration if absf(target_z) > absf(body.velocity.z) else deceleration
+        body.velocity.x = move_toward(body.velocity.x, target_x, accel_x * delta)
+        body.velocity.z = move_toward(body.velocity.z, target_z, accel_z * delta)
 
     if _jump_buffer_left > 0.0 and _coyote_left > 0.0:
         body.velocity.y = jump_speed
