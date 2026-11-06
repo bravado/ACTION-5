@@ -115,12 +115,14 @@ func _build_panel() -> void:
     var buttons := HBoxContainer.new()
     outer.add_child(buttons)
     _reset = Button.new()
+    _reset.focus_mode = Control.FOCUS_NONE
     _reset.name = "ResetCamera"
     _reset.text = "Reset this camera"
     _reset.pressed.connect(reset_current_camera)
     buttons.add_child(_reset)
 
     var close := Button.new()
+    close.focus_mode = Control.FOCUS_NONE
     close.name = "CloseSettings"
     close.text = "Close"
     close.pressed.connect(hide)
