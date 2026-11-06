@@ -231,6 +231,26 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and actor.global_position.x > before_custom + 0.4,
         "Custom move finishes, exits, and resumes fallback movement state")
 
+    # Move components own their interruption policy; the controller enforces
+    # it generically without importing concrete move types.
+    custom.allow_exit = false
+    actor.apply_move_intent(custom_intent)
+    verify.call(actor_moves.active_id == &"test_dash",
+        "Custom movement can be activated repeatedly")
+    var interrupt_cmd := MoveIntentScript.new(Vector2.RIGHT)
+    interrupt_cmd.request_move(&"dodge")
+    actor.apply_move_intent(interrupt_cmd)
+    verify.call(actor_moves.active_id == &"test_dash",
+        "Component can_exit veto prevents higher-priority interruption")
+    custom.allow_exit = true
+    actor.apply_move_intent(interrupt_cmd)
+    verify.call(actor_moves.active_id == &"dodge" and custom.exit_count == 2,
+        "Higher-priority dodge interrupts a move that permits exit")
+    for i in range(17):
+        await tree.physics_frame
+    verify.call(actor_moves.active_id != &"dodge",
+        "Generic controller restores fallback after interrupting move finishes")
+
     # Slide is another installed component. The solver never checks a
     # slide flag or imports a Slide class.
     actor.set_move_intent(Vector2.ZERO)
@@ -249,6 +269,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.apply_move_intent(slide_cmd)
     verify.call(actor_moves.active_id == &"slide",
         "Slide activates as an exclusive state with no global is_sliding flag")
+    var low_priority := MoveIntentScript.new(Vector2.RIGHT)
+    low_priority.request_move(&"test_dash")
+    actor.apply_move_intent(low_priority)
+    verify.call(actor_moves.active_id == &"slide",
+        "Lower-priority custom move cannot replace an active slide")
     var before_slide: float = actor.global_position.x
     for i in range(12):
         await tree.physics_frame
