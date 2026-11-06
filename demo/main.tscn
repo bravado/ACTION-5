@@ -147,7 +147,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // D02 SIX VIEW PROFILES\n1–6: switch camera | WASD/arrows: move | F4/F5: click to look, Esc: release"
+text = "ACTION-5 // D02 FIVE VIEW PROFILES\n1–5: switch camera | WASD/arrows: move | F3/F4: click to look, Esc: release"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0
@@ -155,7 +155,7 @@ offset_top = 107.0
 offset_right = 1160.0
 offset_bottom = 135.0
 theme_override_font_sizes/font_size = 17
-text = "VIEW 2 / 6 | Beat'em Up"
+text = "VIEW 2 / 5 | Beat'em Up"
 
 [node name="ModeButtons" type="HBoxContainer" parent="Hud"]
 offset_left = 24.0
@@ -174,19 +174,15 @@ text = "2 · BEAT'EM UP"
 
 [node name="Mode3" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "3 · ISOMETRIC"
+text = "3 · ISO / SHOULDER"
 
 [node name="Mode4" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "4 · 3RD PERSON"
+text = "4 · 1ST PERSON"
 
 [node name="Mode5" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
-text = "5 · 1ST PERSON"
-
-[node name="Mode6" type="Button" parent="Hud/ModeButtons"]
-custom_minimum_size = Vector2(142, 44)
-text = "6 · TOP DOWN"
+text = "5 · TOP DOWN"
 
 [node name="SettingsToggle" type="Button" parent="Hud"]
 offset_left = 1031.0
