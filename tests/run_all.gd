@@ -70,247 +70,233 @@ func _run_tests() -> void:
         _check(original_position.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
             "Actor begins at documented spawn")
 
-    # D02: all six camera profiles must share the exact same world/actor.
+    # D02: one actor and one camera, five selectable perspectives.
     var manager := level.get_node_or_null("ViewManager") as ViewManagerScript
     var input_adapter := level.get_node_or_null("ViewInput") as ViewInputScript
     _check(manager != null and input_adapter != null, "View manager and input adapter present")
     if manager != null and player != null:
-        _check(manager.profiles.size() == 6, "Exactly six editable camera profiles")
-        _check(manager.active_index == 1, "Initial beat'em-up camera is selected")
+        _check(manager.profiles.size() == 5, "Exactly five camera profiles")
+        _check(manager.active_index == 1, "Initial brawler camera selected")
         _check(manager.camera_rig.camera == level.get_node("ViewManager/CameraRig/Camera3D"),
-            "One persistent Camera3D is shared across all modes")
+            "One persistent Camera3D across all five views")
+        _check(manager.profiles[2].mode == ViewProfileScript.Mode.ISOMETRIC
+            and manager.profiles[3].mode == ViewProfileScript.Mode.FIRST_PERSON
+            and manager.profiles[4].mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+            "Mode 3 is shared isometric/shoulder, 4 is FPS, 5 retro top-down")
         var player_id: int = player.get_instance_id()
         var camera_id: int = manager.get_active_camera().get_instance_id()
         var original_transform: Transform3D = player.global_transform
         var original_velocity: Vector3 = player.velocity
-        var next_index := 0
         for repeat_index in range(20):
-            for index in range(6):
-                next_index = index
-                _check(manager.switch_view(index), "Switch camera to %d, cycle %d" % [index + 1, repeat_index + 1])
-        _check(manager.switch_count >= 120, "All six profiles cycled 20 times")
-        _check(player.get_instance_id() == player_id and manager.get_active_camera().get_instance_id() == camera_id,
-            "Camera/actor identities preserved for 120 switches")
-        _check(player.global_transform == original_transform and player.velocity == original_velocity,
-            "Camera switching never changes actor transform or velocity")
+            for index in range(5):
+                _check(manager.switch_view(index),
+                    "Switch camera to %d, cycle %d" % [index + 1, repeat_index + 1])
+        _check(manager.switch_count >= 100, "Five modes cycled 20 times")
+        _check(player.get_instance_id() == player_id
+            and manager.get_active_camera().get_instance_id() == camera_id,
+            "Camera and actor identities retained through 100 switches")
+        _check(player.global_transform == original_transform
+            and player.velocity == original_velocity,
+            "Switching views preserves player transform and velocity")
         _check(manager.last_position_delta < 0.0001,
-            "Camera switching preserves actor position exactly")
-        _check(manager.active_index == next_index, "Selected camera index tracks last switch")
+            "Switches do not teleport the player")
 
-        manager.switch_view(2)
-        _check(manager.current_profile.mode == ViewProfileScript.Mode.ISOMETRIC,
-            "F3 loads tilted isometric camera resource")
-        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
-            "F3 uses orthographic projection")
-        manager.switch_view(5)
-        _check(manager.current_profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
-            "F6 loads distinct retro top-down camera resource")
-        _check(manager.camera_rig.is_vertical_overhead(),
-            "F6 camera orientation is exactly vertical")
-        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
-            "F6 uses orthographic projection")
-        _check(manager.current_profile.orthographic_size < manager.profiles[2].orthographic_size,
-            "F6 has independently editable zoom")
         manager.switch_view(4)
-        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_PERSPECTIVE,
-            "F5 uses perspective projection")
-        _check(not player.get_node("Visual").visible,
-            "First-person mode hides local player model only")
-        manager.switch_view(3)
-        _check(player.get_node("Visual").visible, "F4 restores local player model")
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+            "F5 is dedicated NES-style overhead profile")
+        _check(manager.camera_rig.is_vertical_overhead(),
+            "F5 camera is precisely vertical")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "F5 uses orthographic rendering")
+        var world_up: Vector2 = level.call("_map_demo_movement", Vector2(0.0, -1.0))
+        var world_right: Vector2 = level.call("_map_demo_movement", Vector2(1.0, 0.0))
+        _check(world_up.is_finite() and world_up.y < -0.95 and absf(world_up.x) < 0.05,
+            "F5 screen-up maps to finite world -Z movement")
+        _check(world_right.is_finite() and world_right.x > 0.95,
+            "F5 screen-right maps to finite world +X movement")
 
-        var gui_button := level.get_node("Hud/ModeButtons/Mode1") as Button
-        gui_button.pressed.emit()
-        _check(manager.active_index == 0, "In-game view selector switches to F1")
-        _check((level.get_node("Hud/Status") as Label).text.contains("VIEW 1 / 6"),
-            "HUD displays active view and switch instrumentation")
+        manager.switch_view(3)
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.FIRST_PERSON,
+            "F4 is first-person")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_PERSPECTIVE,
+            "F4 uses perspective rendering")
+        _check(not player.get_node("Visual").visible,
+            "F4 hides the locally owned player's mesh")
+        manager.switch_view(2)
+        _check(player.get_node("Visual").visible,
+            "F3 restores third-person actor visuals")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "Wide F3 isometric view uses orthographic projection")
+        _check(manager.camera_rig.get_isometric_close_factor() < 0.01,
+            "Wide F3 view starts at isometric zoom, not the shoulder zoom")
+        _check(manager.get_active_camera().global_basis.z.y > 0.5,
+            "Wide F3 isometric view is visibly inclined")
+        _check(manager.profiles[2].shoulder_offset > 0.5
+            and manager.profiles[2].aim_ahead > 1.0
+            and manager.profiles[2].close_chase_distance < 4.0,
+            "Former F4 shoulder and aiming settings moved to F3 resource")
+        _check(not InputMap.has_action(&"view_6"),
+            "No unused sixth camera action registered")
+
+        var side_button := level.get_node("Hud/ModeButtons/Mode1") as Button
+        side_button.pressed.emit()
+        _check(manager.active_index == 0, "Camera selector button chooses F1")
+        _check((level.get_node("Hud/Status") as Label).text.contains("VIEW 1 / 5"),
+            "HUD displays five-mode index and active camera")
+        _check(level.get_node_or_null("Hud/ModeButtons/Mode5") is Button
+            and level.get_node_or_null("Hud/ModeButtons/Mode6") == null,
+            "HUD exposes exactly five view-selection buttons")
 
         if input_adapter != null:
             var key_one := InputEventKey.new()
             key_one.keycode = KEY_1
             key_one.pressed = true
-            _check(InputMap.event_is_action(key_one, &"view_1"),
-                "Primary number key 1 is registered in InputMap")
-            var key_six := InputEventKey.new()
-            key_six.keycode = KEY_6
-            key_six.pressed = true
-            _check(InputMap.event_is_action(key_six, &"view_6"),
-                "Primary number key 6 is registered in InputMap")
-            input_adapter._unhandled_input(key_six)
-            _check(manager.active_index == 5, "Pressing 6 activates retro top-down")
+            var key_five := InputEventKey.new()
+            key_five.keycode = KEY_5
+            key_five.pressed = true
+            _check(InputMap.event_is_action(key_one, &"view_1")
+                and InputMap.event_is_action(key_five, &"view_5"),
+                "Number keys 1 and 5 are primary view bindings")
+            input_adapter._unhandled_input(key_five)
+            _check(manager.active_index == 4, "Key 5 selects retro top-down")
             input_adapter._unhandled_input(key_one)
-            _check(manager.active_index == 0, "Pressing 1 activates side camera")
-            _check(manager.cycle_view(-1) and manager.active_index == 5,
-                "View cycling wraps from F1 to F6")
+            _check(manager.active_index == 0, "Key 1 selects side-scroller")
+            _check(manager.cycle_view(-1) and manager.active_index == 4,
+                "Camera cycle wraps backward F1 to F5")
             _check(manager.cycle_view(1) and manager.active_index == 0,
-                "View cycling wraps from F6 to F1")
+                "Camera cycle wraps forward F5 to F1")
 
-    # D02 regression: camera bounds/collision and overhead screen axes.
-    if manager != null and player != null:
-        var saved_transform: Transform3D = player.global_transform
-        manager.switch_view(5)
-        var world_up: Vector2 = level.call("_map_demo_movement", Vector2(0.0, -1.0))
-        var world_right: Vector2 = level.call("_map_demo_movement", Vector2(1.0, 0.0))
-        _check(world_up.is_finite() and world_up.length() > 0.95,
-            "F6 screen-up maps to nonzero finite world-plane movement")
-        _check(world_up.y < -0.95 and absf(world_up.x) < 0.05,
-            "F6 screen-up maps to world minus Z")
-        _check(world_right.x > 0.95 and absf(world_right.y) < 0.05,
-            "F6 screen-right maps to world plus X")
-
-        player.global_position = Vector3(30.0, 0.15, 30.0)
-        manager.switch_view(2)
-        manager.switch_view(5)
-        _check(absf(manager.get_active_camera().global_position.x - 8.0) < 0.02
-            and absf(manager.get_active_camera().global_position.z - 3.5) < 0.02,
-            "F6 follows a bounded camera target without moving the actor")
-        _check(player.global_position.x == 30.0 and player.global_position.z == 30.0,
-            "Overhead tracking clamp does not clamp character position")
-
-        player.global_transform = saved_transform
-        player.global_position = Vector3(0.0, 0.15, 7.35)
-        manager.switch_view(3)
-        manager.camera_rig._update_camera(2.0)
-        _check(manager.get_active_camera().global_position.z < 8.5,
-            "F4 chase camera respects the south wall blocker")
-        _check(player.global_position.z > 7.3, "Camera collision leaves actor untouched")
-
-        player.global_transform = saved_transform
+        # F1 keeps the strict horizontal Mario/Altered Beast camera.
         manager.switch_view(0)
-        var no_depth: Vector2 = level.call("_map_demo_movement", Vector2(0.0, 1.0))
-        _check(no_depth.length_squared() < 0.0001,
-            "Temporary side-view movement ignores depth input")
-        manager.switch_view(1)
-
-        # F1 must be a strict side-scroller: X horizontal, Y vertical,
-        # camera looks directly down -Z, never pitched or orbiting the actor.
-        manager.switch_view(0)
-        var side_camera: Camera3D = manager.get_active_camera()
-        _check(side_camera.global_basis.x.is_equal_approx(Vector3.RIGHT),
-            "F1 screen-right is world +X, with no camera roll or yaw")
-        _check(side_camera.global_basis.y.is_equal_approx(Vector3.UP),
-            "F1 screen-up is world +Y, with no overhead pitch")
-        _check(side_camera.global_basis.z.is_equal_approx(Vector3.BACK),
-            "F1 camera looks strictly along world -Z")
+        var side_cam: Camera3D = manager.get_active_camera()
+        _check(side_cam.global_basis == Basis.IDENTITY,
+            "F1 remains an exactly horizontal X/Y side camera")
         _check(is_zero_approx(manager.current_profile.fixed_offset.y),
-            "F1 side-camera preset never elevates its viewing angle")
-        _check(side_camera.projection == Camera3D.PROJECTION_ORTHOGONAL,
-            "F1 uses classic orthographic side projection")
-        var front_wall_visual := level.get_node("SouthWall/MeshInstance3D") as MeshInstance3D
-        var front_wall_body := level.get_node("SouthWall") as StaticBody3D
-        _check(not front_wall_visual.visible,
-            "F1 hides foreground arena wall visual to reveal the player")
-        _check(front_wall_body.collision_layer != 0,
-            "F1 retains foreground wall collision while hiding its mesh")
-
-        # Follow smoothing must not rotate the fixed side-view camera.
-        manager.camera_rig._update_camera(0.25)
-        _check(side_camera.global_basis == Basis.IDENTITY,
-            "F1 remains perfectly side-on after camera follow update")
+            "F1 side view has no downward pitch")
+        _check(level.call("_map_demo_movement", Vector2(0.0, 1.0)) == Vector2.ZERO,
+            "F1 movement ignores depth input")
+        var front_wall := level.get_node("SouthWall/MeshInstance3D") as MeshInstance3D
+        _check(not front_wall.visible
+            and (level.get_node("SouthWall") as StaticBody3D).collision_layer != 0,
+            "F1 foreground wall hidden visually, still physical")
         manager.switch_view(1)
-        _check(not front_wall_visual.visible,
-            "F2 also hides the foreground mesh for clear arcade-brawler framing")
-        manager.camera_rig._update_camera(1.0)
-        _check(manager.get_active_camera().global_basis.z.y > 0.05,
-            "F2 retains its intentionally elevated beat'em-up view")
-        _check(manager.current_profile.orthographic_size <= 9.0,
-            "F2 uses an arcade-scale orthographic zoom, not a distant arena view")
-        _check(manager.current_profile.fixed_offset.y < manager.current_profile.fixed_offset.z,
-            "F2 uses a low, shallow stage viewing angle")
+        _check(not front_wall.visible, "F2 also hides front-wall graphics")
+        _check(manager.current_profile.orthographic_size <= 7.0,
+            "F2 brawler uses close arcade-scale framing")
 
-        # Over-the-shoulder camera should be close and offset behind player.
-        manager.switch_view(3)
-        var shoulder: Vector3 = manager.get_active_camera().global_position - player.global_position
-        _check(shoulder.x > 0.5,
-            "F4 camera is laterally offset to the player's right shoulder")
-        _check(shoulder.y > 2.0,
-            "F4 camera is elevated above the player's shoulder")
-        _check(shoulder.z > 1.0 and shoulder.z < 4.0,
-            "F4 camera stays close behind the player instead of far chase")
-        _check(manager.current_profile.aim_ahead > 1.0,
-            "F4 aims into the world ahead of the actor")
-        _check(manager.current_profile.field_of_view < 75.0,
-            "F4 keeps a shoulder-oriented field of view")
-
-        # All live camera controls operate on the active Resource without
-        # touching the actor's transform or forcing a scene reload.
         var settings := level.get_node("Hud/CameraSettings")
-        var settings_button := level.get_node("Hud/SettingsToggle") as Button
-        _check(settings != null and settings_button != null,
-            "Runtime camera settings UI and toggle exist")
-        if settings != null and settings_button != null:
-            settings_button.pressed.emit()
-            _check(settings.visible, "Settings toggle opens the camera panel")
-            _check(settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
-                "Shoulder offset slider is available in F4")
-            _check(not settings.get_node("Padding/Controls/Row_orthographic_size").visible,
-                "Perspective mode hides orthographic zoom slider")
-            var transform_before: Transform3D = player.global_transform
-            _check(settings.call("set_current_value", "shoulder_offset", -0.65),
-                "Live UI changes shoulder side")
-            _check(absf(manager.current_profile.shoulder_offset + 0.65) < 0.01,
-                "Shoulder offset updates editable active profile")
-            _check(manager.get_active_camera().global_position.x < -0.4,
-                "Camera repositions to the selected shoulder immediately")
-            _check(player.global_transform == transform_before,
-                "Editing the camera never changes the player's transform")
-            settings.call("reset_current_camera")
-            _check(manager.current_profile.shoulder_offset > 0.5,
-                "Reset button restores the F4 default shoulder")
+        var toggle := level.get_node("Hud/SettingsToggle") as Button
+        toggle.pressed.emit()
+        _check(settings.visible, "Camera settings panel can be opened")
+        _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
+            "F2 stage elevation can be adjusted")
+        _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
+            "Shoulder controls are not shown for F2")
+        _check(settings.call("set_current_value", "orthographic_size", 6.5),
+            "F2 zoom is editable in the settings panel")
+        var zoom_slider := settings.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
+        zoom_slider.value = 7.25
+        _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
+            "UI slider immediately updates F2 camera zoom")
+        settings.call("reset_current_camera")
 
-            manager.switch_view(1)
-            _check(settings.get_node("Padding/Controls/Row_orthographic_size").visible,
-                "Orthographic zoom slider is available in F2")
-            _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
-                "Brawler elevation slider is available in F2")
-            _check(settings.get_node("Padding/Controls/Row_fixed_distance").visible,
-                "Brawler depth slider is available in F2")
-            _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
-                "F2 hides F4-only shoulder controls")
-            var zoom_before: float = manager.current_profile.orthographic_size
-            _check(settings.call("set_current_value", "orthographic_size", 6.5),
-                "Brawler zoom changes through the settings API")
-            _check(absf(manager.get_active_camera().size - 6.5) < 0.01,
-                "Camera immediately applies live F2 zoom")
-            var zoom_slider := settings.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
-            zoom_slider.value = 7.25
-            _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
-                "Actual UI zoom slider signal immediately changes the rendered camera")
-            settings.call("reset_current_camera")
-            _check(absf(manager.current_profile.orthographic_size - zoom_before) < 0.01,
-                "Reset restores F2 default zoom")
-            _check(not settings.call("set_current_value", "shoulder_offset", 0.0),
-                "Hidden camera-specific controls cannot edit unrelated profiles")
-            settings_button.pressed.emit()
-            _check(not settings.visible, "Settings toggle closes the panel")
-            _check(player.global_transform == transform_before,
-                "All settings interactions preserve the player state")
+        # Mode 3 moves continuously between wide isometric and the close
+        # over-shoulder framing by adjusting ONE zoom setting.
+        manager.switch_view(2)
+        _check(settings.get_node("Padding/Controls/Row_orthographic_size").visible,
+            "Mode 3 shares an orthographic zoom slider")
+        _check(settings.get_node("Padding/Controls/Row_shoulder_offset").visible
+            and settings.get_node("Padding/Controls/Row_close_chase_distance").visible
+            and settings.get_node("Padding/Controls/Row_close_pitch_degrees").visible
+            and settings.get_node("Padding/Controls/Row_aim_ahead").visible,
+            "Former F4 shoulder, near distance, pitch, look-ahead controls available on F3")
+        _check(not settings.get_node("Padding/Controls/Row_field_of_view").visible,
+            "Unused perspective FOV is not presented on orthographic F3")
+        var actor_before: Transform3D = player.global_transform
+        _check(settings.call("set_current_value", "orthographic_size", 4.0),
+            "F3 zoom can reach shoulder framing through the UI")
+        _check(manager.camera_rig.get_isometric_close_factor() > 0.99,
+            "Close zoom selects shoulder composition within the SAME F3 profile")
+        _check(manager.active_index == 2
+            and manager.current_profile.mode == ViewProfileScript.Mode.ISOMETRIC,
+            "Close zoom never changes camera profile or mode")
+        var shoulder: Vector3 = manager.get_active_camera().global_position - player.global_position
+        _check(shoulder.x > 0.5 and shoulder.z > 1.0 and shoulder.z < 4.0,
+            "Close F3 uses an offset camera a few metres behind shoulder")
+        _check(shoulder.y > 1.5, "Close F3 camera sits above the shoulder")
+        _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
+            "F3 remains orthographic as it zooms toward the player")
+        _check(settings.call("set_current_value", "shoulder_offset", -0.6),
+            "F3 shoulder side can be edited")
+        _check(manager.get_active_camera().global_position.x < -0.4,
+            "Changing F3 shoulder offset immediately updates camera")
+        _check(player.global_transform == actor_before,
+            "Zoom and shoulder edits do not teleport the player")
 
-            _check(settings.call("set_current_value", "orthographic_size", 6.25),
-                "User can persist a deliberate per-view zoom override")
-            var saved_preferences := ConfigFile.new()
-            _check(saved_preferences.load(settings.preferences_path) == OK,
-                "UI camera adjustments persist to a user settings file")
-            _check(absf(float(saved_preferences.get_value("view_2", "orthographic_size", 0.0)) - 6.25) < 0.01,
-                "Saved F2 zoom override is recoverable across launches")
-            _check(not saved_preferences.has_section_key("view_1", "fixed_height"),
-                "F1 persistence never writes F2-only camera elevation")
-            _check(not saved_preferences.has_section_key("view_6", "fixed_distance"),
-                "F6 persistence never writes F2-only camera depth")
+        _check(settings.call("set_current_value", "orthographic_size", 6.25),
+            "Isometric zoom override can be saved")
+        var config := ConfigFile.new()
+        _check(config.load(settings.preferences_path) == OK,
+            "Per-mode camera overrides are saved")
+        _check(int(config.get_value("meta", "schema", 0)) == 2
+            and absf(float(config.get_value("profile_isometric", "orthographic_size", 0.0)) - 6.25) < 0.01,
+            "Saved zoom belongs to the stable isometric profile ID")
+        _check(not config.has_section_key("profile_retro_topdown", "fixed_distance"),
+            "Mode 5 overhead cannot inherit F2 camera depth")
+        settings.call("reset_current_camera")
+        _check(manager.camera_rig.get_isometric_close_factor() < 0.01
+            and absf(manager.current_profile.orthographic_size - 17.0) < 0.01,
+            "Reset restores a wide isometric view")
+        toggle.pressed.emit()
+        _check(not settings.visible, "Settings panel can be closed")
+
+        # Near zoom camera collision must keep the camera in front of walls.
+        player.global_position = Vector3(0.0, 0.15, 7.35)
+        _check(settings.call("set_current_value", "orthographic_size", 4.0),
+            "F3 can zoom close near a wall")
+        manager.camera_rig._update_camera(1.0)
+        _check(manager.get_active_camera().global_position.z < 8.5,
+            "Isometric near-shoulder camera respects the arena wall")
+        _check(player.global_position.z > 7.3,
+            "Camera collision doesn't move the actor")
+        player.global_transform = original_transform
+        settings.call("reset_current_camera")
+
+        # Upgrade the old six-slot preferences without applying old first-
+        # person/retro preferences to the wrong slots.
+        settings.preferences_path = "user://action5_migration_test.cfg"
+        var old_config := ConfigFile.new()
+        old_config.set_value("view_3", "orthographic_size", 14.5)
+        old_config.set_value("view_4", "chase_distance", 3.7)
+        old_config.set_value("view_4", "pitch", 21.0)
+        old_config.set_value("view_4", "shoulder_offset", -0.45)
+        old_config.set_value("view_5", "eye_height", 1.9)
+        old_config.set_value("view_6", "orthographic_size", 12.0)
+        _check(old_config.save(settings.preferences_path) == OK,
+            "Legacy six-slot settings test file created")
+        settings.call("_load_preferences")
+        _check(absf(manager.profiles[2].orthographic_size - 14.5) < 0.01
+            and absf(manager.profiles[2].close_chase_distance - 3.7) < 0.01
+            and absf(manager.profiles[2].close_pitch_degrees - 21.0) < 0.01
+            and absf(manager.profiles[2].shoulder_offset + 0.45) < 0.01,
+            "Old mode-4 shoulder controls migrated to mode-3 isometric")
+        _check(absf(manager.profiles[3].eye_height - 1.9) < 0.01,
+            "Old first-person view 5 preferences migrated to new view 4")
+        _check(absf(manager.profiles[4].orthographic_size - 12.0) < 0.01,
+            "Old retro view 6 preferences migrated to new view 5")
+        var migrated := ConfigFile.new()
+        _check(migrated.load(settings.preferences_path) == OK
+            and int(migrated.get_value("meta", "schema", 0)) == 2
+            and migrated.has_section_key("profile_isometric", "shoulder_offset"),
+            "Migrated settings are saved in stable five-mode schema")
+        settings.save_user_settings = false
+        for index in range(5):
+            manager.switch_view(index)
             settings.call("reset_current_camera")
-            manager.switch_view(0)
-            var side_height: float = manager.current_profile.fixed_offset.y
-            manager.switch_view(5)
-            var overhead_depth: float = manager.current_profile.fixed_offset.z
-            settings.call("_load_preferences")
-            _check(is_zero_approx(side_height)
-                and is_zero_approx(manager.profiles[0].fixed_offset.y),
-                "F1 remains exactly side-on after saved preferences reload")
-            _check(is_zero_approx(overhead_depth)
-                and is_zero_approx(manager.current_profile.fixed_offset.z)
-                and manager.camera_rig.is_vertical_overhead(),
-                "F6 remains exactly vertical after saved preferences reload")
-            manager.switch_view(1)
+        manager.switch_view(4)
+        _check(manager.camera_rig.is_vertical_overhead(),
+            "Migrating settings does not corrupt vertical top-down mode")
+        manager.switch_view(1)
 
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
