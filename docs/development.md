@@ -29,13 +29,13 @@ To get started after cloning:
 git clone https://github.com/bravado/ACTION-5.git
 cd ACTION-5
 # Until D02 is merged:
-git switch feat/d02-six-view-camera-profiles
+git switch feat/d02-five-view-camera-profiles
 
 make test
 make run
 ```
 
-Press **1–6** to switch between six cameras and **WASD/arrow keys** to move the diagnostic player. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F4/F5 and press Esc to release it. The six view buttons offer a browser-friendly fallback.
+Press **1–5** to switch between five camera modes and **WASD/arrow keys** to move the diagnostic player. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The six view buttons offer a browser-friendly fallback.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 
@@ -65,6 +65,14 @@ For a CI/headless launch without opening a window:
 make run RUN_ARGS="--headless --quit-after 20"
 ```
 
+## D02: unified isometric / shoulder camera
+
+**Five modes, one world:** 1 side-scroller; 2 beat'em up; 3 isometric/over-the-shoulder (one camera resource); 4 first person; 5 retro overhead.
+
+In mode **3**, press **C** to open the camera settings panel. Decrease orthographic zoom from the wide default of 17 toward 4 to transition continuously into the over-the-shoulder composition. Camera collision, left/right shoulder offset, pitch, follow distance and look-ahead are editable in the same mode. Settings are stored in `user://action5_camera_settings.cfg` by named profile IDs; the older six-slot file is migrated automatically.
+
+In mode 2, a low camera and zoom 7 provide closer brawler framing. The one persistent `Camera3D` is shared across all five modes. The reusable locomotion component is **not** included yet (D03).
+
 ## Export and browser smoke
 
 ```bash
@@ -89,7 +97,7 @@ The existing `.github/workflows/d01-godot.yml` runs:
 2. `make import` and a headless `make run` smoke.
 3. `make test`, plus a deliberate negative test that must fail.
 4. `make build`, Linux executable smoke and native camera screenshots.
-5. Chromium WebGL2 startup, native number-key presses 1–6 and selector interaction.
+5. Chromium WebGL2 startup, native number-key presses 1–5 and selector interaction.
 
 Passing CI uploads `d02-evidence` (logs and native/browser camera captures) and `d02-exports` (Linux and Web builds). A screenshot capture is not a substitute for the real runtime tests; both are required at the D02 gate.
 
