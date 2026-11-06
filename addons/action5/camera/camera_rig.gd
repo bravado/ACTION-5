@@ -1,10 +1,12 @@
 extends Node3D
+
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 class_name Action5CameraRig
 ## One persistent Camera3D for all six profiles; never owns gameplay state.
 
 @onready var camera: Camera3D = $Camera3D
 
-var profile: Action5ViewProfile
+var profile: ViewProfileScript
 var target: Node3D
 var orbit_yaw: float = 0.0
 var orbit_pitch: float = 0.0
@@ -12,11 +14,11 @@ var transition_count: int = 0
 var _snap_next: bool = true
 
 
-func apply_profile(next_profile: Action5ViewProfile, next_target: Node3D) -> void:
+func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void:
     assert(next_profile != null)
     assert(next_target != null)
     var leaving_first_person: bool = (
-        profile != null and profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
+        profile != null and profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     )
     profile = next_profile
     target = next_target
@@ -29,8 +31,8 @@ func apply_profile(next_profile: Action5ViewProfile, next_target: Node3D) -> voi
     # No temporary camera inside the player's head when changing projection.
     _snap_next = (
         leaving_first_person
-        or profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
-        or profile.mode == Action5ViewProfile.Mode.RETRO_TOPDOWN
+        or profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+        or profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN
         or transition_count == 0
     )
     transition_count += 1
@@ -62,7 +64,7 @@ func _update_camera(delta: float) -> void:
     var up_axis: Vector3 = Vector3.UP
 
     if profile.is_orbit_mode():
-        if profile.mode == Action5ViewProfile.Mode.FIRST_PERSON:
+        if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
             focus = actor_position + Vector3.UP * profile.eye_height
             desired = focus
         else:
@@ -78,7 +80,7 @@ func _update_camera(delta: float) -> void:
         focus.z = clampf(focus.z, profile.bounds_min.y, profile.bounds_max.y)
         desired = focus + profile.fixed_offset
 
-    if profile.camera_collision and profile.mode == Action5ViewProfile.Mode.THIRD_PERSON:
+    if profile.camera_collision and profile.mode == ViewProfileScript.Mode.THIRD_PERSON:
         var query := PhysicsRayQueryParameters3D.create(focus, desired, profile.camera_collision_mask)
         if target is CollisionObject3D:
             query.exclude = [(target as CollisionObject3D).get_rid()]
@@ -98,7 +100,7 @@ func _update_camera(delta: float) -> void:
     camera.global_position = camera.global_position.lerp(desired, alpha)
     _snap_next = false
 
-    if profile.mode == Action5ViewProfile.Mode.FIRST_PERSON:
+    if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
         camera.global_basis = Basis.from_euler(Vector3(-orbit_pitch, orbit_yaw, 0.0))
     else:
         camera.look_at(focus, up_axis)
