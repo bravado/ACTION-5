@@ -3,26 +3,25 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status:** Approved scope proposal; implementation not started  
+**Status:** D01 merged; D02 five-mode camera implementation under review in PR #23  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
-**Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports six instant-switchable control/camera perspectives in the same persistent 3D world.
+**Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
 ---
 
 ## 1. Executive brief
 
-Build **one 3D gameplay simulation**, not six games and not six renderers. All six views use the same actor position, physics, animation state, AI, HP, equipment, active attacks, and world objects. Only the **view profile**, input-to-intent mapping, aim policy, camera rig, and local presentation change.
+Build **one 3D gameplay simulation**, not five games and not five renderers. All five views use the same actor position, physics, animation state, AI, HP, equipment, active attacks, and world objects. Only the **view profile**, input-to-intent mapping, aim policy, camera rig, and local presentation change.
 
 | Shortcut | View | Camera | Locomotion | Aim/facing |
 |---|---|---|---|---|
 | 1 (F1 alternate) | Side | Fixed orthographic, stage-facing | X only; lock current Z as lane | Left/right, optional lock-on |
 | 2 (F2 alternate) | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
-| 3 (F3 alternate) | Isometric dungeon | Tilted orthographic, 30–60 degrees downward | X/Z, screen/camera-relative | Cursor world point, movement or lock-on |
-| 4 (F4 alternate) | Third person | Perspective chase camera | X/Z, camera-relative | Camera/lock-on, optional strafe |
-| 5 (F5 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
-| 6 (F6 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
+| 3 (F3 alternate) | Isometric / shoulder | One orthographic profile, zoomable from wide tilted dungeon to close shoulder framing | X/Z, screen/camera-relative | Cursor target, lock-on or shoulder look-ahead |
+| 4 (F3 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
+| 5 (F4 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
 
-**Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F5), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–6 as the primary mapping**; F1–F6 remain optional alternate mappings. Web additionally requires a six-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
+**Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F4), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–5 as the primary mapping**; F1–F5 remain optional alternate mappings. Web additionally requires a five-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
 
 **Non-negotiable artifacts:**
 1. `addons/action5/` — reusable, self-contained framework with no dependency on the demo.
@@ -38,7 +37,7 @@ Build **one 3D gameplay simulation**, not six games and not six renderers. All s
 ### 2.1 In scope for 1.0
 
 - One continuous 3D world rendered using Godot `Camera3D` (no homegrown rendering backend).
-- Six camera/control profiles, switchable during running, attacking, jumping, death, enemy AI, and weapon reloads.
+- Five camera/control profiles, switchable during running, attacking, jumping, death, enemy AI, and weapon reloads.
 - 3D `CharacterBody3D` locomotion, gravity, jumping, acceleration, slopes/steps and collision response.
 - Animated skeletal characters from `.glb`/glTF (idle, locomotion, punch, kick, hit, death; equipped attack/reload when available).
 - Configurable hitboxes/hurtboxes and deterministic **frame-scheduled** combat rules at a fixed physics tick. Note: fixed tick does **not** make the full simulation network-deterministic.
@@ -57,7 +56,7 @@ Online multiplayer, rollback netcode, competitive fighting-game move lists, proc
 
 ### 2.3 Success criteria
 
-- User can switch with **1–6** (native and Web primary), optional F1–F6 and six-option UI selector **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
+- User can switch with **1–5** (native and Web primary), optional F1–F5 and five-option UI selector **at any point**, with no scene reload, teleportation, HP reset, animation restart or lost equipped weapon.
 - Movement and aiming make sense for each profile. F1 locks the actor to the **current** Z lane; leaving F1 restores X/Z freedom.
 - Punch, kick, bat, shovel and gun hit the same target correctly regardless of view; perspective changes cannot damage a target by themselves.
 - Player, AI and objects continue updating when the camera switches.
@@ -93,7 +92,7 @@ Online multiplayer, rollback netcode, competitive fighting-game move lists, proc
 - No hardcoded `Input.is_action_pressed()` inside Actor/Combat/Weapon classes. Only the input adapter reads raw input.
 - Do not couple enemy behavior to the player's camera angle.
 - No movement in Y caused by forward/back directional input, except through grounded physics/navigation; Y is gravity/jump/elevation.
-- F6 is not sprite rendering, a separate 2D world, or a replacement for F3 isometric. Reuse 3D animations, collision, combat and world state.
+- F5 is not sprite rendering, a separate 2D world, or a replacement for F3 isometric. Reuse 3D animations, collision, combat and world state.
 - Don't reparent actors on view change. No instantiate/free of player or gameplay state during a camera transition.
 - The first-person arms/head visibility is **local rendering**, not a new authoritative actor or collider.
 - UI input must not also trigger attack; mouse capture must be restored/unlocked correctly on view switch, focus loss and pause.
@@ -159,20 +158,18 @@ EquipmentComponent.weapon_equipped(weapon_id)
 
 **F2 Beat'em up:** fixed stage-facing camera with mild elevation; X/Z movement in stage axes. Facing follows last meaningful input, current target, or configured soft lock. Stage bounds are independent of camera.
 
-**F3 Isometric:** tilted orthographic view (45-degree down default, configurable 30–60), free X/Z movement mapped from screen/camera axes to world X/Z, cursor-to-world aiming and optional lock-on. Unlike F6, show visible wall depth and oblique floor geometry. F3 never switches to vertical camera pitch; that belongs to F6.
+**F3 Isometric / shoulder:** **one orthographic view profile**, not a separate third-person mode. Wide zoom (default size 17) gives a tilted, screen-relative dungeon camera with visible wall depth. As zoom approaches 4, smoothly blend yaw, pitch, distance, shoulder offset, shoulder lift and look-ahead into a close above-shoulder camera. Stay orthographic in both framings, reuse the same actor/camera/profile, and allow mouse orbit, bounded pitch and wall avoidance. Provide live per-profile UI editing, reset, persistent user overrides and migration from the original five-slot preferences. True overhead is a separate F4 mode.
 
-**F4 Third person:** perspective spring arm with wall collision, camera-relative X/Z movement, orbital yaw/pitch input, optional target lock/strafe, obstruction recovery and camera vertical clamp.
+**F4 First person:** perspective eye/character anchor; mouse yaw/pitch with vertical limits; camera forward projected onto X/Z for locomotion; world-space crosshair ray target; locally hide head and optionally use an arms/weapon viewmodel. Maintain shared combat timing and authoritative muzzle/projectile trajectory.
 
-**F5 First person:** perspective eye/character anchor; mouse yaw/pitch with vertical limits; camera forward projected onto X/Z for locomotion; world-space crosshair ray target; locally hide head and optionally use an arms/weapon viewmodel. Maintain shared combat timing and authoritative muzzle/projectile trajectory.
-
-**F6 Retro top-down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
+**F5 Retro top-down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
 
 **Camera transitions:** Move target camera transform smoothly when possible. For orthographic <-> perspective projection changes, allow an instantaneous projection cut with short optional fade; do not promise seamless mathematical projection interpolation. Camera must avoid geometry intersections; expensive dual-viewport blending is NOT required for 1.0.
 
 ### 4.4 Input routing, including browser keys
 
 - Define actions `view_1` ... `view_6`, `view_next`, `view_previous`, `move_*`, `jump`, `attack_light`, `attack_heavy`, `interact`, `reload`, `pause`, `lock_target`, `debug_overlay`.
-- Native and Web: number-row 1–6 is primary. F1–F6 is optional secondary; Web must offer an always-visible six-view selector. Gamepad view next/previous. Preserve input rebinding when numbers also serve as equipment shortcuts.
+- Native and Web: number-row 1–5 is primary. F1–F5 is optional secondary; Web must offer an always-visible five-view selector. Gamepad view next/previous. Preserve input rebinding when numbers also serve as equipment shortcuts.
 - Web: do not rely on reserved browser/OS function keys or Ctrl+number tab shortcuts. Provide discoverable view selector and instructions, and test number-row binding in Chromium and Firefox.
 - Focus loss: release capture, pause or clear held movement/attack buttons; no stuck inputs. Gamepad disconnected: gracefully fall back.
 - UI dialogs consume input before player actions. InputAdapter emits intent; movement and combat are unaware of physical key codes.
@@ -204,7 +201,7 @@ Default named 3D layers (adjust mask bits in one central configuration):
 
 - Accept `.glb` with standard humanoid skeleton, consistent scale and named clips (`idle`, `run`, `punch`, `kick`, `hit`, `death`, `reload` when applicable).
 - Wrap imported assets in a Godot actor scene; never edit imported scenes as the only source of local overrides.
-- F6 renders existing 3D models from above by default. Optional overhead-optimized animation/facing and cosmetic visual adjustments must not move authoritative hitboxes or colliders.
+- F5 renders existing 3D models from above by default. Optional overhead-optimized animation/facing and cosmetic visual adjustments must not move authoritative hitboxes or colliders.
 - Use `AnimationTree` for locomotion/attack blending; in-place locomotion is the 1.0 default. Explicit combat-driven movement/knockback, not accidental root-motion displacement.
 - Document canonical forward axis, mesh pivot at feet, retarget assumptions, socket names (`right_hand`, `left_hand`, `muzzle`, `head`), units and texture budget.
 - `BoneAttachment3D` / socket mapping attaches bat, gun and shovel. Different rigs can map local socket names in a `SkeletonProfile` resource.
@@ -215,7 +212,7 @@ Default named 3D layers (adjust mask bits in one central configuration):
 
 - Enemy FSM/behavior tree equivalent, intentionally simple for 1.0. NavigationAgent3D moves on navmesh where appropriate; melee attack choice checks distance, facing, line of sight, cooldown and combat state.
 - The camera does not determine AI decisions or damage. F1 lock only modifies player controls; AI still needs sensible rules for engaging the player's current depth lane.
-- Author level geometry as actual 3D: complete walls/ceilings and unobstructed routes for first person; distinct roof fade/ceiling controls for F3 isometric and F6 overhead; camera bounds for side and scrolling overhead views; world collision/navmesh shared.
+- Author level geometry as actual 3D: complete walls/ceilings and unobstructed routes for first person; distinct roof fade/ceiling controls for F3 isometric and F5 overhead; camera bounds for side and scrolling overhead views; world collision/navmesh shared.
 - Include at least one room-to-room dungeon corridor, one open beat'em-up arena, and a transition between them in the same demo (no mandatory scene reload).
 
 ---
@@ -285,23 +282,25 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Web exports to local HTTP-served build and displays a moving/static actor; one native executable runs.
 - No proprietary art or uncited third-party code.
 
-#### D02 — Six view profiles and camera switching
+#### D02 — Five view profiles and combined isometric/shoulder camera switching
 **Depends on:** D01. **Effort:** 3–4 sessions.
 
 **Tasks**
-- Implement `ViewProfile`, `ViewManager`, `CameraRig` and six `.tres` resources: `side`, `beatemup`, `isometric`, `third_person`, `first_person`, `retro_topdown`.
-- Support primary number-row **1–6 in both native and Web**, optional F1–F6, a six-option on-screen selector, remappable InputMap actions and controller next/previous view.
-- Fixed orthographic F1/F2, tilted isometric F3, perspective chase F4, eye-level perspective F5, true vertical overhead F6; separate follow/zoom/bounds options.
+- Implement `ViewProfile`, `ViewManager`, `CameraRig` and five `.tres` resources: `side`, `beatemup`, `isometric`, `first_person`, `retro_topdown`; no separate third-person resource.
+- Use primary number-row **1–5 in native and Web**, optional F1–F4, a five-option on-screen selector, InputMap rebinding and controller cycling.
+- F1 horizontal side-scroller, F2 close arcade brawler, F3 wide isometric to close shoulder as *one* adjustable orthographic camera, F3 eye-level first person, F4 true vertical overhead.
+- Expose applicable per-profile settings in-game, persist only changed values using stable profile IDs, support reset, and migrate legacy five-slot settings.
 - Implement camera follow, offsets, bounds, spring-arm/obstacle avoidance, pitch clamps and basic transition smoothing.
 - Handle input focus/mouse capture, pause and projection change transitions.
 - Add visible view name and state-preservation instrumentation.
 
 **Acceptance**
-- Cycling all six views 20 times does not move/reset the actor or change physics/combat state.
-- F3 displays angled geometry while F6 stays truly overhead and scrolls/zooms within configured bounds; both are visually distinct.
-- Cameras never aim below the stage into empty void in the reference arena and do not clip into walls in F4/F5 normal test route.
-- Browser view switching works independently of reserved function keys/Ctrl+number; all six selector options work.
-- Camera resource values editable in the inspector without code changes.
+- Cycling all five profiles 20 times preserves actor identity, position, physics and world state.
+- F3 provides tilted wide and close shoulder compositions with the same profile; zoom, shoulder framing, persistence, reset and migration work without actor movement.
+- F1 remains horizontal, F2 close arcade, F3 first person and F4 truly overhead with correct screen axes and distinct framing.
+- Near-wall collision/avoidance is verified for F3 close view; mouse look and focus handling work for F3 and F3.
+- Browser 1–5 and every selector button work without reserved browser shortcuts.
+- Resource camera settings are editable in the Inspector and runtime UI; native and Web exports, tests and visual evidence pass.
 
 #### D03 — Character locomotion and input abstraction
 **Depends on:** D02. **Effort:** 2–4 sessions.
@@ -309,16 +308,16 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 **Tasks**
 - Create reusable `ActionActor`, locomotion component, input adapter and intent data types.
 - Implement acceleration/deceleration, configurable speed, run/walk, grounded jump/gravity, optional dodge and simple slope/step behavior.
-- Implement movement policies for F1 X-only, F2 stage-X/Z, F3 camera/screen relative, F4 camera relative, F5 yaw relative, and F6 vertical-camera screen-relative X/Z with 4-/8-way facing and optional independent aiming.
+- Implement movement policies for F1 X-only, F2 stage-X/Z, combined F3 camera/screen relative, F3 first-person yaw relative, and F4 vertical-camera screen-relative X/Z with 4-/8-way facing and optional independent aiming.
 - Entering F1 records current Z lane; leaving does not teleport. Prevent Y movement from planar inputs.
 - Separate facing policy from locomotion and prevent camera jitter on abrupt turns.
 - Handle dead/disabled actor, focus loss and gamepad disconnect without stuck movement.
 
 **Acceptance**
-- Same player can navigate sample obstacles across F1–F6; collision with walls remains correct.
+- Same player can navigate sample obstacles across F1–F5; collision with walls remains correct.
 - Holding an input while switching views does not cause a one-frame teleport or sudden excessive velocity.
-- At fixed positions, F1 Z remains within tolerance while moving; F2–F6 support X/Z.
-- F6 screen-up/right/down/left map to correct planar directions at exact vertical pitch without NaN/zero-vector, and facing quantization does not affect physical X/Z position.
+- At fixed positions, F1 Z remains within tolerance while moving; F2–F5 support X/Z.
+- F5 screen-up/right/down/left map to correct planar directions at exact vertical pitch without NaN/zero-vector, and facing quantization does not affect physical X/Z position.
 - Unit tests cover world-plane vector projection, input dead zones, profile changes and state retention.
 
 **Release 0.1 gate:** playable walking/jumping actor in one world, all view modes, browser + at least one native smoke build, documentation and tests.
@@ -332,13 +331,13 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Import a legally distributable test `.glb` model with idle/run/punch/kick/hit/death and optional reload animations.
 - Build `AnimationPresenter` with `AnimationTree` and configurable clip mapping.
 - Implement skeleton/socket mapping and right-/left-hand attachments; validate animation names and missing-bone fallbacks.
-- Implement same actor third-person visuals and F5 local-head visibility or first-person viewmodel.
+- Implement same actor third-person visuals and F4 local-head visibility or first-person viewmodel.
 - Ensure visible animation follows authoritative action state; it must not rewrite combat timing.
 
 **Acceptance**
 - All required clips play in all views, no animation reset on view change.
 - Attached placeholder item follows the hand through punch/run rotations.
-- F5 camera is not obscured by the head; F4 full body remains visible.
+- F4 camera is not obscured by the head; F3 full body remains visible.
 - Replacing the model with another compatible skeleton requires data changes, not core engine code.
 
 #### D05 — Unarmed combat, health and hit resolution
@@ -348,7 +347,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Implement `AttackDefinition`, attack state runner (startup/active/recovery), buffered commands and safe cancellation rules.
 - Build capsule/box hurtboxes, active hitboxes and collision filtering; implement single-hit-per-target-per-swing deduplication.
 - Implement punches and kicks, damage, stun/hit reactions, knockback, invulnerability windows as configurable data, death.
-- Add aim/facing providers: side direction, movement/soft target, cursor target, camera/crosshair target, and F6 quantized 4-way melee/8-way ranged aim with optional independent right-stick/mouse aim.
+- Add aim/facing providers: side direction, movement/soft target, cursor target, camera/crosshair target, and F5 quantized 4-way melee/8-way ranged aim with optional independent right-stick/mouse aim.
 - Debug draw active vs inactive attack volumes with tick/frame readout.
 
 **Acceptance**
@@ -369,9 +368,9 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Separate game damage from weapon mesh physics; prevent wall penetration and shooter self-hit.
 
 **Acceptance**
-- Pick up, swap and drop all three weapons without glitches across F1–F6.
+- Pick up, swap and drop all three weapons without glitches across F1–F5.
 - A gun behind a wall cannot hit an enemy solely because the camera crosshair can see it.
-- F5 fires toward intended camera target from muzzle; F1/F2/F3/F4/F6 use respective aim policy. F6 supports 4-way sword strikes and 8-way gun aiming with shared muzzle obstruction rules.
+- F4 fires toward intended camera target from muzzle; F1/F2/F3/F5 use respective aim policy. F5 supports 4-way sword strikes and 8-way gun aiming with shared muzzle obstruction rules.
 - Ammo and reload state survive a view change; invalid shots do not use ammunition unless intended by rule.
 - Automated tests cover weapon life cycle, cooldowns, ammo limits and hit filtering.
 
@@ -387,7 +386,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 **Acceptance**
 - Two enemy types can find/engage player around obstacles and transition through death.
-- Pressing F1–F6 repeatedly does not reset enemy decisions, navigation or HP.
+- Pressing F1–F5 repeatedly does not reset enemy decisions, navigation or HP.
 - No enemy attacks from outside configured range or through opaque walls (unless explicitly designed).
 - AI cannot repeatedly hit a dead actor; tests cover engagement state transitions.
 
@@ -401,7 +400,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 **Tasks**
 - Implement proximity interaction contracts and example door, health pickup, weapon pickup, trigger volume and destructible prop.
 - Build a continuous arena + dungeon corridor environment using shared world physics/navmesh.
-- Add per-zone camera bounds, side-view stage lane constraints (if enabled), and separate tilted-isometric F3 / true-overhead F6 roof/wall occlusion and camera scrolling behavior.
+- Add per-zone camera bounds, side-view stage lane constraints (if enabled), and separate tilted-isometric F3 / true-overhead F5 roof/wall occlusion and camera scrolling behavior.
 - Add simple respawn/checkpoint and pause/restart of demo (not generalized persistence framework).
 
 **Acceptance**
@@ -417,13 +416,13 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Assemble 10–15 minute demo with intro/help overlay, short arena fight, corridor fight, one ranged encounter and final target/exit.
 - Use one animated player, two NPC archetypes, bat, shovel, gun; health and simple ammo HUD.
 - Add appropriate camera mode hints and controls screen, target indicators, local SFX and lightweight particles.
-- Include an F6 retro encounter demonstrating Zelda-style 4-way melee, Commando-style 8-way shooting, scrolling and different visibility from F3.
+- Include an F5 retro encounter demonstrating Zelda-style 4-way melee, Commando-style 8-way shooting, scrolling and different visibility from F3.
 - Add keyboard/gamepad accessibility basics: remappable keys, sensitivity, gamepad deadzone and reduced camera motion option.
 - Smoke-test missing-asset handling and no input capture after pause/focus loss.
 
 **Acceptance**
 - Demo start-to-exit completable in native and web builds.
-- Every mode is useful in at least one encounter; all six can be used throughout without blocking progress.
+- Every mode is useful in at least one encounter; all five can be used throughout without blocking progress.
 - No hard-crash, stuck input, permanent camera clipping or game-breaking attack state in a 20-minute manual exploratory run.
 - Player can understand control switching via in-game UI.
 
@@ -455,7 +454,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Add native desktop export CI for Linux, Windows and macOS; validate export artifact structure and runnable smoke wherever CI runners permit.
 - Add Web export CI with actual browser Playwright-style smoke checking startup, errors and selector; keep browser test harness separate from Godot runtime code.
 - Benchmark Compatibility renderer on documented native/web machines, limit textures/polygons/draw calls, optimize initial download.
-- Verify six-view UI and remappable number-row controls in Chromium and Firefox; confirm that F5/Ctrl+number browser shortcuts are not required; manually check macOS browser if available.
+- Verify five-view UI and remappable number-row controls in Chromium and Firefox; confirm that F4/Ctrl+number browser shortcuts are not required; manually check macOS browser if available.
 
 **Acceptance**
 - All automated tests pass and release artifacts are produced by CI on a tagged build.
@@ -487,9 +486,9 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 | Test ID | Scenario | Expected result | Primary deliverables |
 |---|---|---|---|
-| VT-01 | Press number row 1–6 native | Correct view, uninterrupted world | D02/D03 |
-| VT-02 | Web number-row 1–6 / on-screen six-mode selector | All views usable; no reserved shortcut required | D02/D11 |
-| VT-03 | Switch from F4 to F1 at nonzero Z | Position unchanged; lane anchors to current Z | D03 |
+| VT-01 | Press number row 1–5 native | Correct view, uninterrupted world | D02/D03 |
+| VT-02 | Web number-row 1–5 / on-screen five-mode selector | All views usable; no reserved shortcut required | D02/D11 |
+| VT-03 | Switch from F3 to F1 at nonzero Z | Position unchanged; lane anchors to current Z | D03 |
 | VT-04 | Switch from F1 to F3 | Free X/Z resumes, no teleport | D03 |
 | VT-05 | Switch during jump/knockback | Trajectory/state stays coherent | D03/D05 |
 | VT-06 | Switch during attack active ticks | No duplicated hit or animation reset | D05 |
@@ -505,11 +504,11 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 | VT-16 | Install addon in empty project | Runs with no demo dependency | D10/D12 |
 | VT-17 | Change viewport FPS 30/60/120 | Attack tick lengths unchanged | D05/D11 |
 | VT-18 | Reopen project after fresh clone/reimport | No missing .uid/resource/plugin import errors | D01/D11 |
-| VT-19 | Switch F3 to F6 at same position | Distinct isometric/vertical cameras; actor/health/combat unchanged | D02 |
-| VT-20 | F6 cardinal input and 4-way sword swing | Correct screen-aligned X/Z, facing and hit arc; no projected-forward degeneracy | D03/D05 |
-| VT-21 | F6 8-way gun, optional independent aiming | Directional shot and obstacle/muzzle occlusion correct even while moving separately | D03/D06 |
-| VT-22 | F6 camera scroll/zoom and roof | Bounds and occlusion correct, navigation/collisions preserved | D02/D08 |
-| VT-23 | Switch F3/F6 during active attack/reload | No duplicated hit, reload reset or state loss | D05/D06/D11 |
+| VT-19 | Zoom F3 wide/close; switch F3 to F4 | Isometric/shoulder/vertical distinct; same actor and world state | D02 |
+| VT-20 | F5 cardinal input and 4-way sword swing | Correct screen-aligned X/Z, facing and hit arc; no projected-forward degeneracy | D03/D05 |
+| VT-21 | F5 8-way gun, optional independent aiming | Directional shot and obstacle/muzzle occlusion correct even while moving separately | D03/D06 |
+| VT-22 | F5 camera scroll/zoom and roof | Bounds and occlusion correct, navigation/collisions preserved | D02/D08 |
+| VT-23 | Switch F3/F5 during active attack/reload | No duplicated hit, reload reset or state loss | D05/D06/D11 |
 
 ### 7.1 Automated test strategy
 
@@ -575,12 +574,12 @@ An agent may run all roles sequentially, but evidence must remain independently 
 
 | Risk | Probability / impact | Mitigation |
 |---|---|---|
-| Function keys and Ctrl+number shortcuts preempted by browser/OS | High / Medium | remappable number-row 1–6, mandatory six-view selector, controller cycling |
+| Function keys and Ctrl+number shortcuts preempted by browser/OS | High / Medium | remappable number-row 1–5, mandatory five-view selector, controller cycling |
 | Animation skeleton names vary across models | High / Medium | `SkeletonProfile`, clip/socket validator, documented import profile |
 | First-person model clips camera/head | High / High | local-head hide/arms viewmodel, camera collision and close-wall tests |
 | Mouse aim differs from projectile origin | High / High | camera-to-target then muzzle-to-target occlusion validation |
 | Fast melee weapon misses targets | Medium / High | swept query/substeps and stable hit dedup by tick/target |
-| Isometric/overhead roof occludes player | High / Medium | separate F3/F6 roof fade or toggle, physical collisions unchanged |
+| Isometric/overhead roof occludes player | High / Medium | separate F3/F5 roof fade or toggle, physical collisions unchanged |
 | True overhead 3D character/weapon is hard to read | Medium / Medium | directional animations and local presentation only; test weapon and character visibility |
 | Vertical camera projected forward yields zero planar vector | High / High | use projected camera right/up (or world axes); assert valid cardinal movement |
 | Switching to F1 creates unfair z-depth behavior | Medium / Medium | lock current lane, explicit game rule, UI feedback, test lane invariants |
@@ -623,12 +622,12 @@ An agent may run all roles sequentially, but evidence must remain independently 
 
 - `D01-01` Bootstrap pinned project, scripts, asset license policy.
 - `D01-02` Headless test runner, CI import smoke, Web/Linux export smoke.
-- `D02-01` Fixed view profiles (F1–F3/F6) with distinct isometric and retro-top-down cameras.
+- `D02-01` Five fixed profiles (F1–F4), shared isometric/shoulder zoom, distinct retro-overhead camera.
 - `D02-02` Third/first person camera, projection transitions and collision.
-- `D02-03` Primary number keys 1–6 (native/Web), optional F keys, browser-safe bindings, selector and controller cycling.
+- `D02-03` Primary keys 1–5 native/Web, optional F keys, five-view selector, settings UI and controller cycling.
 - `D03-01` Actor locomotion and intent contracts.
 - `D03-02` View-specific ground-plane mapping, depth lock and jumping.
-- `D03-03` Vertical-camera F6 mapping, 4-/8-way facing and independent-aim tests.
+- `D03-03` Vertical-camera F5 mapping, 4-/8-way facing and independent-aim tests.
 - `D04-01` Model import validator, clip/skeleton profile.
 - `D04-02` Animation presenter, sockets and FPS local presentation.
 - `D05-01` Combat timeline/actions, health and hurtboxes.
@@ -663,4 +662,4 @@ Follow-up issues: <IDs and severity>
 Next: <lowest numbered unblocked deliverable>
 ```
 
-**Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/six-view architecture.
+**Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/five-view architecture.
