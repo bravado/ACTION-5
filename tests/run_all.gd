@@ -1,4 +1,8 @@
 extends SceneTree
+
+const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
+const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
 ## Run: godot --headless --path . --script res://tests/run_all.gd
 ## Expected failing proof: append -- --self-test-failure (must exit nonzero).
@@ -67,8 +71,8 @@ func _run_tests() -> void:
             "Actor begins at documented spawn")
 
     # D02: all six camera profiles must share the exact same world/actor.
-    var manager := level.get_node_or_null("ViewManager") as Action5ViewManager
-    var input_adapter := level.get_node_or_null("ViewInput") as Action5ViewInput
+    var manager := level.get_node_or_null("ViewManager") as ViewManagerScript
+    var input_adapter := level.get_node_or_null("ViewInput") as ViewInputScript
     _check(manager != null and input_adapter != null, "View manager and input adapter present")
     if manager != null and player != null:
         _check(manager.profiles.size() == 6, "Exactly six editable camera profiles")
@@ -94,12 +98,12 @@ func _run_tests() -> void:
         _check(manager.active_index == next_index, "Selected camera index tracks last switch")
 
         manager.switch_view(2)
-        _check(manager.current_profile.mode == Action5ViewProfile.Mode.ISOMETRIC,
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.ISOMETRIC,
             "F3 loads tilted isometric camera resource")
         _check(manager.get_active_camera().projection == Camera3D.PROJECTION_ORTHOGONAL,
             "F3 uses orthographic projection")
         manager.switch_view(5)
-        _check(manager.current_profile.mode == Action5ViewProfile.Mode.RETRO_TOPDOWN,
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
             "F6 loads distinct retro top-down camera resource")
         _check(manager.camera_rig.is_vertical_overhead(),
             "F6 camera orientation is exactly vertical")
