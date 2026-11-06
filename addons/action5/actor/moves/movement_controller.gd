@@ -38,7 +38,7 @@ func register_move(move: MoveScript) -> bool:
     if move == null or move.move_id == &"":
         push_warning("ACTION5: Move component must declare move_id")
         return false
-    if _registry.has(move.move_id):
+    if get_move(move.move_id) != null:
         push_warning("ACTION5: Duplicate move_id: " + str(move.move_id))
         return false
     _registry[move.move_id] = move
@@ -48,11 +48,15 @@ func register_move(move: MoveScript) -> bool:
 
 ## Runtime extension: add a new component with no Actor/solver edits.
 func add_move(move: MoveScript) -> bool:
-    if move == null:
+    if move == null or not _ready_for_moves or move.move_id == &"":
         return false
-    if not _ready_for_moves:
+    # Reject duplicates BEFORE adding a child; failed extensions leave the
+    # scene unchanged rather than creating orphan, unregistered move nodes.
+    if get_move(move.move_id) != null:
         return false
-    if not move.is_inside_tree():
+    if move.get_parent() != null and move.get_parent() != moves_root:
+        return false
+    if move.get_parent() == null:
         moves_root.add_child(move)
     return register_move(move)
 
@@ -76,6 +80,7 @@ func get_move(id: StringName) -> MoveScript:
 
 
 func request_move(id: StringName, intent: IntentScript = null) -> bool:
+    _invalidate_removed_active_move()
     var next: MoveScript = get_move(id)
     if next == null or next == active_move:
         return false
@@ -92,6 +97,7 @@ func request_move(id: StringName, intent: IntentScript = null) -> bool:
 
 
 func tick(intent: IntentScript, delta: float) -> ContextScript:
+    _invalidate_removed_active_move()
     _context.begin_tick(intent, delta)
     if active_move == null or active_move.action_name == &"":
         _resolve_default()
@@ -120,6 +126,15 @@ func _transition(next: MoveScript) -> void:
     active_id = next.move_id
     next.enter(_context)
     move_changed.emit(old, active_id)
+
+
+## A live game can remove a move node without leaving a dangling FSM state.
+func _invalidate_removed_active_move() -> void:
+    if active_move != null and not is_instance_valid(active_move):
+        var old: StringName = active_id
+        active_move = null
+        active_id = &""
+        move_changed.emit(old, &"")
 
 
 func cancel() -> void:
