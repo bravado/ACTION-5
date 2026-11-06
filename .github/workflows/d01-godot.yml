@@ -1,4 +1,4 @@
-name: D01 Godot Foundation CI
+name: ACTION-5 Godot CI (D01–D02)
 
 on:
   pull_request:
@@ -79,6 +79,10 @@ jobs:
           xvfb-run -a -s '-screen 0 1280x720x24' godot --audio-driver Dummy --path . --script res://tests/capture_scene.gd 2>&1 | tee build/evidence/native-screenshot.log
           python3 tools/check_godot_log.py build/evidence/native-screenshot.log
           test -s build/evidence/native-scene.png
+          for i in {1..6}; do
+            test -s "build/evidence/native-view-$i.png"
+          done
+          grep -q 'ACTION5_SIX_VIEW_SCREENSHOTS_OK 6' build/evidence/native-screenshot.log
 
       - name: Verify real WebGL2 browser startup
         shell: bash
@@ -95,12 +99,17 @@ jobs:
           npx playwright install --with-deps chromium
           node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log
           test -s build/evidence/web-scene.png
+          for i in {1..6}; do
+            test -s "build/evidence/web-view-$i.png"
+          done
+          test -s build/evidence/web-selector-view-1.png
+          grep -q 'ACTION5_BROWSER_SIX_VIEWS_OK unique=6 selector=1' build/evidence/browser-smoke.log
 
       - name: Upload build logs, screenshots and verification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: d01-evidence
+          name: d02-evidence
           path: build/evidence/
           if-no-files-found: warn
           retention-days: 14
@@ -109,7 +118,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: d01-exports
+          name: d02-exports
           path: |
             build/linux/
             build/web/
