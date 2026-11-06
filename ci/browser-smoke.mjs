@@ -49,8 +49,36 @@ try {
     hashes.add(createHash('sha256').update(png).digest('hex'));
   }
   if (hashes.size < 5) {
-    errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–6');
+    errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–5');
   }
+
+  // D03: Send actual browser keyboard events to a real running Godot world.
+  // Movement is handled by InputMap + Action5ActorInputAdapter, not test hooks.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const stationary = createHash('sha256').update(await page.screenshot()).digest('hex');
+  await page.keyboard.down('d');
+  await page.waitForTimeout(650);
+  await page.keyboard.up('d');
+  await page.waitForTimeout(250);
+  const walking = await page.screenshot({
+    path: 'build/evidence/web-d03-walking.png', fullPage: true,
+  });
+  const walkingHash = createHash('sha256').update(walking).digest('hex');
+  if (walkingHash === stationary) {
+    errors.push('D03 keyboard movement did not change the real Godot canvas');
+  }
+  await page.keyboard.down(' ');
+  await page.waitForTimeout(220);
+  const jumping = await page.screenshot({
+    path: 'build/evidence/web-d03-jumping.png', fullPage: true,
+  });
+  await page.keyboard.up(' ');
+  if (createHash('sha256').update(jumping).digest('hex') === walkingHash) {
+    errors.push('D03 Space jump did not change the rendered player');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1');
 
   // The on-screen view selector is a mandatory browser fallback.
   // A D02 Button spans x=24..166 and y=146..190 in the 1280x720 demo.
