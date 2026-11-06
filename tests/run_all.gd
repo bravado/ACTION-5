@@ -286,13 +286,18 @@ func _run_tests() -> void:
             _check(player.global_transform == transform_before,
                 "All settings interactions preserve the player state")
 
+            _check(settings.call("set_current_value", "orthographic_size", 6.25),
+                "User can persist a deliberate per-view zoom override")
             var saved_preferences := ConfigFile.new()
             _check(saved_preferences.load(settings.preferences_path) == OK,
                 "UI camera adjustments persist to a user settings file")
+            _check(absf(float(saved_preferences.get_value("view_2", "orthographic_size", 0.0)) - 6.25) < 0.01,
+                "Saved F2 zoom override is recoverable across launches")
             _check(not saved_preferences.has_section_key("view_1", "fixed_height"),
                 "F1 persistence never writes F2-only camera elevation")
             _check(not saved_preferences.has_section_key("view_6", "fixed_distance"),
                 "F6 persistence never writes F2-only camera depth")
+            settings.call("reset_current_camera")
             manager.switch_view(0)
             var side_height: float = manager.current_profile.fixed_offset.y
             manager.switch_view(5)
