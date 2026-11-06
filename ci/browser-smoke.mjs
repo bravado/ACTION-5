@@ -6,6 +6,7 @@ import { mkdir } from 'node:fs/promises';
 
 const errors = [];
 const cameraChanges = [];
+const moveChanges = [];
 const settingsVisibility = [];
 const browser = await chromium.launch({
   headless: true,
@@ -18,6 +19,7 @@ try {
     const line = message.text();
     if (message.type() === 'error') errors.push('console: ' + line);
     if (line.includes('ACTION5_VIEW_CHANGED')) cameraChanges.push(line);
+    if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
   page.on('requestfailed', req => errors.push('request: ' + req.url() + ': ' + req.failure()?.errorText));
@@ -73,6 +75,19 @@ try {
   if (walkingHash === stationary) {
     errors.push('D03 keyboard movement did not change the real Godot canvas');
   }
+  // A bundled move registers its own 'actor_slide' key. This should fire
+  // through the generic registry, without any slide branch in ActorInput.
+  await page.keyboard.down('d');
+  await page.waitForTimeout(450);
+  await page.keyboard.press('x');
+  await page.waitForTimeout(180);
+  await page.keyboard.up('d');
+  if (!moveChanges.some(line => line.includes('current=slide'))) {
+    errors.push('D03 move component did not activate via InputMap key X');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_MOVE_PLUGIN_OK slide=1');
+
   await page.keyboard.down(' ');
   await page.waitForTimeout(220);
   const jumping = await page.screenshot({
