@@ -141,6 +141,43 @@ func _run_tests() -> void:
             _check(manager.cycle_view(1) and manager.active_index == 0,
                 "View cycling wraps from F6 to F1")
 
+    # D02 regression: camera bounds/collision and overhead screen axes.
+    if manager != null and player != null:
+        var saved_transform: Transform3D = player.global_transform
+        manager.switch_view(5)
+        var world_up: Vector2 = level.call("_map_demo_movement", Vector2(0.0, -1.0))
+        var world_right: Vector2 = level.call("_map_demo_movement", Vector2(1.0, 0.0))
+        _check(world_up.is_finite() and world_up.length() > 0.95,
+            "F6 screen-up maps to nonzero finite world-plane movement")
+        _check(world_up.y < -0.95 and absf(world_up.x) < 0.05,
+            "F6 screen-up maps to world minus Z")
+        _check(world_right.x > 0.95 and absf(world_right.y) < 0.05,
+            "F6 screen-right maps to world plus X")
+
+        player.global_position = Vector3(30.0, 0.15, 30.0)
+        manager.switch_view(2)
+        manager.switch_view(5)
+        _check(absf(manager.get_active_camera().global_position.x - 8.0) < 0.02
+            and absf(manager.get_active_camera().global_position.z - 3.5) < 0.02,
+            "F6 follows a bounded camera target without moving the actor")
+        _check(player.global_position.x == 30.0 and player.global_position.z == 30.0,
+            "Overhead tracking clamp does not clamp character position")
+
+        player.global_transform = saved_transform
+        player.global_position = Vector3(0.0, 0.15, 7.35)
+        manager.switch_view(3)
+        manager.camera_rig._update_camera(2.0)
+        _check(manager.get_active_camera().global_position.z < 8.5,
+            "F4 chase camera respects the south wall blocker")
+        _check(player.global_position.z > 7.3, "Camera collision leaves actor untouched")
+
+        player.global_transform = saved_transform
+        manager.switch_view(0)
+        var no_depth: Vector2 = level.call("_map_demo_movement", Vector2(0.0, 1.0))
+        _check(no_depth.length_squared() < 0.0001,
+            "Temporary side-view movement ignores depth input")
+        manager.switch_view(1)
+
     # Test reusable movement without the demo-level keyboard input adapter.
     var actor := actor_resource.instantiate() as CharacterBody3D
     root.add_child(actor)
