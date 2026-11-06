@@ -186,6 +186,24 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(actor.global_position.x <= 13.5,
         "CharacterBody3D cannot pass through outer arena wall")
+    verify.call(level.get_node("Ramp/CollisionShape3D") is CollisionShape3D
+        and level.get_node("LowStep/CollisionShape3D") is CollisionShape3D,
+        "Shared D03 arena contains a physical slope and low step")
+    verify.call(actor.locomotion.floor_snap_distance > 0.0
+        and actor.floor_max_angle >= deg_to_rad(40.0),
+        "Locomotion uses physical floor snap and slope limit")
+    actor.global_position = Vector3(-11.0, 0.25, 4.0)
+    actor.set_move_intent(Vector2.RIGHT)
+    for i in range(55):
+        await tree.physics_frame
+    verify.call(actor.global_position.x > -9.5 and actor.global_position.y > 0.19,
+        "Actor walks onto real sloped floor collider")
+    actor.global_position = Vector3(-6.0, 0.20, 4.0)
+    actor.set_move_intent(Vector2.RIGHT)
+    for i in range(85):
+        await tree.physics_frame
+    verify.call(actor.global_position.x > -3.0,
+        "Collision-checked step assist climbs a low physical obstacle")
     actor.set_move_intent(Vector2.ZERO)
     actor.set_alive(false)
     var disabled_x: float = actor.global_position.x
