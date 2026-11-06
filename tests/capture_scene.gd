@@ -1,6 +1,6 @@
 extends SceneTree
 ## D02 rendered evidence in Xvfb (real renderer, not --headless).
-## Saves native-scene.png + native-view-1.png .. native-view-6.png.
+## Saves native-scene.png + native-view-1.png .. native-view-5.png.
 
 func _initialize() -> void:
     call_deferred("_capture")
@@ -59,7 +59,7 @@ func _capture() -> void:
             (scene.get_node("Hud/SettingsToggle") as Button).pressed.emit()
             settings.call("reset_current_camera")
 
-    print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 6")
+    print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)
 
 
