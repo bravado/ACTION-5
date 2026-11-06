@@ -362,17 +362,17 @@ func _run_tests() -> void:
     var slider := settings_panel.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
     slider.grab_focus()
     await process_frame
-    _check(get_viewport().gui_get_focus_owner() == slider,
+    _check(root.gui_get_focus_owner() == slider,
         "Camera settings slider remains keyboard-accessible")
     close_button.pressed.emit()
     _check(not settings_panel.visible
-        and get_viewport().gui_get_focus_owner() != slider,
+        and root.gui_get_focus_owner() != slider,
         "Closing camera settings releases slider focus")
     var previously_clicked := ui_buttons.get_node("Mode3") as Button
     previously_clicked.pressed.emit()
     previously_clicked.grab_focus()
     await process_frame
-    _check(get_viewport().gui_get_focus_owner() != previously_clicked,
+    _check(root.gui_get_focus_owner() != previously_clicked,
         "Clicked view button cannot retain keyboard focus")
     var views := level.get_node("ViewManager") as ViewManagerScript
     views.switch_view(1)
@@ -399,7 +399,7 @@ func _run_tests() -> void:
     await process_frame
     _check(not settings_panel.visible
         and views.switch_count == count_after_settings
-        and get_viewport().gui_get_focus_owner() != settings_button,
+        and root.gui_get_focus_owner() != settings_button,
         "Space after closing Camera Settings cannot reopen it or switch views")
 
     level.queue_free()
