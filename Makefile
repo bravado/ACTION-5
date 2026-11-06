@@ -4,6 +4,9 @@
 # Never check the generated .godot/ directory into version control.
 
 .DEFAULT_GOAL := help
+# Avoid parallel import/export writes to the same Godot resource cache.
+.NOTPARALLEL:
+SHELL := /bin/bash
 GODOT ?= godot
 PYTHON ?= python3
 PORT ?= 8765
@@ -29,10 +32,13 @@ help:
 		'Override executable paths as needed: make run GODOT=/path/to/godot'
 
 import:
-	$(GODOT) --headless --path . --import
+	@mkdir -p build/logs
+	@set -o pipefail; $(GODOT) --headless --path . --import 2>&1 | tee build/logs/import.log
+	@$(PYTHON) tools/check_godot_log.py build/logs/import.log
 
 test: import
-	$(GODOT) --headless --path . --script res://tests/run_all.gd
+	@set -o pipefail; $(GODOT) --headless --path . --script res://tests/run_all.gd 2>&1 | tee build/logs/test.log
+	@$(PYTHON) tools/check_godot_log.py build/logs/test.log
 
 run: import
 	$(GODOT) --path .
@@ -41,18 +47,23 @@ editor: import
 	$(GODOT) --editor --path .
 
 web: import
-	mkdir -p build/web
-	$(GODOT) --headless --path . --export-release "Web" $(WEB_EXPORT)
+	@mkdir -p build/web
+	@set -o pipefail; $(GODOT) --headless --path . --export-release "Web" $(WEB_EXPORT) 2>&1 | tee build/logs/export-web.log
+	@$(PYTHON) tools/check_godot_log.py build/logs/export-web.log
 	test -s $(WEB_EXPORT)
+	test -s build/web/index.js
 	test -s build/web/index.wasm
 	test -s build/web/index.pck
 
 linux: import
-	mkdir -p build/linux
-	$(GODOT) --headless --path . --export-release "Linux" $(LINUX_EXPORT)
+	@mkdir -p build/linux
+	@set -o pipefail; $(GODOT) --headless --path . --export-release "Linux" $(LINUX_EXPORT) 2>&1 | tee build/logs/export-linux.log
+	@$(PYTHON) tools/check_godot_log.py build/logs/export-linux.log
 	test -s $(LINUX_EXPORT)
+	test -x $(LINUX_EXPORT)
 
 build: linux web
+	@$(PYTHON) tools/check_exports.py
 
 serve-web: web
 	$(PYTHON) -m http.server $(PORT) --bind 127.0.0.1 --directory build/web
