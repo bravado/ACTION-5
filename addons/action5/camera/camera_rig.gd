@@ -15,6 +15,9 @@ var _snap_next: bool = true
 func apply_profile(next_profile: Action5ViewProfile, next_target: Node3D) -> void:
     assert(next_profile != null)
     assert(next_target != null)
+    var leaving_first_person: bool = (
+        profile != null and profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
+    )
     profile = next_profile
     target = next_target
     orbit_yaw = deg_to_rad(profile.default_yaw_degrees)
@@ -25,7 +28,8 @@ func apply_profile(next_profile: Action5ViewProfile, next_target: Node3D) -> voi
     camera.current = true
     # No temporary camera inside the player's head when changing projection.
     _snap_next = (
-        profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
+        leaving_first_person
+        or profile.mode == Action5ViewProfile.Mode.FIRST_PERSON
         or profile.mode == Action5ViewProfile.Mode.RETRO_TOPDOWN
         or transition_count == 0
     )
