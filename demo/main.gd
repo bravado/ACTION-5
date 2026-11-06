@@ -17,7 +17,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
-    for i in range(6):
+    for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.pressed.connect(_on_mode_button_pressed.bind(i))
     _on_view_changed(_views.current_profile, null)
@@ -78,13 +78,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if current == null:
         return
-    _status.text = "VIEW %d / 6  |  %s  |  Switches: %d  |  Position delta: %.5f" % [
+    _status.text = "VIEW %d / 5  |  %s  |  Switches: %d  |  Position delta: %.5f" % [
         _views.active_index + 1, current.display_name, _views.switch_count, _views.last_position_delta
     ]
-    for i in range(6):
+    for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5  //  D02 SIX VIEW PROFILES\n1–6: switch camera  |  F1–F6: alternate  |  WASD/arrows: move\nF4/F5: click to look, Esc: release  |  C: camera settings"
+    _help.text = "ACTION-5  //  D02 FIVE VIEW PROFILES\n1–5: switch camera  |  F1–F5: alternate  |  WASD/arrows: move\nF3/F4: click to look, Esc: release  |  C: camera settings"
     # Demo-only occluder: platformer and arcade-brawler cameras
     # need an unobstructed view of the actors. Keep wall collisions active.
     # Generic per-view roof/wall occlusion will be implemented in D08.
