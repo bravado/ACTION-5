@@ -53,6 +53,7 @@ func _build_panel() -> void:
     custom_minimum_size = Vector2(338.0, 0.0)
     mouse_filter = Control.MOUSE_FILTER_STOP
     var outer := VBoxContainer.new()
+    outer.name = "Controls"
     outer.add_theme_constant_override("separation", 9)
     add_child(outer)
 
