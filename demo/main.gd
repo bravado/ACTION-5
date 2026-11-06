@@ -2,11 +2,12 @@ extends Node3D
 
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
-## D02 reference scene: character and world stay alive while camera profiles change.
-## D03 will replace the temporary movement mapping with reusable locomotion intents.
+const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
+## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
 @onready var _views: ViewManagerScript = $ViewManager
+@onready var _input: InputAdapterScript = $ActorInput
 @onready var _status: Label = $Hud/Status
 @onready var _help: Label = $Hud/Help
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
@@ -26,50 +27,21 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-    # Do not keep moving if the browser/window loses focus, or allow controls
-    # in a camera-settings dialog to drive the world-space actor.
     if not _has_window_focus or _camera_settings.visible:
-        _player.call("set_move_intent", Vector2.ZERO)
-        return
-    var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT))
-    x -= float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT))
-    var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN))
-    z -= float(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP))
-    var axes := Vector2(x, z).normalized()
-    var movement := _map_demo_movement(axes)
-    _player.call("set_move_intent", movement)
-
-
-func _map_demo_movement(axes: Vector2) -> Vector2:
-    var mode: ViewProfileScript.Mode = _views.current_profile.mode
-    if mode == ViewProfileScript.Mode.SIDE:
-        return Vector2(axes.x, 0.0)
-
-    if mode == ViewProfileScript.Mode.BEATEMUP:
-        return axes
-
-    var camera_basis: Basis = _views.get_active_camera().global_basis
-    var right := Vector3(camera_basis.x.x, 0.0, camera_basis.x.z).normalized()
-    var forward := Vector3.ZERO
-    if mode == ViewProfileScript.Mode.ISOMETRIC or mode == ViewProfileScript.Mode.RETRO_TOPDOWN:
-        # Vertical overhead view must use screen-up; camera forward projects to zero.
-        forward = Vector3(camera_basis.y.x, 0.0, camera_basis.y.z).normalized()
-    else:
-        # First-person uses camera heading, even at level pitch.
-        forward = Vector3(-camera_basis.z.x, 0.0, -camera_basis.z.z).normalized()
-    var world_move: Vector3 = right * axes.x - forward * axes.y
-    if world_move.length_squared() > 1.0:
-        world_move = world_move.normalized()
-    return Vector2(world_move.x, world_move.z)
+        _input.set_enabled(false)
+    elif not _input.enabled:
+        _input.set_enabled(true)
 
 
 func _notification(what: int) -> void:
     if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
         _has_window_focus = false
-        if is_instance_valid(_player):
-            _player.call("set_move_intent", Vector2.ZERO)
+        if is_instance_valid(_input):
+            _input.set_enabled(false)
     elif what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
         _has_window_focus = true
+        if is_instance_valid(_input) and not _camera_settings.visible:
+            _input.set_enabled(true)
 
 
 func _on_mode_button_pressed(index: int) -> void:
@@ -81,6 +53,7 @@ func _toggle_camera_settings() -> void:
     if _camera_settings.visible:
         _camera_settings.call("refresh_controls")
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+    _input.set_enabled(not _camera_settings.visible and _has_window_focus)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -88,7 +61,6 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_C:
             _toggle_camera_settings()
             get_viewport().set_input_as_handled()
-
 
 
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
@@ -100,10 +72,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5  //  D02 FIVE VIEW PROFILES\n1–5: switch camera  |  F1–F5: alternate  |  WASD/arrows: move\nF3/F4: click to look, Esc: release  |  C: camera settings"
-    # Demo-only occluder: platformer and arcade-brawler cameras
-    # need an unobstructed view of the actors. Keep wall collisions active.
-    # Generic per-view roof/wall occlusion will be implemented in D08.
+    _help.text = "ACTION-5 // D03 LOCOMOTION & FACING\n1–5: view | WASD/arrows: move | Space: jump | Shift: run | Alt: dodge\n3/4: click to look, Esc: release | C: camera settings"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE
