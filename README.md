@@ -2,7 +2,7 @@
 
 **A six-perspective 3D action framework for Godot.** One world, one character, six ways to play.
 
-> **Project status: D01 foundation implementation in progress.** The repository includes a real Godot project, runnable primitive-character demo, basic addon skeleton, tests and a Linux/Web smoke export pipeline. The production six-view system, combat engine and complete game remain future deliverables.
+> **Project status: D02 six-camera foundation under review.** A runnable Godot 4.7.2 project, six configurable camera profiles, native/Web smoke builds and tests exist. Generalized movement, weapons, combat and finished game content remain future deliverables.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -10,18 +10,18 @@ It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawle
 
 ## Six perspectives
 
-| Key (desktop) | Mode | Camera and controls | Inspiration |
+| Key (native and Web) | Mode | Camera and controls | Inspiration |
 |---|---|---|---|
-| **F1** | Side | Fixed orthographic; horizontal X movement, current depth lane locked | Classic 2D side-scroller |
-| **F2** | Beat'em up | Fixed angled camera; free ground-plane X/Z movement | Arcade beat'em ups |
-| **F3** | Isometric | Tilted orthographic camera; camera/screen-relative ground movement | Dungeon action RPGs |
-| **F4** | Third person | Following perspective camera; mouse/right-stick look | Third-person action |
-| **F5** | First person | Eye-level perspective; mouse look and crosshair aiming | First-person dungeon action |
-| **F6** | Retro top-down | True overhead orthographic; configurable four-/eight-way movement, facing and aiming | *The Legend of Zelda*, *Commando* |
+| **1** | Side | Fixed orthographic; horizontal X movement, current depth lane locked | Classic 2D side-scroller |
+| **2** | Beat'em up | Fixed angled camera; free ground-plane X/Z movement | Arcade beat'em ups |
+| **3** | Isometric | Tilted orthographic camera; camera/screen-relative ground movement | Dungeon action RPGs |
+| **4** | Third person | Following perspective camera; mouse/right-stick look | Third-person action |
+| **5** | First person | Eye-level perspective; mouse look and crosshair aiming | First-person dungeon action |
+| **6** | Retro top-down | True overhead orthographic; configurable four-/eight-way movement, facing and aiming | *The Legend of Zelda*, *Commando* |
 
 All modes use **one shared 3D scene and authoritative player actor**. Switching views changes the camera, input-to-movement mapping, aiming policy and local visual presentation—not the world simulation or combat state.
 
-**Browser controls:** Some function keys are reserved by browsers (especially F1 and F5), and Ctrl+number changes browser tabs. The intended web interface therefore includes **remappable number-row 1–6 shortcuts**, an always-accessible **six-mode view selector**, and controller cycling. Exact mappings will be finalized and tested during implementation.
+**Camera controls:** Press **1–6** on the number row in native or Web builds to switch cameras instantly. F1–F6 are optional alternate bindings (browser function keys can be reserved, especially F5). The demo also offers six on-screen view buttons and gamepad shoulder-button cycling. See [camera system documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 
@@ -74,28 +74,37 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The D01 project can already be opened in Godot 4.7.2. Its one diagnostic camera, procedural arena and keyboard movement are **not** the six finished view modes. See [development and verification instructions](docs/development.md) for actual commands and CI evidence.
+The Godot 4.7.2 project contains a **six-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–6**, then walk with WASD or arrow keys. The temporary movement adapter will be replaced by a reusable locomotion component in D03. See [development](docs/development.md) and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
 | Release | Deliverables | Exit goal |
 |---|---|---|
-| **[v0.1 — Foundation](https://github.com/objectivebot/ACTION-5/milestone/1)** | D01–D03 · 8 issues | Godot project, CI, all six cameras and controls, moving actor; Web and native smoke builds |
-| **[v0.2 — Combat](https://github.com/objectivebot/ACTION-5/milestone/2)** | D04–D07 · 7 issues | Animated character, attack system, bat/shovel/gun, enemy AI |
-| **[v0.3 — Gameplay & Tooling](https://github.com/objectivebot/ACTION-5/milestone/3)** | D08–D10 · 4 issues | Arena/dungeon interactions, playable six-mode demo, debugging and authoring tools |
-| **[v1.0 — Distribution](https://github.com/objectivebot/ACTION-5/milestone/4)** | D11–D12 · 2 issues | Full regression/export matrix, installable addon, documentation and release artifacts |
+| **[v0.1 — Foundation](https://github.com/bravado/ACTION-5/milestone/1)** | D01–D03 · 8 issues | Godot project, CI, all six cameras and controls, moving actor; Web and native smoke builds |
+| **[v0.2 — Combat](https://github.com/bravado/ACTION-5/milestone/2)** | D04–D07 · 7 issues | Animated character, attack system, bat/shovel/gun, enemy AI |
+| **[v0.3 — Gameplay & Tooling](https://github.com/bravado/ACTION-5/milestone/3)** | D08–D10 · 4 issues | Arena/dungeon interactions, playable six-mode demo, debugging and authoring tools |
+| **[v1.0 — Distribution](https://github.com/bravado/ACTION-5/milestone/4)** | D11–D12 · 2 issues | Full regression/export matrix, installable addon, documentation and release artifacts |
 
 See [the full product and implementation plan](PLAN.md) for D01–D12, detailed requirements and acceptance cases VT-01–VT-23. See [agent instructions](AGENTS.md) before implementing changes.
 
-All **four GitHub milestones** and **21 DXX-YY implementation issues** are now created and assigned. See [the full issue backlog](https://github.com/objectivebot/ACTION-5/issues). Each issue has a scope, acceptance criteria, dependencies and test evidence requirements; changes should be reviewed as independently testable pull requests.
+All **four GitHub milestones** and **21 DXX-YY implementation issues** are now created and assigned. See [the full issue backlog](https://github.com/bravado/ACTION-5/issues). Each issue has a scope, acceptance criteria, dependencies and test evidence requirements; changes should be reviewed as independently testable pull requests.
 
 The milestone mapping is maintained by [the idempotent roadmap synchronization workflow](.github/workflows/sync-roadmap.yml) and [its script](tools/sync_roadmap.py). It runs when the plan or workflow changes and can be started manually using GitHub Actions. If the backlog gains new issue IDs, create those issues first; the synchronizer will reject an incomplete set rather than silently assign only some of them.
 
 ## Working on ACTION-5
 
-This project is intended for incremental development—**start with D01**, not a complete speculative engine. Follow [AGENTS.md](AGENTS.md). The first meaningful checkpoint is a single actor that can move and switch between **all six views** in a browser and a desktop build.
+Development is incremental. **D01 is merged; D02 implements the six-camera foundation; D03 is next after D02 approval.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
 
-To run the current D01 diagnostic scene with the pinned Godot editor:\n\n```bash\ngodot --path .\ngodot --headless --path . --import\ngodot --headless --path . --script res://tests/run_all.gd\n```\n\nFor exported builds, matching template installation and CI logs/screenshots, consult [docs/development.md](docs/development.md). **Successful execution is verified by GitHub Actions; commands here do not claim a local run without evidence.**
+Run the current six-view demo with Godot 4.7.2:
+
+```bash
+godot --path .
+# Or test without a display:
+godot --headless --path . --import
+godot --headless --path . --script res://tests/run_all.gd
+```
+
+For export template installation, browser/native builds, screenshots and CI logs, see [docs/development.md](docs/development.md).
 
 ## License and assets
 
