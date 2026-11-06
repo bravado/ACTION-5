@@ -142,7 +142,7 @@ func _register_default_actions() -> void:
     _ensure_button(&"actor_dodge", [KEY_ALT], JOY_BUTTON_B)
 
 
-func _ensure(action: StringName, keys: Array, joy_axis: JoyAxis, axis_value: float) -> void:
+func _ensure(action: StringName, keys: Array, joy_axis: int, axis_value: float) -> void:
     if not InputMap.has_action(action):
         InputMap.add_action(action, 0.2)
     if not InputMap.action_get_events(action).is_empty():
@@ -157,7 +157,7 @@ func _ensure(action: StringName, keys: Array, joy_axis: JoyAxis, axis_value: flo
     InputMap.action_add_event(action, motion)
 
 
-func _ensure_button(action: StringName, keys: Array, button: JoyButton) -> void:
+func _ensure_button(action: StringName, keys: Array, button: int) -> void:
     if not InputMap.has_action(action):
         InputMap.add_action(action)
     if not InputMap.action_get_events(action).is_empty():
