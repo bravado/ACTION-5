@@ -18,8 +18,8 @@ Build **one 3D gameplay simulation**, not five games and not five renderers. All
 | 1 (F1 alternate) | Side | Fixed orthographic, stage-facing | X only; lock current Z as lane | Left/right, optional lock-on |
 | 2 (F2 alternate) | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
 | 3 (F3 alternate) | Isometric / shoulder | One orthographic profile, zoomable from wide tilted dungeon to close shoulder framing | X/Z, screen/camera-relative | Cursor target, lock-on or shoulder look-ahead |
-| 4 (F3 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
-| 5 (F4 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
+| 4 (F4 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
+| 5 (F5 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
 
 **Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F4), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–5 as the primary mapping**; F1–F5 remain optional alternate mappings. Web additionally requires a five-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
 
@@ -158,7 +158,7 @@ EquipmentComponent.weapon_equipped(weapon_id)
 
 **F2 Beat'em up:** fixed stage-facing camera with mild elevation; X/Z movement in stage axes. Facing follows last meaningful input, current target, or configured soft lock. Stage bounds are independent of camera.
 
-**F3 Isometric / shoulder:** **one orthographic view profile**, not a separate third-person mode. Wide zoom (default size 17) gives a tilted, screen-relative dungeon camera with visible wall depth. As zoom approaches 4, smoothly blend yaw, pitch, distance, shoulder offset, shoulder lift and look-ahead into a close above-shoulder camera. Stay orthographic in both framings, reuse the same actor/camera/profile, and allow mouse orbit, bounded pitch and wall avoidance. Provide live per-profile UI editing, reset, persistent user overrides and migration from the original five-slot preferences. True overhead is a separate F4 mode.
+**F3 Isometric / shoulder:** **one orthographic view profile**, not a separate third-person mode. Wide zoom (default size 17) gives a tilted, screen-relative dungeon camera with visible wall depth. As zoom approaches 4, smoothly blend yaw, pitch, distance, shoulder offset, shoulder lift and look-ahead into a close above-shoulder camera. Stay orthographic in both framings, reuse the same actor/camera/profile, and allow mouse orbit, bounded pitch and wall avoidance. Provide live per-profile UI editing, reset, persistent user overrides and migration from the original six-slot preferences. True overhead is a separate F5 mode.
 
 **F4 First person:** perspective eye/character anchor; mouse yaw/pitch with vertical limits; camera forward projected onto X/Z for locomotion; world-space crosshair ray target; locally hide head and optionally use an arms/weapon viewmodel. Maintain shared combat timing and authoritative muzzle/projectile trajectory.
 
@@ -287,9 +287,9 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 **Tasks**
 - Implement `ViewProfile`, `ViewManager`, `CameraRig` and five `.tres` resources: `side`, `beatemup`, `isometric`, `first_person`, `retro_topdown`; no separate third-person resource.
-- Use primary number-row **1–5 in native and Web**, optional F1–F4, a five-option on-screen selector, InputMap rebinding and controller cycling.
-- F1 horizontal side-scroller, F2 close arcade brawler, F3 wide isometric to close shoulder as *one* adjustable orthographic camera, F3 eye-level first person, F4 true vertical overhead.
-- Expose applicable per-profile settings in-game, persist only changed values using stable profile IDs, support reset, and migrate legacy five-slot settings.
+- Use primary number-row **1–5 in native and Web**, optional F1–F5, a five-option on-screen selector, InputMap rebinding and controller cycling.
+- F1 horizontal side-scroller, F2 close arcade brawler, F3 wide isometric to close shoulder as *one* adjustable orthographic camera, F4 eye-level first person, F5 true vertical overhead.
+- Expose applicable per-profile settings in-game, persist only changed values using stable profile IDs, support reset, and migrate legacy six-slot settings.
 - Implement camera follow, offsets, bounds, spring-arm/obstacle avoidance, pitch clamps and basic transition smoothing.
 - Handle input focus/mouse capture, pause and projection change transitions.
 - Add visible view name and state-preservation instrumentation.
@@ -297,8 +297,8 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 **Acceptance**
 - Cycling all five profiles 20 times preserves actor identity, position, physics and world state.
 - F3 provides tilted wide and close shoulder compositions with the same profile; zoom, shoulder framing, persistence, reset and migration work without actor movement.
-- F1 remains horizontal, F2 close arcade, F3 first person and F4 truly overhead with correct screen axes and distinct framing.
-- Near-wall collision/avoidance is verified for F3 close view; mouse look and focus handling work for F3 and F3.
+- F1 remains horizontal, F2 close arcade, F4 first person and F5 truly overhead with correct screen axes and distinct framing.
+- Near-wall collision/avoidance is verified for F3 close view; mouse look and focus handling work for F3 and F4.
 - Browser 1–5 and every selector button work without reserved browser shortcuts.
 - Resource camera settings are editable in the Inspector and runtime UI; native and Web exports, tests and visual evidence pass.
 
@@ -308,7 +308,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 **Tasks**
 - Create reusable `ActionActor`, locomotion component, input adapter and intent data types.
 - Implement acceleration/deceleration, configurable speed, run/walk, grounded jump/gravity, optional dodge and simple slope/step behavior.
-- Implement movement policies for F1 X-only, F2 stage-X/Z, combined F3 camera/screen relative, F3 first-person yaw relative, and F4 vertical-camera screen-relative X/Z with 4-/8-way facing and optional independent aiming.
+- Implement movement policies for F1 X-only, F2 stage-X/Z, combined F3 camera/screen relative, F4 first-person yaw relative, and F5 vertical-camera screen-relative X/Z with 4-/8-way facing and optional independent aiming.
 - Entering F1 records current Z lane; leaving does not teleport. Prevent Y movement from planar inputs.
 - Separate facing policy from locomotion and prevent camera jitter on abrupt turns.
 - Handle dead/disabled actor, focus loss and gamepad disconnect without stuck movement.
@@ -504,7 +504,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 | VT-16 | Install addon in empty project | Runs with no demo dependency | D10/D12 |
 | VT-17 | Change viewport FPS 30/60/120 | Attack tick lengths unchanged | D05/D11 |
 | VT-18 | Reopen project after fresh clone/reimport | No missing .uid/resource/plugin import errors | D01/D11 |
-| VT-19 | Zoom F3 wide/close; switch F3 to F4 | Isometric/shoulder/vertical distinct; same actor and world state | D02 |
+| VT-19 | Zoom F3 wide/close; switch F3 to F5 | Isometric/shoulder/vertical distinct; same actor and world state | D02 |
 | VT-20 | F5 cardinal input and 4-way sword swing | Correct screen-aligned X/Z, facing and hit arc; no projected-forward degeneracy | D03/D05 |
 | VT-21 | F5 8-way gun, optional independent aiming | Directional shot and obstacle/muzzle occlusion correct even while moving separately | D03/D06 |
 | VT-22 | F5 camera scroll/zoom and roof | Bounds and occlusion correct, navigation/collisions preserved | D02/D08 |
@@ -622,7 +622,7 @@ An agent may run all roles sequentially, but evidence must remain independently 
 
 - `D01-01` Bootstrap pinned project, scripts, asset license policy.
 - `D01-02` Headless test runner, CI import smoke, Web/Linux export smoke.
-- `D02-01` Five fixed profiles (F1–F4), shared isometric/shoulder zoom, distinct retro-overhead camera.
+- `D02-01` Five fixed profiles (F1–F5), shared isometric/shoulder zoom, distinct retro-overhead camera.
 - `D02-02` Third/first person camera, projection transitions and collision.
 - `D02-03` Primary keys 1–5 native/Web, optional F keys, five-view selector, settings UI and controller cycling.
 - `D03-01` Actor locomotion and intent contracts.
