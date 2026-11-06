@@ -29,7 +29,7 @@ func _capture() -> void:
         return
 
     var manager := scene.get_node("ViewManager") as Action5ViewManager
-    for i in range(6):
+    for i in range(5):
         if not manager.switch_view(i):
             push_error("D02 screenshot: cannot switch view " + str(i + 1))
             quit(1)
@@ -41,7 +41,7 @@ func _capture() -> void:
             quit(1)
             return
 
-    print("ACTION5_SIX_VIEW_SCREENSHOTS_OK 6")
+    print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 6")
     quit(0)
 
 
