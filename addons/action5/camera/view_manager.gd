@@ -1,8 +1,9 @@
 extends Node
 
+class_name Action5ViewManager
+
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const CameraRigScript = preload("res://addons/action5/camera/camera_rig.gd")
-class_name Action5ViewManager
 ## Owns only view selection and instrumentation. Never modifies actor physics or HP.
 
 signal view_changed(current_profile: ViewProfileScript, previous_profile: ViewProfileScript)
