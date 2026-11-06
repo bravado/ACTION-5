@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -43,6 +43,18 @@ size = Vector3(1, 1.8, 1)
 [sub_resource type="StandardMaterial3D" id="Material_pillar"]
 albedo_color = Color(0.94, 0.43, 0.22, 1)
 roughness = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_ramp"]
+size = Vector3(4, 0.3, 2.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ramp"]
+size = Vector3(4, 0.3, 2.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_step"]
+size = Vector3(1.0, 0.3, 2.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_step"]
+size = Vector3(1.0, 0.3, 2.5)
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_main")
@@ -116,6 +128,27 @@ surface_material_override/0 = SubResource("Material_pillar")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PillarB"]
 shape = SubResource("BoxShape3D_pillar")
+
+[node name="Ramp" type="StaticBody3D" parent="."]
+position = Vector3(-9, 0.18, 4.0)
+rotation_degrees = Vector3(0, 0, 12)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ramp"]
+mesh = SubResource("BoxMesh_ramp")
+surface_material_override/0 = SubResource("Material_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="LowStep" type="StaticBody3D" parent="."]
+position = Vector3(-4.0, 0.15, 4.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="LowStep"]
+mesh = SubResource("BoxMesh_step")
+surface_material_override/0 = SubResource("Material_pillar")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LowStep"]
+shape = SubResource("BoxShape3D_step")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.15, 0)
