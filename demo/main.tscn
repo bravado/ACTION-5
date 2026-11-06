@@ -1,10 +1,11 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
 [ext_resource type="Script" path="res://addons/action5/camera/view_manager.gd" id="3_manager"]
 [ext_resource type="Script" path="res://addons/action5/camera/camera_rig.gd" id="4_rig"]
 [ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="5_input"]
+[ext_resource type="Script" path="res://addons/action5/camera/camera_settings_panel.gd" id="6_settings"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -186,3 +187,18 @@ text = "5 · 1ST PERSON"
 [node name="Mode6" type="Button" parent="Hud/ModeButtons"]
 custom_minimum_size = Vector2(142, 44)
 text = "6 · TOP DOWN"
+
+[node name="SettingsToggle" type="Button" parent="Hud"]
+offset_left = 1031.0
+offset_top = 145.0
+offset_right = 1255.0
+offset_bottom = 191.0
+text = "Camera Settings [C]"
+
+[node name="CameraSettings" type="PanelContainer" parent="Hud"]
+visible = false
+offset_left = 910.0
+offset_top = 204.0
+offset_right = 1254.0
+offset_bottom = 650.0
+script = ExtResource("6_settings")
