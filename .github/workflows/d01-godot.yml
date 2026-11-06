@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libgl1 >/dev/null
-          xvfb-run -a -s '-screen 0 1280x720x24' godot --path . --script res://tests/capture_scene.gd 2>&1 | tee build/evidence/native-screenshot.log
+          xvfb-run -a -s '-screen 0 1280x720x24' godot --audio-driver Dummy --path . --script res://tests/capture_scene.gd 2>&1 | tee build/evidence/native-screenshot.log
           python3 tools/check_godot_log.py build/evidence/native-screenshot.log
           test -s build/evidence/native-scene.png
 
