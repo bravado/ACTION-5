@@ -4,7 +4,7 @@ class_name Action5ViewInput
 
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 ## Raw camera selection input is kept separate from player movement/combat.
-## Number row 1–6 is PRIMARY on native and web; F1–F6 is optional secondary.
+## Number row 1–5 is PRIMARY on native and web; F1–F5 is optional secondary.
 
 @export var manager_path: NodePath = ^"../ViewManager"
 @export var bind_number_keys: bool = true
@@ -23,7 +23,7 @@ func _ready() -> void:
 
 
 func _register_default_actions() -> void:
-    for i in range(6):
+    for i in range(5):
         var action := StringName("view_" + str(i + 1))
         if not InputMap.has_action(action):
             InputMap.add_action(action)
@@ -56,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
         return
     if event is InputEventKey and (not event.pressed or event.echo):
         return
-    for i in range(6):
+    for i in range(5):
         if event.is_action_pressed("view_" + str(i + 1)):
             manager.switch_view(i)
             get_viewport().set_input_as_handled()
