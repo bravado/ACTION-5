@@ -215,6 +215,18 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.set_alive(true)
     actor.set_controls_enabled(true)
     verify.call(actor.alive and actor.controls_enabled, "Actor can be re-enabled without replacement")
+    var camera_basis_before: Basis = manager.get_active_camera().global_basis
+    actor.facing.set_facing(Vector2.RIGHT)
+    await tree.process_frame
+    verify.call(manager.get_active_camera().global_basis.is_equal_approx(camera_basis_before),
+        "Abrupt visual facing turns never rotate or jitter the camera rig")
+    actor.set_controls_enabled(false)
+    verify.call((actor.get("_planar_intent") as Vector2) == Vector2.ZERO,
+        "Disabling actor controls clears cached planar intent")
+    actor.set_move_intent(Vector2.RIGHT)
+    verify.call((actor.get("_planar_intent") as Vector2) == Vector2.ZERO,
+        "Disabled actor rejects new intent without caching it")
+    actor.set_controls_enabled(true)
 
     actor.queue_free()
     adapter.set_enabled(true)
