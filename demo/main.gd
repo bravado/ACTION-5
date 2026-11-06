@@ -67,5 +67,10 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
     _help.text = "ACTION-5  //  D02 SIX VIEW PROFILES\n1–6: switch camera  |  F1–F6: alternate  |  WASD/arrows: move\nF4/F5: click to look, Esc releases mouse  |  Controller shoulders: cycle"
+    # Demo-only occluder: hide the front boundary's MESH in F1 so the
+    # camera can follow any Z lane. Its StaticBody3D collider stays enabled.
+    # Generic per-view roof/wall occlusion will be implemented in D08.
+    var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
+    front_wall_mesh.visible = current.mode != ViewProfileScript.Mode.SIDE
     if not current.is_orbit_mode():
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
