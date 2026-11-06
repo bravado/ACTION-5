@@ -3,6 +3,7 @@ extends Node3D
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
+const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
@@ -31,6 +32,13 @@ func _process(_delta: float) -> void:
         _input.set_enabled(false)
     elif not _input.enabled:
         _input.set_enabled(true)
+
+
+## Kept as a stable D02 smoke-test hook; production input mapping is in addon.
+func _map_demo_movement(axes: Vector2) -> Vector2:
+    return MovementPolicyScript.to_world(
+        axes, _views.current_profile.mode, _views.get_active_camera().global_basis
+    )
 
 
 func _notification(what: int) -> void:
