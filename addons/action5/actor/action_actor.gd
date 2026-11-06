@@ -14,6 +14,7 @@ const FacingScript = preload("res://addons/action5/actor/facing_presenter.gd")
 var alive: bool = true
 var controls_enabled: bool = true
 var _latest: IntentScript = IntentScript.new()
+var _planar_intent: Vector2 = Vector2.ZERO
 
 
 func apply_move_intent(intent: IntentScript) -> void:
@@ -21,6 +22,7 @@ func apply_move_intent(intent: IntentScript) -> void:
         locomotion.stop()
         return
     _latest = intent
+    _planar_intent = intent.world_move
     locomotion.apply_intent(intent)
     var facing_direction: Vector2 = intent.face_world
     if facing_direction.length_squared() > 0.001:
@@ -52,4 +54,5 @@ func set_alive(next_alive: bool) -> void:
 
 
 func clear_motion() -> void:
+    _planar_intent = Vector2.ZERO
     locomotion.stop()
