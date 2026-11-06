@@ -105,6 +105,10 @@ func _update_camera(delta: float) -> void:
 
     if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
         camera.global_basis = Basis.from_euler(Vector3(-orbit_pitch, orbit_yaw, 0.0))
+    elif profile.mode == ViewProfileScript.Mode.SIDE:
+        # Fixed side-on projection: -Z is always into the stage. NEVER look_at()
+        # the actor here; smoothing would introduce yaw/pitch and ruin the XY view.
+        camera.global_basis = Basis.IDENTITY
     else:
         camera.look_at(focus, up_axis)
 
