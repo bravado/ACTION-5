@@ -95,14 +95,16 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 Development is incremental. **D01 is merged; D02 implements the six-camera foundation; D03 is next after D02 approval.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
 
-Run the current six-view demo with Godot 4.7.2:
+Run the current six-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
 ```bash
-godot --path .
-# Or test without a display:
-godot --headless --path . --import
-godot --headless --path . --script res://tests/run_all.gd
+make run          # Import, then launch the game (press 1–6 to switch cameras)
+make test         # Import, then run headless tests
+make editor       # Import, then open the Godot editor
+make build        # Import and export Linux + Web
 ```
+
+Or prepare the project once explicitly with `make import`. For other Godot executable names use `make run GODOT=godot4`. The `.godot/` cache stays local and is not committed. See `make help` for all targets.
 
 For export template installation, browser/native builds, screenshots and CI logs, see [docs/development.md](docs/development.md).
 
