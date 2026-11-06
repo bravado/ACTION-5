@@ -1,0 +1,171 @@
+extends Node
+class_name Action5ActorInputAdapter
+## Convert remappable input to camera-relative world-plane intents.
+## Does not own the actor physics nor camera, and does not read input in actors.
+
+const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
+const ActorScript = preload("res://addons/action5/actor/action_actor.gd")
+const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
+
+@export var actor_path: NodePath = ^"../Player"
+@export var view_manager_path: NodePath = ^"../ViewManager"
+@export_range(0.0, 0.95, 0.05) var move_deadzone: float = 0.20
+@export_range(0.0, 0.95, 0.05) var aim_deadzone: float = 0.28
+@export_enum("4-way", "8-way") var retro_facing: int = 1
+@export var independent_aim_enabled: bool = true
+
+@onready var actor: ActorScript = get_node_or_null(actor_path) as ActorScript
+@onready var views: ViewManagerScript = get_node_or_null(view_manager_path) as ViewManagerScript
+
+var enabled: bool = true
+var focus_active: bool = true
+var require_neutral: bool = false
+var last_raw_axis: Vector2 = Vector2.ZERO
+var last_intent: IntentScript = IntentScript.new()
+
+
+func _ready() -> void:
+    if actor == null or views == null:
+        push_error("ACTION5: ActorInputAdapter requires Action5Actor and ViewManager")
+        set_physics_process(false)
+        return
+    _register_default_actions()
+    views.view_changed.connect(_on_view_changed)
+    Input.joy_connection_changed.connect(_on_joy_connection_changed)
+    if views.current_profile != null:
+        _on_view_changed(views.current_profile, null)
+
+
+func _physics_process(_delta: float) -> void:
+    if actor == null or views == null:
+        return
+    if not enabled or not focus_active or not actor.alive or not actor.controls_enabled:
+        clear_input()
+        return
+
+    var axes := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", move_deadzone)
+    var aim_axes := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    if require_neutral:
+        if axes.length_squared() > 0.001 or aim_axes.length_squared() > 0.001:
+            clear_input()
+            return
+        require_neutral = false
+
+    var command: IntentScript = compose_intent(
+        axes,
+        aim_axes,
+        Input.is_action_just_pressed(&"actor_jump"),
+        Input.is_action_pressed(&"actor_run"),
+        Input.is_action_just_pressed(&"actor_dodge")
+    )
+    actor.apply_move_intent(command)
+    last_intent = command
+
+
+func compose_intent(
+    axes: Vector2,
+    aim_axes: Vector2 = Vector2.ZERO,
+    jump: bool = false,
+    running: bool = false,
+    dodge: bool = false
+) -> IntentScript:
+    var mode: int = views.current_profile.mode
+    var basis: Basis = views.get_active_camera().global_basis
+    var movement := MovementPolicyScript.to_world(axes, mode, basis)
+    var aim: Vector2 = Vector2.ZERO
+    if independent_aim_enabled and aim_axes.length_squared() > 0.001:
+        aim = MovementPolicyScript.to_world(aim_axes, mode, basis)
+    # In first-person, actor facing follows the camera heading even when idle.
+    if mode == ViewProfileScript.Mode.FIRST_PERSON and aim.length_squared() < 0.001:
+        aim = MovementPolicyScript.to_world(Vector2(0.0, -1.0), mode, basis)
+    var sectors: int = 4 if retro_facing == 0 else 8
+    var facing := MovementPolicyScript.choose_facing(movement, aim, mode, sectors)
+    var intent: IntentScript = IntentScript.new(movement, facing, aim)
+    intent.jump_pressed = jump
+    intent.running = running
+    intent.dodge_pressed = dodge
+    intent.view_mode = mode
+    last_raw_axis = axes
+    return intent
+
+
+func clear_input() -> void:
+    last_raw_axis = Vector2.ZERO
+    last_intent = IntentScript.new()
+    if is_instance_valid(actor):
+        actor.clear_motion()
+
+
+func set_enabled(value: bool) -> void:
+    enabled = value
+    if not value:
+        clear_input()
+
+
+func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
+    if actor == null:
+        return
+    if current.mode == ViewProfileScript.Mode.SIDE:
+        actor.enter_side_view()
+    else:
+        actor.exit_side_view()
+
+
+func _on_joy_connection_changed(_device: int, connected: bool) -> void:
+    if not connected:
+        require_neutral = true
+        clear_input()
+
+
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+        focus_active = false
+        require_neutral = true
+        clear_input()
+    elif what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+        focus_active = true
+
+
+func _register_default_actions() -> void:
+    _ensure(&"move_left", [KEY_A, KEY_LEFT], JOY_AXIS_LEFT_X, -1.0)
+    _ensure(&"move_right", [KEY_D, KEY_RIGHT], JOY_AXIS_LEFT_X, 1.0)
+    _ensure(&"move_up", [KEY_W, KEY_UP], JOY_AXIS_LEFT_Y, -1.0)
+    _ensure(&"move_down", [KEY_S, KEY_DOWN], JOY_AXIS_LEFT_Y, 1.0)
+    _ensure(&"aim_left", [], JOY_AXIS_RIGHT_X, -1.0)
+    _ensure(&"aim_right", [], JOY_AXIS_RIGHT_X, 1.0)
+    _ensure(&"aim_up", [], JOY_AXIS_RIGHT_Y, -1.0)
+    _ensure(&"aim_down", [], JOY_AXIS_RIGHT_Y, 1.0)
+    _ensure_button(&"actor_jump", [KEY_SPACE], JOY_BUTTON_A)
+    _ensure_button(&"actor_run", [KEY_SHIFT], JOY_BUTTON_LEFT_STICK)
+    _ensure_button(&"actor_dodge", [KEY_ALT], JOY_BUTTON_B)
+
+
+func _ensure(action: StringName, keys: Array, joy_axis: JoyAxis, axis_value: float) -> void:
+    if not InputMap.has_action(action):
+        InputMap.add_action(action, 0.2)
+    if not InputMap.action_get_events(action).is_empty():
+        return
+    for key in keys:
+        var ev := InputEventKey.new()
+        ev.keycode = key
+        InputMap.action_add_event(action, ev)
+    var motion := InputEventJoypadMotion.new()
+    motion.axis = joy_axis
+    motion.axis_value = axis_value
+    InputMap.action_add_event(action, motion)
+
+
+func _ensure_button(action: StringName, keys: Array, button: JoyButton) -> void:
+    if not InputMap.has_action(action):
+        InputMap.add_action(action)
+    if not InputMap.action_get_events(action).is_empty():
+        return
+    for key in keys:
+        var ev := InputEventKey.new()
+        ev.keycode = key
+        InputMap.action_add_event(action, ev)
+    var joy := InputEventJoypadButton.new()
+    joy.button_index = button
+    InputMap.action_add_event(action, joy)
