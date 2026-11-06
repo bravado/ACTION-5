@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Retro Top-Down (F6)"
-mode = 5
+display_name = "Retro Top-Down (5)"
+mode = 4
 fixed_offset = Vector3(0, 24, 0)
 focus_height = 0.8
 orthographic = true
