@@ -1,0 +1,117 @@
+name: D01 Godot Foundation CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  d01-smoke:
+    name: Import, tests, Linux/Web exports, browser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GODOT_VERSION: 4.7.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Godot and matching templates
+        run: bash ci/install-godot.sh
+
+      - name: Import and verify scripts/scenes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/evidence build/web build/linux
+          godot --headless --path . --import 2>&1 | tee build/evidence/import.log
+          python3 tools/check_godot_log.py build/evidence/import.log
+          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/headless-scene.log
+          python3 tools/check_godot_log.py build/evidence/headless-scene.log
+
+      - name: Run real Godot tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://tests/run_all.gd 2>&1 | tee build/evidence/tests.log
+          grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
+          grep -q 'failures=0' build/evidence/tests.log
+          python3 tools/check_godot_log.py build/evidence/tests.log
+
+      - name: Verify test runner fails for an intentional broken assertion
+        shell: bash
+        run: |
+          set -euo pipefail
+          if godot --headless --path . --script res://tests/run_all.gd -- --self-test-failure > build/evidence/negative-test.log 2>&1; then
+            echo 'ERROR: intentionally broken assertion was accepted!' >&2
+            exit 1
+          fi
+          grep -q 'failures=1' build/evidence/negative-test.log
+          grep -q 'Intentional assertion verifies runner exits nonzero' build/evidence/negative-test.log
+          echo ACTION5_NEGATIVE_SELF_TEST_OK
+
+      - name: Export Linux and Web
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --export-release Linux build/linux/action5-demo.x86_64 2>&1 | tee build/evidence/export-linux.log
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee build/evidence/export-web.log
+          python3 tools/check_godot_log.py build/evidence/export-linux.log build/evidence/export-web.log
+          python3 tools/check_exports.py
+
+      - name: Run exported Linux executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 30s build/linux/action5-demo.x86_64 --headless --quit-after 90 2>&1 | tee build/evidence/native-export-run.log
+          python3 tools/check_godot_log.py build/evidence/native-export-run.log
+
+      - name: Capture native rendered evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1 >/dev/null
+          xvfb-run -a -s '-screen 0 1280x720x24' godot --audio-driver Dummy --path . --script res://tests/capture_scene.gd 2>&1 | tee build/evidence/native-screenshot.log
+          python3 tools/check_godot_log.py build/evidence/native-screenshot.log
+          test -s build/evidence/native-scene.png
+
+      - name: Verify real WebGL2 browser startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory build/web > build/evidence/web-server.log 2>&1 &
+          echo "$!" > build/evidence/web-server.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8765/index.html -o /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent --show-error http://127.0.0.1:8765/index.html -o /dev/null
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log
+          test -s build/evidence/web-scene.png
+
+      - name: Upload build logs, screenshots and verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d01-evidence
+          path: build/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Linux and Web smoke exports
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d01-exports
+          path: |
+            build/linux/
+            build/web/
+          if-no-files-found: error
+          retention-days: 14

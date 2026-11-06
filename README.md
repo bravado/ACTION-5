@@ -2,7 +2,7 @@
 
 **A six-perspective 3D action framework for Godot.** One world, one character, six ways to play.
 
-> **Project status: planning / pre-implementation.** This repository currently contains the product specification and agent instructions. The reusable addon, playable demo, and downloadable builds are deliverables on the roadmap, **not yet available**.
+> **Project status: D01 foundation implementation in progress.** The repository includes a real Godot project, runnable primitive-character demo, basic addon skeleton, tests and a Linux/Web smoke export pipeline. The production six-view system, combat engine and complete game remain future deliverables.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -74,7 +74,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot project, runtime folders and executable test commands will be delivered as development progresses. **Do not expect the repo to run in Godot yet.**
+The D01 project can already be opened in Godot 4.7.2. Its one diagnostic camera, procedural arena and keyboard movement are **not** the six finished view modes. See [development and verification instructions](docs/development.md) for actual commands and CI evidence.
 
 ## Roadmap
 
@@ -95,7 +95,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 This project is intended for incremental development—**start with D01**, not a complete speculative engine. Follow [AGENTS.md](AGENTS.md). The first meaningful checkpoint is a single actor that can move and switch between **all six views** in a browser and a desktop build.
 
-After D01 provides the actual Godot project and runner, this README should be updated with verified clone/import/run/test/export commands rather than untested placeholders.
+To run the current D01 diagnostic scene with the pinned Godot editor:\n\n```bash\ngodot --path .\ngodot --headless --path . --import\ngodot --headless --path . --script res://tests/run_all.gd\n```\n\nFor exported builds, matching template installation and CI logs/screenshots, consult [docs/development.md](docs/development.md). **Successful execution is verified by GitHub Actions; commands here do not claim a local run without evidence.**
 
 ## License and assets
 
