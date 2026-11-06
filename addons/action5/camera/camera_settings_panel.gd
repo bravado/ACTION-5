@@ -138,9 +138,13 @@ func _get_value(profile: ViewProfileScript, key: String) -> float:
 func _write_value(profile: ViewProfileScript, key: String, value: float) -> void:
     match key:
         "fixed_height":
-            profile.fixed_offset.y = value
+            var offset: Vector3 = profile.fixed_offset
+            offset.y = value
+            profile.fixed_offset = offset
         "fixed_distance":
-            profile.fixed_offset.z = value
+            var offset: Vector3 = profile.fixed_offset
+            offset.z = value
+            profile.fixed_offset = offset
         "pitch":
             profile.default_pitch_degrees = value
         _:
@@ -168,7 +172,7 @@ func set_current_value(key: String, value: float) -> bool:
     var profile: ViewProfileScript = _manager.current_profile
     if profile == null or not _field_visible(key, profile):
         return false
-    if not is_finite(value):
+    if is_nan(value) or is_inf(value):
         return false
     var safe: float = _clamped(key, value)
     _write_value(profile, key, safe)
