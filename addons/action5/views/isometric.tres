@@ -4,13 +4,25 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Isometric (F3)"
+display_name = "Isometric / Shoulder"
 mode = 2
-fixed_offset = Vector3(10, 16, 10)
-focus_height = 0.8
+focus_height = 0.95
 orthographic = true
-orthographic_size = 18.0
-follow_speed = 9.0
-bound_camera_target = true
+orthographic_size = 17.0
+follow_speed = 11.0
+bound_camera_target = false
 bounds_min = Vector2(-8, -4.5)
 bounds_max = Vector2(8, 4.5)
+; F3 far isometric at wide zoom, over-shoulder at close zoom.
+chase_distance = 17.0
+default_pitch_degrees = 48.0
+default_yaw_degrees = 45.0
+close_chase_distance = 2.9
+close_pitch_degrees = 16.0
+close_yaw_degrees = 0.0
+shoulder_offset = 0.75
+shoulder_lift = 0.65
+aim_ahead = 2.5
+camera_collision = true
+camera_collision_mask = 1
+wall_margin = 0.28
