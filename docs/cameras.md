@@ -44,7 +44,7 @@ Clicks on the view buttons do not activate attacks; scene UI events are handled 
 
 - **F1:** true horizontal Mario/Altered Beast camera: screen axes are strictly +X and +Y, camera looks along -Z with an identity basis regardless of follow interpolation. The demo hides the SouthWall **mesh** when F1 is selected (collision is unchanged), since an arena's foreground wall would otherwise block the side view. F2 restores the wall. The demo's X-only movement restriction is generalized in D03.
 - **F3 vs F6:** F3 preserves tilted geometry; F6 is exactly vertical, and uses camera up/right ground-plane mapping rather than the projected camera-forward vector (which becomes zero at vertical pitch).
-- **F2:** the default orthographic size is 8.5 instead of 16, with lower elevation and a tighter stage follow. The near SouthWall **mesh** is hidden for F1/F2, while its collider is preserved and visibility is restored for F3–F6.
+- **F2:** the default orthographic size is 7.0 instead of 16, with lower elevation and a tighter stage follow. The near SouthWall **mesh** is hidden for F1/F2, while its collider is preserved and visibility is restored for F3–F6.
 - **F4:** default right-shoulder offset (0.75 m), lift (0.65 m), short follow distance (2.9 m), and look-ahead (2.5 m) aim into the arena. Offset rotates with camera yaw and the camera's collision ray still blocks passing through walls. It is a camera-only change, not an actor position change.
 - **F5:** snaps to the actor eye position on entry and hides local third-person visuals; no camera reparenting.
 - Fixed/angled cameras clamp the tracking target to configurable bounds; follow smoothing can be disabled (speed 0). Switching between orthographic and perspective changes projection immediately; transforms are smoothed except when head clipping or exact overhead alignment requires an immediate snap.
@@ -60,7 +60,7 @@ The reusable `Action5CameraSettingsPanel` component lives at `addons/action5/cam
 - **F1/F3/F6:** orthographic zoom and follow speed.
 - **F5:** field of view and eye height.
 
-Settings apply as you move sliders; other camera profiles remain unchanged. Changes are saved to `user://action5_camera_settings.cfg` using Godot's `ConfigFile` and loaded on the next game launch. Each view has a separate section. The shipped `.tres` profiles are never rewritten by runtime UI changes, and the project ignores generated per-user files.
+Settings apply as you move sliders; other camera profiles remain unchanged. Only settings changed from their built-in defaults are saved (so untouched defaults can improve in future releases). Changes are saved to `user://action5_camera_settings.cfg` using Godot's `ConfigFile` and loaded on the next game launch. Each view has a separate section. The shipped `.tres` profiles are never rewritten by runtime UI changes, and the project ignores generated per-user files.
 
 For programmatic UI, use `set_current_value(key, value)`, `reset_current_camera()` and `refresh_controls()`. You can disable persistence via `save_user_settings=false` or change `preferences_path` for another game. The camera rig's `refresh_settings()` updates the camera without resetting mouse yaw or player position.
 
