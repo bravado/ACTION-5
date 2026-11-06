@@ -21,6 +21,8 @@ var _has_window_focus: bool = true
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
+    # Settings can also be closed by its own Close button, not only C.
+    _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.pressed.connect(_on_mode_button_pressed.bind(i))
@@ -54,6 +56,8 @@ func _notification(what: int) -> void:
 
 func _on_mode_button_pressed(index: int) -> void:
     _views.switch_view(index)
+    # Re-clicking an already selected view does not emit view_changed.
+    _release_ui_focus()
 
 
 func _toggle_camera_settings() -> void:
@@ -61,7 +65,22 @@ func _toggle_camera_settings() -> void:
     if _camera_settings.visible:
         _camera_settings.call("refresh_controls")
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+    _release_ui_focus()
+
+
+func _on_camera_settings_visibility_changed() -> void:
+    # This also handles the Close button inside the settings panel.
+    _release_ui_focus()
     _input.set_enabled(not _camera_settings.visible and _has_window_focus)
+
+
+func _release_ui_focus() -> void:
+    # Buttons must not intercept Space (actor_jump) after a mouse click or
+    # when changing the view with number keys. Sliders remain keyboard-usable
+    # while the settings panel is open, until a view switch/close.
+    var focused: Control = get_viewport().gui_get_focus_owner()
+    if focused != null:
+        focused.release_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -74,6 +93,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if current == null:
         return
+    # Remove stale GUI focus left by view buttons or camera sliders.
+    _release_ui_focus()
     _status.text = "VIEW %d / 5  |  %s  |  Switches: %d  |  Position delta: %.5f" % [
         _views.active_index + 1, current.display_name, _views.switch_count, _views.last_position_delta
     ]
