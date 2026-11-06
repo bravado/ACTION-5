@@ -32,11 +32,13 @@ unzip -q -o "${template_zip}" \
   "templates/linux_release.x86_64" \
   "templates/web_release.zip" \
   "templates/web_debug.zip" \
+  "templates/web_nothreads_release.zip" \
+  "templates/web_nothreads_debug.zip" \
   -d "${extract_dir}"
 destination="${HOME}/.local/share/godot/export_templates/${version}.stable"
 mkdir -p "${destination}"
 cp -a "${extract_dir}/templates/." "${destination}/"
-for name in version.txt linux_release.x86_64 web_release.zip web_debug.zip; do
+for name in version.txt linux_release.x86_64 web_release.zip web_debug.zip web_nothreads_release.zip web_nothreads_debug.zip; do
   test -s "${destination}/${name}" || { echo "Missing export template: ${name}" >&2; exit 1; }
 done
 echo "ACTION5_GODOT_SETUP_OK version=${version} templates=${destination}"
