@@ -136,10 +136,10 @@ func _physics_process(delta: float) -> void:
         body.velocity.z = 0.0
 
 
-## Optional low-obstacle step assist; never bypasses collision.
-## It checks rise clearance and an unblocked horizontal path before lifting.
+## Optional step assist: only rise as far as a real walkable landing.
+## All three sweeps are collision tests; the solver still owns move_and_slide().
 func _attempt_step(delta: float) -> void:
-    if max_step_height <= 0.0 or not body.is_on_floor():
+    if max_step_height <= 0.0 or not body.is_on_floor() or body.velocity.y > 0.0:
         return
     var horizontal := Vector3(body.velocity.x, 0.0, body.velocity.z) * delta
     if horizontal.length_squared() < 0.000001:
@@ -147,12 +147,29 @@ func _attempt_step(delta: float) -> void:
     var transform: Transform3D = body.global_transform
     if not body.test_move(transform, horizontal):
         return
-    var rise := Vector3.UP * max_step_height
+
+    var rise := body.up_direction * max_step_height
     if body.test_move(transform, rise):
         return
     if body.test_move(transform.translated(rise), horizontal):
         return
-    body.global_position += rise
+
+    # Probe for support at the destination, not at the original position.
+    # A blocked path alone does not imply there is anything safe to stand on.
+    var landing := KinematicCollision3D.new()
+    var landing_from: Transform3D = transform.translated(rise + horizontal)
+    var drop: Vector3 = -body.up_direction * (max_step_height + floor_snap_distance)
+    if not body.test_move(landing_from, drop, landing):
+        return
+    if landing.get_normal().dot(body.up_direction) < cosf(body.floor_max_angle):
+        return
+
+    # Landing travel gives the actual step rise (usually less than the max).
+    # Reject the original floor/unsupported ledges as well as oversized rises.
+    var height: float = max_step_height + landing.get_travel().dot(body.up_direction)
+    if height <= body.safe_margin or height > max_step_height + body.safe_margin:
+        return
+    body.global_position += body.up_direction * height
 
 
 func _apply_gravity(delta: float) -> void:
