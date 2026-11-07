@@ -189,7 +189,7 @@ func _transition(next: MoveScript) -> void:
     move_changed.emit(old, active_id)
 
 
- func cancel() -> void:
+func cancel() -> void:
     _pending_requests.clear()
     if active_move != null and _context != null:
         active_move.exit(_context)
