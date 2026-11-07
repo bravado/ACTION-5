@@ -76,7 +76,7 @@ command.request_move(&"dash")
 actor.apply_move_intent(command)
 ```
 
-The controller checks eligibility, interruption priority and `can_exit` before switching states. Components may **request** horizontal velocity, but only the solver touches `CharacterBody3D.velocity` and calls `move_and_slide()`, preserving physics, walls and the five-view invariants. Different action categories such as combat are intentionally reserved for later milestones and should use separate controllers rather than cross-product states like `RunningAndShooting`.
+The controller checks eligibility, interruption priority and `can_exit` before switching states. Components may **request** horizontal or vertical velocity and a gravity scale (`ctx.request_horizontal_velocity()`, `ctx.request_vertical_velocity()`, `ctx.request_gravity_scale()`) for dashes, climbs and wall-running, but only the solver touches `CharacterBody3D.velocity` and calls `move_and_slide()`, preserving physics, walls and the five-view invariants. Different action categories such as combat are intentionally reserved for later milestones and should use separate controllers rather than cross-product states like `RunningAndShooting`.
 
 ## Mode-specific movement
 
