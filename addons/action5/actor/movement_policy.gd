@@ -6,16 +6,6 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const EPSILON_SQ: float = 0.000001
 
 
-static func deadzone(axes: Vector2, threshold: float = 0.2) -> Vector2:
-    if not axes.is_finite():
-        return Vector2.ZERO
-    var t: float = clampf(threshold, 0.0, 0.95)
-    var length: float = minf(axes.length(), 1.0)
-    if length <= t:
-        return Vector2.ZERO
-    return axes.normalized() * ((length - t) / (1.0 - t))
-
-
 static func to_world(axes: Vector2, mode: int, camera_basis: Basis) -> Vector2:
     if not axes.is_finite():
         return Vector2.ZERO
