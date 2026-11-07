@@ -9,6 +9,7 @@ const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
 
 signal move_changed(previous: StringName, current: StringName)
 signal move_registered(move: Node)
+signal move_unregistered(move_id: StringName)
 
 @export var grounded_move: StringName = &"grounded"
 @export var airborne_move: StringName = &"airborne"
@@ -29,15 +30,37 @@ func _ready() -> void:
         push_error("ACTION5: MovementController must live under Locomotion inside CharacterBody3D")
         return
     _context = ContextScript.new(body, get_parent())
+    # Track the scene-tree lifecycle, not only object validity: remove_child()
+    # leaves a perfectly valid Node that must no longer be an active move.
+    moves_root.child_entered_tree.connect(_on_move_added)
+    moves_root.child_exiting_tree.connect(_on_move_removed)
     _ready_for_moves = true
     for child in moves_root.get_children():
-        if child is MoveScript:
-            register_move(child as MoveScript)
+        _on_move_added(child)
+
+
+func _on_move_added(child: Node) -> void:
+    if child is MoveScript:
+        register_move(child as MoveScript)
+
+
+func _on_move_removed(child: Node) -> void:
+    if not child is MoveScript:
+        return
+    # Look up by instance: a component's move_id may have changed after
+    # registration, but its original registry entry must still be removed.
+    for id in _registry.keys():
+        if _registry[id] == child:
+            unregister_move(id)
+            return
 
 
 func register_move(move: MoveScript) -> bool:
-    if move == null or move.move_id == &"":
-        push_warning("ACTION5: Move component must declare move_id")
+    if not is_instance_valid(move) or move.move_id == &"" or move.is_queued_for_deletion():
+        push_warning("ACTION5: Move component must declare a valid move_id")
+        return false
+    if move.get_parent() != moves_root:
+        push_warning("ACTION5: Registered moves must be children of Moves")
         return false
     if get_move(move.move_id) != null:
         push_warning("ACTION5: Duplicate move_id: " + str(move.move_id))
@@ -47,25 +70,46 @@ func register_move(move: MoveScript) -> bool:
     return true
 
 
+## Remove a registered ability without requiring its Node to be freed.
+## Re-registering the same node is explicit; removing the child also
+## unregisters it automatically.
+func unregister_move(id: StringName) -> bool:
+    if not _registry.has(id):
+        return false
+    _registry.erase(id)
+    _pending_requests.erase(id)
+    if active_id == id:
+        if is_instance_valid(active_move) and _context != null:
+            active_move.exit(_context)
+        active_move = null
+        active_id = &""
+        move_changed.emit(id, &"")
+    move_unregistered.emit(id)
+    return true
+
+
 ## Runtime extension: add a new component with no Actor/solver edits.
 func add_move(move: MoveScript) -> bool:
-    if move == null or not _ready_for_moves or move.move_id == &"":
+    if not is_instance_valid(move) or not _ready_for_moves or move.move_id == &"":
+        return false
+    if move.is_queued_for_deletion() or get_move(move.move_id) != null:
         return false
     # Reject duplicates BEFORE adding a child; failed extensions leave the
     # scene unchanged rather than creating orphan, unregistered move nodes.
-    if get_move(move.move_id) != null:
-        return false
     if move.get_parent() != null and move.get_parent() != moves_root:
         return false
     if move.get_parent() == null:
         moves_root.add_child(move)
+        # child_entered_tree registers it exactly once.
+        return get_move(move.move_id) == move
     return register_move(move)
 
 
 func get_moves() -> Array[MoveScript]:
     var result: Array[MoveScript] = []
-    for move in _registry.values():
-        if is_instance_valid(move):
+    for id in _registry.keys():
+        var move: MoveScript = get_move(id)
+        if move != null:
             result.append(move)
     return result
 
@@ -75,7 +119,10 @@ func get_move(id: StringName) -> MoveScript:
         return null
     var move: MoveScript = _registry[id]
     if not is_instance_valid(move):
-        _registry.erase(id)
+        unregister_move(id)
+        return null
+    if move.get_parent() != moves_root or move.is_queued_for_deletion():
+        unregister_move(id)
         return null
     return move
 
@@ -91,7 +138,8 @@ func request_move(id: StringName) -> bool:
 
 
 func tick(intent: IntentScript, delta: float) -> ContextScript:
-    _invalidate_removed_active_move()
+    if active_move != null:
+        get_move(active_id)  # Prune an unexpectedly detached or freed component.
     _context.begin_tick(intent, delta)
     _resolve_default()
 
@@ -141,16 +189,7 @@ func _transition(next: MoveScript) -> void:
     move_changed.emit(old, active_id)
 
 
-## A live game can remove a move node without leaving a dangling FSM state.
-func _invalidate_removed_active_move() -> void:
-    if active_move != null and not is_instance_valid(active_move):
-        var old: StringName = active_id
-        active_move = null
-        active_id = &""
-        move_changed.emit(old, &"")
-
-
-func cancel() -> void:
+ func cancel() -> void:
     _pending_requests.clear()
     if active_move != null and _context != null:
         active_move.exit(_context)
