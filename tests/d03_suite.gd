@@ -7,6 +7,7 @@ const ActorScript = preload("res://addons/action5/actor/action_actor.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const AdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const CustomDashScript = preload("res://tests/fixtures/custom_dash_move.gd")
+const CustomClimbScript = preload("res://tests/fixtures/custom_climb_move.gd")
 
 
 func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
@@ -327,6 +328,37 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(absf(actor.velocity.x) < 0.05,
         "Dodge finishes and normal deceleration resumes")
+
+    # Proof of extensibility beyond planar motion: a test-only vertical
+    # move gets authoritative Y velocity and gravity control through the
+    # same MoveContext, without touching the solver or player script.
+    actor.global_position = Vector3(0.0, 0.2, -5.0)
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(12):
+        await tree.physics_frame
+    var climb = CustomClimbScript.new()
+    verify.call(actor_moves.add_move(climb),
+        "Independent climbing component installs without core code changes")
+    var climb_request := MoveIntentScript.new()
+    climb_request.request_move(&"test_climb")
+    var climb_start_y: float = actor.global_position.y
+    actor.apply_move_intent(climb_request)
+    verify.call(actor_moves.active_id == &"test_climb" and climb.enter_count == 1,
+        "Custom vertical move activates through the generic controller")
+    for i in range(8):
+        await tree.physics_frame
+    verify.call(actor.global_position.y > climb_start_y + 0.25
+        and actor.velocity.y > 2.8,
+        "Plug-in controls real Y velocity and disables gravity without solver branches")
+    for i in range(12):
+        await tree.physics_frame
+    verify.call(actor_moves.active_id != &"test_climb",
+        "Custom climb completes and transitions to the airborne fallback")
+    actor.set_move_intent(Vector2.ZERO)
+    for i in range(90):
+        await tree.physics_frame
+    verify.call(actor.is_on_floor(),
+        "Physics gravity and landing resume when custom climb exits")
 
     actor.global_position = Vector3(0.0, 0.18, -4.0)
     actor.enter_side_view()
