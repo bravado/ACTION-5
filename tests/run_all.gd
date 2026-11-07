@@ -407,6 +407,9 @@ func _run_tests() -> void:
         "Space after closing Camera Settings cannot reopen it or switch views")
 
     level.queue_free()
+    # Flush Godot's deferred deletion queue before inspecting ResourceDB at
+    # process exit, especially with dynamically installed move components.
+    await process_frame
 
     if OS.get_cmdline_user_args().has("--self-test-failure"):
         _check(false, "Intentional assertion verifies runner exits nonzero")
