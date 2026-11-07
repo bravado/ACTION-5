@@ -33,6 +33,8 @@ var _defaults: Array[Dictionary] = []
 var _rows: Dictionary = {}
 var _title: Label
 var _reset: Button
+var _invert_y_row: HBoxContainer
+var _invert_y_checkbox: CheckBox
 
 
 func _ready() -> void:
@@ -45,6 +47,7 @@ func _ready() -> void:
         for field in FIELDS:
             var key: String = field["key"]
             values[key] = _get_value(profile, key)
+        values["invert_y"] = profile.invert_y
         _defaults.append(values)
     _load_preferences()
     _build_panel()
@@ -111,6 +114,18 @@ func _build_panel() -> void:
         row.add_child(number)
         slider.value_changed.connect(_on_slider_changed.bind(key))
         _rows[key] = {"row": row, "slider": slider, "number": number}
+
+    # A boolean camera option is deliberately a checkbox, not a numeric
+    # slider. The value belongs to the first-person profile Resource.
+    _invert_y_row = HBoxContainer.new()
+    _invert_y_row.name = "Row_invert_y"
+    outer.add_child(_invert_y_row)
+    _invert_y_checkbox = CheckBox.new()
+    _invert_y_checkbox.name = "InvertY"
+    _invert_y_checkbox.text = "Invert Y-axis (mouse)"
+    _invert_y_checkbox.focus_mode = Control.FOCUS_NONE
+    _invert_y_checkbox.toggled.connect(_on_invert_y_toggled)
+    _invert_y_row.add_child(_invert_y_checkbox)
 
     var buttons := HBoxContainer.new()
     outer.add_child(buttons)
@@ -206,6 +221,24 @@ func set_current_value(key: String, value: float) -> bool:
     return true
 
 
+## This toggle is only applicable to first-person, and is persisted
+## alongside the existing per-profile numeric camera overrides.
+func set_current_invert_y(value: bool) -> bool:
+    if _manager == null or _manager.current_profile == null:
+        return false
+    var profile: ViewProfileScript = _manager.current_profile
+    if profile.mode != ViewProfileScript.Mode.FIRST_PERSON:
+        return false
+    profile.invert_y = value
+    _save_preferences()
+    refresh_controls()
+    return true
+
+
+func _on_invert_y_toggled(value: bool) -> void:
+    set_current_invert_y(value)
+
+
 func _on_slider_changed(value: float, key: String) -> void:
     set_current_value(key, value)
 
@@ -219,6 +252,8 @@ func refresh_controls() -> void:
         return
     var profile: ViewProfileScript = _manager.current_profile
     _title.text = "%d / 5 · %s" % [_manager.active_index + 1, profile.display_name]
+    _invert_y_row.visible = profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+    _invert_y_checkbox.set_pressed_no_signal(profile.invert_y)
     for field in FIELDS:
         var key: String = field["key"]
         var row_data: Dictionary = _rows[key]
@@ -239,6 +274,7 @@ func reset_current_camera() -> void:
     for field in FIELDS:
         var key: String = field["key"]
         _write_value(profile, key, float(values[key]))
+    profile.invert_y = bool(values["invert_y"])
     _manager.camera_rig.refresh_settings(true)
     _save_preferences()
     refresh_controls()
@@ -272,6 +308,10 @@ func _load_preferences() -> void:
             var raw: Variant = config.get_value(section, key)
             if raw is float or raw is int:
                 _write_value(profile, key, _clamped(key, float(raw)))
+        if profile.mode == ViewProfileScript.Mode.FIRST_PERSON and config.has_section_key(section, "invert_y"):
+            var invert_saved: Variant = config.get_value(section, "invert_y")
+            if invert_saved is bool:
+                profile.invert_y = invert_saved
 
     if not current_schema:
         # Import older third-person settings into the *close* portion of the
@@ -314,5 +354,7 @@ func _save_preferences() -> void:
             if is_equal_approx(actual, float(defaults[key])):
                 continue
             config.set_value(section, key, actual)
+        if profile.mode == ViewProfileScript.Mode.FIRST_PERSON and profile.invert_y != bool(defaults["invert_y"]):
+            config.set_value(section, "invert_y", profile.invert_y)
     if config.save(preferences_path) != OK:
         push_warning("ACTION5: could not save camera preferences: " + preferences_path)
