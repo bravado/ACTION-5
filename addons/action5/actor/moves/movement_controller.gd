@@ -141,14 +141,17 @@ func tick(intent: IntentScript, delta: float) -> ContextScript:
     if active_move != null:
         get_move(active_id)  # Prune an unexpectedly detached or freed component.
     _context.begin_tick(intent, delta)
-    _resolve_default()
 
-    # Drain once: an intent can stay active for many ticks, but move requests
-    # are edge-triggered. Calls made during a transition run on the next tick.
+    # Drain once. Resolve all requests BEFORE changing states, so simultaneous
+    # actions never produce intermediate enter/exit or move_changed events.
+    # Requests queued during a transition are handled on the following tick.
     var requested: Array[StringName] = _pending_requests
     _pending_requests = []
-    for id in requested:
-        _activate_move(id)
+    var winner: MoveScript = _select_requested_move(requested)
+    if winner != null:
+        _transition(winner)
+    else:
+        _resolve_default()
 
     if active_move != null:
         active_move.physics_update(_context, delta)
@@ -157,14 +160,29 @@ func tick(intent: IntentScript, delta: float) -> ContextScript:
     return _context
 
 
-func _activate_move(id: StringName) -> void:
-    var next: MoveScript = get_move(id)
-    if next == null or next == active_move or not next.can_enter(_context):
-        return
-    if active_move != null:
-        if next.priority < active_move.priority or not active_move.can_exit(_context):
-            return
-    _transition(next)
+## Choose one eligible request: highest priority, then lexicographically
+## smallest registered move ID for ties. Neither input nor registration order
+## affects the outcome. Losing requests are consumed without state changes.
+func _select_requested_move(requested: Array[StringName]) -> MoveScript:
+    var winner: MoveScript
+    var winner_id: StringName = &""
+    for id in requested:
+        var candidate: MoveScript = get_move(id)
+        if candidate == null or candidate == active_move:
+            continue
+        if active_move != null and candidate.priority < active_move.priority:
+            continue
+        if not candidate.can_enter(_context):
+            continue
+        if winner == null or candidate.priority > winner.priority or (
+            candidate.priority == winner.priority and str(id) < str(winner_id)
+        ):
+            winner = candidate
+            winner_id = id
+
+    if winner != null and active_move != null and not active_move.can_exit(_context):
+        return null
+    return winner
 
 
 func _resolve_default(force: bool = false) -> void:
