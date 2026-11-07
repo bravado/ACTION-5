@@ -18,6 +18,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(adapter != null and player != null, "D03 reusable actor/input adapter available")
     verify.call(player.get_node("Locomotion") != null and player.get_node("Visual") != null,
         "Locomotion and facing are independent actor components")
+    verify.call(adapter.process_physics_priority < player.locomotion.process_physics_priority,
+        "Raw input is sampled before locomotion on the same physics tick")
 
     # A reusable controller discovers components directly from the actor
     # scene; bindings come from components, not the input adapter's switch.
@@ -197,6 +199,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     player.apply_move_intent(active_intent)
     verify.call(player.locomotion.desired.world_move.x > 0.9,
         "Actor forwards intent to the authoritative locomotion state")
+    adapter.set_enabled(false)
+    verify.call(player.locomotion.desired.world_move.x > 0.9,
+        "Repeated disabling is a no-op and does not cancel an AI-supplied intent")
     adapter._on_joy_connection_changed(1, false)
     verify.call(adapter.require_neutral
         and player.locomotion.desired.world_move.is_zero_approx()
