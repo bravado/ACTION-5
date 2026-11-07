@@ -119,8 +119,12 @@ func _physics_process(delta: float) -> void:
         _jump_buffer_left = 0.0
         _coyote_left = 0.0
 
+    # Generic move commands can change vertical motion/gravity too (e.g.
+    # climbing or wall-running), without adding another move-specific branch.
+    if ctx.has_vertical_override:
+        body.velocity.y = ctx.vertical_override
     _attempt_step(delta)
-    _apply_gravity(delta)
+    _apply_gravity(delta * ctx.gravity_scale)
     body.move_and_slide()
 
     # The side lane is an X/Y plane, not a second 2D world. Prevent
