@@ -447,10 +447,21 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Actor walks onto real sloped floor collider")
     actor.global_position = Vector3(-6.0, 0.20, 4.0)
     actor.set_move_intent(Vector2.RIGHT)
+    var step_peak_y: float = actor.global_position.y
+    var step_landed: bool = false
     for i in range(85):
         await tree.physics_frame
+        step_peak_y = maxf(step_peak_y, actor.global_position.y)
+        if actor.global_position.x > -4.3 and actor.global_position.x < -3.7:
+            step_landed = step_landed or (
+                actor.is_on_floor() and absf(actor.global_position.y - 0.30) < 0.05
+            )
     verify.call(actor.global_position.x > -3.0,
         "Collision-checked step assist climbs a low physical obstacle")
+    verify.call(step_landed,
+        "Low step provides a confirmed walkable landing at its real height")
+    verify.call(step_peak_y <= 0.34,
+        "Step assist rises only to the landing, never the full 0.35m step allowance")
     actor.set_move_intent(Vector2.ZERO)
     actor.set_alive(false)
     var disabled_x: float = actor.global_position.x
