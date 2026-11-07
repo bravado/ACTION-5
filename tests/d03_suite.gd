@@ -52,6 +52,34 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Duplicate move IDs are rejected without creating orphan child nodes")
     duplicate_move.free()
 
+    # Direct scene-tree additions/removals must keep the registry synchronized,
+    # even when a detached node is still a valid object.
+    var removed_demo_ids: Array[StringName] = []
+    demo_moves.move_unregistered.connect(
+        func(id: StringName) -> void: removed_demo_ids.append(id)
+    )
+    demo_moves.moves_root.remove_child(injected)
+    verify.call(demo_moves.get_move(&"test_dash") == null
+        and demo_moves.get_moves().size() == 4
+        and removed_demo_ids == [&"test_dash"],
+        "Removing a valid child immediately unregisters its move and emits once")
+    injected.free()
+
+    var direct_move = CustomDashScript.new()
+    demo_moves.moves_root.add_child(direct_move)
+    verify.call(demo_moves.get_move(&"test_dash") == direct_move,
+        "Adding a move directly to Moves automatically registers it")
+    verify.call(demo_moves.unregister_move(&"test_dash")
+        and demo_moves.get_move(&"test_dash") == null
+        and removed_demo_ids == [&"test_dash", &"test_dash"],
+        "Explicit unregistration emits once and removes the registered instance")
+    verify.call(not demo_moves.unregister_move(&"test_dash"),
+        "Unregistering an already removed move is a no-op")
+    demo_moves.moves_root.remove_child(direct_move)
+    direct_move.free()
+    verify.call(removed_demo_ids.size() == 2,
+        "Removing a previously unregistered node does not duplicate the signal")
+
 
     verify.call(PolicyScript.deadzone(Vector2(0.10, 0.0), 0.20).is_zero_approx(),
         "Analogue stick drift is ignored by the configurable deadzone")
@@ -440,6 +468,64 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call((actor.get("_planar_intent") as Vector2) == Vector2.ZERO,
         "Disabled actor rejects new intent without caching it")
     actor.set_controls_enabled(true)
+
+    # A pending request must not accidentally activate a newly installed
+    # move with the same ID after the old instance was removed.
+    var lifecycle_id: StringName = &"test_lifecycle"
+    var removed_actor_ids: Array[StringName] = []
+    actor_moves.move_unregistered.connect(
+        func(id: StringName) -> void: removed_actor_ids.append(id)
+    )
+    var old_move = CustomDashScript.new()
+    old_move.move_id = lifecycle_id
+    verify.call(actor_moves.add_move(old_move),
+        "Lifecycle move registers dynamically")
+    var lifecycle_intent := MoveIntentScript.new(Vector2.RIGHT)
+    lifecycle_intent.request_move(lifecycle_id)
+    actor.apply_move_intent(lifecycle_intent)
+    actor_moves.moves_root.remove_child(old_move)
+    verify.call(actor_moves.get_move(lifecycle_id) == null
+        and removed_actor_ids == [lifecycle_id],
+        "Removing an inactive move clears its registry and pending request")
+    old_move.free()
+
+    var replacement_move = CustomDashScript.new()
+    replacement_move.move_id = lifecycle_id
+    verify.call(actor_moves.add_move(replacement_move),
+        "A replacement may reuse an unregistered movement ID")
+    actor.set_move_intent(Vector2.RIGHT)
+    await tree.physics_frame
+    verify.call(replacement_move.enter_count == 0
+        and actor_moves.active_id != lifecycle_id,
+        "Pending request for a removed component cannot activate its replacement")
+
+    actor.apply_move_intent(lifecycle_intent)
+    await tree.physics_frame
+    verify.call(actor_moves.active_id == lifecycle_id
+        and replacement_move.enter_count == 1,
+        "An explicit new request activates the replacement on a physics tick")
+    actor_moves.moves_root.remove_child(replacement_move)
+    verify.call(actor_moves.active_id == &""
+        and replacement_move.exit_count == 1
+        and actor_moves.get_move(lifecycle_id) == null
+        and removed_actor_ids == [lifecycle_id, lifecycle_id],
+        "Detaching an active move forces exit and clears the active FSM reference")
+    replacement_move.free()
+    await tree.physics_frame
+    verify.call(actor_moves.active_id == &"grounded"
+        or actor_moves.active_id == &"airborne",
+        "FSM selects a valid fallback on the tick following active move removal")
+
+    # Freeing a component while it is still under Moves must also unregister.
+    var freed_move = CustomDashScript.new()
+    freed_move.move_id = &"test_freed"
+    verify.call(actor_moves.add_move(freed_move), "Move slated for deletion registers")
+    freed_move.queue_free()
+    await tree.process_frame
+    await tree.physics_frame
+    verify.call(actor_moves.get_move(&"test_freed") == null
+        and removed_actor_ids.has(&"test_freed"),
+        "queue_free unregisters the component rather than leaving a dangling entry")
 
     actor.queue_free()
     adapter.set_enabled(true)
