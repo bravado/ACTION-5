@@ -36,6 +36,8 @@ enum Mode {
 @export_flags_3d_physics var camera_collision_mask: int = 1
 @export_range(0.08, 1.0, 0.01) var wall_margin: float = 0.25
 @export_range(0.001, 0.02, 0.001) var mouse_sensitivity: float = 0.003
+## First-person mouse Y: false = mouse down looks down (default).
+@export var invert_y: bool = false
 @export_range(-80.0, 0.0, 1.0) var min_pitch_degrees: float = -65.0
 @export_range(0.0, 85.0, 1.0) var max_pitch_degrees: float = 65.0
 

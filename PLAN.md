@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status:** D01 merged; D02 five-mode camera implementation under review in PR #23  
+**Status:** D01–D02 merged. D03 locomotion and input abstraction implemented on PR #24, pending validation and owner gate.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -307,6 +307,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 **Tasks**
 - Create reusable `ActionActor`, locomotion component, input adapter and intent data types.
+- Build an extensible movement state controller: a new player move is installed as its own `Action5Move` node, with eligibility, priority, enter/tick/exit hooks and input defaults; no player-wide `is_my_move` flag or central branching. Grounded/airborne fallbacks and a shared physics solver keep one authoritative `CharacterBody3D`.
 - Implement acceleration/deceleration, configurable speed, run/walk, grounded jump/gravity, optional dodge and simple slope/step behavior.
 - Implement movement policies for F1 X-only, F2 stage-X/Z, combined F3 camera/screen relative, F4 first-person yaw relative, and F5 vertical-camera screen-relative X/Z with 4-/8-way facing and optional independent aiming.
 - Entering F1 records current Z lane; leaving does not teleport. Prevent Y movement from planar inputs.
@@ -319,6 +320,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - At fixed positions, F1 Z remains within tolerance while moving; F2–F5 support X/Z.
 - F5 screen-up/right/down/left map to correct planar directions at exact vertical pitch without NaN/zero-vector, and facing quantization does not affect physical X/Z position.
 - Unit tests cover world-plane vector projection, input dead zones, profile changes and state retention.
+- An independently authored custom move can be added to the player and triggered by `MoveIntent.request_move()` and a declared InputMap binding without editing the existing Actor, Locomotion or InputAdapter implementations. Shipped Dodge and Slide are plug-in moves; exclusive transitions and cancellation are tested.
 
 **Release 0.1 gate:** playable walking/jumping actor in one world, all view modes, browser + at least one native smoke build, documentation and tests.
 

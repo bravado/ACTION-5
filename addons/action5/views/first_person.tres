@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "First Person (4)"
+display_name = "First-Person"
 mode = 3
 orthographic = false
 field_of_view = 80.0

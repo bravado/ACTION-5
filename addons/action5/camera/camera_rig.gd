@@ -69,8 +69,12 @@ func apply_mouse_motion(relative: Vector2) -> void:
             deg_to_rad(60.0)
         )
     else:
+        # First-person camera uses X = -orbit_pitch in its rotation basis.
+        # Positive mouse Y must therefore increase orbit_pitch for the
+        # standard (non-inverted) "mouse down -> look down" behavior.
+        var pitch_sign: float = -1.0 if profile.invert_y else 1.0
         orbit_pitch = clampf(
-            orbit_pitch - relative.y * profile.mouse_sensitivity,
+            orbit_pitch + relative.y * profile.mouse_sensitivity * pitch_sign,
             deg_to_rad(profile.min_pitch_degrees),
             deg_to_rad(profile.max_pitch_degrees)
         )

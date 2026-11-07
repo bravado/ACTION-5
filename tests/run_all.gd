@@ -3,6 +3,9 @@ extends SceneTree
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
+const D03SuiteScript = preload("res://tests/d03_suite.gd")
+const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
+const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
 ## Run: godot --headless --path . --script res://tests/run_all.gd
 ## Expected failing proof: append -- --self-test-failure (must exit nonzero).
@@ -41,11 +44,20 @@ func _run_tests() -> void:
         return
 
     var level := level_resource.instantiate()
+    # The CharacterBody3D may be moved out of floor penetration on its
+    # first physics frame. Verify the authored spawn before attaching it.
+    var authored_spawn: Vector3 = (level.get_node("Player") as Node3D).position
     root.add_child(level)
     await process_frame
 
     var player := level.get_node_or_null("Player") as CharacterBody3D
+    var actor_input := level.get_node_or_null("ActorInput") as ActorInputScript
+    var player_locomotion: LocomotionScript
+    if player != null:
+        player_locomotion = player.get_node_or_null("Locomotion") as LocomotionScript
     _check(player != null, "One CharacterBody3D exists in the world")
+    _check(player_locomotion != null, "Player has one authoritative locomotion component")
+    _check(actor_input != null, "Input adapter handles game input and window focus")
     _check(level.get_node_or_null("Floor/CollisionShape3D") is CollisionShape3D,
         "Floor includes a physical collision shape")
     _check(level.get_node_or_null("NorthWall/CollisionShape3D") is CollisionShape3D,
@@ -67,8 +79,8 @@ func _run_tests() -> void:
         _check(player.get_node_or_null("Visual/Body") is MeshInstance3D,
             "Actor has a rendered 3D primitive")
         var original_position: Vector3 = player.global_position
-        _check(original_position.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
-            "Actor begins at documented spawn")
+        _check(authored_spawn.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
+            "Actor scene defines documented spawn before physics correction")
 
     # D02: one actor and one camera, five selectable perspectives.
     var manager := level.get_node_or_null("ViewManager") as ViewManagerScript
@@ -76,6 +88,13 @@ func _run_tests() -> void:
     _check(manager != null and input_adapter != null, "View manager and input adapter present")
     if manager != null and player != null:
         _check(manager.profiles.size() == 5, "Exactly five camera profiles")
+        var expected_names := [
+            "Side-Scroller", "Beat 'em Up", "Isometric / Third-Person",
+            "First-Person", "Retro Top-Down"
+        ]
+        for index in range(5):
+            _check(manager.profiles[index].display_name == expected_names[index],
+                "View %d uses consistent human-readable camera name" % (index + 1))
         _check(manager.active_index == 1, "Initial brawler camera selected")
         _check(manager.camera_rig.camera == level.get_node("ViewManager/CameraRig/Camera3D"),
             "One persistent Camera3D across all five views")
@@ -122,6 +141,15 @@ func _run_tests() -> void:
             "F4 uses perspective rendering")
         _check(not player.get_node("Visual").visible,
             "F4 hides the locally owned player's mesh")
+        _check(not manager.current_profile.invert_y,
+            "First-person mouse Y starts non-inverted")
+        var fps_rig = manager.camera_rig
+        var start_pitch: float = fps_rig.orbit_pitch
+        fps_rig.apply_mouse_motion(Vector2(0.0, 80.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        _check(fps_rig.orbit_pitch > start_pitch
+            and manager.get_active_camera().global_basis.z.y > 0.05,
+            "First-person mouse-down looks down by default")
         manager.switch_view(2)
         _check(player.get_node("Visual").visible,
             "F3 restores third-person actor visuals")
@@ -186,12 +214,12 @@ func _run_tests() -> void:
 
         var settings := level.get_node("Hud/CameraSettings")
         var toggle := level.get_node("Hud/SettingsToggle") as Button
+        player.call("set_move_intent", Vector2.RIGHT)
         toggle.pressed.emit()
         _check(settings.visible, "Camera settings panel can be opened")
-        player.call("set_move_intent", Vector2.RIGHT)
-        level._process(0.0)
-        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
-            "Open camera settings prevent raw movement keys from moving the actor")
+        _check(not actor_input.enabled
+            and player_locomotion.desired.world_move.is_zero_approx(),
+            "Opening camera settings clears input immediately, without demo polling")
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
@@ -203,6 +231,54 @@ func _run_tests() -> void:
         _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
             "UI slider immediately updates F2 camera zoom")
         settings.call("reset_current_camera")
+
+        # First-person's boolean Y-axis setting is a per-profile checkbox,
+        # not a numeric slider. Changing it must preserve actor and camera IDs.
+        var fps_checkbox := settings.get_node("Padding/Controls/Row_invert_y/InvertY") as CheckBox
+        var fps_row := settings.get_node("Padding/Controls/Row_invert_y") as HBoxContainer
+        _check(not fps_row.visible, "Invert Y-axis option is hidden for beat'em up")
+        manager.switch_view(3)
+        var fps_profile: ViewProfileScript = manager.current_profile
+        var fps_actor_before: Transform3D = player.global_transform
+        _check(fps_row.visible and not fps_checkbox.button_pressed
+            and not fps_profile.invert_y,
+            "First-person settings show an unchecked Invert Y-axis checkbox")
+        fps_checkbox.button_pressed = true
+        _check(fps_profile.invert_y and fps_checkbox.button_pressed,
+            "First-person checkbox toggles mouse inversion live")
+        var inverted_start: float = manager.camera_rig.orbit_pitch
+        manager.camera_rig.apply_mouse_motion(Vector2(0.0, 80.0))
+        manager.camera_rig._update_camera(1.0 / 60.0)
+        _check(manager.camera_rig.orbit_pitch < inverted_start
+            and manager.get_active_camera().global_basis.z.y < -0.05,
+            "When inverted, mouse-down looks upward")
+        _check(player.global_transform == fps_actor_before
+            and manager.get_active_camera().get_instance_id() == camera_id,
+            "Mouse inversion never moves the actor or recreates the camera")
+        var invert_config := ConfigFile.new()
+        _check(invert_config.load(settings.preferences_path) == OK
+            and invert_config.get_value("profile_first_person", "invert_y", false) == true,
+            "Invert Y-axis is saved under the stable first-person profile ID")
+        fps_profile.invert_y = false
+        settings.call("_load_preferences")
+        _check(fps_profile.invert_y,
+            "Saved first-person inversion is restored when preferences reload")
+        settings.call("refresh_controls")
+        manager.switch_view(2)
+        _check(not fps_row.visible
+            and not settings.call("set_current_invert_y", false),
+            "Other camera modes cannot change first-person inversion")
+        manager.switch_view(3)
+        _check(fps_checkbox.button_pressed and fps_profile.invert_y,
+            "First-person inversion survives switching away and back")
+        settings.call("reset_current_camera")
+        _check(not fps_profile.invert_y and not fps_checkbox.button_pressed,
+            "Reset this camera restores default non-inverted mouse look")
+        var reset_invert_config := ConfigFile.new()
+        _check(reset_invert_config.load(settings.preferences_path) == OK
+            and not reset_invert_config.has_section_key("profile_first_person", "invert_y"),
+            "Reset removes the inversion override from persisted preferences")
+        manager.switch_view(2)
 
         # Mode 3 moves continuously between wide isometric and the close
         # over-shoulder framing by adjusting ONE zoom setting.
@@ -252,16 +328,26 @@ func _run_tests() -> void:
             and absf(manager.current_profile.orthographic_size - 17.0) < 0.01,
             "Reset restores a wide isometric view")
         toggle.pressed.emit()
-        _check(not settings.visible, "Settings panel can be closed")
+        _check(not settings.visible and actor_input.enabled,
+            "Closing settings restores the independent UI input gate")
         player.call("set_move_intent", Vector2.RIGHT)
-        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
-            "Losing window focus immediately clears movement intent")
-        _check(not bool(level.get("_has_window_focus")),
-            "Focus-out event disables demo movement polling")
-        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
-        _check(bool(level.get("_has_window_focus")),
-            "Focus-in event restores input processing")
+        actor_input._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+        _check(player_locomotion.desired.world_move.is_zero_approx()
+            and not actor_input.focus_active and actor_input.enabled,
+            "Input adapter alone clears movement on focus loss; UI gate stays enabled")
+        # Closing the settings panel while unfocused must not bypass the
+        # adapter's focus gate, even though the demo enables its UI gate.
+        toggle.pressed.emit()
+        _check(settings.visible and not actor_input.enabled,
+            "Opening settings disables input independently of window focus")
+        toggle.pressed.emit()
+        _check(not settings.visible and actor_input.enabled
+            and not actor_input.focus_active,
+            "Closing settings while unfocused cannot restore gameplay input")
+        actor_input._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
+        _check(actor_input.focus_active and actor_input.enabled
+            and actor_input.require_neutral,
+            "Focus return restores input sampling only after neutralization")
 
         # Near zoom camera collision must keep the camera in front of walls.
         player.global_position = Vector3(0.0, 0.15, 7.35)
@@ -330,7 +416,75 @@ func _run_tests() -> void:
         "Zero intent decelerates actor")
 
     actor.queue_free()
+
+    var d03_suite := D03SuiteScript.new()
+    await d03_suite.run_tests(self, level, Callable(self, "_check"))
+
+    # Regression: clicking a camera/menu button must never steal Space from
+    # actor_jump. This used to re-select the previously focused camera.
+    var ui_buttons := level.get_node("Hud/ModeButtons") as HBoxContainer
+    var settings_button := level.get_node("Hud/SettingsToggle") as Button
+    var settings_panel := level.get_node("Hud/CameraSettings") as PanelContainer
+    for i in range(5):
+        var mode_button := ui_buttons.get_node("Mode" + str(i + 1)) as Button
+        _check(mode_button.focus_mode == Control.FOCUS_NONE,
+            "View selector %d never captures Space-to-jump focus" % (i + 1))
+    _check(settings_button.focus_mode == Control.FOCUS_NONE,
+        "Camera Settings toggle never captures Space-to-jump focus")
+    settings_button.pressed.emit()
+    var reset_button := settings_panel.find_child("ResetCamera", true, false) as Button
+    var close_button := settings_panel.find_child("CloseSettings", true, false) as Button
+    _check(reset_button != null and close_button != null
+        and reset_button.focus_mode == Control.FOCUS_NONE
+        and close_button.focus_mode == Control.FOCUS_NONE,
+        "Reset and Close controls cannot reactivate on Space")
+    var slider := settings_panel.get_node("Padding/Controls/Row_orthographic_size/Slider") as HSlider
+    slider.grab_focus()
+    await process_frame
+    _check(root.gui_get_focus_owner() == slider,
+        "Camera settings slider remains keyboard-accessible")
+    close_button.pressed.emit()
+    _check(not settings_panel.visible
+        and root.gui_get_focus_owner() != slider,
+        "Closing camera settings releases slider focus")
+    var previously_clicked := ui_buttons.get_node("Mode3") as Button
+    previously_clicked.pressed.emit()
+    previously_clicked.grab_focus()
+    await process_frame
+    _check(root.gui_get_focus_owner() != previously_clicked,
+        "Clicked view button cannot retain keyboard focus")
+    var views := level.get_node("ViewManager") as ViewManagerScript
+    views.switch_view(1)
+    var count_before_space: int = views.switch_count
+    var space_down := InputEventKey.new()
+    space_down.keycode = KEY_SPACE
+    space_down.pressed = true
+    Input.parse_input_event(space_down)
+    await physics_frame
+    var space_up := InputEventKey.new()
+    space_up.keycode = KEY_SPACE
+    space_up.pressed = false
+    Input.parse_input_event(space_up)
+    await process_frame
+    _check(views.active_index == 1 and views.switch_count == count_before_space,
+        "Space after switching with 1–5 cannot activate previous view")
+    settings_button.pressed.emit()
+    settings_button.grab_focus()
+    settings_button.pressed.emit()
+    var count_after_settings: int = views.switch_count
+    Input.parse_input_event(space_down)
+    await physics_frame
+    Input.parse_input_event(space_up)
+    await process_frame
+    _check(not settings_panel.visible
+        and views.switch_count == count_after_settings
+        and root.gui_get_focus_owner() != settings_button,
+        "Space after closing Camera Settings cannot reopen it or switch views")
+
     level.queue_free()
+    # Flush Godot's deferred deletion queue before inspecting ResourceDB at
+    # process exit, especially with dynamically installed move components.
+    await process_frame
 
     if OS.get_cmdline_user_args().has("--self-test-failure"):
         _check(false, "Intentional assertion verifies runner exits nonzero")

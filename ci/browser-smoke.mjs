@@ -5,6 +5,9 @@ import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 
 const errors = [];
+const cameraChanges = [];
+const moveChanges = [];
+const settingsVisibility = [];
 const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl'],
@@ -13,7 +16,11 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   page.on('pageerror', error => errors.push('pageerror: ' + error.message));
   page.on('console', message => {
-    if (message.type() === 'error') errors.push('console: ' + message.text());
+    const line = message.text();
+    if (message.type() === 'error') errors.push('console: ' + line);
+    if (line.includes('ACTION5_VIEW_CHANGED')) cameraChanges.push(line);
+    if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
+    if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
   page.on('requestfailed', req => errors.push('request: ' + req.url() + ': ' + req.failure()?.errorText));
   const url = process.env.ACTION5_WEB_URL || 'http://127.0.0.1:8765/';
@@ -49,8 +56,49 @@ try {
     hashes.add(createHash('sha256').update(png).digest('hex'));
   }
   if (hashes.size < 5) {
-    errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–6');
+    errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–5');
   }
+
+  // D03: Send actual browser keyboard events to a real running Godot world.
+  // Movement is handled by InputMap + Action5ActorInputAdapter, not test hooks.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const stationary = createHash('sha256').update(await page.screenshot()).digest('hex');
+  await page.keyboard.down('d');
+  await page.waitForTimeout(650);
+  await page.keyboard.up('d');
+  await page.waitForTimeout(250);
+  const walking = await page.screenshot({
+    path: 'build/evidence/web-d03-walking.png', fullPage: true,
+  });
+  const walkingHash = createHash('sha256').update(walking).digest('hex');
+  if (walkingHash === stationary) {
+    errors.push('D03 keyboard movement did not change the real Godot canvas');
+  }
+  // A bundled move registers its own 'actor_slide' key. This should fire
+  // through the generic registry, without any slide branch in ActorInput.
+  await page.keyboard.down('d');
+  await page.waitForTimeout(450);
+  await page.keyboard.press('x');
+  await page.waitForTimeout(180);
+  await page.keyboard.up('d');
+  if (!moveChanges.some(line => line.includes('current=slide'))) {
+    errors.push('D03 move component did not activate via InputMap key X');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_MOVE_PLUGIN_OK slide=1');
+
+  await page.keyboard.down(' ');
+  await page.waitForTimeout(220);
+  const jumping = await page.screenshot({
+    path: 'build/evidence/web-d03-jumping.png', fullPage: true,
+  });
+  await page.keyboard.up(' ');
+  if (createHash('sha256').update(jumping).digest('hex') === walkingHash) {
+    errors.push('D03 Space jump did not change the rendered player');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1');
 
   // The on-screen view selector is a mandatory browser fallback.
   // A D02 Button spans x=24..166 and y=146..190 in the 1280x720 demo.
@@ -88,6 +136,39 @@ try {
     errors.push('Camera settings C shortcut did not close controls');
   }
   if (errors.length) throw Error(errors.join('\\n'));
+  // Reproduce the user-reported focus bug with *real* canvas events.
+  // Clicking mode 3, pressing 2, and then jumping must not re-activate 3.
+  await page.mouse.click(391, 169);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const cameraCountBeforeSpace = cameraChanges.length;
+  if (cameraCountBeforeSpace === 0 ||
+      !cameraChanges.at(-1).includes('index=2')) {
+    errors.push('Cannot confirm selected view from Godot browser logs');
+  }
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(300);
+  if (cameraChanges.length !== cameraCountBeforeSpace) {
+    errors.push('Space activated previously clicked camera button');
+  }
+  // Likewise Camera Settings must not reopen when Space is pressed after C.
+  await page.mouse.click(1130, 168);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('c');
+  await page.waitForTimeout(200);
+  const visibilityBeforeSpace = settingsVisibility.length;
+  if (visibilityBeforeSpace === 0 ||
+      !settingsVisibility.at(-1).includes('closed')) {
+    errors.push('Cannot confirm camera settings closed before Space');
+  }
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(300);
+  if (settingsVisibility.length !== visibilityBeforeSpace) {
+    errors.push('Space reactivated the Camera Settings button');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_FOCUS_OK view=1 settings=1 jump=1');
   console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
   console.log('ACTION5_BROWSER_FIVE_VIEWS_OK unique=' + hashes.size + ' selector=1');
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
