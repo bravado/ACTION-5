@@ -81,14 +81,14 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Removing a previously unregistered node does not duplicate the signal")
 
 
-    verify.call(PolicyScript.deadzone(Vector2(0.10, 0.0), 0.20).is_zero_approx(),
-        "Analogue stick drift is ignored by the configurable deadzone")
-    verify.call(PolicyScript.deadzone(Vector2.RIGHT, 0.2).is_equal_approx(Vector2.RIGHT),
-        "Full input remains full speed after deadzone removal")
-    verify.call(PolicyScript.deadzone(Vector2(0.3, 0.0), 0.2).x > 0.1,
-        "Intermediate analogue input is rescaled continuously")
-    verify.call(PolicyScript.deadzone(Vector2(INF, 0.0)).is_zero_approx(),
-        "Non-finite controller input cannot cause NaN movement")
+    # The adapter uses Input.get_vector() for Godot's built-in radial deadzone.
+    # The pure projection layer still rejects invalid and oversized vectors.
+    verify.call(PolicyScript.to_world(Vector2(INF, 0.0),
+        ViewProfileScript.Mode.BEATEMUP, Basis.IDENTITY).is_zero_approx(),
+        "Non-finite input is rejected by world-space movement projection")
+    verify.call(PolicyScript.to_world(Vector2(3.0, 4.0),
+        ViewProfileScript.Mode.BEATEMUP, Basis.IDENTITY).length() <= 1.001,
+        "World-space movement projection caps input magnitude")
 
     var basis: Basis = Basis.IDENTITY
     verify.call(PolicyScript.to_world(Vector2(0.6, 0.8), ViewProfileScript.Mode.SIDE, basis)
@@ -195,12 +195,13 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     adapter.require_neutral = false
     var active_intent := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
     player.apply_move_intent(active_intent)
-    verify.call(player.get("_planar_intent").x > 0.9,
-        "Actor accepts intents independently of physical key events")
+    verify.call(player.locomotion.desired.world_move.x > 0.9,
+        "Actor forwards intent to the authoritative locomotion state")
     adapter._on_joy_connection_changed(1, false)
     verify.call(adapter.require_neutral
-        and (player.get("_planar_intent") as Vector2).length() < 0.001,
-        "Controller disconnect cancels held movement and requires neutral")
+        and player.locomotion.desired.world_move.is_zero_approx()
+        and player.locomotion.desired.requested_moves.is_empty(),
+        "Controller disconnect clears authoritative intent and requires neutral")
     adapter._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
     verify.call(not adapter.focus_active and adapter.require_neutral,
         "Focus loss forces neutral input before movement resumes")
@@ -462,11 +463,13 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(manager.get_active_camera().global_basis.is_equal_approx(camera_basis_before),
         "Abrupt visual facing turns never rotate or jitter the camera rig")
     actor.set_controls_enabled(false)
-    verify.call((actor.get("_planar_intent") as Vector2) == Vector2.ZERO,
-        "Disabling actor controls clears cached planar intent")
+    verify.call(not actor.locomotion.enabled
+        and actor.locomotion.desired.world_move.is_zero_approx(),
+        "Disabling actor controls clears the authoritative locomotion intent")
     actor.set_move_intent(Vector2.RIGHT)
-    verify.call((actor.get("_planar_intent") as Vector2) == Vector2.ZERO,
-        "Disabled actor rejects new intent without caching it")
+    verify.call(actor.locomotion.desired.world_move.is_zero_approx()
+        and actor.locomotion.desired.requested_moves.is_empty(),
+        "Disabled actor rejects new movement without queuing it")
     actor.set_controls_enabled(true)
 
     # A pending request must not accidentally activate a newly installed
