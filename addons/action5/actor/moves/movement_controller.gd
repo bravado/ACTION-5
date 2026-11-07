@@ -99,8 +99,7 @@ func request_move(id: StringName, intent: IntentScript = null) -> bool:
 func tick(intent: IntentScript, delta: float) -> ContextScript:
     _invalidate_removed_active_move()
     _context.begin_tick(intent, delta)
-    if active_move == null or active_move.action_name == &"":
-        _resolve_default()
+    _resolve_default()
     if active_move != null:
         active_move.physics_update(_context, delta)
     if _context.move_finished:
@@ -109,7 +108,9 @@ func tick(intent: IntentScript, delta: float) -> ContextScript:
 
 
 func _resolve_default(force: bool = false) -> void:
-    if not force and active_move != null and active_move.action_name != &"":
+    # Only grounded/airborne states auto-transition. Action bindings are
+    # optional metadata and must not control how long a move remains active.
+    if not force and active_move != null and active_id != grounded_move and active_id != airborne_move:
         return
     var fallback_id: StringName = grounded_move if _context.body.is_on_floor() else airborne_move
     var fallback: MoveScript = get_move(fallback_id)
