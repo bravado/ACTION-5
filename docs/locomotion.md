@@ -92,7 +92,7 @@ All projections normalize diagonal inputs to prevent faster diagonal movement. I
 
 ## Tuning and physical constraints
 
-The Godot Inspector exposes walk/run speed, acceleration/braking, jump impulse, floor snap, maximum floor angle, individual move component speeds/timing and input deadzones. D03 uses real `move_and_slide()` physical collisions, floor snapping on ramps and walls that block movement; it does not invent scene-specific collision bypasses.
+The Godot Inspector exposes walk/run speed, acceleration/braking, jump impulse, floor snap, maximum floor angle, individual move component speeds/timing and input deadzones. D03 uses real `move_and_slide()` physical collisions, floor snapping on ramps and walls that block movement. Its optional low-step assist first checks vertical and forward clearance, then casts the body down at the destination to confirm a walkable floor within the configured step height. It raises the body only to that measured landing height; it never blindly lifts by the maximum allowance or climbs walls, ceilings, or unsupported ledges.
 
 View switches do not overwrite current velocity or change position; F1 stops future Z acceleration and retains the current lane. The actor's alive/control setters stop movement when disabled, the input adapter clears player movement when its UI gate closes or window focus is lost, and controller disconnects require neutral input before resuming. Focus remains blocked even if the settings panel closes while the window is unfocused. AI-supplied movement intents are not repeatedly canceled by disabled raw-input polling.
 
