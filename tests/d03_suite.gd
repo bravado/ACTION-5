@@ -589,7 +589,8 @@ func _test_simultaneous_moves(tree: SceneTree, level: Node3D, verify: Callable) 
     rejected.priority = 90
     rejected.action_name = &""
     rejected.allow_enter = false
-    for move in [low, high, alpha, beta, rejected]:
+    # Register beta before alpha to prove tie-breaking ignores registration order.
+    for move in [low, high, beta, alpha, rejected]:
         verify.call(moves.add_move(move),
             "Arbitration fixture registers move %s" % move.move_id)
 
