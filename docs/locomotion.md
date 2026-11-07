@@ -20,11 +20,11 @@ Gamepad: left stick moves, right stick optionally aims/faces independently, A ju
 
 ## Shared classes
 
-- **`Action5MoveIntent`** — pure per-tick movement/aim/facing/action data, plus generic `requested_moves: Array[StringName]` (no `is_sliding`/`is_wall_running` flags), all ground-plane vectors in world X/Z.
-- **`Action5MovementPolicy`** — stateless deadzone, direction projection and 4-/8-way facing quantization helpers.
+- **`Action5MoveIntent`** — camera-independent, world-space movement/aim/facing/action data, plus generic `requested_moves: Array[StringName]` (no `is_sliding`/`is_wall_running` flags), all ground-plane vectors in world X/Z. The active camera mode does not travel with the intent.
+- **`Action5MovementPolicy`** — stateless direction projection and 4-/8-way facing quantization helpers. Godot's `Input.get_vector()` supplies the configured radial deadzone, so no second deadzone implementation is needed.
 - **`Action5ActorInputAdapter`** — samples `InputMap` at physics ticks, creates intents and dispatches them to the actor. Handles focus loss, controller disconnect and neutralization after disconnect.
-- **`Action5Actor`** — one 3D player with alive/enabled state; receives intents but does not read raw keys.
-- **`Action5Locomotion`** — the **only physics solver**, applying `move_and_slide`, movement/gravity/jump, acceleration/braking, floor snap and slope bounds. Its parent is a `CharacterBody3D`. Move components never write the body's velocity directly.
+- **`Action5Actor`** — one 3D player with alive/enabled state; forwards intents to locomotion but does not cache duplicate movement state or read raw keys.
+- **`Action5Locomotion`** — the **only physics solver and authoritative intent holder** (`desired`), applying `move_and_slide`, movement/gravity/jump, acceleration/braking, floor snap and slope bounds. Its parent is a `CharacterBody3D`. Disabling controls/focus clears this authoritative intent; move components never write the body's velocity directly.
 - **`Action5MovementController`** — generic exclusive move registry/FSM, priority-based transitions, grounded/airborne fallback, and `move_changed`, `move_registered`, `move_unregistered(id)` signals. It discovers all child `Action5Move` scripts in `Locomotion/MovementController/Moves`.
 - **`Action5Move` / `Action5MoveContext`** — extension API: each move owns eligibility, entry, physics commands, exit and optional input defaults; context exposes a one-tick `request_horizontal_velocity()` command and `finish_move()`.
 - **`Action5FacingPresenter`** — visual-only yaw, optional quantized facing and turn smoothing.
