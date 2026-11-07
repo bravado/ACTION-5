@@ -43,10 +43,10 @@ func apply_intent(next: IntentScript) -> void:
     desired = next if next != null else IntentScript.new()
     if desired.jump_pressed:
         _jump_buffer_left = jump_buffer_seconds
-    # No checks for slide/dodge/other move types in the solver: the intent
-    # carries registered move IDs, and the controller dispatches them.
+    # Queue edge-triggered move requests. The controller evaluates them in
+    # its physics tick, after the one-tick command context has been reset.
     for move_id in desired.requested_moves:
-        move_controller.request_move(move_id, desired)
+        move_controller.request_move(move_id)
 
 
 func lock_side_lane() -> void:
