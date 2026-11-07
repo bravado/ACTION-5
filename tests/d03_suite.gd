@@ -224,9 +224,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     custom_intent.request_move(&"test_dash")
     var before_custom: float = actor.global_position.x
     actor.apply_move_intent(custom_intent)
-    verify.call(actor_moves.active_id == &"test_dash" and custom.enter_count == 1,
-        "Custom move becomes active via generic MoveIntent.request_move")
+    verify.call(actor_moves.active_id != &"test_dash",
+        "Intent queues the move without changing state outside the physics tick")
     await tree.physics_frame
+    verify.call(actor_moves.active_id == &"test_dash" and custom.enter_count == 1,
+        "Custom move activates during the physics tick")
     verify.call(actor.velocity.x > actor.locomotion.walk_speed + 1.0,
         "Custom move controls horizontal motion through central physics")
     for i in range(8):
@@ -240,15 +242,18 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     # it generically without importing concrete move types.
     custom.allow_exit = false
     actor.apply_move_intent(custom_intent)
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"test_dash",
         "Custom movement can be activated repeatedly")
     var interrupt_cmd := MoveIntentScript.new(Vector2.RIGHT)
     interrupt_cmd.request_move(&"dodge")
     actor.apply_move_intent(interrupt_cmd)
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"test_dash",
         "Component can_exit veto prevents higher-priority interruption")
     custom.allow_exit = true
     actor.apply_move_intent(interrupt_cmd)
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"dodge" and custom.exit_count == 2,
         "Higher-priority dodge interrupts a move that permits exit")
     for i in range(17):
@@ -264,6 +269,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var slide_early := MoveIntentScript.new(Vector2.RIGHT)
     slide_early.request_move(&"slide")
     actor.apply_move_intent(slide_early)
+    await tree.physics_frame
     verify.call(actor_moves.active_id != &"slide",
         "Slide component rejects low-speed entry itself")
     actor.set_move_intent(Vector2.RIGHT)
@@ -272,11 +278,13 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var slide_cmd := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
     slide_cmd.request_move(&"slide")
     actor.apply_move_intent(slide_cmd)
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"slide",
         "Slide activates as an exclusive state with no global is_sliding flag")
     var low_priority := MoveIntentScript.new(Vector2.RIGHT)
     low_priority.request_move(&"test_dash")
     actor.apply_move_intent(low_priority)
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"slide",
         "Lower-priority custom move cannot replace an active slide")
     var before_slide: float = actor.global_position.x
@@ -345,9 +353,14 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     climb_request.request_move(&"test_climb")
     var climb_start_y: float = actor.global_position.y
     actor.apply_move_intent(climb_request)
+    verify.call(actor_moves.active_id != &"test_climb",
+        "AI-only ability waits until the next physics tick")
+    await tree.physics_frame
     verify.call(actor_moves.active_id == &"test_climb" and climb.enter_count == 1,
         "Custom vertical move activates through the generic controller")
-    for i in range(2):
+    verify.call(actor.velocity.x > 5.0,
+        "Entry-time horizontal command survives and reaches the physics solver")
+    for i in range(1):
         await tree.physics_frame
     verify.call(actor_moves.active_id == &"test_climb" and climb.ticks > 0,
         "AI-only move without action_name remains active and executes physics ticks")
