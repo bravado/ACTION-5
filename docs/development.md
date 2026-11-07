@@ -28,8 +28,6 @@ To get started after cloning:
 ```bash
 git clone https://github.com/bravado/ACTION-5.git
 cd ACTION-5
-# Until D02 is merged:
-git switch feat/d02-six-view-camera-profiles
 
 make test
 make run
@@ -71,7 +69,7 @@ make run RUN_ARGS="--headless --quit-after 20"
 
 In mode **3**, press **C** to open the camera settings panel. Decrease orthographic zoom from the wide default of 17 toward 4 to transition continuously into the over-the-shoulder composition. Camera collision, left/right shoulder offset, pitch, follow distance and look-ahead are editable in the same mode. Settings are stored in `user://action5_camera_settings.cfg` by named profile IDs; the older six-slot file is migrated automatically.
 
-In mode 2, a low camera and zoom 7 provide closer brawler framing. The one persistent `Camera3D` is shared across all five modes. The reusable locomotion component is **not** included yet (D03).
+In mode 2, a low camera and zoom 7 provide closer brawler framing. The one persistent `Camera3D` is shared across all five modes. The reusable locomotion component is included (D03), with a separate animation presenter in D04.
 
 ## Export and browser smoke
 
@@ -99,6 +97,6 @@ The existing `.github/workflows/d01-godot.yml` runs:
 4. `make build`, Linux executable smoke and native camera screenshots.
 5. Chromium WebGL2 startup, native number-key presses 1–5 and selector interaction.
 
-Passing CI uploads `d02-evidence` (logs and native/browser camera captures) and `d02-exports` (Linux and Web builds). A screenshot capture is not a substitute for the real runtime tests; both are required at the D02 gate.
+Passing CI uploads `d04-evidence` (logs and native/browser camera captures) and `d04-exports` (Linux and Web builds). A screenshot capture is not a substitute for real runtime tests; imported `.glb` assets are validated after `make import`.
 
-D02 delivers the camera system; **D03 implements reusable walking, running, gravity/jump, optional dodge, gamepad aiming, five-mode input policies and visual facing**. Weapons and combat remain D05–D07. See [locomotion.md](locomotion.md).
+D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. See [locomotion.md](locomotion.md) and [animation.md](animation.md). Weapons and combat remain D05–D07.

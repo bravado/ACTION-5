@@ -8,6 +8,7 @@ const errors = [];
 const cameraChanges = [];
 const moveChanges = [];
 const settingsVisibility = [];
+const rigViews = [];
 const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl'],
@@ -20,6 +21,7 @@ try {
     if (message.type() === 'error') errors.push('console: ' + line);
     if (line.includes('ACTION5_VIEW_CHANGED')) cameraChanges.push(line);
     if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
+    if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
   page.on('requestfailed', req => errors.push('request: ' + req.url() + ': ' + req.failure()?.errorText));
@@ -58,6 +60,37 @@ try {
   if (hashes.size < 5) {
     errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–5');
   }
+  if (!rigViews.some(line => line.includes('view=3 body_hidden=0 rig=1 tool=1')) ||
+      !rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
+        line.includes('viewmodel=1'))) {
+    errors.push('D04 imported rig, F4 camera-local weapon, or body culling failed');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D04_RIG_OK skeleton=1 sockets=1 fps=1 body_culling=1');
+
+  // Reproduce the reported F4 jump: the camera-anchored training tool must
+  // remain enabled even while the world-space hand and actor move upward.
+  await page.keyboard.press('4');
+  await page.waitForTimeout(550);
+  const f4Standing = await page.screenshot({
+    path: 'build/evidence/web-f4-tool-standing.png', fullPage: true,
+  });
+  await page.keyboard.down(' ');
+  await page.waitForTimeout(225);
+  const f4Jumping = await page.screenshot({
+    path: 'build/evidence/web-f4-tool-jumping.png', fullPage: true,
+  });
+  await page.keyboard.up(' ');
+  if (createHash('sha256').update(f4Standing).digest('hex') ===
+      createHash('sha256').update(f4Jumping).digest('hex')) {
+    errors.push('F4 jump screenshot did not change after real Space input');
+  }
+  if (!rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
+      line.includes('viewmodel=1'))) {
+    errors.push('F4 camera-local training tool was not presented');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_F4_JUMP_TOOL_OK viewmodel=1 screenshots=2');
 
   // D03: Send actual browser keyboard events to a real running Godot world.
   // Movement is handled by InputMap + Action5ActorInputAdapter, not test hooks.
@@ -78,12 +111,20 @@ try {
   // A bundled move registers its own 'actor_slide' key. This should fire
   // through the generic registry, without any slide branch in ActorInput.
   await page.keyboard.down('d');
-  await page.waitForTimeout(450);
-  await page.keyboard.press('x');
-  await page.waitForTimeout(180);
+  // Software WebGL2 rendering can starve 60-Hz physics briefly in CI.
+  // Allow time to reach Slide's grounded speed threshold, then send real
+  // keydown/keyup edges (never call the movement controller from the test).
+  await page.waitForTimeout(1100);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.keyboard.press('x', { delay: 110 });
+    await page.waitForTimeout(320);
+    if (moveChanges.some(line => line.includes('current=slide'))) break;
+    await page.waitForTimeout(650);
+  }
   await page.keyboard.up('d');
   if (!moveChanges.some(line => line.includes('current=slide'))) {
-    errors.push('D03 move component did not activate via InputMap key X');
+    errors.push('D03 Slide did not activate via real InputMap key X after 3 input edges; events='
+      + moveChanges.slice(-8).join(' | '));
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_MOVE_PLUGIN_OK slide=1');
@@ -171,6 +212,56 @@ try {
   console.log('ACTION5_BROWSER_FOCUS_OK view=1 settings=1 jump=1');
   console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
   console.log('ACTION5_BROWSER_FIVE_VIEWS_OK unique=' + hashes.size + ' selector=1');
+
+  // VT-12: drive the REAL actor into the existing solid NorthWall, then
+  // capture F3 and F4 at the same near-wall position. A layer-only test
+  // in an empty room would not catch first-person wall occlusion.
+  await page.keyboard.press('4');
+  await page.waitForTimeout(350);
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('w');
+  let nearWallZ = Number.NaN;
+  for (let attempt = 0; attempt < 7; attempt++) {
+    await page.waitForTimeout(1200);
+    // Re-enter F4 to emit the demo's existing per-view position/culling
+    // diagnostics; no test-only teleport or browser-to-Godot bridge.
+    await page.keyboard.press('3');
+    await page.waitForTimeout(170);
+    await page.keyboard.press('4');
+    await page.waitForTimeout(250);
+    const report = [...rigViews].reverse().find(line =>
+      line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
+    const match = report?.match(/actor_z=(-?\d+(?:\.\d+)?)/);
+    nearWallZ = match ? Number(match[1]) : Number.NaN;
+    if (nearWallZ <= -7.5 && nearWallZ > -8.7) break;
+  }
+  await page.keyboard.up('w');
+  await page.keyboard.up('Shift');
+  await page.waitForTimeout(400);
+  await page.keyboard.press('3');
+  await page.waitForTimeout(500);
+  const thirdPersonNearWall = await page.screenshot({
+    path: 'build/evidence/web-f3-near-wall.png', fullPage: true,
+  });
+  await page.keyboard.press('4');
+  await page.waitForTimeout(500);
+  const firstPersonNearWall = await page.screenshot({
+    path: 'build/evidence/web-f4-near-wall.png', fullPage: true,
+  });
+  const finalF4 = [...rigViews].reverse().find(line =>
+    line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
+  const finalMatch = finalF4?.match(/actor_z=(-?\d+(?:\.\d+)?)/);
+  const finalZ = finalMatch ? Number(finalMatch[1]) : Number.NaN;
+  if (!(finalZ <= -7.5 && finalZ > -8.7)) {
+    errors.push('VT-12 browser actor failed to reach the solid NorthWall: z=' + finalZ);
+  }
+  if (createHash('sha256').update(thirdPersonNearWall).digest('hex') ===
+      createHash('sha256').update(firstPersonNearWall).digest('hex')) {
+    errors.push('VT-12 F3 and F4 near-wall screenshots are identical');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_FPS_NEAR_WALL_OK z=' + finalZ.toFixed(2)
+    + ' body_culled=1 wall=1 screenshots=2');
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
 } finally {
   await browser.close();

@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D03 locomotion and input abstraction under review.** A runnable Godot 4.7.2 project, five configurable camera profiles, native/Web smoke builds and tests exist. Reusable world-space locomotion, jumping, plug-in Dodge/Slide moves, facing and camera-aware input are part of D03; weapons, combat and finished game content remain future deliverables.
+> **Project status: D04 skeletal animation integration under review.** D01–D03 are merged: five configurable cameras and authoritative locomotion with pluggable moves are complete. D04 adds an original animated humanoid GLB, AnimationTree, rig/socket mapping and local first-person presentation; combat, weapons and AI remain later deliverables.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -75,7 +75,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. See [development](docs/development.md) and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. See [development](docs/development.md), [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
@@ -94,7 +94,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01 and D02 are merged. D03 locomotion is being implemented in PR #24; D04 begins only after D03's gate is accepted.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D03 are merged. D04 is under review in PR #25; D05 begins only after D04's gate is accepted.** Follow [AGENTS.md](AGENTS.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 

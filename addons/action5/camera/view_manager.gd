@@ -63,7 +63,6 @@ func switch_view(index: int) -> bool:
     active_index = index
     current_profile = next_profile
     camera_rig.apply_profile(next_profile, actor)
-    _apply_local_presentation()
     last_position_delta = actor.global_position.distance_to(position_before)
     # Detect inadvertent future coupling without making the view own movement.
     assert(last_position_delta < 0.0001, "Camera switching must not teleport an actor")
@@ -85,8 +84,3 @@ func cycle_view(direction: int) -> bool:
 func get_active_camera() -> Camera3D:
     return camera_rig.camera
 
-
-func _apply_local_presentation() -> void:
-    var visuals: Node3D = actor.get_node_or_null("Visual") as Node3D
-    if visuals != null:
-        visuals.visible = current_profile.mode != ViewProfileScript.Mode.FIRST_PERSON

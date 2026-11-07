@@ -4,6 +4,7 @@ const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const D03SuiteScript = preload("res://tests/d03_suite.gd")
+const D04SuiteScript = preload("res://tests/d04_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -76,8 +77,13 @@ func _run_tests() -> void:
     if player != null:
         _check(player.get_node_or_null("CollisionShape3D") is CollisionShape3D,
             "Actor has a capsule body collider")
-        _check(player.get_node_or_null("Visual/Body") is MeshInstance3D,
-            "Actor has a rendered 3D primitive")
+        var imported_model: Node = player.get_node_or_null("Visual/Model")
+        _check(imported_model != null and not imported_model.find_children(
+            "*", "MeshInstance3D", true, false
+        ).is_empty(), "Actor displays the imported skinned character model")
+        _check(player.get_node_or_null("Visual/Body") == null
+            and player.get_node_or_null("Visual/FacingMarker") == null,
+            "Obsolete hidden placeholder meshes are absent")
         var original_position: Vector3 = player.global_position
         _check(authored_spawn.distance_to(Vector3(0.0, 0.15, 0.0)) < 0.01,
             "Actor scene defines documented spawn before physics correction")
@@ -139,8 +145,13 @@ func _run_tests() -> void:
             "F4 is first-person")
         _check(manager.get_active_camera().projection == Camera3D.PROJECTION_PERSPECTIVE,
             "F4 uses perspective rendering")
-        _check(not player.get_node("Visual").visible,
-            "F4 hides the locally owned player's mesh")
+        var fps_presenter = player.get_node("FirstPersonPresenter")
+        _check(player.get_node("Visual").visible
+            and fps_presenter.first_person
+            and fps_presenter.body_meshes.size() >= 2
+            and not manager.get_active_camera().get_cull_mask_value(
+                fps_presenter.local_body_render_layer),
+            "F4 camera culls the local skinned head, torso and arms but preserves the rig")
         _check(not manager.current_profile.invert_y,
             "First-person mouse Y starts non-inverted")
         var fps_rig = manager.camera_rig
@@ -419,6 +430,8 @@ func _run_tests() -> void:
 
     var d03_suite := D03SuiteScript.new()
     await d03_suite.run_tests(self, level, Callable(self, "_check"))
+    var d04_suite := D04SuiteScript.new()
+    await d04_suite.run_tests(self, level, Callable(self, "_check"))
 
     # Regression: clicking a camera/menu button must never steal Space from
     # actor_jump. This used to re-select the previously focused camera.

@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status:** D01–D02 merged. D03 locomotion and input abstraction implemented on PR #24, pending validation and owner gate.  
+**Status:** D01–D03 merged. D04 skeletal model/animation integration in review at PR #25; D05 remains gated on D04 approval.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
