@@ -22,7 +22,7 @@ Gamepad: left stick moves, right stick optionally aims/faces independently, A ju
 
 - **`Action5MoveIntent`** — camera-independent, world-space movement/aim/facing/action data, plus generic `requested_moves: Array[StringName]` (no `is_sliding`/`is_wall_running` flags), all ground-plane vectors in world X/Z. The active camera mode does not travel with the intent.
 - **`Action5MovementPolicy`** — stateless direction projection and 4-/8-way facing quantization helpers. Godot's `Input.get_vector()` supplies the configured radial deadzone, so no second deadzone implementation is needed.
-- **`Action5ActorInputAdapter`** — samples `InputMap` at physics ticks, creates intents and dispatches them to the actor. Handles focus loss, controller disconnect and neutralization after disconnect.
+- **`Action5ActorInputAdapter`** — samples `InputMap` before the locomotion physics tick (`process_physics_priority = -100`), creates intents and dispatches them to the actor. It owns window-focus loss/recovery, controller disconnect and neutralization after disconnect. The demo only calls `set_enabled()` when the camera settings UI opens or closes; repeated calls with the same value do nothing, and disabled input is not cleared on every physics tick.
 - **`Action5Actor`** — one 3D player with alive/enabled state; forwards intents to locomotion but does not cache duplicate movement state or read raw keys.
 - **`Action5Locomotion`** — the **only physics solver and authoritative intent holder** (`desired`), applying `move_and_slide`, movement/gravity/jump, acceleration/braking, floor snap and slope bounds. Its parent is a `CharacterBody3D`. Disabling controls/focus clears this authoritative intent; move components never write the body's velocity directly.
 - **`Action5MovementController`** — generic exclusive move registry/FSM, priority-based transitions, grounded/airborne fallback, and `move_changed`, `move_registered`, `move_unregistered(id)` signals. It discovers all child `Action5Move` scripts in `Locomotion/MovementController/Moves`.
@@ -94,7 +94,7 @@ All projections normalize diagonal inputs to prevent faster diagonal movement. I
 
 The Godot Inspector exposes walk/run speed, acceleration/braking, jump impulse, floor snap, maximum floor angle, individual move component speeds/timing and input deadzones. D03 uses real `move_and_slide()` physical collisions, floor snapping on ramps and walls that block movement; it does not invent scene-specific collision bypasses.
 
-View switches do not overwrite current velocity or change position; F1 stops future Z acceleration and retains the current lane. When the actor is disabled/dead, the adapter stops movement; when the app loses focus or a controller disconnects, input is cleared until safe resumption.
+View switches do not overwrite current velocity or change position; F1 stops future Z acceleration and retains the current lane. The actor's alive/control setters stop movement when disabled, the input adapter clears player movement when its UI gate closes or window focus is lost, and controller disconnects require neutral input before resuming. Focus remains blocked even if the settings panel closes while the window is unfocused. AI-supplied movement intents are not repeatedly canceled by disabled raw-input polling.
 
 ## Run and verify
 
