@@ -151,13 +151,19 @@ func _attempt_step(delta: float) -> void:
     var rise := body.up_direction * max_step_height
     if body.test_move(transform, rise):
         return
-    if body.test_move(transform.translated(rise), horizontal):
+
+    # Look far enough onto the obstacle to test its top, not the side of
+    # the capsule at the lip. This is a probe only; the actor still travels
+    # only its actual per-tick horizontal motion via move_and_slide().
+    var probe_forward: Vector3 = horizontal.normalized() * maxf(
+        horizontal.length(), max_step_height
+    )
+    if body.test_move(transform.translated(rise), probe_forward):
         return
 
-    # Probe for support at the destination, not at the original position.
-    # A blocked path alone does not imply there is anything safe to stand on.
+    # A blocked path alone does not imply a walkable landing surface.
     var landing := KinematicCollision3D.new()
-    var landing_from: Transform3D = transform.translated(rise + horizontal)
+    var landing_from: Transform3D = transform.translated(rise + probe_forward)
     var drop: Vector3 = -body.up_direction * (max_step_height + floor_snap_distance)
     if not body.test_move(landing_from, drop, landing):
         return
