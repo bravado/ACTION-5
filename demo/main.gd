@@ -17,26 +17,17 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _settings_toggle: Button = $Hud/SettingsToggle
 
-var _has_window_focus: bool = true
-
-
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
     _moves.move_changed.connect(_on_move_changed)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
+    _input.set_enabled(not _camera_settings.visible)
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.pressed.connect(_on_mode_button_pressed.bind(i))
     _on_view_changed(_views.current_profile, null)
-
-
-func _process(_delta: float) -> void:
-    if not _has_window_focus or _camera_settings.visible:
-        _input.set_enabled(false)
-    elif not _input.enabled:
-        _input.set_enabled(true)
 
 
 ## Kept as a stable D02 smoke-test hook; production input mapping is in addon.
@@ -44,17 +35,6 @@ func _map_demo_movement(axes: Vector2) -> Vector2:
     return MovementPolicyScript.to_world(
         axes, _views.current_profile.mode, _views.get_active_camera().global_basis
     )
-
-
-func _notification(what: int) -> void:
-    if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
-        _has_window_focus = false
-        if is_instance_valid(_input):
-            _input.set_enabled(false)
-    elif what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
-        _has_window_focus = true
-        if is_instance_valid(_input) and not _camera_settings.visible:
-            _input.set_enabled(true)
 
 
 func _on_mode_button_pressed(index: int) -> void:
@@ -74,7 +54,8 @@ func _toggle_camera_settings() -> void:
 func _on_camera_settings_visibility_changed() -> void:
     # This also handles the Close button inside the settings panel.
     _release_ui_focus()
-    _input.set_enabled(not _camera_settings.visible and _has_window_focus)
+    # Only the panel's UI gate is owned here; the adapter owns window focus.
+    _input.set_enabled(not _camera_settings.visible)
     print("ACTION5_CAMERA_SETTINGS_VISIBLE ", "open" if _camera_settings.visible else "closed")
 
 
