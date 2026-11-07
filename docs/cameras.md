@@ -31,7 +31,7 @@ Click **Camera Settings [C]**, or press **C**, to open the Godot UI panel. It ch
 - **Mode 1 and 5:** orthographic zoom and follow speed.
 - **Mode 2:** orthographic zoom, camera height, camera depth and follow speed.
 - **Mode 3:** orthographic zoom, wide/close orbit distances, wide isometric pitch, close shoulder pitch, left/right shoulder offset, shoulder lift, look-ahead and follow speed.
-- **Mode 4:** field of view and eye height.
+- **Mode 4:** field of view, eye height and **Invert Y-axis (mouse)** (checkbox, **off by default**). With inversion off, mouse down looks down; enabling inversion makes mouse down look up.
 
 The source component is `addons/action5/camera/camera_settings_panel.gd`. An app can call `set_current_value(key, value)`, `reset_current_camera()` or `refresh_controls()`; controls are generated from mode-applicable properties.
 
