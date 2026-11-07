@@ -6,6 +6,7 @@ var enter_count: int = 0
 var exit_count: int = 0
 var tick_count: int = 0
 var allow_exit: bool = true
+var allow_enter: bool = true
 
 
 func _init() -> void:
@@ -17,7 +18,7 @@ func _init() -> void:
 
 
 func can_enter(ctx: ContextScript) -> bool:
-    return ctx.intent != null and ctx.intent.world_move.length_squared() > 0.01
+    return allow_enter and ctx.intent != null and ctx.intent.world_move.length_squared() > 0.01
 
 
 func enter(_ctx: ContextScript) -> void:
