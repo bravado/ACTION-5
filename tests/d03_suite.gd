@@ -44,8 +44,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(InputMap.has_action(&"actor_test_dash")
         and not InputMap.action_get_events(&"actor_test_dash").is_empty(),
         "Custom move registers its default InputMap action via registry signal")
-    verify.call(not demo_moves.add_move(CustomDashScript.new()),
-        "Controller rejects duplicate move IDs without replacing existing moves")
+    var moves_before_duplicate: int = demo_moves.moves_root.get_child_count()
+    var duplicate_move = CustomDashScript.new()
+    verify.call(not demo_moves.add_move(duplicate_move)
+        and demo_moves.moves_root.get_child_count() == moves_before_duplicate,
+        "Duplicate move IDs are rejected without creating orphan child nodes")
+    duplicate_move.free()
 
 
     verify.call(PolicyScript.deadzone(Vector2(0.10, 0.0), 0.20).is_zero_approx(),
