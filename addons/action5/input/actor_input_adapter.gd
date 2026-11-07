@@ -23,8 +23,6 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 var enabled: bool = true
 var focus_active: bool = true
 var require_neutral: bool = false
-var last_raw_axis: Vector2 = Vector2.ZERO
-var last_intent: IntentScript = IntentScript.new()
 
 
 func _ready() -> void:
@@ -65,7 +63,6 @@ func _physics_process(_delta: float) -> void:
         Input.is_action_pressed(&"actor_run")
     )
     actor.apply_move_intent(command)
-    last_intent = command
 
 
 func compose_intent(
@@ -93,14 +90,10 @@ func compose_intent(
     for move in actor.locomotion.move_controller.get_moves():
         if move.action_name != &"" and Input.is_action_just_pressed(move.action_name):
             intent.request_move(move.move_id)
-    intent.view_mode = mode
-    last_raw_axis = axes
     return intent
 
 
 func clear_input() -> void:
-    last_raw_axis = Vector2.ZERO
-    last_intent = IntentScript.new()
     if is_instance_valid(actor):
         actor.clear_motion()
 
