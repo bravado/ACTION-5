@@ -337,6 +337,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for i in range(12):
         await tree.physics_frame
     var climb = CustomClimbScript.new()
+    # AI-only ability: no keyboard/gamepad action should be necessary to stay active.
+    climb.action_name = &""
     verify.call(actor_moves.add_move(climb),
         "Independent climbing component installs without core code changes")
     var climb_request := MoveIntentScript.new()
@@ -345,20 +347,24 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.apply_move_intent(climb_request)
     verify.call(actor_moves.active_id == &"test_climb" and climb.enter_count == 1,
         "Custom vertical move activates through the generic controller")
-    for i in range(8):
+    for i in range(2):
+        await tree.physics_frame
+    verify.call(actor_moves.active_id == &"test_climb" and climb.ticks > 0,
+        "AI-only move without action_name remains active and executes physics ticks")
+    for i in range(6):
         await tree.physics_frame
     verify.call(actor.global_position.y > climb_start_y + 0.25
         and actor.velocity.y > 2.8,
         "Plug-in controls real Y velocity and disables gravity without solver branches")
     for i in range(12):
         await tree.physics_frame
-    verify.call(actor_moves.active_id != &"test_climb",
-        "Custom climb completes and transitions to the airborne fallback")
+    verify.call(actor_moves.active_id == &"airborne",
+        "Input-unbound climb finishes and transitions to the airborne fallback")
     actor.set_move_intent(Vector2.ZERO)
     for i in range(90):
         await tree.physics_frame
-    verify.call(actor.is_on_floor(),
-        "Physics gravity and landing resume when custom climb exits")
+    verify.call(actor.is_on_floor() and actor_moves.active_id == &"grounded",
+        "AI-only climb completion restores gravity and grounded fallback after landing")
 
     actor.global_position = Vector3(0.0, 0.18, -4.0)
     actor.enter_side_view()
