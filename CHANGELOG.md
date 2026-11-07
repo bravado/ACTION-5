@@ -10,7 +10,7 @@
 - Separate independent aim and 4-/8-way facing quantization from actual world-space movement.
 - Add keyboard/controller actions, deadzones, input reset on focus loss and gamepad disconnect, dead/disabled actor state.
 - Extend procedural demo arena with a ramp and step, runtime controls, Godot regression suite and browser walk/jump smoke.
-- Add an extensible `Action5MovementController` with pluggable `Action5Move` nodes, priority-based transitions and grounded/airborne fallbacks. Dodge and Slide are independent moves with their own input declarations. A test-only custom dash validates extension without edits to Actor, InputAdapter or Locomotion.
+- Add an extensible `Action5MovementController` with pluggable `Action5Move` nodes, priority-based transitions and grounded/airborne fallbacks. Dodge and Slide are independent moves with their own input declarations. Test-only custom dash and vertical climb moves validate extension, interruption, per-move input registration and gravity control without editing Actor, InputAdapter or Locomotion.
 
 
 ### D02 — Five view profiles and camera settings (PR #23, pending review)
