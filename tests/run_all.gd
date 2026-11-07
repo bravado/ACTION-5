@@ -4,6 +4,7 @@ const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const D03SuiteScript = preload("res://tests/d03_suite.gd")
+const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
 ## Run: godot --headless --path . --script res://tests/run_all.gd
 ## Expected failing proof: append -- --self-test-failure (must exit nonzero).
@@ -49,7 +50,11 @@ func _run_tests() -> void:
     await process_frame
 
     var player := level.get_node_or_null("Player") as CharacterBody3D
+    var player_locomotion: LocomotionScript
+    if player != null:
+        player_locomotion = player.get_node_or_null("Locomotion") as LocomotionScript
     _check(player != null, "One CharacterBody3D exists in the world")
+    _check(player_locomotion != null, "Player has one authoritative locomotion component")
     _check(level.get_node_or_null("Floor/CollisionShape3D") is CollisionShape3D,
         "Floor includes a physical collision shape")
     _check(level.get_node_or_null("NorthWall/CollisionShape3D") is CollisionShape3D,
@@ -210,8 +215,8 @@ func _run_tests() -> void:
         _check(settings.visible, "Camera settings panel can be opened")
         player.call("set_move_intent", Vector2.RIGHT)
         level._process(0.0)
-        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
-            "Open camera settings prevent raw movement keys from moving the actor")
+        _check(player_locomotion.desired.world_move.is_zero_approx(),
+            "Open camera settings clear the authoritative movement intent")
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
@@ -323,8 +328,8 @@ func _run_tests() -> void:
         _check(not settings.visible, "Settings panel can be closed")
         player.call("set_move_intent", Vector2.RIGHT)
         level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-        _check((player.get("_planar_intent") as Vector2) == Vector2.ZERO,
-            "Losing window focus immediately clears movement intent")
+        _check(player_locomotion.desired.world_move.is_zero_approx(),
+            "Losing window focus immediately clears authoritative movement intent")
         _check(not bool(level.get("_has_window_focus")),
             "Focus-out event disables demo movement polling")
         level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
