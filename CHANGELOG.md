@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix inverted first-person vertical mouse look by default (mouse down now looks down), with a per-profile **Invert Y-axis** checkbox in Camera Settings. The checkbox persists user preference and Reset restores non-inverted behavior.
+
 ### D03 — Actor movement and view-independent input (PR #24)
 
 - Extract authoritative 3D actor, reusable locomotion, visual facing, movement-intent data contracts and camera-specific input policy modules.
