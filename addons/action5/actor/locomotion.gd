@@ -161,7 +161,7 @@ func _attempt_step(delta: float) -> void:
     var drop: Vector3 = -body.up_direction * (max_step_height + floor_snap_distance)
     if not body.test_move(landing_from, drop, landing):
         return
-    if landing.get_normal().dot(body.up_direction) < cosf(body.floor_max_angle):
+    if landing.get_normal().dot(body.up_direction) < cos(body.floor_max_angle):
         return
 
     # Landing travel gives the actual step rise (usually less than the max).
