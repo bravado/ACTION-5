@@ -223,6 +223,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(actor.is_on_floor(), "D03 actor lands on Godot's collision floor")
 
+    # A separate actor keeps arbitration tests isolated from movement distances
+    # used by the existing walk/run/dodge/slide integration checks.
+    await _test_simultaneous_moves(tree, level, verify)
+
     var starting_x: float = actor.global_position.x
     actor.set_move_intent(Vector2.RIGHT)
     for i in range(28):
@@ -550,3 +554,83 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     adapter.set_enabled(true)
     adapter.set_physics_process(true)
     manager.switch_view(1)
+
+
+## Multiple requests in one intent must cause one deterministic FSM transition.
+## Check reversed input order, priority ties and a rejected top candidate.
+func _test_simultaneous_moves(tree: SceneTree, level: Node3D, verify: Callable) -> void:
+    var packed := load("res://demo/player.tscn") as PackedScene
+    var actor: ActorScript = packed.instantiate() as ActorScript
+    level.add_child(actor)
+    actor.global_position = Vector3(0.0, 0.25, -6.5)
+    for i in range(20):
+        await tree.physics_frame
+    verify.call(actor.is_on_floor(), "Arbitration fixture actor is grounded")
+
+    var moves = actor.locomotion.move_controller
+    var low = CustomDashScript.new()
+    low.move_id = &"test_low"
+    low.priority = 20
+    low.action_name = &""
+    var high = CustomDashScript.new()
+    high.move_id = &"test_high"
+    high.priority = 60
+    high.action_name = &""
+    var alpha = CustomDashScript.new()
+    alpha.move_id = &"test_alpha"
+    alpha.priority = 40
+    alpha.action_name = &""
+    var beta = CustomDashScript.new()
+    beta.move_id = &"test_beta"
+    beta.priority = 40
+    beta.action_name = &""
+    var rejected = CustomDashScript.new()
+    rejected.move_id = &"test_rejected"
+    rejected.priority = 90
+    rejected.action_name = &""
+    rejected.allow_enter = false
+    for move in [low, high, alpha, beta, rejected]:
+        verify.call(moves.add_move(move),
+            "Arbitration fixture registers move %s" % move.move_id)
+
+    var transitions: Array[StringName] = []
+    moves.move_changed.connect(
+        func(_previous: StringName, current: StringName) -> void:
+            transitions.append(current)
+    )
+    var cases: Array[Dictionary] = [
+        {"requests": [&"test_low", &"test_high"], "winner": high, "loser": low},
+        {"requests": [&"test_high", &"test_low"], "winner": high, "loser": low},
+        {"requests": [&"test_beta", &"test_alpha"], "winner": alpha, "loser": beta},
+        {"requests": [&"test_alpha", &"test_beta"], "winner": alpha, "loser": beta},
+        {"requests": [&"test_rejected", &"test_low"], "winner": low, "loser": rejected},
+    ]
+    for case_index in range(cases.size()):
+        var entry: Dictionary = cases[case_index]
+        var winning_move: Node = entry["winner"]
+        var losing_move: Node = entry["loser"]
+        var winning_id: StringName = winning_move.get("move_id")
+        var winner_enters_before: int = int(winning_move.get("enter_count"))
+        var loser_enters_before: int = int(losing_move.get("enter_count"))
+        var events_before: int = transitions.size()
+        var command := MoveIntentScript.new(Vector2.RIGHT, Vector2.RIGHT)
+        for id in entry["requests"]:
+            command.request_move(id)
+        actor.apply_move_intent(command)
+        await tree.physics_frame
+        verify.call(moves.active_id == winning_id
+            and int(winning_move.get("enter_count")) == winner_enters_before + 1
+            and int(losing_move.get("enter_count")) == loser_enters_before,
+            "Batch %d activates only the highest eligible deterministic winner" % case_index)
+        verify.call(transitions.size() == events_before + 1
+            and transitions.back() == winning_id,
+            "Batch %d produces exactly one requested move_changed event" % case_index)
+
+        actor.set_move_intent(Vector2.ZERO)
+        for i in range(8):
+            await tree.physics_frame
+        verify.call(moves.active_id == &"grounded",
+            "Batch %d returns to grounded fallback after its move ends" % case_index)
+
+    actor.queue_free()
+    await tree.process_frame
