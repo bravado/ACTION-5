@@ -9,7 +9,6 @@ var aim_world: Vector2 = Vector2.ZERO
 var jump_pressed: bool = false
 var running: bool = false
 var requested_moves: Array[StringName] = []
-var view_mode: int = 1
 
 
 func _init(
