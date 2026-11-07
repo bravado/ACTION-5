@@ -26,6 +26,9 @@ var require_neutral: bool = false
 
 
 func _ready() -> void:
+    # Sample raw input before the actor's default-priority locomotion tick,
+    # even when the adapter appears after Player in the scene tree.
+    process_physics_priority = -100
     if actor == null or views == null:
         push_error("ACTION5: ActorInputAdapter requires Action5Actor and ViewManager")
         set_physics_process(false)
@@ -44,8 +47,9 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
     if actor == null or views == null:
         return
+    # UI/focus transitions and actor setters already clear stale input once;
+    # do not cancel the actor's movement FSM every blocked physics tick.
     if not enabled or not focus_active or not actor.alive or not actor.controls_enabled:
-        clear_input()
         return
 
     var axes := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", move_deadzone)
@@ -98,9 +102,13 @@ func clear_input() -> void:
         actor.clear_motion()
 
 
+## The demo controls only this UI gate; window focus belongs to this adapter.
+## Repeated calls must not re-cancel pending moves or AI-supplied intents.
 func set_enabled(value: bool) -> void:
+    if enabled == value:
+        return
     enabled = value
-    if not value:
+    if not enabled:
         clear_input()
 
 
