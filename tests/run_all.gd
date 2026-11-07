@@ -5,6 +5,7 @@ const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const D03SuiteScript = preload("res://tests/d03_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
+const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
 ## Run: godot --headless --path . --script res://tests/run_all.gd
 ## Expected failing proof: append -- --self-test-failure (must exit nonzero).
@@ -50,11 +51,13 @@ func _run_tests() -> void:
     await process_frame
 
     var player := level.get_node_or_null("Player") as CharacterBody3D
+    var actor_input := level.get_node_or_null("ActorInput") as ActorInputScript
     var player_locomotion: LocomotionScript
     if player != null:
         player_locomotion = player.get_node_or_null("Locomotion") as LocomotionScript
     _check(player != null, "One CharacterBody3D exists in the world")
     _check(player_locomotion != null, "Player has one authoritative locomotion component")
+    _check(actor_input != null, "Input adapter handles game input and window focus")
     _check(level.get_node_or_null("Floor/CollisionShape3D") is CollisionShape3D,
         "Floor includes a physical collision shape")
     _check(level.get_node_or_null("NorthWall/CollisionShape3D") is CollisionShape3D,
@@ -211,12 +214,12 @@ func _run_tests() -> void:
 
         var settings := level.get_node("Hud/CameraSettings")
         var toggle := level.get_node("Hud/SettingsToggle") as Button
+        player.call("set_move_intent", Vector2.RIGHT)
         toggle.pressed.emit()
         _check(settings.visible, "Camera settings panel can be opened")
-        player.call("set_move_intent", Vector2.RIGHT)
-        level._process(0.0)
-        _check(player_locomotion.desired.world_move.is_zero_approx(),
-            "Open camera settings clear the authoritative movement intent")
+        _check(not actor_input.enabled
+            and player_locomotion.desired.world_move.is_zero_approx(),
+            "Opening camera settings clears input immediately, without demo polling")
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
@@ -325,16 +328,26 @@ func _run_tests() -> void:
             and absf(manager.current_profile.orthographic_size - 17.0) < 0.01,
             "Reset restores a wide isometric view")
         toggle.pressed.emit()
-        _check(not settings.visible, "Settings panel can be closed")
+        _check(not settings.visible and actor_input.enabled,
+            "Closing settings restores the independent UI input gate")
         player.call("set_move_intent", Vector2.RIGHT)
-        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-        _check(player_locomotion.desired.world_move.is_zero_approx(),
-            "Losing window focus immediately clears authoritative movement intent")
-        _check(not bool(level.get("_has_window_focus")),
-            "Focus-out event disables demo movement polling")
-        level._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
-        _check(bool(level.get("_has_window_focus")),
-            "Focus-in event restores input processing")
+        actor_input._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+        _check(player_locomotion.desired.world_move.is_zero_approx()
+            and not actor_input.focus_active and actor_input.enabled,
+            "Input adapter alone clears movement on focus loss; UI gate stays enabled")
+        # Closing the settings panel while unfocused must not bypass the
+        # adapter's focus gate, even though the demo enables its UI gate.
+        toggle.pressed.emit()
+        _check(settings.visible and not actor_input.enabled,
+            "Opening settings disables input independently of window focus")
+        toggle.pressed.emit()
+        _check(not settings.visible and actor_input.enabled
+            and not actor_input.focus_active,
+            "Closing settings while unfocused cannot restore gameplay input")
+        actor_input._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
+        _check(actor_input.focus_active and actor_input.enabled
+            and actor_input.require_neutral,
+            "Focus return restores input sampling only after neutralization")
 
         # Near zoom camera collision must keep the camera in front of walls.
         player.global_position = Vector3(0.0, 0.15, 7.35)
