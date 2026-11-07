@@ -133,6 +133,15 @@ func _run_tests() -> void:
             "F4 uses perspective rendering")
         _check(not player.get_node("Visual").visible,
             "F4 hides the locally owned player's mesh")
+        _check(not manager.current_profile.invert_y,
+            "First-person mouse Y starts non-inverted")
+        var fps_rig = manager.camera_rig
+        var start_pitch: float = fps_rig.orbit_pitch
+        fps_rig.apply_mouse_motion(Vector2(0.0, 80.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        _check(fps_rig.orbit_pitch > start_pitch
+            and manager.get_active_camera().global_basis.z.y > 0.05,
+            "First-person mouse-down looks down by default")
         manager.switch_view(2)
         _check(player.get_node("Visual").visible,
             "F3 restores third-person actor visuals")
@@ -214,6 +223,54 @@ func _run_tests() -> void:
         _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
             "UI slider immediately updates F2 camera zoom")
         settings.call("reset_current_camera")
+
+        # First-person's boolean Y-axis setting is a per-profile checkbox,
+        # not a numeric slider. Changing it must preserve actor and camera IDs.
+        var fps_checkbox := settings.get_node("Padding/Controls/Row_invert_y/InvertY") as CheckBox
+        var fps_row := settings.get_node("Padding/Controls/Row_invert_y") as HBoxContainer
+        _check(not fps_row.visible, "Invert Y-axis option is hidden for beat'em up")
+        manager.switch_view(3)
+        var fps_profile: ViewProfileScript = manager.current_profile
+        var fps_actor_before: Transform3D = player.global_transform
+        _check(fps_row.visible and not fps_checkbox.button_pressed
+            and not fps_profile.invert_y,
+            "First-person settings show an unchecked Invert Y-axis checkbox")
+        fps_checkbox.button_pressed = true
+        _check(fps_profile.invert_y and fps_checkbox.button_pressed,
+            "First-person checkbox toggles mouse inversion live")
+        var inverted_start: float = manager.camera_rig.orbit_pitch
+        manager.camera_rig.apply_mouse_motion(Vector2(0.0, 80.0))
+        manager.camera_rig._update_camera(1.0 / 60.0)
+        _check(manager.camera_rig.orbit_pitch < inverted_start
+            and manager.get_active_camera().global_basis.z.y < -0.05,
+            "When inverted, mouse-down looks upward")
+        _check(player.global_transform == fps_actor_before
+            and manager.get_active_camera().get_instance_id() == camera_id,
+            "Mouse inversion never moves the actor or recreates the camera")
+        var invert_config := ConfigFile.new()
+        _check(invert_config.load(settings.preferences_path) == OK
+            and invert_config.get_value("profile_first_person", "invert_y", false) == true,
+            "Invert Y-axis is saved under the stable first-person profile ID")
+        fps_profile.invert_y = false
+        settings.call("_load_preferences")
+        _check(fps_profile.invert_y,
+            "Saved first-person inversion is restored when preferences reload")
+        settings.call("refresh_controls")
+        manager.switch_view(2)
+        _check(not fps_row.visible
+            and not settings.call("set_current_invert_y", false),
+            "Other camera modes cannot change first-person inversion")
+        manager.switch_view(3)
+        _check(fps_checkbox.button_pressed and fps_profile.invert_y,
+            "First-person inversion survives switching away and back")
+        settings.call("reset_current_camera")
+        _check(not fps_profile.invert_y and not fps_checkbox.button_pressed,
+            "Reset this camera restores default non-inverted mouse look")
+        var reset_invert_config := ConfigFile.new()
+        _check(reset_invert_config.load(settings.preferences_path) == OK
+            and not reset_invert_config.has_section_key("profile_first_person", "invert_y"),
+            "Reset removes the inversion override from persisted preferences")
+        manager.switch_view(2)
 
         # Mode 3 moves continuously between wide isometric and the close
         # over-shoulder framing by adjusting ONE zoom setting.
