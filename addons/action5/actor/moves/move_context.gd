@@ -12,6 +12,9 @@ var delta: float = 0.0
 
 var has_horizontal_override: bool = false
 var horizontal_override: Vector2 = Vector2.ZERO
+var has_vertical_override: bool = false
+var vertical_override: float = 0.0
+var gravity_scale: float = 1.0
 var move_finished: bool = false
 
 
@@ -25,6 +28,9 @@ func begin_tick(next_intent: IntentScript, physics_delta: float) -> void:
     delta = physics_delta
     has_horizontal_override = false
     horizontal_override = Vector2.ZERO
+    has_vertical_override = false
+    vertical_override = 0.0
+    gravity_scale = 1.0
     move_finished = false
 
 
@@ -38,6 +44,21 @@ func request_horizontal_velocity(velocity: Vector2) -> void:
         return
     has_horizontal_override = true
     horizontal_override = velocity
+
+
+## Optional vertical commands support climbing, swimming, lifts and
+## wall-running without changing the player or central physics implementation.
+func request_vertical_velocity(velocity_y: float) -> void:
+    if is_nan(velocity_y) or is_inf(velocity_y):
+        return
+    has_vertical_override = true
+    vertical_override = velocity_y
+
+
+func request_gravity_scale(scale: float) -> void:
+    if is_nan(scale) or is_inf(scale):
+        return
+    gravity_scale = clampf(scale, 0.0, 4.0)
 
 
 ## Ends the active move after the current physics tick; the controller then
