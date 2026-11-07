@@ -25,7 +25,7 @@ Gamepad: left stick moves, right stick optionally aims/faces independently, A ju
 - **`Action5ActorInputAdapter`** — samples `InputMap` at physics ticks, creates intents and dispatches them to the actor. Handles focus loss, controller disconnect and neutralization after disconnect.
 - **`Action5Actor`** — one 3D player with alive/enabled state; receives intents but does not read raw keys.
 - **`Action5Locomotion`** — the **only physics solver**, applying `move_and_slide`, movement/gravity/jump, acceleration/braking, floor snap and slope bounds. Its parent is a `CharacterBody3D`. Move components never write the body's velocity directly.
-- **`Action5MovementController`** — generic exclusive move registry/FSM, priority-based transitions, grounded/airborne fallback, `move_changed` and `move_registered` signals. It discovers all child `Action5Move` scripts in `Locomotion/MovementController/Moves`.
+- **`Action5MovementController`** — generic exclusive move registry/FSM, priority-based transitions, grounded/airborne fallback, and `move_changed`, `move_registered`, `move_unregistered(id)` signals. It discovers all child `Action5Move` scripts in `Locomotion/MovementController/Moves`.
 - **`Action5Move` / `Action5MoveContext`** — extension API: each move owns eligibility, entry, physics commands, exit and optional input defaults; context exposes a one-tick `request_horizontal_velocity()` command and `finish_move()`.
 - **`Action5FacingPresenter`** — visual-only yaw, optional quantized facing and turn smoothing.
 
@@ -68,7 +68,7 @@ func physics_update(ctx: ContextScript, _delta: float) -> void:
         ctx.finish_move()
 ```
 
-No edits to the actor, locomotion solver, input adapter, or other moves are required. You may also install a move at runtime with `actor.locomotion.move_controller.add_move(move)`. Trigger it from input via its declared action or from AI/code:
+No edits to the actor, locomotion solver, input adapter, or other moves are required. You may also install a move at runtime with `actor.locomotion.move_controller.add_move(move)`. Adding an `Action5Move` directly under `Moves` registers it automatically; `remove_child()` or freeing it unregisters it, clears matching pending requests, and forces an active move to exit. Use `unregister_move(id)` to unregister without detaching the node, and `register_move(move)` to explicitly register that attached node again. Movement IDs must remain stable while registered. InputMap bindings are not deleted on unregistration because they may be user-remapped. Trigger moves from input via their declared action or from AI/code:
 
 ```gdscript
 var command := Action5MoveIntent.new(Vector2.RIGHT)
