@@ -18,6 +18,7 @@ var active_move: MoveScript
 var active_id: StringName = &""
 
 var _registry: Dictionary = {}
+var _pending_requests: Array[StringName] = []
 var _context: ContextScript
 var _ready_for_moves: bool = false
 
@@ -79,20 +80,13 @@ func get_move(id: StringName) -> MoveScript:
     return move
 
 
-func request_move(id: StringName, intent: IntentScript = null) -> bool:
-    _invalidate_removed_active_move()
-    var next: MoveScript = get_move(id)
-    if next == null or next == active_move:
+## Requests are accepted now, but eligibility and transitions are resolved
+## in the next physics tick with a freshly initialized command context.
+func request_move(id: StringName) -> bool:
+    if _context == null or get_move(id) == null:
         return false
-    if _context == null:
-        return false
-    _context.intent = intent if intent != null else get_parent().get("desired")
-    if not next.can_enter(_context):
-        return false
-    if active_move != null:
-        if next.priority < active_move.priority or not active_move.can_exit(_context):
-            return false
-    _transition(next)
+    if not _pending_requests.has(id):
+        _pending_requests.append(id)
     return true
 
 
@@ -100,11 +94,29 @@ func tick(intent: IntentScript, delta: float) -> ContextScript:
     _invalidate_removed_active_move()
     _context.begin_tick(intent, delta)
     _resolve_default()
+
+    # Drain once: an intent can stay active for many ticks, but move requests
+    # are edge-triggered. Calls made during a transition run on the next tick.
+    var requested: Array[StringName] = _pending_requests
+    _pending_requests = []
+    for id in requested:
+        _activate_move(id)
+
     if active_move != null:
         active_move.physics_update(_context, delta)
     if _context.move_finished:
         _resolve_default(true)
     return _context
+
+
+func _activate_move(id: StringName) -> void:
+    var next: MoveScript = get_move(id)
+    if next == null or next == active_move or not next.can_enter(_context):
+        return
+    if active_move != null:
+        if next.priority < active_move.priority or not active_move.can_exit(_context):
+            return
+    _transition(next)
 
 
 func _resolve_default(force: bool = false) -> void:
@@ -139,6 +151,7 @@ func _invalidate_removed_active_move() -> void:
 
 
 func cancel() -> void:
+    _pending_requests.clear()
     if active_move != null and _context != null:
         active_move.exit(_context)
     var previous: StringName = active_id
