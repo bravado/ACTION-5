@@ -3,8 +3,6 @@ class_name Action5Actor
 ## A single authoritative actor. Raw keyboard/mouse/gamepad input stays outside.
 
 const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
-const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
-const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const FacingScript = preload("res://addons/action5/actor/facing_presenter.gd")
 
@@ -13,18 +11,12 @@ const FacingScript = preload("res://addons/action5/actor/facing_presenter.gd")
 
 var alive: bool = true
 var controls_enabled: bool = true
-var _latest: IntentScript = IntentScript.new()
-var _planar_intent: Vector2 = Vector2.ZERO
 
 
 func apply_move_intent(intent: IntentScript) -> void:
     if not alive or not controls_enabled or intent == null:
-        _planar_intent = Vector2.ZERO
-        _latest = IntentScript.new()
         locomotion.stop()
         return
-    _latest = intent
-    _planar_intent = intent.world_move
     locomotion.apply_intent(intent)
     var facing_direction: Vector2 = intent.face_world
     if facing_direction.length_squared() > 0.001:
@@ -47,8 +39,6 @@ func exit_side_view() -> void:
 
 func set_controls_enabled(next_enabled: bool) -> void:
     controls_enabled = next_enabled
-    if not controls_enabled:
-        _planar_intent = Vector2.ZERO
     locomotion.set_enabled(alive and controls_enabled)
 
 
@@ -58,5 +48,4 @@ func set_alive(next_alive: bool) -> void:
 
 
 func clear_motion() -> void:
-    _planar_intent = Vector2.ZERO
     locomotion.stop()
