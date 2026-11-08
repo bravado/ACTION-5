@@ -216,7 +216,13 @@ enter combat, actor, locomotion or the generic animation presenter.
 registers/unregisters **every** weapon world mesh with the existing D04
 local-body shadow API. An optional authored F4 viewmodel is render-only,
 uses the D05 `get_visual_action()` snapshot, and never supplies physical
-hit/aim transforms. NPCs have no private F4 model. See
+hit/aim transforms. The optional `EquipmentAttackSelector` replaces
+unarmed Punch/Kick definitions for the existing click/J/K input actions
+when equipment is held, and restores them on drop. The F4 limb presenter
+consults a duck-typed visibility gate to hide unarmed fist/leg visuals
+while equipped. Each weapon's authored camera-space arm profile drives
+the grip and the attached weapon mesh together, without changing world
+physics or adding an animation clock. NPCs have no private F4 model. See
 [equipment authoring and current state](equipment.md) and ADR-0005.
 
 **D06-02 is still pending.** A Gun instance should own its ammo/reload and

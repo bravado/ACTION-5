@@ -1,7 +1,7 @@
 # First-person presentation architecture — research and D05 refactor
 
-Status: Implemented in draft [PR #28](https://github.com/bravado/ACTION-5/pull/28);
-Godot native/WebGL2 validation required before merging.
+Status: D05 merged via [PR #28](https://github.com/bravado/ACTION-5/pull/28).
+D06-01 equipped viewmodel/attack selection is in development in PR #31.
 
 ## Root-cause analysis
 
@@ -166,9 +166,15 @@ near-camera poses.
    viewports; verify the projected fist/knee/end are within expected
    ranges, not just the action name in a log.
 
-**D06** should attach world equipment to the D04 socket, then optionally
-register a separate camera-local viewmodel on the same layer 19 and
-consume an equipment-specific visual adapter. **Do not make Combat or
+**D06** attaches world equipment to the D04 socket, then optionally
+registers a separate camera-local viewmodel on the same layer 19 and
+consumes a visual adapter. When equipment is active, a replaceable
+visibility source hides D05's unarmed F4 arm and leg; the equipment F4
+scene instead uses an authored `FirstPersonLimbProfile` for its own
+hand/forearm, with all held weapon meshes parented to that hand's
+animated grip. Input selection is handled before combat by the optional
+`EquipmentAttackSelector`: existing clicks/J/K request equipped
+actions, without a special swing key or weapon type branch. **Do not make Combat or
 FirstPersonPresenter know weapon type names.** A viewmodel is never a
 second actor and never owns damage or ammo.
 
