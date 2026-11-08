@@ -15,7 +15,8 @@ On systems where the executable has another name, specify `GODOT` when invoking 
 | `make import` | Scan scripts/resources, refresh Godot's generated `.godot/` registry and imports, fail on parser/runtime log errors |
 | `make run` | **Import first**, then launch the game directly |
 | `make editor` | Import first, then launch the Godot editor |
-| `make test` | Import first, run the full headless GDScript suite, validate logs |
+| `make test` | Import first, run the headless GDScript suite and validate logs |
+| `make check` | Regenerate and verify tracked GLBs (Node.js), then run the Godot tests; matches the standard PR CI tier |
 | `make web` | Import, export `build/web/index.html` and check required HTML/JS/WASM/PCK files |
 | `make linux` | Import, export `build/linux/action5-demo.x86_64`, verify an executable was produced |
 | `make build` | Import and build both native Linux and Web artifacts, validate both exports |
@@ -89,14 +90,45 @@ Godot must have the export templates matching the editor version. The CI install
 
 ## Tests and CI evidence
 
-The existing `.github/workflows/d01-godot.yml` runs:
+The [ACTION-5 CI workflow](../.github/workflows/godot-ci.yml) has two stable job names (independent of D01–D12 milestones):
 
-1. A cold-start launch before the editor import, proving scripts don't depend on an existing class-cache file.
-2. `make import` and a headless `make run` smoke.
-3. `make test`, plus a deliberate negative test that must fail.
-4. `make build`, Linux executable smoke and native camera screenshots.
-5. Chromium WebGL2 startup, native number-key presses 1–5 and selector interaction.
+- **`CI / Checks` (every PR update):** cold-start parser smoke, reproducible original/alternate GLBs and the entire headless GDScript regression suite. No export-template download, browser installation, native screenshots or WebGL2 startup.
+- **`CI / Full E2E` (conditional):** Linux/Web exports, an exported native executable smoke, native camera screenshots, Chromium/WebGL2 tests and the negative-test runner self-check. Runs on **every push to `master`**, or when explicitly requested. Depends on `CI / Checks`, but does not repeat its tests.
+- **Explicit PR full check:** include `[full-e2e]` in the **latest commit message** (subject or body, case-insensitive), then push the commit. The workflow reads the actual PR head commit, not the synthetic merge commit or PR title.
+- **Manual dispatch:** select `full_e2e` in GitHub Actions to run the full suite; otherwise the fast tier runs.
 
-Passing CI uploads `d04-evidence` (logs and native/browser camera captures) and `d04-exports` (Linux and Web builds). A screenshot capture is not a substitute for real runtime tests; imported `.glb` assets are validated after `make import`.
+Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full E2E job. Each job shares the phony Godot import across its Make targets in one invocation.
+
+```bash
+make test     # Local Godot headless tests, requires Godot 4.7.2 and Python 3
+make check    # Local PR-equivalent tests, additionally requires Node.js
+make build    # Local Linux and Web exports, requires matching templates
+```
+
+The workflow uploads `ci-checks-evidence` for fast checks and `ci-full-e2e-evidence` plus `ci-full-e2e-exports` for full E2E. The full tests are not deleted—only deferred to master merges or explicitly opted-in PR validation. For visual-sensitive PRs, request full E2E before merge; a merge to `master` runs it automatically but cannot gate that merge retrospectively.
+
+### GitHub Pages deployment
+
+On every **push to `master`** (including merged PRs), `CI / Checks` and `CI / Full E2E` run first. Only after both jobs succeed does `CI / Deploy Pages` publish the **same `build/web/` export already verified in Chromium/WebGL2**. A PR, a manually dispatched workflow or a failing E2E run **never deploys**. The game is exported to `index.html` and its associated JavaScript, WASM and PCK assets; no `gh-pages` branch or separate export is created.
+
+**Repository setup (one-time):**
+
+1. Open **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**.
+2. Under **Settings → Environments → github-pages**, allow deployments from **`master` only**. If you add reviewers, deployment will wait for that approval.
+3. Ensure **Settings → Actions → General → Workflow permissions** permits the needed `GITHUB_TOKEN` rights. The workflow scopes `pages: write` and `id-token: write` **only** to the deployment job (normal CI retains `contents: read`).
+
+The resulting project site should appear at **https://bravado.github.io/ACTION-5/**, unless the organization has configured a custom Pages domain. Confirm the actual address from the `github-pages` environment after the first successful deployment. The first publish can only be verified following a successful push to `master` with Pages enabled.
+
+`CI / Deploy Pages` is **not a required PR status check**: it is intended to run *after* merging, while the checks below guard the merge itself.
+
+### GitHub branch protection
+
+Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch protection rules**) for `master`, require these **exact** job check names from **GitHub Actions**:
+
+- `CI / Checks` — always executes on each PR and must pass.
+- `CI / Full E2E` — normal PRs skip this job; GitHub treats conditionally skipped jobs as passing required checks. When `[full-e2e]` requests E2E, its failure blocks the merge.
+
+Do **not** require the workflow display name (`ACTION-5 CI`), deployment job (`CI / Deploy Pages`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
+
 
 D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. Combat and weapons remain separate D05–D07 work.

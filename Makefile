@@ -15,13 +15,14 @@ PORT ?= 8765
 WEB_EXPORT := build/web/index.html
 LINUX_EXPORT := build/linux/action5-demo.x86_64
 
-.PHONY: help import test run editor web linux build serve-web clean-build
+.PHONY: help verify-assets check import test run editor web linux build serve-web clean-build
 
 help:
 	@printf '%s\n' \
 		'ACTION-5 (Godot 4.7.2) development commands:' \
 		'  make import       Import resources and refresh the GDScript class registry' \
 		'  make test         Import, then run all Godot headless tests' \
+		'  make check        Run the same checks as CI / Checks (asset + Godot)' \
 		'  make run          Import, then run the game' \
 		'  make editor       Import, then open the Godot editor' \
 		'  make web          Import, then export the browser build' \
@@ -31,6 +32,15 @@ help:
 		'  make clean-build  Remove generated build/ files only' \
 		'' \
 		'Override executable paths as needed: make run GODOT=/path/to/godot'
+
+verify-assets:
+	@node tools/generate_training_character.mjs
+	@node tools/generate_alternate_training_character.mjs
+	@git diff --exit-code -- demo/assets/action5_training_character.glb tests/fixtures/alternate_training_character.glb
+	@echo ACTION5_D04_GLB_REPRO_OK
+
+# Run the same quick checks as PR CI. Godot's import happens just once.
+check: verify-assets test
 
 import:
 	@mkdir -p build/logs
