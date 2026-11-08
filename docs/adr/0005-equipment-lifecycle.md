@@ -42,6 +42,10 @@ in shared actor, locomotion, camera or animation classes.
   provides its own arm and grip pose profile; the weapon meshes are
   parented to the same animated grip as the hand. All pose progress
   comes from `CombatVisualState`, not from another action timer.
+  `AttackDefinition.visual_action_key` can differ from its world
+  `animation_key`, with an empty value falling back to D05 behavior.
+  Bat/Shovel use distinct F4 visual keys without adding imported world
+  animation requirements or new action dispatch logic.
 
 ## Consequences and D06-02 handoff
 

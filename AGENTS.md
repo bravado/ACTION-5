@@ -197,7 +197,11 @@ unarmed Punch/Kick. The CombatInputAdapter sees only this optional port,
 not the EquipmentController or weapon IDs.
 
 An equipped F4 viewmodel must include an authored **gripping arm and
-weapon** that move together. Reuse `Action5FirstPersonLimbProfile` pose
+weapon** that move together. `AttackDefinition.visual_action_key`
+optionally identifies the F4 pose independently of the world
+`animation_key`; if blank it falls back to the original D05 action key.
+Bat/Shovel configure distinct F4 keys while still using imported world
+clips. Reuse `Action5FirstPersonLimbProfile` pose
 data and `Action5FirstPersonWeaponViewmodel`; suppress the original
 unarmed fist using the optional limb-visibility policy while equipped.
 Do not rotate a floating entire tool independently or use skinned
