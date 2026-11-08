@@ -74,10 +74,13 @@ Definitions never store equip state. Dropped items restore normal world
 render layers and shadows, and re-pickup uses the same original instance.
 
 D06-02 should add a Gun instance with its own ammo, reserve, reload and
-cooldown state. Gun must consume an already-resolved world aim target and
-trace from its physical socket muzzle, excluding the shooter and blocking
-shots through world geometry. A clear camera ray is never enough to damage
-a target. Gun effects must not rely on the D05 melee box hit test.
+cooldown state. Configure a D05 AttackDefinition with
+`use_melee_hit_query = false` and subscribe to the existing
+`attack_phase_changed(..., "active", ...)` signal to resolve its ranged
+effect. Gun must consume an already-resolved world aim target and trace
+from its physical socket muzzle, excluding the shooter and blocking
+shots through world geometry. A clear camera ray is never enough to
+damage a target. Gun effects must not rely on D05's melee box hit test.
 
 ## Verification
 

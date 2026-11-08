@@ -122,7 +122,7 @@ func _physics_process(_delta: float) -> void:
     if phase != next_phase:
         phase = next_phase
         attack_phase_changed.emit(current_id, phase, t)
-    if phase == &"active":
+    if phase == &"active" and definition.use_melee_hit_query:
         _resolve_hits()
     _update_debug()
     elapsed_ticks += 1

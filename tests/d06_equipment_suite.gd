@@ -86,6 +86,31 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         float(target.get("max_health")) - 16.0 and combat.hit_count == 1,
         "Bat configured damage/hitbox hits a nearby target once across two hurtboxes")
 
+    # An externally resolved hit uses the same action clock but must never
+    # run a melee box query. D06-02 gun effects can consume the existing
+    # attack_phase_changed(active) signal and trace from a physical muzzle.
+    combat.cancel()
+    var external_action: AttackScript = AttackScript.new()
+    external_action.attack_id = &"test_external_effect"
+    external_action.use_melee_hit_query = false
+    external_action.startup_ticks = 0
+    external_action.active_ticks = 2
+    external_action.recovery_ticks = 0
+    external_action.damage = 99.0
+    target.set("current_health", target.get("max_health"))
+    target.set("invulnerability_left", 0)
+    verify.call(combat.register_attack(external_action)
+        and combat.request_attack(&"test_external_effect", Vector2.RIGHT),
+        "External-only action registers and uses the normal D05 physics clock")
+    for tick in range(4):
+        await tree.physics_frame
+    verify.call(is_equal_approx(
+        float(target.get("current_health")), float(target.get("max_health"))
+    ) and combat.hit_count == 0,
+        "Data-driven external hit action never performs unintended melee damage")
+    verify.call(combat.unregister_attack(&"test_external_effect"),
+        "External-only action unregisters through the same generic lifecycle")
+
     verify.call(equipment.pickup(shovel) and equipment.inventory.size() == 2
         and equipment.current_weapon == bat,
         "Second weapon is a stowed independent instance until explicitly swapped")

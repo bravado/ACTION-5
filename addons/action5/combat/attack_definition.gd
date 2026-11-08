@@ -13,6 +13,10 @@ class_name Action5AttackDefinition
 @export_range(1, 120, 1) var active_ticks: int = 3
 @export_range(0, 120, 1) var recovery_ticks: int = 10
 @export_range(0.0, 200.0, 0.5) var damage: float = 10.0
+## False when a separate effect subscriber (e.g. a ranged muzzle tracer)
+## resolves hits. D05 still owns action timing, but never emits phantom
+## melee damage for an externally resolved action.
+@export var use_melee_hit_query: bool = true
 @export var hitbox_size: Vector3 = Vector3(1.0, 1.0, 0.9)
 @export_range(0.0, 4.0, 0.05) var hitbox_forward: float = 0.85
 @export_range(0.0, 3.0, 0.05) var hitbox_height: float = 1.0

@@ -180,9 +180,12 @@ render-only F4 viewmodel. Weapons and the equipment controller must never
 inspect view modes, camera/FPS render layers, named specific weapon types,
 AnimationPresenter or FirstPersonPresenter internals.
 
-D05's generic `register_attack` / `unregister_attack` pair is the only
-combat registry extension required for D06-01; unequip must cancel an
-active or buffered weapon attack before removing it. Equipped weapons
+D05's generic `register_attack` / `unregister_attack` pair supports
+equipment lifecycle; unequip must cancel an active or buffered weapon
+attack before removing it. `AttackDefinition.use_melee_hit_query`
+defaults to true for D05/Bat/Shovel; set it false on an externally
+resolved action such as Gun fire, then observe the existing active-phase
+signal for physical muzzle tracing. No type-specific hit branches. Equipped weapons
 provide attack definitions to D05 and request action IDs; they do not
 execute a second attack timer, own hit queries or read raw inputs.
 Test Bat, Shovel and a third fixture with different attack data, all five
