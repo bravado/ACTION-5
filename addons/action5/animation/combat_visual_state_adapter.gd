@@ -15,7 +15,10 @@ func get_visual_action() -> Dictionary:
     if not is_instance_valid(combat) or combat.current_attack == null:
         return {}
     var total: int = maxi(combat.current_attack.total_ticks(), 1)
+    var action_key: StringName = combat.current_attack.visual_action_key
+    if action_key == &"":
+        action_key = combat.current_attack.animation_key
     return {
-        "key": combat.current_attack.animation_key,
+        "key": action_key,
         "progress": clampf(float(combat.elapsed_ticks) / float(total), 0.0, 1.0),
     }

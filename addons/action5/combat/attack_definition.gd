@@ -21,6 +21,10 @@ class_name Action5AttackDefinition
 @export_range(0.0, 4.0, 0.05) var hitbox_forward: float = 0.85
 @export_range(0.0, 3.0, 0.05) var hitbox_height: float = 1.0
 @export var animation_key: StringName = &""
+## Optional independent camera-local action identity. If unset, the
+## F4 visual source uses animation_key for backwards-compatible D05
+## unarmed poses; world clips can differ from authored viewmodel clips.
+@export var visual_action_key: StringName = &""
 @export_enum("Upper body", "Full body") var animation_channel: int = 0
 @export_enum("Free", "4-way", "8-way") var facing_sectors: int = 0
 @export var allow_friendly_fire: bool = false
