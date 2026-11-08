@@ -176,6 +176,10 @@ jobs:
           test -s build/evidence/native-d05-punch.png
           test -s build/evidence/native-d05-kick.png
           grep -q 'ACTION5_D05_NATIVE_COMBAT_OK punch=1 kick=1 active=1 dedup=1' build/evidence/native-screenshot.log
+          test -s build/evidence/native-d06-bat-world.png
+          test -s build/evidence/native-d06-bat-f4.png
+          test -s build/evidence/native-d06-dropped-f4.png
+          grep -q 'ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_PLAYER_SHADOW_NATIVE_OK' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FPS_NEAR_WALL_NATIVE_OK wall=1 body_culled=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
@@ -216,6 +220,10 @@ jobs:
           test -s build/evidence/web-d05-kick.png
           grep -q 'ACTION5_BROWSER_D05_COMBAT_OK punch=1 kick=1 screenshots=2' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1' build/evidence/browser-smoke.log
+          test -s build/evidence/web-d06-world-equipped.png
+          test -s build/evidence/web-d06-f4-equipped.png
+          test -s build/evidence/web-d06-f4-dropped.png
+          grep -q 'ACTION5_BROWSER_D06_EQUIPMENT_OK pickup=2 swap=1 action=1 drop=2 f4=1' build/evidence/browser-smoke.log
           test -s build/evidence/web-f3-near-wall.png
           test -s build/evidence/web-f4-near-wall.png
           grep -q 'ACTION5_BROWSER_FPS_NEAR_WALL_OK' build/evidence/browser-smoke.log

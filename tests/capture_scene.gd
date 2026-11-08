@@ -312,6 +312,59 @@ func _capture() -> void:
             await physics_frame
         print("ACTION5_F4_NATIVE_LIMB_OK action=", attack_id, " pixels=", changed)
 
+    # D06-01 native evidence: the real Bat remains attached to the world
+    # skeleton during camera switches. The camera-only prop must disappear
+    # after dropping, while the original D04 training tool returns.
+    var equipment: Node = actor.get_node("Equipment")
+    var equipment_visual: Node = actor.get_node("EquipmentVisualAdapter")
+    var bat: Node3D = scene.get_node("BatPickup") as Node3D
+    if not equipment.call("pickup", bat):
+        push_error("D06: cannot pick up Bat in native arena")
+        quit(1)
+        return
+    if equipment_visual.get("_viewmodel") == null:
+        push_error("D06: F4 viewmodel missing after native Bat pickup")
+        quit(1)
+        return
+    manager.switch_view(2)
+    for frame in range(10):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-bat-world.png")):
+        quit(1)
+        return
+    manager.switch_view(3)
+    for frame in range(10):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var armed_f4: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4.png")):
+        quit(1)
+        return
+    if not equipment.call("drop_current"):
+        push_error("D06: cannot drop Bat from native equipped state")
+        quit(1)
+        return
+    for frame in range(12):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var dropped_f4: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-dropped-f4.png")):
+        quit(1)
+        return
+    var delta: int = 0
+    for y in range(int(armed_f4.get_height() * 0.44), int(armed_f4.get_height() * 0.93), 4):
+        for x in range(int(armed_f4.get_width() * 0.50), int(armed_f4.get_width() * 0.94), 4):
+            var a: Color = armed_f4.get_pixel(x, y)
+            var b: Color = dropped_f4.get_pixel(x, y)
+            if absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) > 0.24:
+                delta += 1
+    if delta < 50 or equipment_visual.get("_viewmodel") != null:
+        push_error("D06: native first-person Bat visual did not clear after drop; pixels=" + str(delta))
+        quit(1)
+        return
+    print("ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1 pixels=", delta)
+
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)
 
