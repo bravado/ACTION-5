@@ -166,6 +166,152 @@ func _capture() -> void:
         return
     print("ACTION5_PLAYER_SHADOW_NATIVE_OK pixels=", changed_pixels)
 
+    # D05 actual-render evidence: observe full-body vs upper-body
+    # authored action and its real active physics hitbox on the same actor.
+    for mesh in shadow_meshes:
+        (mesh as MeshInstance3D).visible = true
+    if socket_shadow != null:
+        socket_shadow.visible = true
+    var dummy: Node3D = scene.get_node("NearDummy") as Node3D
+    dummy.global_position = Vector3(0, 0, -1.0)
+    var target_health: Node = dummy.get_node("Health")
+    actor.global_position = Vector3(0, 0.15, 0)
+    actor.velocity = Vector3.ZERO
+    actor.call("clear_motion")
+    manager.switch_view(2)
+    var combat: Node = actor.get_node("CombatController")
+    combat.set("debug_hitboxes", true)
+    for frame in range(12):
+        await physics_frame
+    for attack_id in [&"punch", &"kick"]:
+        target_health.set("current_health", 100.0)
+        var action = combat.call("get_attack", attack_id)
+        if not combat.call("request_attack", attack_id, Vector2(0, -1)):
+            push_error("D05: could not begin native " + str(attack_id))
+            quit(1)
+            return
+        var active_seen: bool = false
+        for frame in range(30):
+            await physics_frame
+            if combat.get("phase") == &"active":
+                active_seen = true
+                break
+        if not active_seen:
+            push_error("D05: active hit window not observed for " + str(attack_id))
+            quit(1)
+            return
+        # Capture near the contact pose (last active physics tick), rather
+        # than only the chamber/startup silhouette. This makes the newly
+        # articulated elbows/knees visible in native rendered evidence.
+        for frame in range(action.active_ticks - 1):
+            await physics_frame
+        if combat.get("phase") != &"active":
+            push_error("D05: lost active phase before strike capture")
+            quit(1)
+            return
+        await RenderingServer.frame_post_draw
+        if not _save_image(output_dir.path_join("native-d05-%s.png" % attack_id)):
+            quit(1)
+            return
+        for frame in range(action.total_ticks() + 5):
+            await physics_frame
+        if not is_equal_approx(target_health.get("current_health"), 100.0 - action.damage):
+            push_error("D05: native hitbox failed to damage training target exactly once: " + str(attack_id))
+            quit(1)
+            return
+    print("ACTION5_D05_NATIVE_COMBAT_OK punch=1 kick=1 active=1 dedup=1")
+
+    # F4 camera-local articulated arm/leg evidence. Capture the idle
+    # baseline, then compare large central/lower viewport regions during
+    # Punch/Kick, not just the HUD or a debug log.
+    manager.switch_view(3)
+    for frame in range(12):
+        await physics_frame
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var f4_idle: Image = root.get_texture().get_image()
+    var f4_arm: Node3D = actor.get_node("FirstPersonCombatLimbs").call(
+        "get_limb_root", &"punch") as Node3D
+    if f4_arm == null or not f4_arm.visible or (
+        eye.get_node_or_null("FirstPersonTrainingTool") != null
+    ):
+        push_error("D05: F4 rest must show only the real articulated arm, not the fake tool")
+        quit(1)
+        return
+    var f4_fist: Node3D = f4_arm.get_node("Extremity") as Node3D
+    var f4_fist_screen: Vector2 = eye.unproject_position(f4_fist.global_position)
+    var f4_dimensions: Vector2 = Vector2(eye.get_viewport().get_visible_rect().size)
+    var f4_pose: Dictionary = (f4_arm.get("profile") as Resource).call("sample", 0.0)
+    var shoulder_screen: Vector2 = eye.unproject_position(
+        eye.to_global(f4_pose["shoulder"])) / f4_dimensions
+    var elbow_screen: Vector2 = eye.unproject_position(
+        eye.to_global(f4_pose["joint"])) / f4_dimensions
+    if shoulder_screen.x <= 1.02 or shoulder_screen.y <= 1.03 or (
+        elbow_screen.x < 0.52 or elbow_screen.x > 0.98
+    ) or (
+        elbow_screen.y < 0.58 or elbow_screen.y > 0.98
+    ):
+        push_error("D05: resting arm is detached from viewport edge: shoulder="
+            + str(shoulder_screen) + " elbow=" + str(elbow_screen))
+        quit(1)
+        return
+    if eye.is_position_behind(f4_fist.global_position) or (
+        f4_fist_screen.x < f4_dimensions.x * 0.52 or f4_fist_screen.x > f4_dimensions.x * 0.96
+    ) or (
+        f4_fist_screen.y < f4_dimensions.y * 0.40 or f4_fist_screen.y > f4_dimensions.y * 0.96
+    ):
+        push_error("D05: resting F4 fist is outside lower-right frame: " + str(f4_fist_screen))
+        quit(1)
+        return
+    if not _save_image(output_dir.path_join("native-f4-combat-idle.png")):
+        quit(1)
+        return
+    var limb_presenter: Node = actor.get_node("FirstPersonCombatLimbs")
+    for attack_id in [&"punch", &"kick"]:
+        var action = combat.call("get_attack", attack_id)
+        if not combat.call("request_attack", attack_id, Vector2(0, -1)):
+            push_error("D05: failed to start F4 " + str(attack_id))
+            quit(1)
+            return
+        for frame in range(action.startup_ticks + 2):
+            await physics_frame
+            await process_frame
+        var limb: Node3D = limb_presenter.call("get_limb_root", attack_id)
+        if limb == null or not limb.visible or not fps.first_person:
+            push_error("D05: F4 animated limb not visible during " + str(attack_id))
+            quit(1)
+            return
+        # A 15-tick punch may finish before the software renderer
+        # produces its next frame. Freeze the REAL authoritative pose
+        # immediately after the active tick, render it, then resume.
+        # This is capture-only synchronization, not another attack clock
+        # or a synthetic viewmodel pose.
+        limb_presenter.call("refresh_presentation")
+        paused = true
+        await RenderingServer.frame_post_draw
+        var frame_image: Image = root.get_texture().get_image()
+        if not _save_image(output_dir.path_join("native-f4-%s-limb.png" % attack_id)):
+            paused = false
+            quit(1)
+            return
+        paused = false
+        var changed: int = 0
+        for y in range(int(frame_image.get_height() * 0.33), int(frame_image.get_height() * 0.93), 3):
+            for x in range(int(frame_image.get_width() * 0.30), int(frame_image.get_width() * 0.88), 3):
+                var a: Color = f4_idle.get_pixel(x, y)
+                var b: Color = frame_image.get_pixel(x, y)
+                if absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) > 0.12:
+                    changed += 1
+        if changed < 50:
+            push_error("D05: F4 %s limb did not alter rendered central frame (pixels=%d)" % [
+                attack_id, changed
+            ])
+            quit(1)
+            return
+        for frame in range(action.total_ticks() + 2):
+            await physics_frame
+        print("ACTION5_F4_NATIVE_LIMB_OK action=", attack_id, " pixels=", changed)
+
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)
 

@@ -5,7 +5,6 @@ extends "res://addons/action5/actor/action_actor.gd"
 const FirstPersonScript = preload("res://addons/action5/animation/first_person_presenter.gd")
 
 @export var world_tool_scene: PackedScene = preload("res://demo/assets/training_tool.tscn")
-@export var first_person_tool_scene: PackedScene = preload("res://demo/assets/first_person_training_tool.tscn")
 
 
 func _ready() -> void:
@@ -22,8 +21,7 @@ func _ready() -> void:
     # NPCs retain the ordinary hand-attached tool with normal world shadows.
     if fps == null or not fps.register_world_visual(world_tool):
         return
-    if first_person_tool_scene == null:
-        return
-    var view_tool := first_person_tool_scene.instantiate() as Node3D
-    if view_tool != null and not fps.register_first_person_visual(view_tool):
-        view_tool.free()
+    # F4 draws the same articulated arm as the world rig through the
+    # standalone limb presenter. Never instantiate the old prop/fake arm:
+    # the actual world-space training tool remains attached for F1-F3/F5
+    # and for shadow-only rendering in F4.

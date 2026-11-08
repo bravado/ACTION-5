@@ -4,6 +4,7 @@ class_name Action5ActorInputAdapter
 ## Does not own the actor physics nor camera, and does not read input in actors.
 
 const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+const ActionContextScript = preload("res://addons/action5/input/action_input_context.gd")
 const MoveScript = preload("res://addons/action5/actor/moves/move.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 const ActorScript = preload("res://addons/action5/actor/action_actor.gd")
@@ -101,6 +102,24 @@ func compose_intent(
         if move.action_name != &"" and Input.is_action_just_pressed(move.action_name):
             intent.request_move(move.move_id)
     return intent
+
+
+## Stable, read-only input context for independent actions and abilities.
+## This is the sole adapter authorized to translate movement/facing details
+## into a reusable snapshot; external features never traverse actor internals.
+func get_action_input_context() -> ActionContextScript:
+    if not is_instance_valid(actor) or not is_instance_valid(views) \
+            or views.current_profile == null:
+        return ActionContextScript.new()
+    var intent: IntentScript = actor.locomotion.desired if is_instance_valid(actor.locomotion) else null
+    return ActionContextScript.new(
+        enabled and focus_active and not require_neutral
+            and actor.alive and actor.controls_enabled,
+        intent.aim_world if intent != null else Vector2.ZERO,
+        actor.facing.facing_world if is_instance_valid(actor.facing) else Vector2.ZERO,
+        views.current_profile.mode,
+        views.get_active_camera()
+    )
 
 
 func clear_input() -> void:

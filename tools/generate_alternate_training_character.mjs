@@ -15,6 +15,8 @@ const boneNames = {
   UpperArm_R: 'UpperR',
   Hand_L: 'Grip_L',
   Hand_R: 'Grip_R',
+  Elbow_L: 'ForearmJoint_L',
+  Elbow_R: 'ForearmJoint_R',
   Leg_L: 'Thigh_L',
   Leg_R: 'Thigh_R',
   Foot_L: 'Toe_L',

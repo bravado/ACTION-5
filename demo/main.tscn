@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="5_input"]
 [ext_resource type="Script" path="res://addons/action5/camera/camera_settings_panel.gd" id="6_settings"]
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="7_actor_input"]
+[ext_resource type="PackedScene" path="res://demo/combat/training_target.tscn" id="8_target"]
+[ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -153,6 +155,12 @@ shape = SubResource("BoxShape3D_step")
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.15, 0)
 
+[node name="NearDummy" parent="." instance=ExtResource("8_target")]
+position = Vector3(2.1, 0.0, -2.0)
+
+[node name="FarDummy" parent="." instance=ExtResource("8_target")]
+position = Vector3(-3.0, 0.0, -5.0)
+
 [node name="ViewManager" type="Node" parent="."]
 script = ExtResource("3_manager")
 initial_view_index = 1
@@ -170,6 +178,9 @@ script = ExtResource("5_input")
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
+
+[node name="CombatInput" type="Node" parent="."]
+script = ExtResource("9_combat_input")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, 24, 0)

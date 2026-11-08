@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://demo/player.gd" id="1_script"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2_locomotion"]
@@ -14,6 +14,17 @@
 [ext_resource type="Script" path="res://addons/action5/actor/moves/crouch.gd" id="12_crouch"]
 [ext_resource type="Resource" path="res://demo/assets/crouch_skeleton_profile.tres" id="13_crouch_profile"]
 [ext_resource type="Script" path="res://addons/action5/camera/eye_height_presenter.gd" id="14_eye_height"]
+[ext_resource type="Script" path="res://addons/action5/combat/health.gd" id="15_health"]
+[ext_resource type="Script" path="res://addons/action5/combat/hurtbox.gd" id="16_hurtbox"]
+[ext_resource type="Script" path="res://addons/action5/combat/combat_controller.gd" id="17_combat"]
+[ext_resource type="Resource" path="res://demo/combat/punch.tres" id="18_punch"]
+[ext_resource type="Resource" path="res://demo/combat/kick.tres" id="19_kick"]
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_combat_limb_presenter.gd" id="20_fps_combat"]
+[ext_resource type="Resource" path="res://demo/combat/first_person_punch.tres" id="21_fps_punch"]
+[ext_resource type="Resource" path="res://demo/combat/first_person_kick.tres" id="22_fps_kick"]
+[ext_resource type="Script" path="res://addons/action5/animation/combat_visual_state_adapter.gd" id="23_visual_state"]
+[ext_resource type="Script" path="res://addons/action5/animation/combat_animation_adapter.gd" id="24_combat_animation"]
+[ext_resource type="Script" path="res://addons/action5/combat/health_actor_adapter.gd" id="25_health_actor"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -25,6 +36,24 @@ script = ExtResource("1_script")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.85, 0)
 shape = SubResource("CapsuleShape3D_body")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("15_health")
+team_id = 1
+
+[node name="HealthActorAdapter" type="Node" parent="."]
+script = ExtResource("25_health_actor")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+position = Vector3(0, 0.85, 0)
+script = ExtResource("16_hurtbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="CombatController" type="Node" parent="."]
+script = ExtResource("17_combat")
+attacks = Array[Resource]([ExtResource("18_punch"), ExtResource("19_kick")])
 
 [node name="Locomotion" type="Node" parent="."]
 script = ExtResource("2_locomotion")
@@ -66,8 +95,18 @@ script = ExtResource("3_facing")
 script = ExtResource("10_animation")
 profile = ExtResource("13_crouch_profile")
 
+[node name="CombatAnimationAdapter" type="Node" parent="."]
+script = ExtResource("24_combat_animation")
+
 [node name="FirstPersonPresenter" type="Node" parent="."]
 script = ExtResource("11_first_person")
+
+[node name="CombatVisualState" type="Node" parent="."]
+script = ExtResource("23_visual_state")
+
+[node name="FirstPersonCombatLimbs" type="Node" parent="."]
+script = ExtResource("20_fps_combat")
+profiles = Array[Resource]([ExtResource("21_fps_punch"), ExtResource("22_fps_kick")])
 
 [node name="EyeOffset" type="Node3D" parent="."]
 

@@ -27,6 +27,13 @@ var side_lane_locked: bool = false
 var side_lane_z: float = 0.0
 var _coyote_left: float = 0.0
 var _jump_buffer_left: float = 0.0
+# External planar motion only the solver is permitted to apply.
+var _impulse_velocity: Vector2 = Vector2.ZERO
+var _impulse_ticks_left: int = 0
+var _impulse_total_ticks: int = 0
+# Contribution present in the body's last post-collision velocity. Strip
+# this before ordinary acceleration, otherwise impulses accumulate each tick.
+var _applied_impulse_velocity: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -49,6 +56,16 @@ func apply_intent(next: IntentScript) -> void:
         move_controller.request_move(move_id)
 
 
+## Combat knockback, wind and scripted pushes use this generic impulse port.
+## Neither view switching nor action animation affects its lifetime.
+func apply_external_impulse(world_velocity: Vector2, duration_ticks: int) -> void:
+    if not enabled or not world_velocity.is_finite() or duration_ticks <= 0:
+        return
+    _impulse_velocity = world_velocity
+    _impulse_ticks_left = duration_ticks
+    _impulse_total_ticks = duration_ticks
+
+
 func lock_side_lane() -> void:
     if body != null:
         side_lane_z = body.global_position.z
@@ -62,6 +79,10 @@ func unlock_side_lane() -> void:
 func stop() -> void:
     desired = IntentScript.new()
     _jump_buffer_left = 0.0
+    _impulse_ticks_left = 0
+    _impulse_total_ticks = 0
+    _impulse_velocity = Vector2.ZERO
+    _applied_impulse_velocity = Vector2.ZERO
     if is_instance_valid(move_controller):
         move_controller.cancel()
     if body != null:
@@ -93,26 +114,39 @@ func _physics_process(delta: float) -> void:
     # but only this solver assigns velocity and calls move_and_slide().
     var ctx: ContextScript = move_controller.tick(desired, delta)
     var movement: Vector2 = desired.world_move.limit_length(1.0)
+    # The previous tick's external contribution is NOT part of locomotion
+    # acceleration/braking. A new impulse replaces it; it never stacks
+    # with previous applications of the same command.
+    var horizontal: Vector2 = Vector2(body.velocity.x, body.velocity.z) - _applied_impulse_velocity
+    _applied_impulse_velocity = Vector2.ZERO
     if side_lane_locked:
         movement.y = 0.0
-        # Never change the actor's position or velocity at view-switch time.
-        # The new lane policy takes effect on the next physical tick.
-        body.velocity.z = 0.0
+        # A view switch does not move the actor; the lane rule is applied
+        # to the solver's next tick, including its external contribution.
+        horizontal.y = 0.0
 
     if ctx.has_horizontal_override:
-        var override: Vector2 = ctx.horizontal_override
+        horizontal = ctx.horizontal_override
         if side_lane_locked:
-            override.y = 0.0
-        body.velocity.x = override.x
-        body.velocity.z = override.y
+            horizontal.y = 0.0
     else:
         var speed: float = run_speed if desired.running else walk_speed
         var target_x: float = movement.x * speed
         var target_z: float = movement.y * speed
-        var accel_x: float = acceleration if absf(target_x) > absf(body.velocity.x) else deceleration
-        var accel_z: float = acceleration if absf(target_z) > absf(body.velocity.z) else deceleration
-        body.velocity.x = move_toward(body.velocity.x, target_x, accel_x * delta)
-        body.velocity.z = move_toward(body.velocity.z, target_z, accel_z * delta)
+        var accel_x: float = acceleration if absf(target_x) > absf(horizontal.x) else deceleration
+        var accel_z: float = acceleration if absf(target_z) > absf(horizontal.y) else deceleration
+        horizontal.x = move_toward(horizontal.x, target_x, accel_x * delta)
+        horizontal.y = move_toward(horizontal.y, target_z, accel_z * delta)
+
+    var applied_impulse: Vector2 = Vector2.ZERO
+    if _impulse_ticks_left > 0:
+        var decay: float = float(_impulse_ticks_left) / float(_impulse_total_ticks)
+        applied_impulse = _impulse_velocity * decay
+        _impulse_ticks_left -= 1
+    if side_lane_locked:
+        applied_impulse.y = 0.0
+    body.velocity.x = horizontal.x + applied_impulse.x
+    body.velocity.z = horizontal.y + applied_impulse.y
 
     if _jump_buffer_left > 0.0 and _coyote_left > 0.0:
         body.velocity.y = jump_speed
@@ -126,6 +160,11 @@ func _physics_process(delta: float) -> void:
     _attempt_step(delta)
     _apply_gravity(delta * ctx.gravity_scale)
     body.move_and_slide()
+
+    # move_and_slide() can remove velocity into a wall. Do not subtract that
+    # already-blocked portion on the next tick: it would cause a rebound away
+    # from the wall when the impulse decays or ends.
+    _applied_impulse_velocity = _impulse_after_collisions(applied_impulse)
 
     # The side lane is an X/Y plane, not a second 2D world. Prevent
     # collision-sliding Z drift without snapping to a different lane.
@@ -176,6 +215,22 @@ func _attempt_step(delta: float) -> void:
     if height <= body.safe_margin or height > max_step_height + body.safe_margin:
         return
     body.global_position += body.up_direction * height
+
+
+## Retain only the portion of the contribution that survives wall sliding.
+## Floors are ignored; only wall-like contacts constrain planar motion.
+func _impulse_after_collisions(requested: Vector2) -> Vector2:
+    var remaining: Vector2 = requested
+    if remaining.is_zero_approx():
+        return Vector2.ZERO
+    for i in range(body.get_slide_collision_count()):
+        var normal: Vector3 = body.get_slide_collision(i).get_normal()
+        if absf(normal.y) >= 0.7:
+            continue
+        var wall_normal: Vector2 = Vector2(normal.x, normal.z)
+        if wall_normal.length_squared() > 0.0001:
+            remaining = remaining.slide(wall_normal.normalized())
+    return remaining
 
 
 func _apply_gravity(delta: float) -> void:

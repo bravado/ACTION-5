@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-07):** D01–D04 merged (D04 via PR #25); D05 combat is the next planned deliverable. Crouch movement is a separate example under review in PR #26. The specification and acceptance gates below remain unchanged.  
+**Status update (2026-11-08):** D01–D04 merged (D04 via PR #25), crouch movement merged (PR #26). D05 is implemented in PR #28 and undergoing final review on top of master, using the current CI / Checks and conditional CI / Full E2E workflows. D05 issues remain open until the latest PR commit passes the required technical/visual gates and the PR is merged. The F4 camera-space viewmodel implementation is documented by ADR-0004. The release specifications and acceptance gates below remain authoritative.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -358,6 +358,15 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - Startup/active/recovery phases advance by physics ticks independent of rendering FPS.
 - View switches in mid-attack preserve attack phase and exactly-once hit behavior.
 - Tests cover friendly fire filters, no self-hit, immunity/block hooks, knockback, death, edge-frame hits.
+
+**D05 component contract and extension gate (PR #28, supplement to the above):**
+- `CombatController` owns one authoritative physics-tick attack clock, buffer, hit shapes, target dedup and gameplay signals. It does not import or discover `AnimationPresenter`, `Visual`, a view profile or a movement controller. `request_attack(id, world_xz_direction)` accepts finite explicit world-space aim; when omitted, it reuses the last resolved attack heading (initially world north).
+- `Health` owns damage, invulnerability, stagger and death. It emits `knockback_requested` / `died`; the **optional** `HealthActorAdapter` translates these events into generic actor lifecycle and locomotion impulse ports. Static targets must work without Actor, Locomotion, or the adapter.
+- An **optional** `CombatAnimationAdapter` listens to combat/health signals and owns upper/full-body animations, cancellation, hit and death visuals. `CombatVisualState` exposes only a read-only `{key, progress}` snapshot; `FirstPersonCombatLimbs` presents authored camera-space profiles in F4 via the existing first-person visual registration port. Neither rendering component owns damage or action ticks.
+- `ActionInputContext` is a typed snapshot of aim, facing, view, active camera and permission. `CombatInputAdapter` consumes a replaceable context provider, never traversing `ActorInputAdapter.actor.locomotion` or `actor.facing`. The resource-driven bindings are left-click/J/gamepad X = Punch and right-click/K/gamepad Y = Kick; GUI-consumed presses never attack. Attack defaults do not override user bindings.
+- The shared `SkeletonProfile` defaults to idle/walk/run with **Idle only** required. The demo profile explicitly opts into Punch/Kick/Hit/Death. `Locomotion.apply_external_impulse()` is a generic bounded, decaying external-velocity port; no combat code writes body velocity.
+- **No central edits for extensions:** installing a third attack uses a new `AttackDefinition`, configured clip/profile and optional InputMap defaults; no modifications to Actor, MovementController, Locomotion, ActorInputAdapter, AnimationPresenter or CameraRig. Regression fixtures include a bare CombatController without Visual/locomotion, standalone Health, an interchangeable action-context source and renderer, collision-safe impulse decay, all five views and F4 camera-local rendering.
+- **D05 release verification:** `make check` / real Godot tests must pass, as must `CI / Full E2E` Linux/Web exports, native screenshots and actual WebGL2 browser smoke on the latest PR head. Put `[full-e2e]` in that commit message. Record concrete run URLs/results and any remaining manual visual limitations in the PR before changing draft status.
 
 #### D06 — Weapons and equipment: bat, shovel, gun
 **Depends on:** D05. **Effort:** 3–5 sessions.

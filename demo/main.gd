@@ -11,6 +11,10 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _views: ViewManagerScript = $ViewManager
 @onready var _input: InputAdapterScript = $ActorInput
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
+@onready var _combat: Node = $Player/CombatController
+@onready var _health: Node = $Player/Health
+
+var _combat_was_active: bool = false
 @onready var _status: Label = $Hud/Status
 @onready var _help: Label = $Hud/Help
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
@@ -20,6 +24,9 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
     _moves.move_changed.connect(_on_move_changed)
+    _combat.attack_started.connect(_on_attack_started)
+    _combat.attack_hit.connect(_on_attack_hit)
+    _health.health_changed.connect(_on_health_changed)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
@@ -73,9 +80,34 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_C:
             _toggle_camera_settings()
             get_viewport().set_input_as_handled()
+        elif event.keycode == KEY_B and not _camera_settings.visible:
+            _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
+            get_viewport().set_input_as_handled()
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.
+func _on_attack_started(id: StringName) -> void:
+    print("ACTION5_ATTACK_STARTED id=", id)
+
+
+func _on_attack_hit(id: StringName, target: Node) -> void:
+    print("ACTION5_ATTACK_HIT id=", id, " target=", target.name)
+
+
+## Avoid laying out the HUD 60 times/sec while idle: software WebGL2
+## rendering is CPU-bound and should not slow actual physics/movement.
+func _physics_process(_delta: float) -> void:
+    var active: bool = _combat.get("current_attack") != null
+    if (active or _combat_was_active) and _views.current_profile != null:
+        _refresh_status(_views.current_profile)
+    _combat_was_active = active
+
+
+func _on_health_changed(_value: float, _previous: float) -> void:
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
+
+
 func _on_move_changed(previous: StringName, current: StringName) -> void:
     print("ACTION5_MOVE_CHANGED previous=%s current=%s" % [previous, current])
     if _views.current_profile != null:
@@ -83,10 +115,17 @@ func _on_move_changed(previous: StringName, current: StringName) -> void:
 
 
 func _refresh_status(profile: ViewProfileScript) -> void:
-    _status.text = "VIEW %d / 5  |  %s  |  Move: %s  |  Switches: %d  |  Delta: %.5f" % [
-        _views.active_index + 1, profile.display_name,
-        _moves.active_id, _views.switch_count, _views.last_position_delta
+    var health: Node = _player.get_node_or_null("Health")
+    var hp: int = ceili(float(health.get("current_health"))) if health != null else 0
+    var action_label: String = str(_combat.get("current_id"))
+    if action_label.is_empty():
+        action_label = "none"
+    var next_text: String = "VIEW %d / 5 | %s | Move %s | HP %d | Attack %s %s [%d] | Switches %d" % [
+        _views.active_index + 1, profile.display_name, _moves.active_id, hp,
+        action_label, _combat.get("phase"), _combat.get("elapsed_ticks"), _views.switch_count
     ]
+    if _status.text != next_text:
+        _status.text = next_text
 
 
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
@@ -113,9 +152,14 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         var socket: Node3D = anim.call("get_socket", &"right_hand") as Node3D
         var attached: bool = socket != null and socket.get_node_or_null("TrainingTool") != null
         var camera: Camera3D = _views.get_active_camera()
-        var view_tool := camera.get_node_or_null("FirstPersonTrainingTool") as MeshInstance3D
-        var tool_in_view: bool = (
-            view_tool != null and view_tool.visible and camera.get_cull_mask_value(int(fps.get("first_person_render_layer")))
+        var combat_limb: Node = _player.get_node_or_null("FirstPersonCombatLimbs")
+        var resting_arm: Node3D = (
+            combat_limb.call("get_limb_root", &"punch") as Node3D
+            if combat_limb != null else null
+        )
+        var arm_in_view: bool = (
+            resting_arm != null and resting_arm.visible
+            and camera.get_cull_mask_value(int(fps.get("first_person_render_layer")))
         )
         print("ACTION5_D04_PRESENTATION view=%d body_hidden=%d rig=%d tool=%d actor_z=%.2f viewmodel=%d" % [
             _views.active_index + 1,
@@ -123,12 +167,12 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
             int(anim.get("skeleton") != null),
             int(attached),
             _player.global_position.z,
-            int(tool_in_view),
+            int(arm_in_view),
         ])
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D03 LOCOMOTION & FACING\n1–5: view | WASD/arrows: move | Space: jump | Shift: run | Alt: dodge | X: slide\n3/4: click to look, Esc: release | C: camera settings"
+    _help.text = "ACTION-5 // D05 UNARMED COMBAT\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nCtrl/R3: crouch | Alt: dodge | X: slide | B: hitbox debug | C: settings"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE

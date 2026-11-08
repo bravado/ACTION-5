@@ -27,6 +27,39 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var report: Dictionary = ValidatorScript.validate(model, presenter.profile)
     verify.call(bool(report.get("valid", false)),
         "Original GLB model validates its skeleton and all required clips")
+    # Shared SkeletonProfile must not impose attack or damage-reaction
+    # clips on a rig that only has locomotion. The demo opts in explicitly.
+    var generic_profile: ProfileScript = ProfileScript.new()
+    verify.call(generic_profile.required_clips == PackedStringArray(["idle"])
+        and generic_profile.clip_map.size() == 3
+        and generic_profile.clip_name(&"punch") == &""
+        and generic_profile.clip_name(&"kick") == &""
+        and generic_profile.clip_name(&"hit") == &""
+        and generic_profile.clip_name(&"death") == &""
+        and generic_profile.clip_name(&"reload") == &"",
+        "Shared SkeletonProfile requires Idle only and has no combat/equipment mappings")
+    var optional_missing: ProfileScript = generic_profile.duplicate(true) as ProfileScript
+    optional_missing.clip_map["walk"] = "missing_optional_walk"
+    optional_missing.clip_map["run"] = "missing_optional_run"
+    var optional_report: Dictionary = ValidatorScript.validate(model, optional_missing)
+    verify.call(bool(optional_report.get("valid", false))
+        and (optional_report["errors"] as Array).is_empty()
+        and (optional_report["warnings"] as Array).size() >= 2,
+        "Generic profile accepts idle-only animation and warns on optional locomotion")
+    var missing_base: ProfileScript = generic_profile.duplicate(true) as ProfileScript
+    missing_base.clip_map["idle"] = "missing_base_idle"
+    verify.call(not bool(ValidatorScript.validate(model, missing_base).get("valid", true)),
+        "Generic profile rejects missing required Idle without requiring combat")
+    var demo_required: PackedStringArray = presenter.profile.required_clips
+    verify.call(demo_required.has("idle") and demo_required.has("run")
+        and demo_required.has("punch") and demo_required.has("kick")
+        and demo_required.has("hit") and demo_required.has("death"),
+        "Demo-only SkeletonProfile explicitly requires its authored combat clips")
+    var missing_demo_combat: ProfileScript = presenter.profile.duplicate(true) as ProfileScript
+    missing_demo_combat.clip_map["punch"] = "missing_demo_punch"
+    verify.call(not bool(ValidatorScript.validate(model, missing_demo_combat).get("valid", true)),
+        "Demo validation rejects missing mandatory Punch while generic profile does not")
+
     var skeleton: Skeleton3D = ValidatorScript.find_skeleton(model)
     var animation_player: AnimationPlayer = ValidatorScript.find_animation_player(model)
     if skeleton == null or animation_player == null:
@@ -77,19 +110,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     unnamed_mesh.name = original_mesh_name
 
     var camera: Camera3D = manager.get_active_camera()
-    var view_tool := camera.get_node_or_null("FirstPersonTrainingTool") as MeshInstance3D
+    var arm_view := actor.get_node("FirstPersonCombatLimbs").call(
+        "get_limb_root", &"punch") as Node3D
     var body_layer: int = fps.local_body_render_layer
     var view_layer: int = fps.first_person_render_layer
-    verify.call(view_tool != null and view_tool.get_parent() == camera
-        and view_tool.layers == (1 << (view_layer - 1))
-        and view_tool.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        and (view_tool.material_override as StandardMaterial3D).shading_mode
-            == BaseMaterial3D.SHADING_MODE_UNSHADED
-        and (view_tool.mesh as BoxMesh).size.z < 0.30
-        and view_tool.get_node_or_null("GripHand") is MeshInstance3D
-        and view_tool.get_node_or_null("Forearm") is MeshInstance3D
-        and view_tool.get_node_or_null("ToolHandle") is MeshInstance3D,
-        "F4 view contains a compact tool, grip, hand and forearm—not a floating block")
+    verify.call(arm_view != null and arm_view.get_parent() == camera
+        and arm_view.get_node_or_null("UpperLimb") is MeshInstance3D
+        and arm_view.get_node_or_null("LowerLimb") is MeshInstance3D
+        and arm_view.get_node_or_null("Extremity") is MeshInstance3D
+        and camera.get_node_or_null("FirstPersonTrainingTool") == null,
+        "F4 contains the original animated arm but not the obsolete fake tool")
     var equipment_shadow := right_socket.get_node_or_null("TrainingToolShadow") as MeshInstance3D
     verify.call((item as MeshInstance3D).layers == (1 << (body_layer - 1))
         and (item as MeshInstance3D).cast_shadow
@@ -173,12 +203,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(item.get_parent() == right_socket and item.visible
         and not camera.get_cull_mask_value(body_layer)
         and camera.get_cull_mask_value(view_layer)
-        and view_tool.visible and view_tool.position.z < -0.5,
-        "F4 shows a camera-anchored tool while preserving the animated world socket")
+        and arm_view.visible and arm_view.get_parent() == camera,
+        "F4 shows the persistent animated arm and keeps the real world socket")
     manager.switch_view(2)
     verify.call(camera.get_cull_mask_value(body_layer)
         and not camera.get_cull_mask_value(view_layer) and body_on_isolated_layer,
-        "Switching F4 back to F3 restores the world body and hides the F4 tool")
+        "Switching F4 back to F3 restores the world body and hides camera limbs")
     var exit_cleanup: Callable = fps.unregister_world_visual.bind(extra_world)
     fps.unregister_world_visual(extra_world)
     fps.unregister_first_person_visual(extra_view)
@@ -360,22 +390,21 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(not actor.is_on_floor() and presenter.current_clip == &"idle",
         "Airborne fallback uses Idle when no jump/fall animations are mapped")
-    var camera_tool_offset: Vector3 = view_tool.position
     manager.switch_view(3)
     await tree.physics_frame
+    await tree.process_frame
+    var fist := arm_view.get_node("Extremity") as Node3D
     verify.call(not actor.is_on_floor()
         and camera.get_cull_mask_value(view_layer)
         and not camera.get_cull_mask_value(body_layer)
-        and view_tool.visible
-        and view_tool.position.is_equal_approx(camera_tool_offset)
-        and camera.to_local(view_tool.global_position).is_equal_approx(camera_tool_offset),
-        "F4 jumping keeps the weapon framed relative to the camera, not the moving hand")
-    var tool_screen: Vector2 = camera.unproject_position(view_tool.global_position)
+        and arm_view.visible,
+        "F4 jumping still shows the resting arm, without a fake weapon")
+    var fist_screen: Vector2 = camera.unproject_position(fist.global_position)
     var viewport_size := Vector2(camera.get_viewport().get_visible_rect().size)
-    verify.call(not camera.is_position_behind(view_tool.global_position)
-        and tool_screen.x > 0.0 and tool_screen.x < viewport_size.x
-        and tool_screen.y > 0.0 and tool_screen.y < viewport_size.y,
-        "The F4 weapon remains within the visible screen during the jump")
+    verify.call(not camera.is_position_behind(fist.global_position)
+        and fist_screen.x > 0 and fist_screen.x < viewport_size.x
+        and fist_screen.y > 0 and fist_screen.y < viewport_size.y,
+        "The resting right fist remains within F4 screen during jumping")
     manager.switch_view(2)
     verify.call(not camera.get_cull_mask_value(view_layer)
         and camera.get_cull_mask_value(body_layer)
@@ -583,7 +612,8 @@ func _test_presenter_teardown(tree: SceneTree, level: Node3D, verify: Callable) 
     var socket: Node3D = actor.get_node("AnimationPresenter").get_socket(&"right_hand")
     var world_tool := socket.get_node("TrainingTool") as MeshInstance3D
     var world_shadow := socket.get_node("TrainingToolShadow") as MeshInstance3D
-    var view_tool := camera.get_node_or_null("FirstPersonTrainingTool") as MeshInstance3D
+    var arm_view := actor.get_node("FirstPersonCombatLimbs").call(
+        "get_limb_root", &"punch") as Node3D
     var body_shadows: Array[MeshInstance3D] = fps.shadow_meshes.duplicate()
     var original_body_cull: bool = false
     var original_view_cull: bool = false
@@ -660,7 +690,7 @@ func _test_presenter_teardown(tree: SceneTree, level: Node3D, verify: Callable) 
     var cleanup_pending: bool = (
         world_shadow != null and world_shadow.is_queued_for_deletion()
         and extra_shadow != null and extra_shadow.is_queued_for_deletion()
-        and view_tool != null and view_tool.is_queued_for_deletion()
+        and arm_view != null and arm_view.is_queued_for_deletion()
         and fps_visual.is_queued_for_deletion()
     )
     for shadow in body_shadows:
@@ -684,7 +714,7 @@ func _test_presenter_teardown(tree: SceneTree, level: Node3D, verify: Callable) 
     await tree.process_frame
     verify.call(not is_instance_valid(world_shadow)
         and not is_instance_valid(extra_shadow)
-        and not is_instance_valid(view_tool)
+        and not is_instance_valid(arm_view)
         and not is_instance_valid(fps_visual),
         "All world shadows and nested viewmodels are freed after removal")
     (level.get_node("ViewManager/CameraRig/Camera3D") as Camera3D).current = true

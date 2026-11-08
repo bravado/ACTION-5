@@ -145,3 +145,18 @@ Adding crawling, sliding, or another stance needs only an offset entry in
 `move_offsets` and an installed movement component. No changes are required
 to `Action5Actor`, `MovementController`, `AnimationPresenter`, the movement
 component, or the camera's mode-specific logic.
+
+## External motion / D05 knockback
+
+`Action5Locomotion.apply_external_impulse(Vector2(world_x, world_z), ticks)`
+queues a finite decaying planar *velocity contribution* inside the existing
+solver (not a velocity increment added on every tick). Locomotion subtracts
+the previous applied component before advancing normal movement, combines
+the new decayed value once, and accounts for wall slide collisions so
+blocked knockback cannot create an opposite-direction rebound. No residual
+external velocity remains when the timer expires. Only locomotion writes to
+the CharacterBody3D and calls move_and_slide. Camera changes preserve the
+impulse; side-view lane Z is filtered out. `stop()`, disable and death
+cancel both the timer and applied component. Combat passes knockback through
+this port rather than maintaining a second velocity writer. See
+[combat authoring](combat.md) and ADR-0003.

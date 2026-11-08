@@ -7,7 +7,7 @@ visual action requests, never edits collisions, hit timing or world movement.
 ## Reference rig and licensing
 
 The original MIT-licensed `demo/assets/action5_training_character.glb`
-contains 13 skinned joints (including two articulated knees), separate skinned body/head meshes, and `idle`, `walk`, `run`, `punch`, `kick`, `hit`, `death`, `reload`, `crouch` and `crouch_walk` clips. A gold training
+contains 15 skinned joints (including two articulated knees and two elbows), separately skinned upper arms, forearms, thighs and shins in body/head meshes, and `idle`, `walk`, `run`, `punch`, `kick`, `hit`, `death`, `reload`, `crouch` and `crouch_walk` clips. A gold training
 prop is a demo-only MeshInstance3D child of the animated right-hand socket.
 No third-party model, motion-capture animation or font is included. See
 [asset inventory](assets/LICENSES.md).
@@ -22,7 +22,7 @@ git diff --exit-code -- demo/assets/action5_training_character.glb
 CI runs this reproducibility check before import and also regenerates
 `tests/fixtures/alternate_training_character.glb` using
 `node tools/generate_alternate_training_character.mjs`. The second GLB
-has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`, `Skull`, `KneeAlternate_L`, `KneeAlternate_R`) and differently named animation clips (`rest`, `stride`, `sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`, `squat`, `squat_stride`).
+has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`, `ForearmJoint_R`, `ForearmJoint_L`, `Skull`, `KneeAlternate_L`, `KneeAlternate_R`) and differently named animation clips (`rest`, `stride`, `sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`, `squat`, `squat_stride`).
 
 The model-replacement regression test **swaps the imported GLB scene**
 under `Visual/Model` before initializing the AnimationPresenter and
@@ -48,26 +48,78 @@ movement. Skinned body visuals must not become colliders or drive gameplay.
 4. Map source bone names for `right_hand_bone`, `left_hand_bone`,
    `head_bone` (for attachment sockets), and `upper_body_root_bone`
    (the first animated spine/torso bone; children form the upper-body overlay mask).
-   Clips are mapped by `clip_map`:
-   logical `idle` / `run` / `punch` etc. can resolve to any imported
-   AnimationPlayer animation name, without core code changes. Map at
-   least `idle`, `run`, `punch`, `kick`, `hit`, `death`.
-   `walk` and `reload` are optional. You may also add entries to
-   `clip_map` for `jump`, `fall`, `airborne`, `dodge`, `slide`
-   or any custom `Action5Move.move_id`. The current demo rig includes
-   `crouch` and `crouch_walk` but intentionally omits `jump`, `fall`,
-   `airborne`, `dodge` and `slide` clips and uses safe fallbacks.
+   Clips are mapped by `clip_map`: logical animation keys can resolve
+   to any imported AnimationPlayer clip name without core code changes.
+   The **shared default SkeletonProfile** only requires `idle`; `walk`
+   and `run` are optional mappings with safe fallback. It intentionally
+   has **no** `punch`, `kick`, `hit`, `death` or `reload` mappings
+   or requirements. Add these or any `jump`, `fall`, `airborne`,
+   `dodge`, `slide` or custom `Action5Move.move_id` to a specific
+   actor's profile as needed. For example,
+   `demo/assets/crouch_skeleton_profile.tres` explicitly maps
+   `crouch`/`crouch_walk` and requires `idle`, `run`, `punch`,
+   `kick`, `hit` and `death` to validate its complete authored demo
+   rig. Other rigs are not required to provide combat clips.
 5. Run `make import`, then `make test`. The pure
    `Action5ModelValidator.validate(model_root, profile)` returns
    `{"valid": bool, "errors": Array[String], "warnings": Array[String]}`.
-   Missing required clips or Skeleton3D/AnimationPlayer fail validation;
-   missing socket bones produce warnings and stable static fallback anchors.
+   Missing clips listed in that **profile's** `required_clips` or a missing
+   Skeleton3D/AnimationPlayer fail validation. Missing optional clips and
+   socket bones produce warnings; socket fallbacks are stable static
+   attachment anchors.
 
 The model scene must contain at least one `Skeleton3D` and one
 `AnimationPlayer`; the validator discovers them recursively. Body meshes
 can use arbitrary names and do **not** require a separate or specially
 named head mesh. In F4, the camera excludes every local body mesh instead
 of relying on names, so a torso or arm cannot intersect the eye-level view.
+
+## Fast articulated unarmed animations (D05)
+
+The original procedural training rig now has **15 skinned joints**: right/left
+elbows and knees use real child joints and independently weighted forearm and
+shin geometry. The right-hand equipment socket remains `Hand_R`, including through Punch.
+F4 draws a separate authored **camera-space visual rig** while preserving
+the original world equipment socket and its animated shadow.
+
+Both action clips contain **seven keyed poses**, with anticipation, impact,
+retraction and neutral recovery (instead of simply swinging one rigid limb):
+
+- **Punch (0.25 s):** the right elbow folds back to chamber the fist;
+  the shoulder thrusts forward while the elbow extends, and the spine twists
+  into the strike. The left forearm counterbalances; both hands return to rest.
+- **Kick (0.333 s):** the right thigh raises the **knee forward first** while
+  the shin folds back. The knee then straightens, driving the foot forward
+  and upward. Ankle counterrotation levels the toe; support leg, torso and
+  elbows balance the motion before retracting to idle.
+
+The attack resources' startup/active/recovery total matches each clip's length
+at **60 physics ticks/s** (Punch 3+3+9 = 15 ticks, Kick 4+3+13 = 20 ticks).
+Damage timing still comes exclusively from combat, not from animation.
+`tests/d05_animation_suite.gd` validates joint parenting, elbow anticipation,
+knee-before-foot extension, movement geometry and duration alignment.
+CI regenerates **both** original and replacement GLBs byte-for-byte.
+
+## First-person authored viewmodel animations
+
+F4 intentionally uses **camera-local pose clips**, not direct world
+Skeleton3D joint positions: those are skeleton-space (not camera-space)
+and can have different rest poses after import or retargeting. A
+`CombatVisualState` adapter exposes the authoritative action's normalized
+physics-tick progress. An independent `FirstPersonCombatLimbs` component
+selects its configured `Action5FirstPersonLimbProfile` resource and
+samples its authored `Action5FirstPersonPoseKey` camera-space poses.
+`Action5FirstPersonLimbGeometry` currently renders small, rounded
+capsules; an author can replace it with a bespoke skinned
+`viewmodel_scene` via the same configure/apply_pose interface.
+
+The right arm rests visibly throughout F4 and plays a fast punched pose
+from that rest; the knee/leg enters only for Kick and stays below the
+crosshair. The original world skinned actor, imported animation tree,
+socket tool, animated shadows and physics remain untouched. No second
+authoritative gameplay skeleton or hitbox is created.
+
+See [F4 architecture, tradeoffs and authoring contract](first-person-presentation.md).
 
 ## AnimationPresenter and action visuals
 
@@ -136,8 +188,8 @@ full-body/base animation, while `base_clip`, `upper_body_clip` and
 `action_clip` expose each channel separately.
 
 Switching cameras never recreates the actor or restarts any channel.
-D05 combat still owns authoritative startup, active and recovery ticks,
-cancellation and hit resolution.
+D05 `Action5CombatController` now owns authoritative startup, active and recovery ticks,
+cancellation and hit resolution. See [combat authoring](combat.md).
 
 `get_socket(&"right_hand")`, `get_socket(&"left_hand")` and
 `get_socket(&"head")` return persistent Node3D anchors. Where a bone
@@ -183,13 +235,16 @@ mode (including custom settings), unregisters all world equipment visuals,
 releases the shadow-only copies and FPS viewmodels, and restores the camera's
 original culling bits. The actor and animated sockets remain alive.
 
-The demo's placeholder world training tool and camera-local tool/hand/forearm
-are now declarative scenes under `demo/assets/`. `demo/player.gd` only
-instantiates the two scenes and registers them; it never assigns a render
-layer, duplicates a shadow caster, switches a camera, or inspects a view
-profile. The camera-local tool is intentionally an unshaded placeholder:
-matching production-quality first-person equipment and gameplay actions
-belong to D06.
+The demo keeps its **world-space training tool** mounted on the skinned
+hand socket for F1–F3/F5 and world shadows. It **does not instantiate the
+old F4 fake hand/forearm/tool**. Instead, an independent camera-local
+`FirstPersonCombatLimbs` component displays the articulated right arm
+throughout F4 (including idle, running and jumping) and adds only the
+configured right leg during Kick. Both follow the original animated
+skeleton, without separate gameplay or duplicate animation tracks.
+The arm anchor is calibrated to stay in the lower-right viewport at rest,
+and the leg anchor keeps the bent knee below the center of the screen.
+Matching production-quality first-person equipment belongs to D06.
 
 Camera-layer culling does not need a head-specific profile property, mesh
 naming convention or head-mesh validator warning. The `head_bone` profile

@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D01–D04 merged.** Five configurable cameras, authoritative locomotion with pluggable moves, an original animated humanoid GLB, AnimationTree, rig/socket mapping and first-person presentation are complete. Crouch/crouch-walk is a separate movement example under review in PR #26; combat, weapons and AI remain later deliverables.
+> **Project status: D01–D04 merged; D05 combat under implementation in PR #28.** The five-camera foundation, pluggable movement and crouch/crouch-walk example are merged. D05 adds unarmed combat, health, hitboxes and 3D aim; weapons and enemy AI follow after D05 validation.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -75,7 +75,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. See [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch) and **right click / K** (Kick) against the training targets, or gamepad X/Y. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
@@ -94,7 +94,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D04 are merged; D05 is the next planned deliverable.** The crouch movement example is in separate PR #26. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D04 are merged; D05 is the next planned deliverable.** The crouch movement example is merged; D05 combat is in PR #28. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
