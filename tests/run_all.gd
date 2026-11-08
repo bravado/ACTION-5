@@ -220,12 +220,14 @@ func _run_tests() -> void:
             "F3 mouse orbit is non-default before the round trip")
         for repeat_index in range(3):
             manager.switch_view(3)
+            await physics_frame
             var idle_first_person = actor_input.compose_intent(Vector2.ZERO)
             _check(idle_first_person.face_world.is_zero_approx()
                 and idle_first_person.aim_world.is_zero_approx(),
                 "Entering F4 without input does not issue an implicit north-facing command")
             player.apply_move_intent(idle_first_person)
             manager.switch_view(2)
+            await physics_frame
         _check(is_equal_approx(fps_rig.orbit_yaw, iso_orbit_yaw)
             and is_equal_approx(fps_rig.orbit_pitch, iso_orbit_pitch)
             and manager.get_active_camera().global_basis.is_equal_approx(iso_orbit_basis),
