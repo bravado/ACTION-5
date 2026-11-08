@@ -40,6 +40,10 @@ the unarmed fist/leg is hidden while equipped. The weapon's own
 `FirstPersonLimbProfile` and attaches its weapon mesh to the actual
 camera-space grip (fist transform). The arm, grip and weapon sweep
 **together**, with no independent spinning item or extra attack timer.
+`AttackDefinition.visual_action_key` optionally identifies the authored
+camera-local sequence independently of `animation_key` (which still
+selects the existing world skeleton clip). Bat and Shovel use unique
+visual keys while D05 Punch/Kick keep their original defaults.
 These poses are visual only: the socket-mounted world weapon stays
 authoritative for shadow rendering and physics.
 

@@ -149,6 +149,13 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Bat delegates its configured swing to the D05 physics action runner")
     for tick in range(11):
         await tree.physics_frame
+        if tick == 3:
+            var action_visual: Dictionary = (
+                actor.get_node("CombatVisualState").call("get_visual_action")
+            )
+            verify.call(action_visual.get("key", &"") == &"bat_swing"
+                and combat.current_attack.animation_key == &"punch",
+                "F4 weapon uses its own visual key while the world rig keeps an existing clip")
     verify.call(float(target.get("current_health")) ==
         float(target.get("max_health")) - 16.0 and combat.hit_count == 1,
         "Bat configured damage/hitbox hits a nearby target once across two hurtboxes")
