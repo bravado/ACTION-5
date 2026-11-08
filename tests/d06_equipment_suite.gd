@@ -90,12 +90,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     Input.action_release(&"actor_kick")
     for tick in range(2):
         await tree.physics_frame
+    # Input.action_press must be issued in an idle frame to register the
+    # just-pressed edge observed by this manually invoked physics adapter.
+    await tree.process_frame
     combat.cancel()
     action_input.set("release_to_rearm", false)
     Input.action_press(&"actor_kick")
     var pressed: bool = Input.is_action_just_pressed(&"actor_kick")
     action_input.call("_physics_process", 1.0 / 60.0)
     print("ACTION5_D06_INPUT_DIAG just_pressed=", pressed,
+        " action_down=", Input.is_action_pressed(&"actor_kick"),
         " context=", (action_input.get("context_source") as Node).call(
             "get_action_input_context").accepting_actions,
         " requested=", combat._pending_id,
