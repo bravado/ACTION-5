@@ -10,7 +10,6 @@ class_name Action5WeaponDefinition
 @export var grip_rotation_degrees: Vector3 = Vector3.ZERO
 @export var attacks: Array[Resource] = []
 @export var first_person_scene: PackedScene
-@export var first_person_swing_degrees: Vector3 = Vector3(-25.0, -12.0, 20.0)
 
 
 func valid() -> bool:

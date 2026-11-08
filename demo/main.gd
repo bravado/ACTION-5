@@ -5,7 +5,6 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
-const AimScript = preload("res://addons/action5/combat/aim_provider.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
@@ -97,14 +96,6 @@ func _unhandled_input(event: InputEvent) -> void:
                     consumed = bool(_equipment.call("swap_next"))
                 KEY_G:
                     consumed = bool(_equipment.call("drop_current"))
-                KEY_F:
-                    var context = _input.get_action_input_context()
-                    if context.accepting_actions:
-                        var direction: Vector2 = AimScript.resolve_direction(
-                            context.world_aim, context.facing_world,
-                            context.view_mode, context.camera
-                        )
-                        consumed = bool(_equipment.call("request_equipped_action", 0, direction))
             if consumed:
                 get_viewport().set_input_as_handled()
 
@@ -242,7 +233,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | F: swing | G: drop | Ctrl: crouch | C: settings"
+    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | G: drop | LMB/RMB/J/K: equipped weapon"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE

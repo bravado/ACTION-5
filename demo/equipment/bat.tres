@@ -12,4 +12,3 @@ socket_id = &"right_hand"
 grip_position = Vector3(0, -0.03, -0.18)
 attacks = Array[Resource]([ExtResource("2")])
 first_person_scene = ExtResource("3")
-first_person_swing_degrees = Vector3(-28, -25, 21)

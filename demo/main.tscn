@@ -189,6 +189,7 @@ script = ExtResource("7_actor_input")
 
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9_combat_input")
+action_selection_path = NodePath("../Player/EquipmentAttackSelector")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, 24, 0)
@@ -203,7 +204,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | F: swing | G: drop | Ctrl: crouch | C: settings"
+text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | G: drop | LMB/RMB/J/K: equipped weapon"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0
