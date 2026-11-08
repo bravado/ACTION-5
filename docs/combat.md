@@ -13,7 +13,12 @@ targets have a body hurtbox and an overlapping head hurtbox for hit dedup tests.
   `Action5AttackDefinition` resources. It owns the active attack, its
   physics-tick counter, a one-command buffer, and per-swing hit history.
   Actions can also be requested from AI with `request_attack(id, direction)`.
-  The controller emits gameplay events; it no longer references any renderer.
+  An explicit finite world-X/Z direction sets the attack heading; a zero
+  or omitted direction reuses the controller's previous attack heading
+  (initially world north, X/Z = `(0, -1)`). No Visual/Facing child,
+  presenter or camera lookup is involved. AI should pass a direction
+  whenever it intends to change aim. The controller emits gameplay
+  events; it does not reference any renderer.
 - `Action5CombatAnimationAdapter` optionally subscribes to combat lifecycle
   and Health damaged/died events. Only this adapter invokes the generic
   animation set/clear API. It selects upper/full-body channels from the

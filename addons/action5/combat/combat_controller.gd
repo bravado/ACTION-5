@@ -128,10 +128,12 @@ func _begin_attack() -> void:
     elapsed_ticks = 0
     hit_count = 0
     _hit_actor_ids.clear()
+    # Explicit directions from input/AI take priority. An unspecified
+    # request retains this controller's last resolved attack heading,
+    # initialized to world north. No dependence on the body's Visual child
+    # (or on any camera, animation or locomotion node).
     if direction.length_squared() < 0.001:
-        var visual: Node = body.get_node_or_null("Visual")
-        if visual != null:
-            direction = visual.get("facing_world")
+        direction = _active_direction
     if direction.length_squared() < 0.001:
         direction = Vector2(0.0, -1.0)
     var sector_count: int = 4 if current_attack.facing_sectors == 1 else (8 if current_attack.facing_sectors == 2 else 0)

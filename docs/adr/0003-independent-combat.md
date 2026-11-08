@@ -36,5 +36,9 @@ provider implementing `get_action_input_context()`, not on actor
 internals or the concrete ActorInputAdapter/ViewManager classes. Missing
 sources fail closed. Aim direction uses a separate component and preserves
 full 3D camera rays for D06 while melee hitboxes remain world-local.
-All five cameras share the same attack state. D06 should reuse this
-contract and avoid weapon-ID switches in core code.
+CombatController never reads a body-relative Visual/Facing node:
+explicit world-X/Z aim determines heading, while an omitted direction
+reuses its previous resolved heading (world north initially). This
+remains valid on a bare CharacterBody3D without visual, locomotion or
+camera nodes. All five cameras share the same attack state. D06 should
+reuse this contract and avoid weapon-ID switches in core code.

@@ -65,6 +65,40 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     standalone_host.queue_free()
     verify.call(combat.get_attack(&"punch") != null and combat.get_attack(&"kick") != null,
         "D05 imported Punch and Kick are configured resources")
+
+    # A bare physics body with CombatController but NO Visual, Facing,
+    # movement, camera, Health or animation must still attack. Unspecified
+    # directions preserve its *own* last facing; never use scene node names.
+    var independent_body := CharacterBody3D.new()
+    independent_body.name = "IndependentCombatFixture"
+    independent_body.position = Vector3(100.0, 0.15, 100.0)
+    var independent_combat: CombatScript = CombatScript.new()
+    independent_combat.name = "CombatController"
+    independent_body.add_child(independent_combat)
+    level.add_child(independent_body)
+    verify.call(independent_combat.register_attack(combat.get_attack(&"punch"))
+        and independent_body.get_node_or_null("Visual") == null,
+        "Standalone combat registers attack with no Visual or movement hierarchy")
+    verify.call(independent_combat.request_attack(&"punch"),
+        "Unspecified attack request accepted without a facing presenter")
+    await tree.physics_frame
+    verify.call(independent_combat.current_id == &"punch"
+        and independent_combat._active_direction.distance_to(Vector2(0.0, -1.0)) < 0.001,
+        "First unspecified attack uses stable initial world-north heading")
+    independent_combat.cancel()
+    verify.call(independent_combat.request_attack(&"punch", Vector2.RIGHT),
+        "Standalone combat accepts a directed attack")
+    await tree.physics_frame
+    verify.call(independent_combat._active_direction.distance_to(Vector2.RIGHT) < 0.001,
+        "Explicit aim changes the controller's last attack heading")
+    independent_combat.cancel()
+    verify.call(independent_combat.request_attack(&"punch"),
+        "Subsequent attack can omit the aim direction")
+    await tree.physics_frame
+    verify.call(independent_combat._active_direction.distance_to(Vector2.RIGHT) < 0.001,
+        "Missing aim reuses last attack heading, independent of any Visual node")
+    independent_combat.cancel()
+    independent_body.queue_free()
     verify.call(combat.get_attack(&"punch").animation_channel == 0
         and combat.get_attack(&"kick").animation_channel == 1,
         "Punch uses upper-body channel and Kick uses full-body channel")
