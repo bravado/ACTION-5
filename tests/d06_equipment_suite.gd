@@ -146,9 +146,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and third.get_parent() == socket and third.get_world_meshes().size() == 2,
         "Independent third weapon installs through resources and the same mount")
     verify.call(combat.get_attack(&"test_club_swing") == custom_attack
-        and visual._registered_meshes.size() == 2
-        and custom_attack.hitbox_size.x == 0.65,
-        "Third weapon preserves its own attack configuration and multi-mesh visuals")
+        and is_equal_approx(custom_attack.hitbox_size.x, 0.65),
+        "Third weapon registers its exact configured attack and hit dimensions")
+    verify.call(visual._registered_meshes.size() == 2,
+        "Third weapon receives two independent world-mesh shadow registrations")
     verify.call(equipment.drop_current()
         and combat.get_attack(&"test_club_swing") == null,
         "Third weapon cleans up its attack registry on drop")
