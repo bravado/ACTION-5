@@ -188,9 +188,25 @@ resolved action such as Gun fire, then observe the existing active-phase
 signal for physical muzzle tracing. No type-specific hit branches. Equipped weapons
 provide attack definitions to D05 and request action IDs; they do not
 execute a second attack timer, own hit queries or read raw inputs.
+Attack input is resolved by the optional, duck-typed
+`EquipmentAttackSelector.get_attack_for_input(action, fallback)` policy:
+the same LMB/RMB and J/K intents select a weapon attack when equipped
+(one attack supports both, two attacks map primary/secondary separately).
+Never add an F-only swing key or let equipped clicks fall through to
+unarmed Punch/Kick. The CombatInputAdapter sees only this optional port,
+not the EquipmentController or weapon IDs.
+
+An equipped F4 viewmodel must include an authored **gripping arm and
+weapon** that move together. Reuse `Action5FirstPersonLimbProfile` pose
+data and `Action5FirstPersonWeaponViewmodel`; suppress the original
+unarmed fist using the optional limb-visibility policy while equipped.
+Do not rotate a floating entire tool independently or use skinned
+world-bone positions to place the local hand.
+
 Test Bat, Shovel and a third fixture with different attack data, all five
-views, F3/F4 mid action, drop/teardown/shadows and an NPC without local
-first-person presentation. D06-02 must reuse this controller with a Gun
+views, F3/F4 mid action, click routing, return to unarmed on drop,
+gripped F4 weapon contact pose, teardown/shadows and an NPC without
+local first-person presentation. D06-02 must reuse this controller with a Gun
 instance owning ammo/reload, a per-weapon ranged effect and a physical
 world-muzzle obstruction query. **Never** infer a valid shot solely from
 a clear camera ray, and never add `is_gun` or weapon-ID switches.

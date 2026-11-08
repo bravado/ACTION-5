@@ -31,9 +31,17 @@ in shared actor, locomotion, camera or animation classes.
   cancels matching current/buffered actions, then unregisters the IDs.
   Weapons own their attack data and use `request_attack()`; no second
   action clock, damage resolver or action-name branch is created.
-- The demo maps E pickup, Q swap, G drop and F equipped-action through its
-  local input adapter. No raw keyboard input belongs to a weapon or the
-  reusable equipment controller.
+- The demo maps E pickup, Q swap and G drop through its local input
+  adapter. LMB/RMB and J/K are unchanged InputMap actions, but an optional
+  `EquipmentAttackSelector` resolves them to the equipped weapon's
+  first/second action definition (one action serves both buttons).
+  When unequipped, they resolve to unarmed Punch/Kick. No raw keyboard
+  input belongs to a weapon or the reusable equipment controller.
+- `FirstPersonCombatLimbs` uses a duck-typed visibility gate to hide
+  unarmed F4 limbs while a weapon is held. The equipped F4 viewmodel
+  provides its own arm and grip pose profile; the weapon meshes are
+  parented to the same animated grip as the hand. All pose progress
+  comes from `CombatVisualState`, not from another action timer.
 
 ## Consequences and D06-02 handoff
 
