@@ -203,7 +203,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // MOVEMENT + EQUIPMENT\n1–5: view | WASD: move | Space: jump | LMB/RMB: punch/kick\nE: pickup | Q: swap | G: drop | F: weapon swing"
+text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | F: swing | G: drop | Ctrl: crouch | C: settings"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0

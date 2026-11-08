@@ -37,6 +37,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for tick in range(2):
         await tree.physics_frame
 
+    # The camera switch rewrites help text; D06 controls must not revert
+    # to the older D05-only caption after entering a different view.
+    var controls: Label = level.get_node("Hud/Help") as Label
+    verify.call(controls.text.contains("D06 EQUIPMENT")
+        and controls.text.contains("E: pickup")
+        and controls.text.contains("Q: swap")
+        and controls.text.contains("F: swing")
+        and controls.text.contains("G: drop"),
+        "D06 HUD help lists equipment controls after a camera switch")
+
     var socket: Node3D = animation.call("get_socket", &"right_hand") as Node3D
     var starting_shadows: int = fps.world_visual_shadows.size()
     verify.call(equipment != null and visual != null and socket != null
