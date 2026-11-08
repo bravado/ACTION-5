@@ -230,6 +230,18 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(not input.release_to_rearm and combat._pending_id == &"",
         "Restoring the original context provider rearms with no stale attack")
     substitute_source.queue_free()
+    # Input.action_press()/release() in the mock-provider test occurred
+    # within a single physics tick. Drain its just-pressed edge behind the
+    # existing release gate before exercising real per-view action timelines.
+    # Otherwise the next regular physics tick starts an unintended Punch,
+    # then buffers the explicit action requested by the test below.
+    input.release_to_rearm = true
+    for frame in range(2):
+        await tree.physics_frame
+    combat.cancel()
+    verify.call(not input.release_to_rearm and combat.current_attack == null
+        and combat._pending_id == &"",
+        "Context-provider fixture leaves no stale InputMap press for camera tests")
 
     var punch: AttackScript = combat.get_attack(&"punch")
     var phase_changes: Array[String] = []
