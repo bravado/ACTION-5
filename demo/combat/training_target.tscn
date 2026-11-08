@@ -1,0 +1,56 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/combat/health.gd" id="1_health"]
+[ext_resource type="Script" path="res://addons/action5/combat/hurtbox.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://demo/combat/training_target.gd" id="3_demo"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_dummy"]
+top_radius = 0.32
+bottom_radius = 0.4
+height = 1.6
+
+[sub_resource type="StandardMaterial3D" id="Mat_dummy"]
+albedo_color = Color(0.76, 0.31, 0.23, 1)
+
+[sub_resource type="CapsuleShape3D" id="Capsule_dummy"]
+radius = 0.4
+height = 1.6
+
+[sub_resource type="SphereShape3D" id="Sphere_dummy"]
+radius = 0.28
+
+[node name="TrainingTarget" type="Node3D"]
+script = ExtResource("3_demo")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.8, 0)
+mesh = SubResource("CylinderMesh_dummy")
+surface_material_override/0 = SubResource("Mat_dummy")
+
+[node name="HealthLabel" type="Label3D" parent="."]
+position = Vector3(0, 1.95, 0)
+text = "100 HP"
+font_size = 48
+pixel_size = 0.003
+billboard = 1
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("1_health")
+max_health = 100.0
+team_id = 2
+
+[node name="Hurtbox" type="Area3D" parent="."]
+position = Vector3(0, 0.8, 0)
+script = ExtResource("2_hurtbox")
+health_path = NodePath("../Health")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("Capsule_dummy")
+
+[node name="HeadHurtbox" type="Area3D" parent="."]
+position = Vector3(0, 1.42, 0)
+script = ExtResource("2_hurtbox")
+health_path = NodePath("../Health")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HeadHurtbox"]
+shape = SubResource("Sphere_dummy")

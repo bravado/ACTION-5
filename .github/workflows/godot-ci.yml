@@ -168,6 +168,14 @@ jobs:
           test -s build/evidence/native-f4-near-wall.png
           test -s build/evidence/native-player-shadow-on.png
           test -s build/evidence/native-player-shadow-off.png
+          test -s build/evidence/native-f4-combat-idle.png
+          test -s build/evidence/native-f4-punch-limb.png
+          test -s build/evidence/native-f4-kick-limb.png
+          grep -q 'ACTION5_F4_NATIVE_LIMB_OK action=punch' build/evidence/native-screenshot.log
+          grep -q 'ACTION5_F4_NATIVE_LIMB_OK action=kick' build/evidence/native-screenshot.log
+          test -s build/evidence/native-d05-punch.png
+          test -s build/evidence/native-d05-kick.png
+          grep -q 'ACTION5_D05_NATIVE_COMBAT_OK punch=1 kick=1 active=1 dedup=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_PLAYER_SHADOW_NATIVE_OK' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FPS_NEAR_WALL_NATIVE_OK wall=1 body_culled=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
@@ -198,9 +206,16 @@ jobs:
           test -s build/evidence/web-camera-settings.png
           test -s build/evidence/web-d03-walking.png
           test -s build/evidence/web-d03-jumping.png
-          test -s build/evidence/web-f4-tool-standing.png
-          test -s build/evidence/web-f4-tool-jumping.png
-          grep -q 'ACTION5_BROWSER_F4_JUMP_TOOL_OK viewmodel=1 screenshots=2' build/evidence/browser-smoke.log
+          test -s build/evidence/web-f4-arm-standing.png
+          test -s build/evidence/web-f4-arm-jumping.png
+          grep -q 'ACTION5_BROWSER_F4_JUMP_ARM_OK viewmodel=1 screenshots=2' build/evidence/browser-smoke.log
+          test -s build/evidence/web-f4-combat-punch.png
+          test -s build/evidence/web-f4-combat-kick.png
+          grep -q 'ACTION5_BROWSER_F4_COMBAT_LIMBS_OK punch_arm=1 kick_leg=1 screenshots=2' build/evidence/browser-smoke.log
+          test -s build/evidence/web-d05-punch.png
+          test -s build/evidence/web-d05-kick.png
+          grep -q 'ACTION5_BROWSER_D05_COMBAT_OK punch=1 kick=1 screenshots=2' build/evidence/browser-smoke.log
+          grep -q 'ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1' build/evidence/browser-smoke.log
           test -s build/evidence/web-f3-near-wall.png
           test -s build/evidence/web-f4-near-wall.png
           grep -q 'ACTION5_BROWSER_FPS_NEAR_WALL_OK' build/evidence/browser-smoke.log

@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-07):** D01–D04 merged (D04 via PR #25); D05 combat is the next planned deliverable. Crouch movement is a separate example under review in PR #26. The specification and acceptance gates below remain unchanged.  
+**Status update (2026-11-08):** D01–D04 merged (D04 via PR #25), crouch movement merged (PR #26), and D05 combat is underway in draft PR #28. Neither D05 issue is closed until technical/visual gates pass. The F4 camera-space viewmodel refactor is being validated in draft PR #28 (ADR-0004); the specification and acceptance gates below remain unchanged.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 

@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D04 are merged; D05 combat is next in the main roadmap.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D04 are merged; D05 combat is in progress in PR #28.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -62,6 +62,90 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Do not hardcode facing quantization into the combat core: F5 supports optional Zelda-style 4-way sword attacks, Commando-style 8-way shooting and independent aim.
 - Don't claim deterministic rollback support from using a fixed physics tick.
 - Don't introduce proprietary assets, unverified packages, or unnecessary engine plugins.
+
+## Camera-local combat visuals
+
+**Do not map third-person joint translations directly into camera space.**
+Godot bone global poses are skeleton-local, and the character's rest pose
+was never meant to be a first-person camera rig. The old approach created
+huge cylinder caps and off-screen knees.
+
+The actor/world rig and physics always exist. `FirstPersonPresenter`
+owns culling and shadows (layers 20 and 19); it never branches on
+attacks. `CombatVisualState` adapts the authoritative combat timeline
+to a generic `{key, progress}` snapshot. `FirstPersonCombatLimbs`
+consumes that snapshot and displays independently authored camera-space
+`Action5FirstPersonLimbProfile` + `Action5FirstPersonPoseKey` resources.
+The replaceable `Action5FirstPersonLimbGeometry` is **visual only**.
+Do not introduce attack IDs in shared movement, camera, animation or
+combat components. Third-person clips are still D04 imported-world
+animations; F4 viewmodel clips have their own camera-local framing.
+To add an action, configure definitions and visual profile; no core edits.
+
+Test F4 idle arm, chamber/contact/recoil, lower-third knee/foot framing,
+action cancellation, F3↔F4 continuity, custom third-attack registration,
+world rig/culling/shadows, all 5 views, near-wall and crouch/jump,
+native screenshots and WebGL2 rendering.
+See [docs/first-person-presentation.md](docs/first-person-presentation.md)
+and ADR-0004.
+
+## D05 Health integration boundary
+
+`Action5Health` must never depend on a concrete Actor or Locomotion node,
+relative tree position, physics controller or renderer. It owns HP,
+invulnerability, block/stagger and emits knockback/death events only.
+`HealthActorAdapter` owns the optional wiring to `set_alive(false)` and
+`apply_external_impulse()` and must be safely detachable. Test with a
+standalone Health under a plain Node and without any actor or movement node.
+Other receivers may implement their own subscriber; never add
+actor/movement-specific branches to Health.
+
+## D05 visual adapter boundary
+
+`CombatController` never imports or calls AnimationPresenter and owns
+no hit/death clip names. An optional `CombatAnimationAdapter` subscribes
+to combat and health signals, converts definitions into generic full- or
+upper-body animation calls and owns reaction visual lifetimes. The adapter
+can be omitted or replaced without touching gameplay, camera or core
+animation classes. Test cancellation, stagger expiry, death and late
+visual attachment using a recording substitute. See docs/combat.md.
+
+## D05 action input context boundary
+
+`Action5ActorInputAdapter.get_action_input_context()` is the only
+bridge exposing current world aim/facing, camera/view mode and control
+availability as an `Action5ActionInputContext` snapshot. Combat input
+consumes a duck-typed `context_source_path` provider of this method;
+it MUST NOT import ActorInputAdapter or ViewManager or traverse
+`actor.locomotion.desired`, `actor.facing`, or other private actor
+hierarchy. Unknown/missing providers fail closed. A test-only provider
+with no actor reference must support real attack requests; swapping
+providers during runtime must not replay blocked commands. No
+combat-specific branch is allowed in the core input adapter.
+
+## D05 mouse combat input
+
+Punch/Kick default to left/right mouse buttons alongside J/K and gamepad.
+Attack resources declare `default_mouse_button`; CombatInputAdapter
+registers a generic InputEventMouseButton if the action is not user-mapped.
+Mouse presses must reach unhandled input before triggering combat so
+clicking view/settings buttons does not also attack. The view/camera and
+movement cores never branch on specific attack names or buttons.
+
+## Shared skeletal animation defaults
+
+`Action5SkeletonProfile` is independent of weapons, attacks and reactions:
+its default `clip_map` contains only idle/walk/run, and the sole required
+clip is Idle. Combat clips and their validation requirements belong in the
+actor's configured profile, e.g. `demo/assets/crouch_skeleton_profile.tres`
+requires its authored Punch/Kick/Hit/Death animations. Never add action or
+weapon IDs to shared profile defaults; custom moves and actions extend
+`clip_map` via data and use the generic animation presentation ports.
+`tests/d04_suite.gd` covers both generic and demo-specific validation.
+
+## D05 attack authoring
+
+Follow [docs/combat.md](docs/combat.md) and ADR-0003. New attacks use an AttackDefinition and the existing CombatController/CombatInputAdapter request contract: never add attack-name branches to Actor, Locomotion, MovementController, ActorInputAdapter, AnimationPresenter or CameraRig. Combat owns physics-tick startup/active/recovery, mutable hit history, and Health/Hurtbox filtering. The only generic locomotion integration is apply_external_impulse; no combat code writes CharacterBody3D.velocity. Input edges must release-to-rearm through focus/settings interruption. Tests must prove new third-attack configuration and dedup across multiple hurtboxes before D05 is accepted.
 
 ## Starting task
 

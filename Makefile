@@ -43,6 +43,7 @@ verify-assets:
 check: verify-assets test
 
 import:
+	@$(PYTHON) tools/check_resource_comments.py
 	@mkdir -p build/logs
 	@set -o pipefail; $(GODOT) --headless --path . --import 2>&1 | tee build/logs/import.log
 	@$(PYTHON) tools/check_godot_log.py build/logs/import.log

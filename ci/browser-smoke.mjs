@@ -2,13 +2,15 @@
 // Keeps D01 startup checks while adding D02 rendered camera evidence.
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const errors = [];
 const cameraChanges = [];
 const moveChanges = [];
 const settingsVisibility = [];
 const rigViews = [];
+const combatStarts = [];
+const limbVisibility = [];
 const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl'],
@@ -22,6 +24,8 @@ try {
     if (line.includes('ACTION5_VIEW_CHANGED')) cameraChanges.push(line);
     if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
+    if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
+    if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
   page.on('requestfailed', req => errors.push('request: ' + req.url() + ': ' + req.failure()?.errorText));
@@ -67,6 +71,170 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D04_RIG_OK skeleton=1 sockets=1 fps=1 body_culling=1');
+
+  // Real browser keys exercise the decoupled combat adapter. Capture each
+  // authored action while its AnimationTree channel is playing in F3.
+  await page.keyboard.press('3');
+  await page.waitForTimeout(500);
+  const idleCombat = await page.screenshot();
+  await page.keyboard.down('j');
+  await page.waitForTimeout(110);
+  const punchCombat = await page.screenshot({
+    path: 'build/evidence/web-d05-punch.png', fullPage: true,
+  });
+  await page.keyboard.up('j');
+  await page.waitForTimeout(600);
+  await page.keyboard.down('k');
+  await page.waitForTimeout(165);
+  const kickCombat = await page.screenshot({
+    path: 'build/evidence/web-d05-kick.png', fullPage: true,
+  });
+  await page.keyboard.up('k');
+  await page.waitForTimeout(600);
+  if (!combatStarts.some(line => line.includes('id=punch')) ||
+      !combatStarts.some(line => line.includes('id=kick'))) {
+    errors.push('D05 browser J/K did not start both configured actions: ' + combatStarts.join(' | '));
+  }
+  if (createHash('sha256').update(idleCombat).digest('hex') ===
+      createHash('sha256').update(punchCombat).digest('hex') ||
+      createHash('sha256').update(punchCombat).digest('hex') ===
+      createHash('sha256').update(kickCombat).digest('hex')) {
+    errors.push('D05 browser punch/kick pose evidence is identical');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D05_COMBAT_OK punch=1 kick=1 screenshots=2');
+
+  // The same action definitions must react to real left/right mouse clicks.
+  // A HUD button must consume its click without also starting a punch.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(450);
+  const beforeMousePunch = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'left' });
+  await page.waitForTimeout(500);
+  if (!combatStarts.slice(beforeMousePunch).some(line => line.includes('id=punch'))) {
+    errors.push('Left-click in gameplay did not trigger Punch');
+  }
+  const beforeMouseKick = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'right' });
+  await page.waitForTimeout(500);
+  if (!combatStarts.slice(beforeMouseKick).some(line => line.includes('id=kick'))) {
+    errors.push('Right-click in gameplay did not trigger Kick');
+  }
+  const beforeHudClick = combatStarts.length;
+  await page.mouse.click(94, 169);
+  await page.waitForTimeout(400);
+  if (combatStarts.length !== beforeHudClick) {
+    errors.push('Clicking a HUD view button unexpectedly activated Punch');
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
+
+  // F4 always shows the articulated arm, which punches. Kick adds a
+  // lower-framed leg without the obsolete tool. Input
+  // remains real keyboard events; no script bridge or synthetic pose.
+  await page.keyboard.press('4');
+  await page.waitForTimeout(400);
+  const f4NoAttack = await page.screenshot();
+
+  // Browser software WebGL2 may render an entire 250 ms action while
+  // Playwright waits for a compositor screenshot. Read each REAL rendered
+  // canvas frame in-page instead: no synthetic combat action, game hook,
+  // pose injection or alternate animation clock is involved.
+  await page.evaluate(async () => {
+    const canvas = document.querySelector('canvas');
+    const mirror = document.createElement('canvas');
+    mirror.width = canvas.width;
+    mirror.height = canvas.height;
+    const ctx = mirror.getContext('2d', { willReadFrequently: true });
+    const bounds = {
+      x: Math.floor(mirror.width * 0.30),
+      y: Math.floor(mirror.height * 0.33),
+      w: Math.floor(mirror.width * 0.58),
+      h: Math.floor(mirror.height * 0.60),
+    };
+    const read = () => {
+      ctx.drawImage(canvas, 0, 0);
+      return ctx.getImageData(bounds.x, bounds.y, bounds.w, bounds.h).data;
+    };
+    // Read the idle baseline after a real render, not between frame swaps.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const baseline = read();
+    const state = { running: true, best: null, maxChanged: 0, frames: 0 };
+    state.reset = () => {
+      state.best = null;
+      state.maxChanged = 0;
+      state.frames = 0;
+    };
+    state.take = () => ({
+      png: state.best,
+      changed: state.maxChanged,
+      frames: state.frames,
+    });
+    window.__action5F4Capture = state;
+    function sample() {
+      if (!state.running) return;
+      const pixels = read();
+      let changed = 0;
+      for (let y = 0; y < bounds.h; y += 4) {
+        for (let x = 0; x < bounds.w; x += 4) {
+          const i = (y * bounds.w + x) * 4;
+          if (Math.abs(pixels[i] - baseline[i]) +
+              Math.abs(pixels[i + 1] - baseline[i + 1]) +
+              Math.abs(pixels[i + 2] - baseline[i + 2]) > 50) {
+            changed++;
+          }
+        }
+      }
+      state.frames++;
+      if (changed >= 45 && changed > state.maxChanged + 10) {
+        state.maxChanged = changed;
+        state.best = mirror.toDataURL('image/png');
+      }
+      requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
+  });
+
+  async function captureActiveF4(actionKey, visualKey, path) {
+    await page.evaluate(() => window.__action5F4Capture.reset());
+    const from = limbVisibility.length;
+    await page.keyboard.down(actionKey);
+    let sawActive = false;
+    for (let wait = 0; wait < 100; wait++) {
+      if (limbVisibility.slice(from).some(line => line.includes('key=' + visualKey))) {
+        sawActive = true;
+        break;
+      }
+      await page.waitForTimeout(25);
+    }
+    // Let the frame sampler collect at least the next composited frame.
+    await page.waitForTimeout(150);
+    await page.keyboard.up(actionKey);
+    const evidence = await page.evaluate(() => window.__action5F4Capture.take());
+    console.log('ACTION5_BROWSER_F4_FRAME action=' + visualKey +
+      ' frames=' + evidence.frames + ' changed=' + evidence.changed +
+      ' event=' + Number(sawActive));
+    if (!sawActive || !evidence.png || evidence.changed < 45) {
+      errors.push('No active WebGL2 frame for ' + visualKey +
+        ' (changed=' + evidence.changed + ', frames=' + evidence.frames + ')');
+      return null;
+    }
+    await writeFile(path, Buffer.from(evidence.png.split(',')[1], 'base64'));
+    return evidence;
+  }
+
+  const f4Punch = await captureActiveF4(
+    'j', 'punch', 'build/evidence/web-f4-combat-punch.png');
+  await page.waitForTimeout(500);
+  const f4Kick = await captureActiveF4(
+    'k', 'kick', 'build/evidence/web-f4-combat-kick.png');
+  await page.evaluate(() => { window.__action5F4Capture.running = false; });
+  if (!f4Punch || !f4Kick) {
+    errors.push('F4 rendered punches/kicks are missing despite real J/K input; ' +
+      limbVisibility.join(' | '));
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_F4_COMBAT_LIMBS_OK punch_arm=1 kick_leg=1 screenshots=2');
 
   // Movement extension: compare standing/crouched first-person views
   // through real browser input, then validate the independent F3 animations.
@@ -147,17 +315,17 @@ try {
 
 
 
-  // Reproduce the reported F4 jump: the camera-anchored training tool must
-  // remain enabled even while the world-space hand and actor move upward.
+  // The articulated resting F4 arm stays present during jumping; the
+  // old fake forearm and training tool are never instantiated.
   await page.keyboard.press('4');
   await page.waitForTimeout(550);
   const f4Standing = await page.screenshot({
-    path: 'build/evidence/web-f4-tool-standing.png', fullPage: true,
+    path: 'build/evidence/web-f4-arm-standing.png', fullPage: true,
   });
   await page.keyboard.down(' ');
   await page.waitForTimeout(225);
   const f4Jumping = await page.screenshot({
-    path: 'build/evidence/web-f4-tool-jumping.png', fullPage: true,
+    path: 'build/evidence/web-f4-arm-jumping.png', fullPage: true,
   });
   await page.keyboard.up(' ');
   if (createHash('sha256').update(f4Standing).digest('hex') ===
@@ -166,10 +334,10 @@ try {
   }
   if (!rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
       line.includes('viewmodel=1'))) {
-    errors.push('F4 camera-local training tool was not presented');
+    errors.push('F4 persistent camera-local arm was not presented');
   }
   if (errors.length) throw Error(errors.join('\\n'));
-  console.log('ACTION5_BROWSER_F4_JUMP_TOOL_OK viewmodel=1 screenshots=2');
+  console.log('ACTION5_BROWSER_F4_JUMP_ARM_OK viewmodel=1 screenshots=2');
 
   // D03: Send actual browser keyboard events to a real running Godot world.
   // Movement is handled by InputMap + Action5ActorInputAdapter, not test hooks.
@@ -292,13 +460,24 @@ try {
   console.log('ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1');
   console.log('ACTION5_BROWSER_FIVE_VIEWS_OK unique=' + hashes.size + ' selector=1');
 
-  // VT-12: drive the REAL actor into the existing solid NorthWall, then
-  // capture F3 and F4 at the same near-wall position. A layer-only test
-  // in an empty room would not catch first-person wall occlusion.
+  // VT-12: F4 correctly preserves manual mouse yaw if the actor has
+  // not changed facing since last leaving F4. Establish a known EAST FPS
+  // exit heading, then turn NORTH in F2, so the *real* F4 entry contract
+  // must align with that newly changed heading. Finally drive the actor
+  // against NorthWall in F4; no teleport or test-only game hooks.
+  await page.keyboard.press('2');
+  await page.keyboard.down('d');
+  await page.waitForTimeout(420);
+  await page.keyboard.up('d');
+  await page.keyboard.press('4');
+  await page.waitForTimeout(200);
+  await page.keyboard.press('2');
+  await page.waitForTimeout(150);
+  await page.keyboard.down('w');
+  await page.waitForTimeout(450);
   await page.keyboard.press('4');
   await page.waitForTimeout(350);
   await page.keyboard.down('Shift');
-  await page.keyboard.down('w');
   let nearWallZ = Number.NaN;
   for (let attempt = 0; attempt < 7; attempt++) {
     await page.waitForTimeout(1200);

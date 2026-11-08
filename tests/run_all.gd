@@ -6,6 +6,10 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const D03SuiteScript = preload("res://tests/d03_suite.gd")
 const D04SuiteScript = preload("res://tests/d04_suite.gd")
 const CrouchSuiteScript = preload("res://tests/crouch_suite.gd")
+const D05SuiteScript = preload("res://tests/d05_suite.gd")
+const D05AnimationSuiteScript = preload("res://tests/d05_animation_suite.gd")
+const D05FirstPersonSuiteScript = preload("res://tests/d05_first_person_suite.gd")
+const D05CombatAnimationSuiteScript = preload("res://tests/d05_combat_animation_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -607,6 +611,23 @@ func _run_tests() -> void:
         and views.switch_count == count_after_settings
         and root.gui_get_focus_owner() != settings_button,
         "Space after closing Camera Settings cannot reopen it or switch views")
+
+    # Verify the actual source rig and imported articulated strikes before
+    # the damage suite runs lethal actor tests.
+    var d05_animation_suite := D05AnimationSuiteScript.new()
+    d05_animation_suite.run_tests(level, Callable(self, "_check"))
+
+    var d05_fps_suite := D05FirstPersonSuiteScript.new()
+    await d05_fps_suite.run_tests(self, level, Callable(self, "_check"))
+
+    # D05 deliberately exercises lethal damage: run after legacy view/UI
+    # checks so their live-player assumptions remain independent.
+    var d05_suite := D05SuiteScript.new()
+    await d05_suite.run_tests(self, level, Callable(self, "_check"))
+
+    # Run last: the regular combat suite ends with a lethal damage test.
+    var d05_combat_animation_suite := D05CombatAnimationSuiteScript.new()
+    await d05_combat_animation_suite.run_tests(self, level, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

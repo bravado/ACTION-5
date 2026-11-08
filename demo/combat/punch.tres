@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Action5AttackDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/combat/attack_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+attack_id = &"punch"
+input_action = &"actor_punch"
+default_key = 74
+default_gamepad_button = 2
+default_mouse_button = 1
+startup_ticks = 3
+active_ticks = 3
+recovery_ticks = 9
+damage = 12.0
+hitbox_size = Vector3(0.9, 1.0, 0.95)
+hitbox_forward = 0.8
+hitbox_height = 1.0
+animation_key = &"punch"
+knockback_speed = 2.5
+knockback_ticks = 7

@@ -16,3 +16,4 @@ clip_map = {
 "crouch": "crouch",
 "crouch_walk": "crouch_walk"
 }
+required_clips = PackedStringArray("idle", "run", "punch", "kick", "hit", "death")

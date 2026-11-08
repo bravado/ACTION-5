@@ -9,19 +9,15 @@ class_name Action5SkeletonProfile
 ## First animated upper-body bone. Descendants receive action overlays;
 ## the hips and legs remain driven by locomotion.
 @export var upper_body_root_bone: StringName = &"Spine"
+## Generic locomotion fallback: only Idle is universally required.
+## Actions, reactions, equipment and extra locomotion clips belong to
+## scene-specific profiles, never the shared skeleton contract.
 @export var clip_map: Dictionary = {
     "idle": "idle",
     "walk": "walk",
     "run": "run",
-    "punch": "punch",
-    "kick": "kick",
-    "hit": "hit",
-    "death": "death",
-    "reload": "reload",
 }
-@export var required_clips: PackedStringArray = PackedStringArray([
-    "idle", "run", "punch", "kick", "hit", "death"
-])
+@export var required_clips: PackedStringArray = PackedStringArray(["idle"])
 
 
 func clip_name(key: StringName) -> StringName:
