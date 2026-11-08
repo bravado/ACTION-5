@@ -26,6 +26,7 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - `make test` imports, runs Godot headless tests and checks parser/runtime logs.
 - `make check` also verifies reproducible GLB fixtures; it is the local equivalent of the quick PR CI checks.
 - The `ACTION-5 CI` workflow uses stable jobs `CI / Checks` (always) and `CI / Full E2E` (conditionally skipped on ordinary PRs). Full native/WebGL2 E2E runs on pushes to `master` or when the latest PR commit has `[full-e2e]`. Request full E2E before merging a visual-sensitive feature; both checks are required on `master`.
+- `CI / Deploy Pages` publishes only the successfully E2E-tested `build/web/` export on pushes to `master`. Never deploy from PRs, workflow_dispatch or failing tests; don't add the deploy job to required PR status checks.
 - `make web`, `make linux`, and `make build` import before exporting.
 - The Makefile must fail closed on Godot errors and retain `.godot/` as a generated, ignored cache.
 - CI must exercise Makefile targets rather than maintaining a conflicting implementation of the import/build steps. Do not add a requirement to commit the generated class registry.
