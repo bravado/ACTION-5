@@ -19,12 +19,15 @@ const boneNames = {
   Leg_R: 'Thigh_R',
   Foot_L: 'Toe_L',
   Foot_R: 'Toe_R',
+  Knee_L: 'KneeAlternate_L',
+  Knee_R: 'KneeAlternate_R',
   BodyMesh: 'AlternateBody',
   HeadMesh: 'AlternateHead',
 };
 const clipNames = {
   idle: 'rest', walk: 'stride', run: 'sprint', punch: 'jab',
   kick: 'boot', hit: 'flinch', death: 'collapse', reload: 'rearm',
+  'crouch-loop': 'squat-loop', 'crouch_walk-loop': 'squat_stride-loop',
 };
 
 const original = readFileSync(inputPath);

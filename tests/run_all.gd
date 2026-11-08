@@ -5,6 +5,7 @@ const ViewInputScript = preload("res://addons/action5/camera/view_input.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const D03SuiteScript = preload("res://tests/d03_suite.gd")
 const D04SuiteScript = preload("res://tests/d04_suite.gd")
+const CrouchSuiteScript = preload("res://tests/crouch_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -432,6 +433,8 @@ func _run_tests() -> void:
     await d03_suite.run_tests(self, level, Callable(self, "_check"))
     var d04_suite := D04SuiteScript.new()
     await d04_suite.run_tests(self, level, Callable(self, "_check"))
+    var crouch_suite := CrouchSuiteScript.new()
+    await crouch_suite.run_tests(self, level, Callable(self, "_check"))
 
     # Regression: clicking a camera/menu button must never steal Space from
     # actor_jump. This used to re-select the previously focused camera.

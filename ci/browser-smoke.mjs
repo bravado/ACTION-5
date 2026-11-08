@@ -68,6 +68,85 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D04_RIG_OK skeleton=1 sockets=1 fps=1 body_culling=1');
 
+  // Movement extension: compare standing/crouched first-person views
+  // through real browser input, then validate the independent F3 animations.
+  await page.keyboard.press('4');
+  await page.waitForTimeout(600);
+  const standingEye = await page.screenshot({
+    path: 'build/evidence/web-f4-eye-standing.png', fullPage: true,
+  });
+  await page.keyboard.press('3');
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Control');
+  await page.waitForTimeout(550);
+  const crouchIdle = await page.screenshot({
+    path: 'build/evidence/web-crouch-idle.png', fullPage: true,
+  });
+  await page.keyboard.press('4');
+  await page.waitForTimeout(650);
+  const loweredEye = await page.screenshot({
+    path: 'build/evidence/web-f4-eye-crouched.png', fullPage: true,
+  });
+  if (createHash('sha256').update(standingEye).digest('hex') ===
+      createHash('sha256').update(loweredEye).digest('hex')) {
+    errors.push('First-person eye view did not change after crouching');
+  }
+  await page.keyboard.press('3');
+  await page.waitForTimeout(300);
+  // Capture the exact side silhouette too: isometric screenshots alone can
+  // hide whether knees are in front of or behind the hips.
+  await page.keyboard.press('1');
+  await page.waitForTimeout(400);
+  await page.screenshot({
+    path: 'build/evidence/web-crouch-side-idle.png', fullPage: true,
+  });
+  await page.keyboard.press('3');
+  await page.waitForTimeout(400);
+  if (!moveChanges.some(line => line.includes('current=crouch') &&
+      !line.includes('current=crouch_walk'))) {
+    errors.push('Crouch idle did not activate via the real Ctrl input action');
+  }
+  await page.keyboard.down('a');
+  await page.waitForTimeout(900);
+  const crouchWalk = await page.screenshot({
+    path: 'build/evidence/web-crouch-walk.png', fullPage: true,
+  });
+  await page.keyboard.press('1');
+  await page.waitForTimeout(400);
+  await page.screenshot({
+    path: 'build/evidence/web-crouch-side-walk.png', fullPage: true,
+  });
+  await page.keyboard.press('3');
+  await page.waitForTimeout(400);
+  await page.keyboard.up('a');
+  await page.waitForTimeout(950);
+  if (!moveChanges.some(line => line.includes('current=crouch_walk'))) {
+    errors.push('Crouch walk did not activate while holding a movement key');
+  }
+  if (createHash('sha256').update(crouchIdle).digest('hex') ===
+      createHash('sha256').update(crouchWalk).digest('hex')) {
+    errors.push('Crouch idle and crouch walking produced identical browser screenshots');
+  }
+  const sawReturnToIdle = moveChanges.some(line =>
+    line.includes('previous=crouch_walk current=crouch'));
+  if (!sawReturnToIdle) {
+    errors.push('Releasing the walking key did not return crouch-walk to crouch idle; events='
+      + moveChanges.slice(-12).join(' | '));
+  }
+  await page.keyboard.press('Control', { delay: 150 });
+  await page.waitForTimeout(950);
+  const didStand = moveChanges.some(line =>
+    line.includes('previous=crouch current=grounded') ||
+    line.includes('previous=crouch_walk current=grounded'));
+  if (!didStand) {
+    errors.push('Second Ctrl press failed to restore the normal grounded move; events='
+      + moveChanges.slice(-12).join(' | '));
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_CROUCH_OK idle=1 walk=1 stand=1 eye_height=1 screenshots=4');
+
+
+
   // Reproduce the reported F4 jump: the camera-anchored training tool must
   // remain enabled even while the world-space hand and actor move upward.
   await page.keyboard.press('4');

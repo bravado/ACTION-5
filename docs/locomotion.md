@@ -11,12 +11,13 @@ ACTION-5 runs **one authoritative `CharacterBody3D`** for all five perspectives.
 | **Shift** | Run while held |
 | **Alt** | Dodge move component (directional burst) |
 | **X** | Slide move component (requires ground speed) |
+| **Ctrl** | Toggle crouch; moving while crouched plays crouch-walk |
 | **1–5** | Switch camera modes |
 | **C** | Open/close live camera settings |
 | **Esc** | Release captured mouse |
 | **Mouse move** | Orbit/look in camera modes 3 and 4 while captured |
 
-Gamepad: left stick moves, right stick optionally aims/faces independently, A jumps, left-stick click runs, B dodges, Y slides, shoulders cycle camera profiles. All actions are remappable in Godot's InputMap; default bindings are installed only for empty actions.
+Gamepad: left stick moves, right stick optionally aims/faces independently, A jumps, left-stick click runs, B dodges, Y slides, **right-stick click (R3) toggles crouch**, shoulders cycle camera profiles. All actions are remappable in Godot's InputMap; default bindings are installed only for empty actions.
 
 ## Shared classes
 
@@ -33,50 +34,39 @@ D02's `Action5ViewManager` still exclusively owns camera switching. The D03 inpu
 
 ## Add a new player move (no core changes)
 
-**A move is an independent GDScript node**, not a branch in `ActionActor` or `Action5Locomotion`. The shipped `Grounded`, `Airborne`, `Dodge`, and `Slide` are ordinary components. Only one exclusive move is active at a time; the controller chooses the grounded/airborne fallback when a special move finishes. Walk/run/jump are physical capabilities of the underlying solver and do not require separate state-combination classes.
+**Canonical authoring guide:** [Adding a movement component](adding-moves.md).
+It includes a working dash script, registration, input defaults and
+user remapping, `MoveContext` commands, transition arbitration,
+camera-independent animation and F4 eye height, runtime removal, tests,
+and the complete review checklist.
 
-To add a custom dash or climb:
+The core contract is **one registered `Action5Move` active at a
+time**, installed as an immediate child of
+`Player/Locomotion/MovementController/Moves`. The move declares
+`move_id`, optional `action_name` and default binding, priority,
+and lifecycle hooks (`can_enter`, `enter`, `physics_update`,
+`can_exit`, `exit`). The input adapter converts an edge-triggered
+action into an `Action5MoveIntent` request; the controller arbitrates
+it, and only `Action5Locomotion` applies physical velocity and calls
+`move_and_slide()`. No new per-move branch is required in the core.
 
-1. Create a script extending `res://addons/action5/actor/moves/move.gd`.
-2. In its `_init()`, assign a unique `move_id`, an optional `action_name`, optional default keyboard/gamepad keys and a `priority`.
-3. Implement `can_enter(ctx)`, `enter(ctx)`, `physics_update(ctx, delta)`, `can_exit(ctx)` and `exit(ctx)` as needed.
-4. Add a Node with that script beneath **`Player/Locomotion/MovementController/Moves`**. The controller registers it and the input adapter registers its action automatically. Existing `InputMap` remappings are left unchanged.
+For moves with multiple visible states, configure **multiple move IDs
+with matching animation clips**. The reference
+`Action5CrouchMove` is installed twice as `crouch` and
+`crouch_walk`; each maps to a looping clip through
+`demo/assets/crouch_skeleton_profile.tres`. The optional
+`EyeHeightPresenter` maps both IDs to the same additive `-0.45`
+first-person eye offset. A blocked standing transition keeps the
+crouch collider and F4 viewpoint lowered. This behavior needs no
+camera or animation presenter branch.
 
-Example minimal move:
-
-```gdscript
-extends "res://addons/action5/actor/moves/move.gd"
-
-var ticks := 0
-
-func _init() -> void:
-    move_id = &"dash"
-    action_name = &"actor_dash"
-    default_key = KEY_V
-    priority = 30
-
-func can_enter(ctx: ContextScript) -> bool:
-    return ctx.intent.world_move.length_squared() > 0.01
-
-func enter(_ctx: ContextScript) -> void:
-    ticks = 0
-
-func physics_update(ctx: ContextScript, _delta: float) -> void:
-    ctx.request_horizontal_velocity(ctx.intent.world_move * 9.0)
-    ticks += 1
-    if ticks >= 8:
-        ctx.finish_move()
-```
-
-No edits to the actor, locomotion solver, input adapter, or other moves are required. You may also install a move at runtime with `actor.locomotion.move_controller.add_move(move)`. Adding an `Action5Move` directly under `Moves` registers it automatically; `remove_child()` or freeing it unregisters it, clears matching pending requests, and forces an active move to exit. Use `unregister_move(id)` to unregister without detaching the node, and `register_move(move)` to explicitly register that attached node again. Movement IDs must remain stable while registered. InputMap bindings are not deleted on unregistration because they may be user-remapped. Trigger moves from input via their declared action or from AI/code:
-
-```gdscript
-var command := Action5MoveIntent.new(Vector2.RIGHT)
-command.request_move(&"dash")
-actor.apply_move_intent(command)
-```
-
-Movement requests are queued and evaluated on the next physics tick, after the shared command context is initialized. A move's `enter()` and `physics_update()` therefore write to the same one-tick command context; applying an intent does not immediately change the active move. Requests are consumed once, and `stop()` cancels outstanding requests. If several moves are requested in the same tick, the controller checks eligibility and interruption priority, selects **one winner** by highest `priority` (ties go to the lexicographically smallest registered `move_id`), and calls `can_exit` on the current state before making one requested transition. The winner does not depend on request order or move registration order. Ineligible and losing requests are consumed rather than replayed. Normal grounded/airborne fallback transitions still occur when no requested move can start or when the active move finishes. Components may **request** horizontal or vertical velocity and a gravity scale (`ctx.request_horizontal_velocity()`, `ctx.request_vertical_velocity()`, `ctx.request_gravity_scale()`) for dashes, climbs and wall-running, but only the solver touches `CharacterBody3D.velocity` and calls `move_and_slide()`, preserving physics, walls and the five-view invariants. Different action categories such as combat are intentionally reserved for later milestones and should use separate controllers rather than cross-product states like `RunningAndShooting`.
+For AI/code, call `intent.request_move(id)` and pass that intent
+to `actor.apply_move_intent(intent)`. At runtime,
+`move_controller.add_move(move)` registers an added child; removal
+or unregistering an active move must run its `exit()` cleanup.
+Moves can issue horizontal/vertical/gravity commands through
+`Action5MoveContext`. See the [full guide](adding-moves.md)
+before implementing or reviewing another movement.
 
 ## Mode-specific movement
 
@@ -99,8 +89,8 @@ View switches do not overwrite current velocity or change position; F1 stops fut
 ## Run and verify
 
 ```bash
-make run    # auto-import, press Space to jump and 1–5 to change views
-make test   # headless D01 + D02 + D03 regression suite
+make run    # auto-import; WASD, Space, Ctrl crouch and 1–5 views
+make test   # headless D01–D04 + crouch/movement regression suites
 make build  # Linux + Web export
 make serve-web
 ```
@@ -108,3 +98,50 @@ make serve-web
 CI verifies the Godot import/test/negative-test matrix, exported Linux executable, browser WebGL2 runtime and rendered screenshots. The D03 test suite installs a **test-only custom move** to prove no actor/input/solver edits are necessary, as well as testing Slide and Dodge through the shared controller. D03 tests specifically exercise real physics walking, running, jumping/landing, side lane stability, wall collision, disabled actor, deadzones and camera projection vectors.
 
 **Not D03:** animation clip mapping (D04), combat hitboxes (D05), weapon equipping (D06), or enemy AI (D07).
+
+## Crouching as an independent movement example
+
+The `Crouch` and `CrouchWalk` nodes under
+`demo/player.tscn → Locomotion/MovementController/Moves` use the same
+`Action5CrouchMove` script with two configured move IDs. Press **Ctrl**
+(or gamepad **R3**) to toggle a crouched stance. Moving while crouched
+walks at 2.2 world units/s and plays the separate looping `crouch_walk`
+animation; releasing movement returns to `crouch` idle. Press again
+to stand, provided there is headroom.
+
+The component changes only its actor's duplicated capsule collider; the
+bottom stays aligned with the ground. It submits a horizontal-velocity
+request to `MoveContext`, rather than writing `CharacterBody3D.velocity`
+or calling `move_and_slide()`. Its overhead probe prevents standing
+through a ceiling. Canceling the active move restores the original shape.
+
+The original, MIT-licensed rig generator now includes articulated knee
+joints and distinct thigh/shin meshes so the knees can bend forward and the shins can fold back
+underneath the hips, instead of rotating as straight planks into a seated pose. The generator
+authors two additional `-loop` glTF clips. `demo/assets/crouch_skeleton_profile.tres` maps
+their imported names to the move IDs. **No edits** to `Action5Actor`,
+`Action5Locomotion`, `Action5MovementController`,
+`Action5ActorInputAdapter` or `Action5AnimationPresenter` are needed.
+For another move, install a new `Action5Move` child, configure its action,
+and include the matching clip(s) in the skeleton profile.
+
+### Independent first-person eye presentation
+
+`EyeHeightPresenter` observes the existing `MovementController.move_changed`
+signal and eases an actor-local `EyeOffset` Node3D toward a configurable
+vertical offset. The demo configures `crouch` and `crouch_walk` to `-0.45`
+world units. Both states share the same target, so switching from crouch idle
+to crouch walk does not bob the viewport back to standing height. A failed
+stand-up request leaves the movement state (and eye height) crouched.
+
+The camera's generic `eye_offset_path` is optional and only contributes in
+F4: its effective height is the current `ViewProfile.eye_height` plus the
+actor-local Y offset. Other camera profiles remain unchanged. The additive
+model preserves the existing camera settings UI, including user eye-height
+preferences. Removing the presenter disconnects its movement listener and
+restores the original eye-offset position.
+
+Adding crawling, sliding, or another stance needs only an offset entry in
+`move_offsets` and an installed movement component. No changes are required
+to `Action5Actor`, `MovementController`, `AnimationPresenter`, the movement
+component, or the camera's mode-specific logic.

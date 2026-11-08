@@ -6,9 +6,12 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## One persistent Camera3D for all five profiles; never owns gameplay state.
 
 @onready var camera: Camera3D = $Camera3D
+## Optional target-relative presentation offset (no movement dependencies).
+@export var eye_offset_path: NodePath = ^"EyeOffset"
 
 var profile: ViewProfileScript
 var target: Node3D
+var _eye_offset: Node3D
 var orbit_yaw: float = 0.0
 var orbit_pitch: float = 0.0
 var transition_count: int = 0
@@ -23,6 +26,7 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
     )
     profile = next_profile
     target = next_target
+    _eye_offset = target.get_node_or_null(eye_offset_path) as Node3D
     # Isometric stores user mouse deltas relative to its zoom-dependent
     # angle. First person retains direct yaw/pitch (eye camera).
     orbit_yaw = deg_to_rad(profile.default_yaw_degrees) if profile.mode == ViewProfileScript.Mode.FIRST_PERSON else 0.0
@@ -96,7 +100,12 @@ func _update_camera(delta: float) -> void:
 
     if profile.is_orbit_mode():
         if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
-            focus = actor_position + Vector3.UP * profile.eye_height
+            # Additive data from the actor; neither this rig nor its
+            # ViewProfile needs to know whether the move is crouch or crawl.
+            var local_eye_y: float = (
+                _eye_offset.position.y if is_instance_valid(_eye_offset) else 0.0
+            )
+            focus = actor_position + Vector3.UP * (profile.eye_height + local_eye_y)
             desired = focus
         else:
             # A SINGLE isometric profile blends between a wide, inclined
