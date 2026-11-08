@@ -210,6 +210,7 @@ func _run_tests() -> void:
         # Both the isometric mouse orbit AND the visual facing must survive.
         var original_facing: Vector2 = player.facing.facing_world
         player.facing.set_facing(Vector2.RIGHT)
+        player.facing._process(1.0)
         var iso_base_basis: Basis = manager.get_active_camera().global_basis
         fps_rig.apply_mouse_motion(Vector2(170.0, -95.0))
         # Compare fully resolved orbits, not transitional follow smoothing.
@@ -220,9 +221,14 @@ func _run_tests() -> void:
         var iso_orbit_basis: Basis = manager.get_active_camera().global_basis
         _check(not iso_orbit_basis.is_equal_approx(iso_base_basis),
             "F3 mouse orbit is non-default before the round trip")
+        var prior_fps_pitch: float = 0.0
         for repeat_index in range(3):
             manager.switch_view(3)
             await physics_frame
+            var fps_forward: Vector3 = -manager.get_active_camera().global_basis.z
+            _check(Vector2(fps_forward.x, fps_forward.z).distance_to(Vector2.RIGHT) < 0.01,
+                "F4 looks east on entry while the character faces east")
+            prior_fps_pitch = fps_rig.orbit_pitch
             var idle_first_person = actor_input.compose_intent(Vector2.ZERO)
             _check(idle_first_person.face_world.is_zero_approx()
                 and idle_first_person.aim_world.is_zero_approx(),
@@ -236,6 +242,21 @@ func _run_tests() -> void:
             "F3 keeps its yaw, pitch and camera basis after repeated F4 switches")
         _check(player.facing.facing_world.is_equal_approx(Vector2.RIGHT),
             "Idle F4 round trips preserve the player's east-facing direction")
+
+        # Turning in F3 must update F4's heading, without resetting the
+        # first-person pitch or the already established isometric orbit.
+        player.facing.set_facing(Vector2.LEFT)
+        player.facing._process(1.0)
+        manager.switch_view(3)
+        var west_forward: Vector3 = -manager.get_active_camera().global_basis.z
+        _check(Vector2(west_forward.x, west_forward.z).distance_to(Vector2.LEFT) < 0.01
+            and is_equal_approx(fps_rig.orbit_pitch, prior_fps_pitch),
+            "F4 follows the player's new west-facing heading, preserving pitch")
+        _check(player.facing.facing_world.is_equal_approx(Vector2.LEFT),
+            "F4 camera heading alignment does not rotate the actor")
+        manager.switch_view(2)
+        _check(manager.get_active_camera().global_basis.is_equal_approx(iso_orbit_basis),
+            "Syncing FPS to the actor never changes F3 isometric orbit")
 
         # Actual F4 mouse look still directs the character, and that new
         # intentional facing must remain when returning to F3.
@@ -254,6 +275,7 @@ func _run_tests() -> void:
         fps_rig._snap_next = true
         fps_rig._update_camera(1.0 / 60.0)
         player.facing.set_facing(original_facing)
+        player.facing._process(1.0)
         _check(manager.get_active_camera().global_basis.is_equal_approx(iso_base_basis),
             "F3 orbit returns to its previous angle after inverse mouse input")
         _check(manager.profiles[2].shoulder_offset > 0.5
