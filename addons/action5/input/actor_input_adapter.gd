@@ -23,6 +23,8 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 var enabled: bool = true
 var focus_active: bool = true
 var require_neutral: bool = false
+# Entering F4 alone is not an aiming command that turns the actor.
+var _first_person_entry_look_revision: int = 0
 
 
 func _ready() -> void:
@@ -81,8 +83,12 @@ func compose_intent(
     var aim: Vector2 = Vector2.ZERO
     if independent_aim_enabled and aim_axes.length_squared() > 0.001:
         aim = MovementPolicyScript.to_world(aim_axes, mode, basis)
-    # In first-person, actor facing follows the camera heading even when idle.
-    if mode == ViewProfileScript.Mode.FIRST_PERSON and aim.length_squared() < 0.001:
+    # In F4, explicit movement or mouse look may orient the body to the
+    # camera. A view switch with neutral input must not silently turn it.
+    if mode == ViewProfileScript.Mode.FIRST_PERSON and aim.length_squared() < 0.001 and (
+        movement.length_squared() > 0.001
+        or views.camera_rig.look_input_revision != _first_person_entry_look_revision
+    ):
         aim = MovementPolicyScript.to_world(Vector2(0.0, -1.0), mode, basis)
     var sectors: int = 4 if retro_facing == 0 else 8
     var facing := MovementPolicyScript.choose_facing(movement, aim, mode, sectors)
@@ -115,6 +121,8 @@ func set_enabled(value: bool) -> void:
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if actor == null:
         return
+    if current.mode == ViewProfileScript.Mode.FIRST_PERSON:
+        _first_person_entry_look_revision = views.camera_rig.look_input_revision
     if current.mode == ViewProfileScript.Mode.SIDE:
         actor.enter_side_view()
     else:

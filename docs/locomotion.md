@@ -78,7 +78,7 @@ before implementing or reviewing another movement.
 | **4 — First person** | Camera heading maps ground X/Z movement; looking up/down never introduces vertical velocity |
 | **5 — Retro overhead** | Camera screen right/up project onto ground; never use projected forward at exact vertical pitch. Physical movement is continuous; optional facing can be 4-way Zelda-like or 8-way Commando-like |
 
-All projections normalize diagonal inputs to prevent faster diagonal movement. Independent aiming with the right stick can change facing without changing the movement vector.
+All projections normalize diagonal inputs to prevent faster diagonal movement. Independent aiming with the right stick can change facing without changing the movement vector. F4's camera aim only updates the actor's facing after explicit mouse look or movement (or a non-neutral independent aim); entering first person with neutral controls must not turn a stationary actor.
 
 ## Tuning and physical constraints
 

@@ -497,6 +497,14 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(manager.switch_view(2) and manager.switch_view(3),
         "VT-12 switches from third-person to first-person beside a real wall")
     var near_wall_camera: Camera3D = manager.get_active_camera()
+    # This collision fixture intentionally looks north at NorthWall.
+    # F4 now inherits actual player facing, so set the test ray's camera
+    # orientation explicitly instead of depending on a north-reset bug.
+    var prior_wall_test_yaw: float = manager.camera_rig.orbit_yaw
+    var prior_wall_test_pitch: float = manager.camera_rig.orbit_pitch
+    manager.camera_rig.orbit_yaw = 0.0
+    manager.camera_rig.orbit_pitch = 0.0
+    manager.camera_rig._update_camera(1.0 / 60.0)
     var forward_ray := PhysicsRayQueryParameters3D.create(
         near_wall_camera.global_position,
         near_wall_camera.global_position
@@ -515,6 +523,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "VT-12 body stays culled near the wall while equipment and rig stay visible")
     verify.call(actor.global_position.distance_to(near_wall_position) < 0.01,
         "VT-12 camera switch does not move or teleport the actor near a wall")
+    manager.camera_rig.orbit_yaw = prior_wall_test_yaw
+    manager.camera_rig.orbit_pitch = prior_wall_test_pitch
     actor.global_position = near_wall_previous_position
     actor.velocity = Vector3.ZERO
 

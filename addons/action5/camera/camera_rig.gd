@@ -8,6 +8,9 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @onready var camera: Camera3D = $Camera3D
 ## Optional target-relative presentation offset (no movement dependencies).
 @export var eye_offset_path: NodePath = ^"EyeOffset"
+## Optional actor-local facing anchor. F4 starts aligned with the model's
+## heading, but retains manual FPS yaw unless the actor turned elsewhere.
+@export var facing_anchor_path: NodePath = ^"Visual"
 
 var profile: ViewProfileScript
 var target: Node3D
@@ -16,6 +19,12 @@ var orbit_yaw: float = 0.0
 var orbit_pitch: float = 0.0
 var transition_count: int = 0
 var _snap_next: bool = true
+# Each orbit view retains its own look direction across profile changes.
+var _orbit_angles: Dictionary = {}
+## Advances only for actual mouse-look input, not for camera view changes.
+var look_input_revision: int = 0
+var _last_fps_exit_facing_yaw: float = 0.0
+var _has_fps_exit_facing: bool = false
 
 
 func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void:
@@ -24,13 +33,49 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
     var leaving_first_person: bool = (
         profile != null and profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     )
+    var old_target: Node3D = target
+    if profile != null and profile.is_orbit_mode():
+        _orbit_angles[profile.mode] = Vector2(orbit_yaw, orbit_pitch)
+    if leaving_first_person:
+        var previous_facing := _facing_anchor(old_target)
+        _has_fps_exit_facing = previous_facing != null
+        if _has_fps_exit_facing:
+            _last_fps_exit_facing_yaw = _anchor_world_yaw(previous_facing)
     profile = next_profile
     target = next_target
     _eye_offset = target.get_node_or_null(eye_offset_path) as Node3D
-    # Isometric stores user mouse deltas relative to its zoom-dependent
-    # angle. First person retains direct yaw/pitch (eye camera).
-    orbit_yaw = deg_to_rad(profile.default_yaw_degrees) if profile.mode == ViewProfileScript.Mode.FIRST_PERSON else 0.0
-    orbit_pitch = deg_to_rad(profile.default_pitch_degrees) if profile.mode == ViewProfileScript.Mode.FIRST_PERSON else 0.0
+    # F3 stores user offsets from its zoom-dependent orbit; F4 stores
+    # direct yaw/pitch. Never discard one while activating the other.
+    if profile.is_orbit_mode():
+        if not _orbit_angles.has(profile.mode):
+            _orbit_angles[profile.mode] = (
+                Vector2(deg_to_rad(profile.default_yaw_degrees),
+                    deg_to_rad(profile.default_pitch_degrees))
+                if profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+                else Vector2.ZERO
+            )
+        var saved_orbit: Vector2 = _orbit_angles[profile.mode]
+        orbit_yaw = saved_orbit.x
+        orbit_pitch = (
+            clampf(saved_orbit.y,
+                deg_to_rad(profile.min_pitch_degrees),
+                deg_to_rad(profile.max_pitch_degrees))
+            if profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+            else saved_orbit.y
+        )
+        if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
+            var facing := _facing_anchor(target)
+            if facing != null:
+                var facing_yaw: float = _anchor_world_yaw(facing)
+                # Honor new actor-facing direction after another view has
+                # turned the character, but never snap back to world north.
+                if old_target != target or not _has_fps_exit_facing or (
+                    absf(wrapf(facing_yaw - _last_fps_exit_facing_yaw, -PI, PI)) > 0.01
+                ):
+                    orbit_yaw = facing_yaw
+    else:
+        orbit_yaw = 0.0
+        orbit_pitch = 0.0
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL if profile.orthographic else Camera3D.PROJECTION_PERSPECTIVE
     camera.size = profile.orthographic_size
     camera.fov = profile.field_of_view
@@ -50,6 +95,19 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
     _update_camera(1.0 / 60.0)
 
 
+## Read a generic Node3D's orientation; neither movement nor actor logic
+## is imported here. Missing anchors simply leave the F4 orbit untouched.
+func _facing_anchor(actor: Node3D) -> Node3D:
+    if not is_instance_valid(actor):
+        return null
+    return actor.get_node_or_null(facing_anchor_path) as Node3D
+
+
+func _anchor_world_yaw(anchor: Node3D) -> float:
+    var backward: Vector3 = anchor.global_basis.z
+    return atan2(backward.x, backward.z)
+
+
 ## Apply live UI tuning without resetting current mouse yaw or the player.
 func refresh_settings(update_pitch: bool = false) -> void:
     if profile == null or target == null:
@@ -63,8 +121,9 @@ func refresh_settings(update_pitch: bool = false) -> void:
 
 
 func apply_mouse_motion(relative: Vector2) -> void:
-    if profile == null or not profile.is_orbit_mode():
+    if profile == null or not profile.is_orbit_mode() or not relative.is_finite() or relative.is_zero_approx():
         return
+    look_input_revision += 1
     orbit_yaw -= relative.x * profile.mouse_sensitivity
     if profile.mode == ViewProfileScript.Mode.ISOMETRIC:
         orbit_pitch = clampf(

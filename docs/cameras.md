@@ -14,7 +14,7 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 **Number row 1–5** is the primary shortcut on both desktop and Web. F1–F5 is an optional secondary binding, because browsers may reserve function keys. There are five visible in-game selector buttons and configurable gamepad shoulder-button cycling. `Ctrl+1–5` is *not* a supported browser fallback: browsers use Ctrl+number for tab navigation.
 
-Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
+Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
 
 ## One isometric/shoulder profile
 
@@ -45,7 +45,7 @@ The addon components are scene-independent and live exclusively within `addons/a
 
 - **`Action5ViewProfile`** — editable `Resource` defining a view.
 - **`Action5ViewManager`** — tracks five profiles, active mode and changes, emits `view_changed(current, previous)`. Never owns or changes actor physics.
-- **`Action5CameraRig`** — one persistent `Camera3D`, projection, follow smoothing, zoom, orbit, bounds, close-camera collision and the vertical-overhead up axis.
+- **`Action5CameraRig`** — one persistent `Camera3D`, projection, follow smoothing, zoom, orbit, bounds, close-camera collision and the vertical-overhead up axis. The optional `facing_anchor_path` (default `Visual`, resolved under the actor) supplies a plain `Node3D` orientation for F4 heading alignment, without importing any actor or movement script. Without that node, the independent F4 yaw remains unchanged.
 - **`Action5ViewInput`** — input actions `view_1` … `view_5`, optional function keys and gamepad cycle; respects user remapping rather than overwriting non-empty bindings.
 - **`Action5CameraSettingsPanel`** — reusable controls, per-profile visibility and persistence.
 
