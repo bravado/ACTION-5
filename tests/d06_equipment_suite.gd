@@ -84,21 +84,22 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             == combat.get_attack(&"bat_swing"),
         "Equipped Bat replaces both left/right attack intents with Bat swing")
     combat.cancel()
+    # D05's destructive input suite may have used the same action
+    # within the current physics frame. Release and drain the old edge
+    # before testing a fresh equipped action request.
+    Input.action_release(&"actor_kick")
+    for tick in range(2):
+        await tree.physics_frame
+    combat.cancel()
     action_input.set("release_to_rearm", false)
     Input.action_press(&"actor_kick")
-    var test_context: Node = action_input.get("context_source") as Node
-    var before_context: Resource = (
-        test_context.call("get_action_input_context") as Resource
-        if is_instance_valid(test_context) else null
-    )
     var pressed: bool = Input.is_action_just_pressed(&"actor_kick")
     action_input.call("_physics_process", 1.0 / 60.0)
     print("ACTION5_D06_INPUT_DIAG just_pressed=", pressed,
-        " accepted=", before_context.get("accepting_actions") if before_context != null else null,
-        " selected=", (selector.call("get_attack_for_input",
-            &"actor_kick", combat.get_attack(&"kick")) as Resource).get("attack_id"),
+        " context=", (action_input.get("context_source") as Node).call(
+            "get_action_input_context").accepting_actions,
         " requested=", combat._pending_id,
-        " phase=", combat.phase, " release=", action_input.get("release_to_rearm"))
+        " release=", action_input.get("release_to_rearm"))
     Input.action_release(&"actor_kick")
     verify.call(combat._pending_id == &"bat_swing"
         and combat._pending_id != &"kick",
