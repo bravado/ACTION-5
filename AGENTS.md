@@ -24,6 +24,8 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - `make import` regenerates the local Godot registry/resource imports.
 - `make run` imports, then launches the game; `make editor` opens the editor.
 - `make test` imports, runs Godot headless tests and checks parser/runtime logs.
+- `make check` also verifies reproducible GLB fixtures; it is the local equivalent of the quick PR CI checks.
+- PR CI runs fast checks; full native/WebGL2 E2E runs on pushes to `master` or when the latest PR commit has `[full-e2e]`. Request full E2E before merging a visual-sensitive feature.
 - `make web`, `make linux`, and `make build` import before exporting.
 - The Makefile must fail closed on Godot errors and retain `.godot/` as a generated, ignored cache.
 - CI must exercise Makefile targets rather than maintaining a conflicting implementation of the import/build steps. Do not add a requirement to commit the generated class registry.
