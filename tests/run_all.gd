@@ -162,6 +162,40 @@ func _run_tests() -> void:
         _check(fps_rig.orbit_pitch > start_pitch
             and manager.get_active_camera().global_basis.z.y > 0.05,
             "First-person mouse-down looks down by default")
+
+        # F4 must resume the *last* mouse-look angle, not its configured
+        # defaults, after any other view is selected. The same Camera3D and
+        # authoritative player must remain alive throughout the switches.
+        var start_yaw: float = fps_rig.orbit_yaw
+        fps_rig.apply_mouse_motion(Vector2(120.0, 0.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        var saved_fps_yaw: float = fps_rig.orbit_yaw
+        var saved_fps_pitch: float = fps_rig.orbit_pitch
+        var saved_fps_basis: Basis = manager.get_active_camera().global_basis
+        manager.switch_view(2)
+        manager.switch_view(3)
+        _check(is_equal_approx(fps_rig.orbit_yaw, saved_fps_yaw)
+            and is_equal_approx(fps_rig.orbit_pitch, saved_fps_pitch)
+            and manager.get_active_camera().global_basis.is_equal_approx(saved_fps_basis),
+            "F4 restores mouse yaw/pitch and camera look after visiting F3")
+        manager.switch_view(4)
+        manager.switch_view(3)
+        _check(is_equal_approx(fps_rig.orbit_yaw, saved_fps_yaw)
+            and is_equal_approx(fps_rig.orbit_pitch, saved_fps_pitch)
+            and manager.get_active_camera().global_basis.is_equal_approx(saved_fps_basis)
+            and player.get_instance_id() == player_id
+            and manager.get_active_camera().get_instance_id() == camera_id,
+            "F4 look remains stable through F5 and repeated switches without re-creation")
+        fps_rig.apply_mouse_motion(Vector2(15.0, -10.0))
+        _check(fps_rig.orbit_yaw < saved_fps_yaw
+            and fps_rig.orbit_pitch < saved_fps_pitch,
+            "F4 mouse look continues smoothly from its restored orientation")
+        # Restore initial orientation so later camera tests remain independent.
+        fps_rig.apply_mouse_motion(Vector2(-135.0, -70.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        _check(is_equal_approx(fps_rig.orbit_yaw, start_yaw)
+            and is_equal_approx(fps_rig.orbit_pitch, start_pitch),
+            "F4 test mouse input returns to its initial orientation")
         manager.switch_view(2)
         _check(player.get_node("Visual").visible,
             "F3 restores third-person actor visuals")
