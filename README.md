@@ -100,14 +100,15 @@ Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands a
 
 ```bash
 make run          # Import, run (1–5 view; WASD move; Space jump; Shift run; Alt dodge)
-make test         # Import, then run headless tests
+make test         # Import, then run headless Godot tests
+make check        # Same asset + Godot checks as PR CI (requires Node.js)
 make editor       # Import, then open the Godot editor
 make build        # Import and export Linux + Web
 ```
 
 Or prepare the project once explicitly with `make import`. For other Godot executable names use `make run GODOT=godot4`. The `.godot/` cache stays local and is not committed. See `make help` for all targets.
 
-For export template installation, browser/native builds, screenshots and CI logs, see [docs/development.md](docs/development.md).
+Normal PR updates run only `make check`, while pushes to `master` run the full native/browser E2E suite. To request full E2E on a PR, put `[full-e2e]` in its latest commit message (subject or body). You can also choose the full E2E option in the workflow's manual dispatch. For details, see [docs/development.md](docs/development.md).
 
 ## License and assets
 
