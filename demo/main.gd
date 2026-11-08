@@ -5,6 +5,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
+const AimScript = preload("res://addons/action5/combat/aim_provider.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
@@ -13,6 +14,7 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _combat: Node = $Player/CombatController
 @onready var _health: Node = $Player/Health
+@onready var _equipment: Node = $Player/Equipment
 
 var _combat_was_active: bool = false
 @onready var _status: Label = $Hud/Status
@@ -83,6 +85,41 @@ func _unhandled_input(event: InputEvent) -> void:
         elif event.keycode == KEY_B and not _camera_settings.visible:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
+        elif not _camera_settings.visible:
+            var consumed: bool = false
+            match event.keycode:
+                KEY_E:
+                    consumed = _pickup_closest_weapon()
+                KEY_Q:
+                    consumed = bool(_equipment.call("swap_next"))
+                KEY_G:
+                    consumed = bool(_equipment.call("drop_current"))
+                KEY_F:
+                    var context = _input.get_action_input_context()
+                    if context.accepting_actions:
+                        var direction: Vector2 = AimScript.resolve_direction(
+                            context.world_aim, context.facing_world,
+                            context.view_mode, context.camera
+                        )
+                        consumed = bool(_equipment.call("request_equipped_action", 0, direction))
+            if consumed:
+                get_viewport().set_input_as_handled()
+
+
+func _pickup_closest_weapon() -> bool:
+    var closest: Node3D
+    var best: float = float(_equipment.get("pickup_radius"))
+    for candidate in get_tree().get_nodes_in_group("action5_weapon_pickup"):
+        var weapon := candidate as Node3D
+        if weapon == null or bool(weapon.get("is_equipped")):
+            continue
+        if (_equipment.get("inventory") as Array).has(weapon):
+            continue
+        var distance: float = weapon.global_position.distance_to(_player.global_position)
+        if distance <= best:
+            closest = weapon
+            best = distance
+    return closest != null and bool(_equipment.call("pickup", closest))
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.
@@ -124,6 +161,9 @@ func _refresh_status(profile: ViewProfileScript) -> void:
         _views.active_index + 1, profile.display_name, _moves.active_id, hp,
         action_label, _combat.get("phase"), _combat.get("elapsed_ticks"), _views.switch_count
     ]
+    var held: Node3D = _equipment.get("current_weapon") as Node3D
+    if held != null:
+        next_text += " | Weapon " + str(held.definition.display_name)
     if _status.text != next_text:
         _status.text = next_text
 

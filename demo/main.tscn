@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="7_actor_input"]
 [ext_resource type="PackedScene" path="res://demo/combat/training_target.tscn" id="8_target"]
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
+[ext_resource type="PackedScene" path="res://demo/equipment/bat.tscn" id="10_bat"]
+[ext_resource type="PackedScene" path="res://demo/equipment/shovel.tscn" id="11_shovel"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -155,6 +157,12 @@ shape = SubResource("BoxShape3D_step")
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.15, 0)
 
+[node name="BatPickup" parent="." instance=ExtResource("10_bat")]
+position = Vector3(1.4, 0.45, 1.0)
+
+[node name="ShovelPickup" parent="." instance=ExtResource("11_shovel")]
+position = Vector3(-1.4, 0.45, 1.0)
+
 [node name="NearDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(2.1, 0.0, -2.0)
 
@@ -195,7 +203,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // MOVEMENT DEMO\n1–5: view | WASD: move | Space: jump | Shift: run\nCtrl/R3: crouch toggle | X: slide | Alt: dodge"
+text = "ACTION-5 // MOVEMENT + EQUIPMENT\n1–5: view | WASD: move | Space: jump | LMB/RMB: punch/kick\nE: pickup | Q: swap | G: drop | F: weapon swing"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0

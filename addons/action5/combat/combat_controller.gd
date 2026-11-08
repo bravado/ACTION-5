@@ -9,6 +9,7 @@ const HealthScript = preload("res://addons/action5/combat/health.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 
 signal attack_registered(attack: Resource)
+signal attack_unregistered(id: StringName)
 signal attack_cancelled(id: StringName)
 signal attack_started(id: StringName)
 signal attack_phase_changed(id: StringName, phase: StringName, tick: int)
@@ -58,6 +59,19 @@ func register_attack(attack: AttackScript) -> bool:
         return false
     _registry[attack.attack_id] = attack
     attack_registered.emit(attack)
+    return true
+
+
+## Generic attack unregistration is needed when equipment is removed.
+## Removing the current/buffered attack cancels it before releasing the ID;
+## no weapon type or scene hierarchy is referenced.
+func unregister_attack(id: StringName) -> bool:
+    if not _registry.has(id):
+        return false
+    if current_id == id or _pending_id == id:
+        cancel()
+    _registry.erase(id)
+    attack_unregistered.emit(id)
     return true
 
 
