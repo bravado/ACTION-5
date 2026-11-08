@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D04 are merged; D05 combat is in progress in PR #28.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 equipment is in progress; D06-02 guns and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -167,6 +167,35 @@ Do not mark D05 complete or merge it on the strength of earlier commit CI.
 
 Follow [docs/combat.md](docs/combat.md) and ADR-0003. New attacks use an AttackDefinition and the existing CombatController/CombatInputAdapter request contract: never add attack-name branches to Actor, Locomotion, MovementController, ActorInputAdapter, AnimationPresenter or CameraRig. Combat owns physics-tick startup/active/recovery, mutable hit history, and Health/Hurtbox filtering. The only generic locomotion integration is apply_external_impulse; no combat code writes CharacterBody3D.velocity. Input edges must release-to-rearm through focus/settings interruption. Tests must prove new third-attack configuration and dedup across multiple hurtboxes before D05 is accepted.
 
+## D06 weapon and equipment extension contract (in progress)
+
+Read [docs/equipment.md](docs/equipment.md) and ADR-0005 before modifying D06.
+An equipped world weapon is one `Action5Weapon` instance. An immutable
+`Action5WeaponDefinition` describes its socket, independent attacks,
+world appearance and optional F4 scene; no ammo or mutable state in Resources.
+`Action5EquipmentController` handles only inventory/selection/lifecycle.
+`EquipmentVisualAdapter` resolves the generic `get_mount(socket_id)`
+port, tracks world-mesh/shadow registrations and creates at most one
+render-only F4 viewmodel. Weapons and the equipment controller must never
+inspect view modes, camera/FPS render layers, named specific weapon types,
+AnimationPresenter or FirstPersonPresenter internals.
+
+D05's generic `register_attack` / `unregister_attack` pair is the only
+combat registry extension required for D06-01; unequip must cancel an
+active or buffered weapon attack before removing it. Equipped weapons
+provide attack definitions to D05 and request action IDs; they do not
+execute a second attack timer, own hit queries or read raw inputs.
+Test Bat, Shovel and a third fixture with different attack data, all five
+views, F3/F4 mid action, drop/teardown/shadows and an NPC without local
+first-person presentation. D06-02 must reuse this controller with a Gun
+instance owning ammo/reload, a per-weapon ranged effect and a physical
+world-muzzle obstruction query. **Never** infer a valid shot solely from
+a clear camera ray, and never add `is_gun` or weapon-ID switches.
+
+Status: D06-01 is in development. Do not mark issue #13 complete or
+claim native/WebGL2 visual acceptance until the current branch has passed
+its E2E gates. D06-02 (#14) and D07 (#15) remain separate deliveries.
+
 ## Starting task
 
-**D01–D04 are merged.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference implementation. D05 combat is separate: keep attacks and weapons decoupled from movement registration and reuse existing animation/camera interfaces.
+**D01–D05 are merged.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference implementation. D05 is complete. For D06, follow the equipment adapter contract above; keep future gun effects and enemy AI separate from the reusable movement, animation and camera classes.

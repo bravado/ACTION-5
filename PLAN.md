@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-08):** D01–D04 merged (D04 via PR #25), crouch movement merged (PR #26). D05 is implemented in PR #28 and undergoing final review on top of master, using the current CI / Checks and conditional CI / Full E2E workflows. D05 issues remain open until the latest PR commit passes the required technical/visual gates and the PR is merged. The F4 camera-space viewmodel implementation is documented by ADR-0004. The release specifications and acceptance gates below remain authoritative.  
+**Status update (2026-11-08):** D01–D05 merged; D05-01 (#11) and D05-02 (#12) closed by squash-merged PR #28 (`881de1c`). The foundation, crouch example and D05 unarmed/F4 component contracts have passed native/WebGL2 validation. **D06-01** is currently being implemented in branch `feat/d06-01-equipment`: generic equipment lifecycle, Bat/Shovel, socket and F4 visuals, with regression tests; it is **not complete until current-head CI and visual acceptance pass**. **D06-02 Gun** and **D07 Enemy AI** remain pending. ADR-0005 documents the D06 equipment boundary. The release specifications and acceptance gates below remain authoritative.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -384,6 +384,13 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - F4 fires toward intended camera target from muzzle; F1/F2/F3/F5 use respective aim policy. F5 supports 4-way sword strikes and 8-way gun aiming with shared muzzle obstruction rules.
 - Ammo and reload state survive a view change; invalid shots do not use ammunition unless intended by rule.
 - Automated tests cover weapon life cycle, cooldowns, ammo limits and hit filtering.
+
+**D06 execution sequence and no-coupling gate (2026-11-08):**
+- **D06-01 / #13 (in progress):** `WeaponDefinition` is immutable configuration (ID, socket, attack definitions, world/F4 asset and grip); each `Weapon` instance owns its equipped state and future mutable properties. `EquipmentController` handles inventory, pickup radius, selection, mount and drop. A *separate* optional `EquipmentVisualAdapter` resolves animated sockets via `AnimationPresenter.get_socket()`, registers **each** world mesh through `FirstPersonPresenter.register_world_visual()`, and creates at most one render-only F4 viewmodel. Neither equipment controller nor weapon reads camera mode, manipulates layers, or writes movement velocity.
+- **D05 integration:** one generic `CombatController.unregister_attack(id)` complements `register_attack()` for equipment teardown and cancels any current/buffered action before removal. It knows no specific weapon type. Weapon definitions register their attacks only when equipped; the weapon requests D05 action IDs through the single authoritative combat timeline. Test a third independently authored weapon and a camera-free NPC with an alternative mount provider.
+- **D06-01 acceptance outstanding:** make-check/CI and native/WebGL2 visual verification on the latest PR head; player pickup/swap/drop and F3↔F4 while moving/jumping/attacking; multi-mesh local shadow and lifecycle regression. Keep the issue open until approved/merged.
+- **D06-02 / #14 (not implemented):** gun ammo/reload and hitscan must reside in a dedicated per-instance weapon behavior, using the existing generic equipment slot lifecycle. A view-specific aim provider chooses a world target, while a **separate ray from the world muzzle** controls obstruction and hit eligibility. Never route gun hits solely through D05's melee box sweep; do not add gun type branches to EquipmentController, CombatController, camera, actor, or animation core.
+- **D07 / #15 (pending):** NPC equipment uses ordinary world meshes without private F4 registration. AI supplies movement intents and action requests independently of player input or camera state. Use the same weapon instances/controller rather than another AI-only combat engine.
 
 #### D07 — Enemy actor and basic combat AI
 **Depends on:** D05/D06. **Effort:** 2–4 sessions.

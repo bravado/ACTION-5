@@ -2,11 +2,13 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D01–D04 merged; D05 combat under implementation in PR #28.** The five-camera foundation, pluggable movement and crouch/crouch-walk example are merged. D05 adds unarmed combat, health, hitboxes and 3D aim; weapons and enemy AI follow after D05 validation.
+> **Project status (2026-11-08): D01–D05 merged.** D05 unarmed combat, health, 3D aim and camera-local first-person poses were squash-merged in PR #28. **D06-01 Bat/Shovel equipment is under development** on `feat/d06-01-equipment`, with generic pickup/swap/drop and presentation adapters. Gun/ammo/muzzle obstruction (D06-02) and enemy AI (D07) are not yet implemented.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
 It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawlers, third-person action games, first-person dungeon combat, and classic NES-style top-down action.
+
+**D06-01 demo controls (development branch):** E picks up the nearest Bat/Shovel, Q swaps between carried weapons, G drops the equipped item, and F performs its configured swing. LMB/RMB or J/K still perform D05 unarmed attacks. Pickups are placed near the player in the sample arena. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
 
 ## Five perspectives
 
