@@ -42,8 +42,9 @@ func _on_equipped(weapon: Node3D) -> void:
         return
     if not bool(first_person.call("is_local_actor")):
         return
-    for mesh in weapon.get_world_meshes():
-        if first_person.call("register_world_visual", mesh):
+    for candidate in weapon.call("get_world_meshes"):
+        var mesh := candidate as MeshInstance3D
+        if mesh != null and first_person.call("register_world_visual", mesh):
             _registered_meshes.append(mesh)
     var definition: Resource = weapon.get("definition")
     var scene: PackedScene = definition.get("first_person_scene")
@@ -73,7 +74,7 @@ func _process(_delta: float) -> void:
     if state.is_empty():
         return
     var definition: Resource = _active_weapon.get("definition")
-    for attack in _active_weapon.get_attack_definitions():
+    for attack in _active_weapon.call("get_attack_definitions"):
         if state.get("key", &"") == attack.get("animation_key"):
             var progress: float = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
             var degrees: Vector3 = definition.get("first_person_swing_degrees")

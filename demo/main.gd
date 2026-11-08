@@ -163,7 +163,8 @@ func _refresh_status(profile: ViewProfileScript) -> void:
     ]
     var held: Node3D = _equipment.get("current_weapon") as Node3D
     if held != null:
-        next_text += " | Weapon " + str(held.definition.display_name)
+        var item_definition: Resource = held.get("definition")
+        next_text += " | Weapon " + str(item_definition.get("display_name"))
     if _status.text != next_text:
         _status.text = next_text
 
