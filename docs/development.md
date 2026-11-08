@@ -15,7 +15,8 @@ On systems where the executable has another name, specify `GODOT` when invoking 
 | `make import` | Scan scripts/resources, refresh Godot's generated `.godot/` registry and imports, fail on parser/runtime log errors |
 | `make run` | **Import first**, then launch the game directly |
 | `make editor` | Import first, then launch the Godot editor |
-| `make test` | Import first, run the full headless GDScript suite, validate logs |
+| `make test` | Import first, run the headless GDScript suite and validate logs |
+| `make check` | Regenerate and verify tracked GLBs (Node.js), then run the Godot tests; matches the standard PR CI tier |
 | `make web` | Import, export `build/web/index.html` and check required HTML/JS/WASM/PCK files |
 | `make linux` | Import, export `build/linux/action5-demo.x86_64`, verify an executable was produced |
 | `make build` | Import and build both native Linux and Web artifacts, validate both exports |
@@ -89,14 +90,21 @@ Godot must have the export templates matching the editor version. The CI install
 
 ## Tests and CI evidence
 
-The existing `.github/workflows/d01-godot.yml` runs:
+The [Godot CI workflow](../.github/workflows/d01-godot.yml) has two tiers:
 
-1. A cold-start launch before the editor import, proving scripts don't depend on an existing class-cache file.
-2. `make import` and a headless `make run` smoke.
-3. `make test`, plus a deliberate negative test that must fail.
-4. `make build`, Linux executable smoke and native camera screenshots.
-5. Chromium WebGL2 startup, native number-key presses 1–5 and selector interaction.
+- **Every PR update:** cold-start parser smoke, reproducible original/alternate GLBs and the entire headless GDScript regression suite. No export-template download, browser installation, native screenshots or WebGL2 startup.
+- **Push to `master`:** always runs those fast checks **plus** Linux/Web exports, an exported native executable smoke, native camera screenshots, Chromium/WebGL2 tests and the negative-test runner self-check.
+- **Explicit PR full check:** include `[full-e2e]` in the **latest commit message** (subject or body, case-insensitive), then push the commit. The workflow reads the actual PR head commit, not the synthetic merge commit or PR title.
+- **Manual dispatch:** select `full_e2e` in GitHub Actions to run the full suite; otherwise the fast tier runs.
 
-Passing CI uploads `d04-evidence` (logs and native/browser camera captures) and `d04-exports` (Linux and Web builds). A screenshot capture is not a substitute for real runtime tests; imported `.glb` assets are validated after `make import`.
+Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full tier. Multiple Make goals use one process, so the shared phony import executes only once per run.
+
+```bash
+make test     # Local Godot headless tests, requires Godot 4.7.2 and Python 3
+make check    # Local PR-equivalent tests, additionally requires Node.js
+make build    # Local Linux and Web exports, requires matching templates
+```
+
+The workflow uploads `d04-evidence` logs for both tiers; full E2E additionally includes native/Web screenshots and `d04-exports` Linux and Web builds. The full tests are not deleted—only deferred to master merges or explicitly opted-in PR validation. For visual-sensitive PRs, request full E2E before merge; a merge to `master` runs it automatically but cannot gate that merge retrospectively.
 
 D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. Combat and weapons remain separate D05–D07 work.
