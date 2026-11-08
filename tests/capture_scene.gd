@@ -341,6 +341,62 @@ func _capture() -> void:
     if not _save_image(output_dir.path_join("native-d06-bat-f4.png")):
         quit(1)
         return
+    # The weapon has its own camera-space arm/profile. F4 must NOT render
+    # the old unarmed Punch fist behind it. Capture a real active physics
+    # tick with the hand, grip and weapon moving as one visual unit.
+    var equipped_view: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var gripped_arm: Node3D = (
+        equipped_view.get("arm") as Node3D if equipped_view != null else null
+    )
+    var grip: Node3D = (
+        equipped_view.get_node_or_null("Grip") as Node3D if equipped_view != null else null
+    )
+    var bare_limbs: Node = actor.get_node("FirstPersonCombatLimbs")
+    bare_limbs.call("refresh_presentation")
+    if gripped_arm == null or grip == null or (
+        bare_limbs.call("get_limb_root", &"punch") as Node3D
+    ).visible:
+        push_error("D06: F4 equipped view must show one gripping arm, not Punch")
+        quit(1)
+        return
+    var rest_grip: Vector3 = grip.position
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06: Bat's authoritative native swing request failed")
+        quit(1)
+        return
+    var bat_action: Resource = combat.call("get_attack", &"bat_swing")
+    for frame in range(int(bat_action.get("startup_ticks")) + 2):
+        await physics_frame
+        await process_frame
+    equipment_visual.call("refresh_presentation")
+    var active_grip: Vector3 = grip.position
+    if active_grip.distance_to(rest_grip) < 0.22 or not grip.position.is_equal_approx(
+        (gripped_arm.get_node("Extremity") as Node3D).position
+    ) or float(equipped_view.get("pose_progress")) <= 0.15:
+        push_error("D06: weapon/gripping hand did not follow its authored active pose")
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    var bat_swing_image: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-swing.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    var swing_pixels: int = 0
+    for y in range(int(armed_f4.get_height() * 0.33), int(armed_f4.get_height() * 0.95), 4):
+        for x in range(int(armed_f4.get_width() * 0.28), int(armed_f4.get_width() * 0.95), 4):
+            var start_color: Color = armed_f4.get_pixel(x, y)
+            var strike_color: Color = bat_swing_image.get_pixel(x, y)
+            if absf(start_color.r - strike_color.r) + absf(start_color.g - strike_color.g) + absf(start_color.b - strike_color.b) > 0.24:
+                swing_pixels += 1
+    if swing_pixels < 50:
+        push_error("D06: active weapon grip did not visibly move in F4; pixels=" + str(swing_pixels))
+        quit(1)
+        return
+    print("ACTION5_D06_F4_SWING_NATIVE_OK grip=1 unarmed_hidden=1 pixels=", swing_pixels)
+
     if not equipment.call("drop_current"):
         push_error("D06: cannot drop Bat from native equipped state")
         quit(1)
