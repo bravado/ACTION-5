@@ -22,6 +22,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var bat: WeaponScript = level.get_node("BatPickup") as WeaponScript
     var shovel: WeaponScript = level.get_node("ShovelPickup") as WeaponScript
     var health: Node = actor.get_node("Health")
+    var selector: Node = actor.get_node("EquipmentAttackSelector")
+    var action_input: Node = level.get_node("CombatInput")
+    var unarmed_limb: Node = actor.get_node("FirstPersonCombatLimbs")
 
     # D05 ends with a lethal actor test. D06 begins with the same actor,
     # reset explicitly rather than creating a duplicate gameplay character.
@@ -43,7 +46,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(controls.text.contains("D06 EQUIPMENT")
         and controls.text.contains("E: pickup")
         and controls.text.contains("Q: swap")
-        and controls.text.contains("F: swing")
+        and controls.text.contains("LMB/RMB/J/K: equipped weapon")
+        and not controls.text.contains("F: swing")
         and controls.text.contains("G: drop"),
         "D06 HUD help lists equipment controls after a camera switch")
 
@@ -69,6 +73,48 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and fps.world_visual_shadows.size() == starting_shadows + 1
         and visual._viewmodel != null and visual._viewmodel.get_parent() == views.get_active_camera(),
         "Local multi-mesh Bat keeps one world shadow per mesh and one camera-only viewmodel")
+
+    # Both existing attack intents select the equipped definition. No
+    # additional F button and no Punch/Kick when holding a single-action
+    # melee weapon; the shared combat input adapter never imports equipment.
+    verify.call(action_input.get("action_selection_source") == selector
+        and selector.call("get_attack_for_input", &"actor_punch", combat.get_attack(&"punch"))
+            == combat.get_attack(&"bat_swing")
+        and selector.call("get_attack_for_input", &"actor_kick", combat.get_attack(&"kick"))
+            == combat.get_attack(&"bat_swing"),
+        "Equipped Bat replaces both left/right attack intents with Bat swing")
+    combat.cancel()
+    action_input.set("release_to_rearm", false)
+    Input.action_press(&"actor_kick")
+    action_input.call("_physics_process", 1.0 / 60.0)
+    Input.action_release(&"actor_kick")
+    verify.call(combat._pending_id == &"bat_swing"
+        and combat._pending_id != &"kick",
+        "Real right-click action mapping requests equipped Bat instead of unarmed Kick")
+    combat.cancel()
+    action_input.set("release_to_rearm", true)
+    for tick in range(2):
+        await tree.physics_frame
+    combat.cancel()
+
+    views.call("switch_view", 3)
+    await tree.process_frame
+    unarmed_limb.call("refresh_presentation")
+    var bat_view: Node3D = visual._viewmodel as Node3D
+    var grip: Node3D = bat_view.get_node_or_null("Grip") as Node3D
+    var gripped_arm: Node3D = bat_view.get("arm") as Node3D
+    var resting_grip: Vector3 = grip.position if grip != null else Vector3.ZERO
+    bat_view.call("apply_pose", 0.48)
+    var contact_grip: Vector3 = grip.position if grip != null else Vector3.ZERO
+    verify.call(bat_view.has_method("apply_pose")
+        and gripped_arm != null and grip != null
+        and grip.position.is_equal_approx(gripped_arm.get_node("Extremity").position)
+        and contact_grip.distance_to(resting_grip) > 0.3
+        and not unarmed_limb.get_limb_root(&"punch").visible
+        and not unarmed_limb.get_limb_root(&"kick").visible,
+        "F4 Bat has one authored gripping arm; held mesh follows hand and unarmed overlays hide")
+    visual.call("refresh_presentation")
+    views.call("switch_view", 2)
 
     # F3 <-> F4 only changes rendering, never item identity, socket or action.
     views.call("switch_view", 2)
@@ -131,6 +177,13 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and combat.get_attack(&"shovel_swing") != null
         and shovel.definition.attacks[0].get("damage") == 24.0,
         "Unequip unregisters Bat's attack and Shovel uses its own authored parameters")
+    verify.call(selector.call("get_attack_for_input", &"actor_punch",
+        combat.get_attack(&"punch")) == combat.get_attack(&"shovel_swing")
+        and selector.call("get_attack_for_input", &"actor_kick",
+        combat.get_attack(&"kick")) == combat.get_attack(&"shovel_swing")
+        and visual._viewmodel != null
+        and visual._viewmodel.get_node_or_null("Grip") != null,
+        "Shovel uses the same click routing and independent F4 gripping model")
 
     verify.call(equipment.request_equipped_action(0, Vector2.RIGHT)
         and equipment.swap_next() and combat.get_attack(&"shovel_swing") == null
@@ -155,6 +208,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(fps.world_visual_shadows.size() == starting_shadows
         and visual._registered_meshes.is_empty() and visual._viewmodel == null,
         "Dropping all equipment removes FPS registrations and restores D04 baseline")
+    views.call("switch_view", 3)
+    await tree.process_frame
+    unarmed_limb.call("refresh_presentation")
+    verify.call(selector.call("get_attack_for_input", &"actor_punch",
+        combat.get_attack(&"punch")) == combat.get_attack(&"punch")
+        and selector.call("get_attack_for_input", &"actor_kick",
+        combat.get_attack(&"kick")) == combat.get_attack(&"kick")
+        and unarmed_limb.get_limb_root(&"punch").visible,
+        "After dropping, Punch/Kick and the unarmed F4 resting arm return")
+    views.call("switch_view", 2)
 
     # Third independently authored weapon: no changes to the generic
     # controller, actor, renderer or input adapter.
