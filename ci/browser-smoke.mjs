@@ -157,7 +157,7 @@ try {
   // The pickups begin at equal range: the first E may select Bat or
   // Shovel depending on group iteration. Derive expected action from
   // the actual weapon selected by Q, never an assumed scene order.
-  const selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\\s|$)/)?.[1];
+  const selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\s|$)/)?.[1];
   if (!selectedWeapon) {
     errors.push('D06 cannot identify equipped weapon from actual gameplay events: ' +
       equipped.at(-1));
