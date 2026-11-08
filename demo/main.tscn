@@ -184,7 +184,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // D03 LOCOMOTION\n1–5: view | WASD: move | Space: jump | Shift: run | Alt: dodge"
+text = "ACTION-5 // MOVEMENT DEMO\n1–5: view | WASD: move | Space: jump | Shift: run\nCtrl/R3: crouch toggle | X: slide | Alt: dodge"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0

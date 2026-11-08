@@ -33,7 +33,7 @@ make test
 make run
 ```
 
-Press **1–5** to switch between five camera modes, **WASD/arrow keys** to walk, **Space** to jump, **Shift** to run and **Alt** to dodge. F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
+Press **1–5** to switch between five camera modes, **WASD/arrow keys** to walk, **Space** to jump, **Shift** to run, **Alt** to dodge, **X** to slide and **Ctrl** to toggle crouch (**R3** on gamepad). F1 now uses a true horizontal Mario/Altered Beast-style side-scrolling projection; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 
@@ -99,4 +99,4 @@ The existing `.github/workflows/d01-godot.yml` runs:
 
 Passing CI uploads `d04-evidence` (logs and native/browser camera captures) and `d04-exports` (Linux and Web builds). A screenshot capture is not a substitute for real runtime tests; imported `.glb` assets are validated after `make import`.
 
-D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. See [locomotion.md](locomotion.md) and [animation.md](animation.md). Weapons and combat remain D05–D07.
+D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. Combat and weapons remain separate D05–D07 work.

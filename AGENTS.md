@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the deliverable sequence D01–D12 and the explicit exit gates. **D01–D03 are merged. D04 skeletal model/animation integration is under review in PR #25. Do not begin D05 until the D04 gate is accepted.** Do not generate the entire framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D04 are merged; D05 combat is next in the main roadmap.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -46,8 +46,10 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - Don't use detailed mesh collision to decide punching/kicking/weapon damage.
 - Don't reset attack/weapon/AI state on view changes.
 - Don't read raw keyboard input in Combat, Actor or Weapon classes.
-- **Player moves are plug-in nodes:** adding a move must not require new `is_x` flags, per-move branches or concrete imports in `Action5Actor`, `Action5Locomotion` or `Action5ActorInputAdapter`. New moves subclass `Action5Move` and declare their move ID/action; `Action5MovementController` resolves transitions while only Locomotion writes the physical body velocity and calls `move_and_slide`.
+- **Player moves are plug-in nodes:** adding a move must not require new `is_x` flags, per-move branches or concrete imports in `Action5Actor`, `Action5Locomotion`, `Action5MovementController`, `Action5ActorInputAdapter`, `Action5AnimationPresenter` or `Action5CameraRig`. Follow **[`docs/adding-moves.md`](docs/adding-moves.md)** for the complete extension contract. Only Locomotion writes physical velocity and calls `move_and_slide()`.
 - Preserve distinct grounded/airborne fallback and verify custom moves register through their own script and InputMap defaults without modifying core code.
+- **Move authoring checklist:** implement `Action5Move` hooks; install unique stable IDs under `Moves`; use `Action5MoveContext` X/Z commands, not body velocity writes; submit edge-triggered requests; respect priority and one arbitration winner per tick; restore colliders/resources in `exit()`; map authored clips using `SkeletonProfile.clip_map`; configure optional F4 eye height in `EyeHeightPresenter.move_offsets`, not camera branches; cover runtime registration/removal, disable/death cleanup, view switching and native/WebGL2 rendering.
+- **Animation/attack separation:** the existing animation presenter selects custom movement clips by registered move ID; authored looping clips must be imported as loops. Attack timing/damage/weapon logic belongs to separate components, not movement or animation state checks. No view switch may reset the actor or gameplay.
 - Don't assume F1/F5 or Ctrl+number shortcuts can be caught in web browsers; the visible five-button selector is required.
 - F1 is a genuine Mario/Altered Beast side-scrolling projection: camera screen plane is world X/Y (zero pitch, fixed world -Z view). Do not confuse F1 with the elevated X/Z beat'em-up view F2 or rotate F1 toward the actor during follow.
 - F3 is the **one combined isometric/third-person shoulder profile**: wide and close zoom share a resource and Camera3D. Do not bring back a separate F4 third-person profile, and do not turn F3 into a perspective camera on zoom.
@@ -59,4 +61,4 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 
 ## Starting task
 
-**D01–D03 are merged. D04 is current:** import an original `.glb` rig with named skeletal clips, map bones and animations through SkeletonProfile, drive visual state with AnimationTree, add animated right/left sockets, and hide only the local head in F4 while keeping the shared skeleton and equipment alive. Do not start D05 until D04 review.
+**D01–D04 are merged.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference implementation. D05 combat is separate: keep attacks and weapons decoupled from movement registration and reuse existing animation/camera interfaces.

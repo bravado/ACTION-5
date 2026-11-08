@@ -51,6 +51,35 @@ The addon components are scene-independent and live exclusively within `addons/a
 
 To install the camera system in a Godot scene, create a `ViewManager` Node with `view_manager.gd`, containing a `CameraRig` Node3D with `camera_rig.gd` and a `Camera3D` child. Set `ViewManager.actor_path` to the existing player and use the built-in five `.tres` resources or assign a custom array of five `Action5ViewProfile` resources. Add a sibling `ViewInput` Node with `view_input.gd` and point its `manager_path` to the `ViewManager`. Add optional UI by connecting `view_changed` or by using the settings panel.
 
+## Optional movement-driven F4 eye offset
+
+The F4 camera normally follows the actor at
+`ViewProfile.eye_height`. `Action5CameraRig` optionally reads
+`eye_offset_path` (default `EyeOffset`, resolved relative to the
+**followed actor**, not the CameraRig) and adds that Node3D's local
+Y to the F4 eye position. **Only F4** uses it; all other view
+profiles ignore the offset. With no node present, the original
+camera behavior is unchanged.
+
+The actor may install an independent `Action5EyeHeightPresenter`
+from `addons/action5/camera/eye_height_presenter.gd`. It observes
+`MovementController.move_changed(previous, current)` and smoothly
+interpolates `EyeOffset.position.y` using its configurable
+`move_offsets` dictionary. In the demo, both `crouch` and
+`crouch_walk` map to `-0.45` world units; `first_person.tres`
+defaults to 1.55, giving a crouched target height of 1.10 before
+interpolation. The result stays additive to any **user-modified**
+first-person eye-height setting.
+
+Because the offset is keyed by the active move ID, crouch walking
+keeps the same eye height and blocked standing keeps the viewport
+lowered. The presenter disconnects the movement signal and restores
+the original offset when removed. New stances need **only a
+`move_offsets` mapping**, not a change to the camera, animation
+presenter or movement controller. Physical height/collision remains
+the responsibility of the move component. See
+[adding-moves.md](adding-moves.md) for the full integration contract.
+
 ## Import-first development and test evidence
 
 ```bash

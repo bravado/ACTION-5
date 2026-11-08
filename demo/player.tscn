@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://demo/player.gd" id="1_script"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2_locomotion"]
@@ -11,6 +11,9 @@
 [ext_resource type="PackedScene" path="res://demo/assets/action5_training_character.glb" id="9_model"]
 [ext_resource type="Script" path="res://addons/action5/animation/animation_presenter.gd" id="10_animation"]
 [ext_resource type="Script" path="res://addons/action5/animation/first_person_presenter.gd" id="11_first_person"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/crouch.gd" id="12_crouch"]
+[ext_resource type="Resource" path="res://demo/assets/crouch_skeleton_profile.tres" id="13_crouch_profile"]
+[ext_resource type="Script" path="res://addons/action5/camera/eye_height_presenter.gd" id="14_eye_height"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -43,6 +46,17 @@ script = ExtResource("7_dodge")
 [node name="Slide" type="Node" parent="Locomotion/MovementController/Moves"]
 script = ExtResource("8_slide")
 
+[node name="Crouch" type="Node" parent="Locomotion/MovementController/Moves"]
+script = ExtResource("12_crouch")
+
+[node name="CrouchWalk" type="Node" parent="Locomotion/MovementController/Moves"]
+script = ExtResource("12_crouch")
+move_id = &"crouch_walk"
+action_name = &""
+default_key = 0
+default_gamepad_button = -1
+walking_variant = true
+
 [node name="Visual" type="Node3D" parent="."]
 script = ExtResource("3_facing")
 
@@ -50,6 +64,16 @@ script = ExtResource("3_facing")
 
 [node name="AnimationPresenter" type="Node" parent="."]
 script = ExtResource("10_animation")
+profile = ExtResource("13_crouch_profile")
 
 [node name="FirstPersonPresenter" type="Node" parent="."]
 script = ExtResource("11_first_person")
+
+[node name="EyeOffset" type="Node3D" parent="."]
+
+[node name="EyeHeightPresenter" type="Node" parent="."]
+script = ExtResource("14_eye_height")
+move_offsets = {
+"crouch": -0.45,
+"crouch_walk": -0.45
+}

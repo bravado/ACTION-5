@@ -14,20 +14,24 @@ const definitions = [
   ['UpperArm_R', [7], [0.4, 0.22, 0]],
   ['Hand_L', [], [-0.35, -0.34, 0]],
   ['Hand_R', [], [0.35, -0.34, 0]],
-  ['Leg_L', [10], [-0.2, -0.10, 0]],
-  ['Leg_R', [11], [0.2, -0.10, 0]],
-  ['Foot_L', [], [0, -0.62, -0.04]],
-  ['Foot_R', [], [0, -0.62, -0.04]],
+  ['Leg_L', [14], [-0.2, -0.10, 0]],
+  ['Leg_R', [15], [0.2, -0.10, 0]],
+  ['Foot_L', [], [0, -0.30, -0.04]],
+  ['Foot_R', [], [0, -0.30, -0.04]],
   ['BodyMesh', []],
   ['HeadMesh', []],
+  // Real knee joints are required to fold the shins underneath the pelvis.
+  ['Knee_L', [10], [0, -0.32, 0]],
+  ['Knee_R', [11], [0, -0.32, 0]],
 ];
 const nodes = definitions.map(([name, children, translation], i) => ({
   name,
   ...(children.length ? { children } : {}),
   ...(translation ? { translation } : {}),
-  ...(i >= 12 ? { mesh: i - 12, skin: 0 } : {}),
+  ...((i === 12 || i === 13) ? { mesh: i - 12, skin: 0 } : {}),
 }));
-const joints = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+// Parent-first joint ordering ensures imported knees precede their feet.
+const joints = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 15, 10, 11];
 const positions = nodes.map(() => [0, 0, 0]);
 function walk(node, parent) {
   const local = nodes[node].translation || [0, 0, 0];
@@ -119,8 +123,11 @@ const bodyParts = [
   [[.46, 1.20, 0], [.20, .45, .22], 5, 0],
   [[-.70, .91, 0], [.18, .34, .20], 6, 2],
   [[.70, .91, 0], [.18, .34, .20], 7, 2],
-  [[-.20, .49, 0], [.23, .65, .25], 8, 1],
-  [[.20, .49, 0], [.23, .65, .25], 9, 1],
+  // Split each leg into thigh and shin so knees can bend independently.
+  [[-.20, .59, 0], [.23, .35, .25], 8, 1],
+  [[.20, .59, 0], [.23, .35, .25], 9, 1],
+  [[-.20, .27, 0], [.22, .34, .24], 14, 1],
+  [[.20, .27, 0], [.22, .34, .24], 15, 1],
   [[-.2, .14, -.09], [.26, .21, .43], 10, 3],
   [[.2, .14, -.09], [.26, .21, .43], 11, 3],
 ];
@@ -171,6 +178,35 @@ const clipDefinitions = [
   ['hit', .52, [[2, 'X', [0, -.24, -.42, -.21, 0]]]],
   ['death', 1.4, [[1, 'Z', [0, .17, .8, 1.5, 1.52]]]],
   ['reload', 1, [[5, 'X', [0, .28, .62, .28, 0]]]],
+  // Rig faces -Z: positive-X thighs bring the KNEES FORWARD.
+  // Negative-X knee flexion folds the SHINS BACK beneath the hips; positive
+  // ankle compensation keeps the feet near level. This is an anatomical
+  // crouch, not a backward-bending knee or two straight seated legs.
+  // Both -loop clips preserve the bend with alternating strides.
+  ['crouch-loop', 1.2, [
+    [1, 'T', [[0,0.6,0],[0,0.595,0],[0,0.59,0],[0,0.595,0],[0,0.6,0]]],
+    [2, 'X', [-0.38,-0.38,-0.38,-0.38,-0.38]],
+    [8, 'X', [0.98,0.98,0.98,0.98,0.98]],
+    [9, 'X', [0.98,0.98,0.98,0.98,0.98]],
+    [14, 'X', [-1.75,-1.75,-1.75,-1.75,-1.75]],
+    [15, 'X', [-1.75,-1.75,-1.75,-1.75,-1.75]],
+    [10, 'X', [0.78,0.78,0.78,0.78,0.78]],
+    [11, 'X', [0.78,0.78,0.78,0.78,0.78]],
+    [4, 'X', [0.24,0.24,0.24,0.24,0.24]],
+    [5, 'X', [0.24,0.24,0.24,0.24,0.24]],
+  ]],
+  ['crouch_walk-loop', 0.95, [
+    [1, 'T', [[0,0.6,0],[0,0.58,0],[0,0.6,0],[0,0.58,0],[0,0.6,0]]],
+    [2, 'X', [-0.38,-0.4,-0.38,-0.36,-0.38]],
+    [8, 'X', [0.98,1.12,0.98,0.84,0.98]],
+    [9, 'X', [0.98,0.84,0.98,1.12,0.98]],
+    [14, 'X', [-1.75,-1.93,-1.75,-1.59,-1.75]],
+    [15, 'X', [-1.75,-1.59,-1.75,-1.93,-1.75]],
+    [10, 'X', [0.78,0.82,0.78,0.78,0.78]],
+    [11, 'X', [0.78,0.78,0.78,0.82,0.78]],
+    [4, 'X', [0.2,0.34,0.2,0.08,0.2]],
+    [5, 'X', [0.2,0.08,0.2,0.34,0.2]],
+  ]],
 ];
 function quaternion(axis, angle) {
   const s = Math.sin(angle / 2), c = Math.cos(angle / 2);
@@ -184,12 +220,15 @@ const animations = clipDefinitions.map(([name, length, tracks]) => {
       input: accessor(
         [0, length / 4, length / 2, length * .75, length],
         'SCALAR', 5126, 0, true),
-      output: accessor(angles.flatMap(a => quaternion(axis, a)), 'VEC4'),
+      output: accessor(
+        axis === 'T' ? angles.flatMap(position => position)
+          : angles.flatMap(a => quaternion(axis, a)),
+        axis === 'T' ? 'VEC3' : 'VEC4'),
       interpolation: 'LINEAR',
     });
     channels.push({
       sampler: samplers.length - 1,
-      target: { node: bone, path: 'rotation' },
+      target: { node: bone, path: axis === 'T' ? 'translation' : 'rotation' },
     });
   }
   return { name, samplers, channels };

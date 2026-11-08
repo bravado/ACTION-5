@@ -58,7 +58,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          make test 2>&1 | tee build/evidence/tests.log
+          # Bound headless regressions: runtime script errors can otherwise leave
+          # SceneTree alive indefinitely when an awaited physics frame never returns.
+          timeout 100s make test 2>&1 | tee build/evidence/tests.log
           grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
           grep -q 'failures=0' build/evidence/tests.log
           python3 tools/check_godot_log.py build/evidence/tests.log

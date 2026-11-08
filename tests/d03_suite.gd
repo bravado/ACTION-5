@@ -24,8 +24,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     # A reusable controller discovers components directly from the actor
     # scene; bindings come from components, not the input adapter's switch.
     var demo_moves = player.locomotion.move_controller
-    verify.call(demo_moves.get_moves().size() == 4,
-        "Four default move components auto-register (grounded/air/dodge/slide)")
+    var installed_count: int = demo_moves.moves_root.get_child_count()
+    verify.call(installed_count >= 4 and demo_moves.get_moves().size() == installed_count,
+        "All configured move components auto-register without hardcoded counts")
     verify.call(demo_moves.get_move(&"grounded") != null
         and demo_moves.get_move(&"airborne") != null
         and demo_moves.get_move(&"dodge") != null
@@ -42,7 +43,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(demo_moves.add_move(injected),
         "Custom move registers at runtime as a separate child component")
     verify.call(demo_moves.get_move(&"test_dash") == injected
-        and demo_moves.get_moves().size() == 5,
+        and demo_moves.get_moves().size() == installed_count + 1,
         "The controller automatically discovers the newly installed move")
     verify.call(InputMap.has_action(&"actor_test_dash")
         and not InputMap.action_get_events(&"actor_test_dash").is_empty(),
@@ -62,7 +63,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     )
     demo_moves.moves_root.remove_child(injected)
     verify.call(demo_moves.get_move(&"test_dash") == null
-        and demo_moves.get_moves().size() == 4
+        and demo_moves.get_moves().size() == installed_count
         and removed_demo_ids == [&"test_dash"],
         "Removing a valid child immediately unregisters its move and emits once")
     injected.free()

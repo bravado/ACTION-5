@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Action5SkeletonProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/animation/skeleton_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+clip_map = {
+"idle": "idle",
+"walk": "walk",
+"run": "run",
+"punch": "punch",
+"kick": "kick",
+"hit": "hit",
+"death": "death",
+"reload": "reload",
+"crouch": "crouch",
+"crouch_walk": "crouch_walk"
+}

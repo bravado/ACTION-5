@@ -7,8 +7,7 @@ visual action requests, never edits collisions, hit timing or world movement.
 ## Reference rig and licensing
 
 The original MIT-licensed `demo/assets/action5_training_character.glb`
-contains 11 bones, separate skinned body/head meshes, and `idle`, `walk`,
-`run`, `punch`, `kick`, `hit`, `death`, `reload` clips. A gold training
+contains 13 skinned joints (including two articulated knees), separate skinned body/head meshes, and `idle`, `walk`, `run`, `punch`, `kick`, `hit`, `death`, `reload`, `crouch` and `crouch_walk` clips. A gold training
 prop is a demo-only MeshInstance3D child of the animated right-hand socket.
 No third-party model, motion-capture animation or font is included. See
 [asset inventory](assets/LICENSES.md).
@@ -23,9 +22,7 @@ git diff --exit-code -- demo/assets/action5_training_character.glb
 CI runs this reproducibility check before import and also regenerates
 `tests/fixtures/alternate_training_character.glb` using
 `node tools/generate_alternate_training_character.mjs`. The second GLB
-has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`,
-`Skull`) and differently named animation clips (`rest`, `stride`,
-`sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`).
+has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`, `Skull`, `KneeAlternate_L`, `KneeAlternate_R`) and differently named animation clips (`rest`, `stride`, `sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`, `squat`, `squat_stride`).
 
 The model-replacement regression test **swaps the imported GLB scene**
 under `Visual/Model` before initializing the AnimationPresenter and
@@ -57,8 +54,9 @@ movement. Skinned body visuals must not become colliders or drive gameplay.
    least `idle`, `run`, `punch`, `kick`, `hit`, `death`.
    `walk` and `reload` are optional. You may also add entries to
    `clip_map` for `jump`, `fall`, `airborne`, `dodge`, `slide`
-   or any custom `Action5Move.move_id`; the demo rig intentionally
-   omits these clips and uses safe visual fallbacks instead.
+   or any custom `Action5Move.move_id`. The current demo rig includes
+   `crouch` and `crouch_walk` but intentionally omits `jump`, `fall`,
+   `airborne`, `dodge` and `slide` clips and uses safe fallbacks.
 5. Run `make import`, then `make test`. The pure
    `Action5ModelValidator.validate(model_root, profile)` returns
    `{"valid": bool, "errors": Array[String], "warnings": Array[String]}`.
@@ -111,6 +109,20 @@ animation_presenter.clear_full_body_action()
 animation_presenter.set_action_visual(&"hit")
 animation_presenter.clear_action_visual()
 ```
+
+**Authoring new movements:** Start with
+[the complete movement guide](adding-moves.md). A custom
+`Action5Move.move_id` selects a logical key from the scene's
+`SkeletonProfile.clip_map` without adding any animation-presenter
+branches. The crouch example uses
+`demo/assets/crouch_skeleton_profile.tres`. Its two looping
+animations are authored in the GLB as `crouch-loop` and
+`crouch_walk-loop`, and Godot imports them as `crouch`
+and `crouch_walk` with `LOOP_LINEAR`. The presenter only
+explicitly loops `idle`, `walk`, and `run` via local timeline
+overrides: custom movement loops must be authored in the imported
+clip. Articulated knees were added to the rig for crouching; test
+the actual rendered side profile, not just bone rotations.
 
 An action is **explicitly started and cleared** by its owning component;
 animations never determine collision, attack frames, damage or movement
