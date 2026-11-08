@@ -28,7 +28,7 @@ jobs:
     outputs:
       run_full_e2e: ${{ steps.tier.outputs.full }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select CI tier
         id: tier
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload checks evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ci-checks-evidence
           path: build/evidence/
@@ -107,9 +107,11 @@ jobs:
     # opts in via [full-e2e], GitHub branch protection requires it to pass.
     if: needs.checks.outputs.run_full_e2e == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 18
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install pinned Godot and export templates
         env:
@@ -181,9 +183,13 @@ jobs:
             sleep 1
           done
           curl --fail --silent --show-error http://127.0.0.1:8765/index.html -o /dev/null
-          npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
-          node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.56.1
+          # browser-smoke.mjs launches headless Chromium with no channel;
+          # skip the separate headed Chromium download on every E2E run.
+          npx playwright install --with-deps --only-shell chromium
+          # Bound failures that would otherwise leave the software WebGL2
+          # browser running until the 18-minute job timeout.
+          timeout 600s node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log
           test -s build/evidence/web-scene.png
           for i in {1..5}; do
             test -s "build/evidence/web-view-$i.png"
@@ -207,7 +213,7 @@ jobs:
 
       - name: Upload full E2E evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ci-full-e2e-evidence
           path: build/evidence/
@@ -215,7 +221,7 @@ jobs:
           retention-days: 14
 
       - name: Upload full E2E exports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ci-full-e2e-exports
           path: |
@@ -228,7 +234,7 @@ jobs:
       # do not spend another runner/build on an independent Pages export.
       - name: Package validated Web export for GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
 
@@ -249,4 +255,4 @@ jobs:
     steps:
       - name: Publish Web game to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
