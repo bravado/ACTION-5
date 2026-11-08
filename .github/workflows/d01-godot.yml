@@ -1,4 +1,4 @@
-name: ACTION-5 Godot CI (D01–D03)
+name: ACTION-5 Godot CI (D01–D04)
 
 on:
   pull_request:
@@ -23,15 +23,26 @@ jobs:
       - name: Install pinned Godot and matching templates
         run: bash ci/install-godot.sh
 
-      - name: Cold-start scene without class cache or editor import
+      - name: Verify both original and replacement GLBs regenerate byte-for-byte
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/generate_training_character.mjs
+          node tools/generate_alternate_training_character.mjs
+          git diff --exit-code -- demo/assets/action5_training_character.glb tests/fixtures/alternate_training_character.glb
+          echo ACTION5_D04_GLB_REPRO_OK
+
+      - name: Cold-start addon scripts without class cache or imported assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/evidence
           test ! -f .godot/global_script_class_cache.cfg
-          godot --headless --path . --quit-after 20 2>&1 | tee build/evidence/cold-start.log
+          # GLB is an imported PackedScene; full game startup is exercised
+          # immediately after make import. Pre-import only parser smoke is valid.
+          godot --headless --path . --script res://tests/cold_start.gd 2>&1 | tee build/evidence/cold-start.log
           python3 tools/check_godot_log.py build/evidence/cold-start.log
-          echo ACTION5_COLD_START_OK
+          grep -q ACTION5_COLD_START_SCRIPTS_OK build/evidence/cold-start.log
 
       - name: Import and verify scripts/scenes
         shell: bash
@@ -95,6 +106,12 @@ jobs:
           done
           test -s build/evidence/native-isometric-shoulder.png
           test -s build/evidence/native-isometric-settings.png
+          test -s build/evidence/native-f3-near-wall.png
+          test -s build/evidence/native-f4-near-wall.png
+          test -s build/evidence/native-player-shadow-on.png
+          test -s build/evidence/native-player-shadow-off.png
+          grep -q 'ACTION5_PLAYER_SHADOW_NATIVE_OK' build/evidence/native-screenshot.log
+          grep -q 'ACTION5_FPS_NEAR_WALL_NATIVE_OK wall=1 body_culled=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
 
       - name: Verify real WebGL2 browser startup
@@ -119,6 +136,13 @@ jobs:
           test -s build/evidence/web-camera-settings.png
           test -s build/evidence/web-d03-walking.png
           test -s build/evidence/web-d03-jumping.png
+          test -s build/evidence/web-f4-tool-standing.png
+          test -s build/evidence/web-f4-tool-jumping.png
+          grep -q 'ACTION5_BROWSER_F4_JUMP_TOOL_OK viewmodel=1 screenshots=2' build/evidence/browser-smoke.log
+          test -s build/evidence/web-f3-near-wall.png
+          test -s build/evidence/web-f4-near-wall.png
+          grep -q 'ACTION5_BROWSER_FPS_NEAR_WALL_OK' build/evidence/browser-smoke.log
+          grep -q 'ACTION5_BROWSER_D04_RIG_OK skeleton=1 sockets=1 fps=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_MOVE_PLUGIN_OK slide=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_FOCUS_OK view=1 settings=1 jump=1' build/evidence/browser-smoke.log
@@ -129,7 +153,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: d03-evidence
+          name: d04-evidence
           path: build/evidence/
           if-no-files-found: warn
           retention-days: 14
@@ -138,7 +162,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: d03-exports
+          name: d04-exports
           path: |
             build/linux/
             build/web/

@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="BoxMesh" id="BoxMesh_training"]
+size = Vector3(0.1, 0.12, 0.48)
+
+[sub_resource type="StandardMaterial3D" id="Material_training"]
+albedo_color = Color(0.94, 0.78, 0.22, 1)
+roughness = 0.65
+
+[node name="TrainingTool" type="MeshInstance3D"]
+position = Vector3(0, -0.08, -0.23)
+mesh = SubResource("BoxMesh_training")
+material_override = SubResource("Material_training")

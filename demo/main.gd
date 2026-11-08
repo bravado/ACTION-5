@@ -95,6 +95,36 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     # Remove stale GUI focus left by view buttons or camera sliders.
     _release_ui_focus()
     _refresh_status(current)
+    # Demo instrumentation (not gameplay): browser CI verifies the imported
+    # rig and attachment survive local F3/F4 rendering policy changes.
+    var fps: Node = _player.get_node_or_null("FirstPersonPresenter")
+    var anim: Node = _player.get_node_or_null("AnimationPresenter")
+    if fps != null and anim != null:
+        var body_meshes: Array = fps.get("body_meshes")
+        var body_layer: int = int(fps.get("local_body_render_layer"))
+        var camera_culls_body: bool = not _views.get_active_camera().get_cull_mask_value(body_layer)
+        var body_on_layer: bool = not body_meshes.is_empty()
+        for mesh in body_meshes:
+            body_on_layer = (
+                body_on_layer and mesh.visible
+                and mesh.layers == (1 << (body_layer - 1))
+            )
+        var body_hidden: bool = body_on_layer and camera_culls_body
+        var socket: Node3D = anim.call("get_socket", &"right_hand") as Node3D
+        var attached: bool = socket != null and socket.get_node_or_null("TrainingTool") != null
+        var camera: Camera3D = _views.get_active_camera()
+        var view_tool := camera.get_node_or_null("FirstPersonTrainingTool") as MeshInstance3D
+        var tool_in_view: bool = (
+            view_tool != null and view_tool.visible and camera.get_cull_mask_value(int(fps.get("first_person_render_layer")))
+        )
+        print("ACTION5_D04_PRESENTATION view=%d body_hidden=%d rig=%d tool=%d actor_z=%.2f viewmodel=%d" % [
+            _views.active_index + 1,
+            int(body_hidden),
+            int(anim.get("skeleton") != null),
+            int(attached),
+            _player.global_position.z,
+            int(tool_in_view),
+        ])
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index

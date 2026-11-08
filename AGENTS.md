@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the deliverable sequence D01–D12 and the explicit exit gates. **D01 and D02 are merged. D03 is the current deliverable under review in PR #24. Do not begin D04 until the D03 gate is accepted.** Do not generate the entire framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the deliverable sequence D01–D12 and the explicit exit gates. **D01–D03 are merged. D04 skeletal model/animation integration is under review in PR #25. Do not begin D05 until the D04 gate is accepted.** Do not generate the entire framework in one untested change.
 
 ## Product invariant
 
@@ -59,4 +59,4 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 
 ## Starting task
 
-**D01 and D02 are merged. D03 is current:** authoritative Actor and Locomotion components, camera-independent MoveIntent, InputMap adapter, world X/Z movement in five modes, real Y jump, F1 depth-lane retention, 4-/8-way F5 facing, optional independent aim, run/dodge, and native/Web regressions. Do not start D04 without review.
+**D01–D03 are merged. D04 is current:** import an original `.glb` rig with named skeletal clips, map bones and animations through SkeletonProfile, drive visual state with AnimationTree, add animated right/left sockets, and hide only the local head in F4 while keeping the shared skeleton and equipment alive. Do not start D05 until D04 review.
