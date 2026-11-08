@@ -131,9 +131,9 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
 
-  // D06 E/Q/G/F gameplay smoke. No direct Godot script calls: real keyboard
-  // inputs must cause two distinct pickups, a swap, a registered D05 attack,
-  // and two drops restoring the camera-only viewmodel state.
+  // D06 real browser input: E/Q/G are equipment lifecycle. Existing
+  // LMB/RMB perform the equipped action (not unarmed Punch/Kick) and no
+  // special F swing key or direct script input is needed.
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const firstEquipIndex = weaponEvents.length;
@@ -154,12 +154,21 @@ try {
     errors.push('D06 Q-key did not swap to the second multi-mesh weapon: ' +
       equipped.join(' | '));
   }
-  const beforeWeaponAction = combatStarts.length;
-  await page.keyboard.press('f', { delay: 140 });
-  await page.waitForTimeout(520);
-  if (!combatStarts.slice(beforeWeaponAction).some(s =>
-      s.includes('id=bat_swing') || s.includes('id=shovel_swing'))) {
-    errors.push('D06 F-key did not start a configured equipment attack');
+  const beforeRight = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'right' });
+  await page.waitForTimeout(850);
+  const fromRight = combatStarts.slice(beforeRight);
+  if (fromRight.length !== 1 || !fromRight[0].includes('id=shovel_swing')) {
+    errors.push('D06 right-click must start ONLY Shovel swing, not unarmed Kick/Punch: ' +
+      fromRight.join(' | '));
+  }
+  const beforeLeft = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'left' });
+  await page.waitForTimeout(850);
+  const fromLeft = combatStarts.slice(beforeLeft);
+  if (fromLeft.length !== 1 || !fromLeft[0].includes('id=shovel_swing')) {
+    errors.push('D06 left-click must also select configured Shovel swing: ' +
+      fromLeft.join(' | '));
   }
 
   await page.keyboard.press('3');
@@ -168,6 +177,16 @@ try {
   await page.keyboard.press('4');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
+  const beforeF4Attack = combatStarts.length;
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-swing.png', fullPage: true });
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(850);
+  const f4Starts = combatStarts.slice(beforeF4Attack);
+  if (f4Starts.length !== 1 || !f4Starts[0].includes('id=shovel_swing')) {
+    errors.push('D06 F4 right-click did not use the equipped weapon: ' + f4Starts.join(' | '));
+  }
   await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
     const mirror = document.createElement('canvas');
@@ -217,7 +236,7 @@ try {
       ' changed_pixels=' + changedD06);
   }
   if (errors.length) throw Error(errors.join('\\n'));
-  console.log('ACTION5_BROWSER_D06_EQUIPMENT_OK pickup=2 swap=1 action=1 drop=2 f4=1 pixels=' +
+  console.log('ACTION5_BROWSER_D06_EQUIPMENT_OK pickup=2 swap=1 mouse=2 f4_swing=1 drop=2 f4=1 pixels=' +
     changedD06);
 
   // F4 always shows the articulated arm, which punches. Kick adds a
