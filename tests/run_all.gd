@@ -212,6 +212,8 @@ func _run_tests() -> void:
         player.facing.set_facing(Vector2.RIGHT)
         var iso_base_basis: Basis = manager.get_active_camera().global_basis
         fps_rig.apply_mouse_motion(Vector2(170.0, -95.0))
+        # Compare fully resolved orbits, not transitional follow smoothing.
+        fps_rig._snap_next = true
         fps_rig._update_camera(1.0 / 60.0)
         var iso_orbit_yaw: float = fps_rig.orbit_yaw
         var iso_orbit_pitch: float = fps_rig.orbit_pitch
@@ -249,6 +251,7 @@ func _run_tests() -> void:
             "Intentional F4 mouse look remains the actor facing in F3")
         # Restore independent camera and facing state for subsequent tests.
         fps_rig.apply_mouse_motion(Vector2(-170.0, 95.0))
+        fps_rig._snap_next = true
         fps_rig._update_camera(1.0 / 60.0)
         player.facing.set_facing(original_facing)
         _check(manager.get_active_camera().global_basis.is_equal_approx(iso_base_basis),
