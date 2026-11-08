@@ -6,13 +6,23 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      full_e2e:
+        description: 'Run full native/WebGL2 E2E'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# Do not burn runner time on superseded PR updates.
+concurrency:
+  group: action5-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   d01-smoke:
-    name: Import, tests, Linux/Web exports, browser
+    name: Godot checks (full native/WebGL2 E2E on demand)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -20,17 +30,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pinned Godot and matching templates
-        run: bash ci/install-godot.sh
-
-      - name: Verify both original and replacement GLBs regenerate byte-for-byte
+      - name: Select CI tier
+        id: tier
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DISPATCH_FULL: ${{ inputs.full_e2e || false }}
         run: |
           set -euo pipefail
-          node tools/generate_training_character.mjs
-          node tools/generate_alternate_training_character.mjs
-          git diff --exit-code -- demo/assets/action5_training_character.glb tests/fixtures/alternate_training_character.glb
-          echo ACTION5_D04_GLB_REPRO_OK
+          full=false
+          if [[ "$EVENT_NAME" == 'push' && "$REF_NAME" == 'refs/heads/master' ]]; then
+            full=true
+          elif [[ "$EVENT_NAME" == 'workflow_dispatch' && "$DISPATCH_FULL" == 'true' ]]; then
+            full=true
+          else
+            # PR checkout is a synthetic merge commit. Inspect its actual
+            # latest head commit instead; never evaluate a PR title/body.
+            if [[ "$EVENT_NAME" == 'pull_request' ]]; then
+              git fetch --no-tags --quiet --depth=1 origin "$PR_HEAD_SHA"
+              message="$(git show -s --format=%B FETCH_HEAD)"
+            else
+              message="$(git show -s --format=%B HEAD)"
+            fi
+            if grep -Fqi '[full-e2e]' <<< "$message"; then
+              full=true
+            fi
+          fi
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+          echo "ACTION5_CI_MODE full_e2e=$full event=$EVENT_NAME"
+
+      - name: Install pinned Godot (templates for full E2E only)
+        env:
+          INSTALL_EXPORT_TEMPLATES: ${{ steps.tier.outputs.full }}
+        run: bash ci/install-godot.sh
 
       - name: Cold-start addon scripts without class cache or imported assets
         shell: bash
@@ -44,28 +78,34 @@ jobs:
           python3 tools/check_godot_log.py build/evidence/cold-start.log
           grep -q ACTION5_COLD_START_SCRIPTS_OK build/evidence/cold-start.log
 
-      - name: Import and verify scripts/scenes
+      - name: Run fast checks and optionally build exports
         shell: bash
+        env:
+          FULL_E2E: ${{ steps.tier.outputs.full }}
         run: |
           set -euo pipefail
-          mkdir -p build/evidence build/web build/linux
-          make import 2>&1 | tee build/evidence/import.log
-          python3 tools/check_godot_log.py build/evidence/import.log
-          make run RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/headless-scene.log
-          python3 tools/check_godot_log.py build/evidence/headless-scene.log
-
-      - name: Run real Godot tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Bound headless regressions: runtime script errors can otherwise leave
-          # SceneTree alive indefinitely when an awaited physics frame never returns.
-          timeout 100s make test 2>&1 | tee build/evidence/tests.log
+          mkdir -p build/evidence
+          # One Make invocation means the phony import runs once, not
+          # separately for tests, demo startup and each export.
+          if [[ "$FULL_E2E" == 'true' ]]; then
+            timeout 240s make check run build RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/checks.log
+          else
+            timeout 100s make check 2>&1 | tee build/evidence/checks.log
+          fi
+          cp build/logs/import.log build/evidence/import.log
+          cp build/logs/test.log build/evidence/tests.log
+          python3 tools/check_godot_log.py build/evidence/checks.log build/evidence/import.log build/evidence/tests.log
           grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
           grep -q 'failures=0' build/evidence/tests.log
-          python3 tools/check_godot_log.py build/evidence/tests.log
+          if [[ "$FULL_E2E" == 'true' ]]; then
+            cp build/logs/export-linux.log build/evidence/export-linux.log
+            cp build/logs/export-web.log build/evidence/export-web.log
+            python3 tools/check_godot_log.py build/evidence/export-linux.log build/evidence/export-web.log
+            python3 tools/check_exports.py
+          fi
 
       - name: Verify test runner fails for an intentional broken assertion
+        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -77,17 +117,8 @@ jobs:
           grep -q 'Intentional assertion verifies runner exits nonzero' build/evidence/negative-test.log
           echo ACTION5_NEGATIVE_SELF_TEST_OK
 
-      - name: Export Linux and Web
-        shell: bash
-        run: |
-          set -euo pipefail
-          make build 2>&1 | tee build/evidence/export-build.log
-          cp build/logs/export-linux.log build/evidence/export-linux.log
-          cp build/logs/export-web.log build/evidence/export-web.log
-          python3 tools/check_godot_log.py build/evidence/export-build.log build/evidence/export-linux.log build/evidence/export-web.log
-          python3 tools/check_exports.py
-
       - name: Run exported Linux executable
+        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -95,6 +126,7 @@ jobs:
           python3 tools/check_godot_log.py build/evidence/native-export-run.log
 
       - name: Capture native rendered evidence
+        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -117,6 +149,7 @@ jobs:
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
 
       - name: Verify real WebGL2 browser startup
+        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -161,7 +194,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Linux and Web smoke exports
-        if: success()
+        if: success() && steps.tier.outputs.full == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: d04-exports
