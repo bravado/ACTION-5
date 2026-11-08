@@ -154,20 +154,29 @@ try {
     errors.push('D06 Q-key did not swap to the second multi-mesh weapon: ' +
       equipped.join(' | '));
   }
+  // The pickups begin at equal range: the first E may select Bat or
+  // Shovel depending on group iteration. Derive expected action from
+  // the actual weapon selected by Q, never an assumed scene order.
+  const selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\\s|$)/)?.[1];
+  if (!selectedWeapon) {
+    errors.push('D06 cannot identify equipped weapon from actual gameplay events: ' +
+      equipped.at(-1));
+  }
+  const expectedAction = selectedWeapon + '_swing';
   const beforeRight = combatStarts.length;
   await page.mouse.click(700, 420, { button: 'right' });
   await page.waitForTimeout(850);
   const fromRight = combatStarts.slice(beforeRight);
-  if (fromRight.length !== 1 || !fromRight[0].includes('id=shovel_swing')) {
-    errors.push('D06 right-click must start ONLY Shovel swing, not unarmed Kick/Punch: ' +
+  if (fromRight.length !== 1 || !fromRight[0].includes('id=' + expectedAction)) {
+    errors.push('D06 right-click must start ONLY the selected weapon, not Kick/Punch: ' +
       fromRight.join(' | '));
   }
   const beforeLeft = combatStarts.length;
   await page.mouse.click(700, 420, { button: 'left' });
   await page.waitForTimeout(850);
   const fromLeft = combatStarts.slice(beforeLeft);
-  if (fromLeft.length !== 1 || !fromLeft[0].includes('id=shovel_swing')) {
-    errors.push('D06 left-click must also select configured Shovel swing: ' +
+  if (fromLeft.length !== 1 || !fromLeft[0].includes('id=' + expectedAction)) {
+    errors.push('D06 left-click must also use the selected weapon: ' +
       fromLeft.join(' | '));
   }
 
@@ -184,8 +193,8 @@ try {
   await page.mouse.up({ button: 'right' });
   await page.waitForTimeout(850);
   const f4Starts = combatStarts.slice(beforeF4Attack);
-  if (f4Starts.length !== 1 || !f4Starts[0].includes('id=shovel_swing')) {
-    errors.push('D06 F4 right-click did not use the equipped weapon: ' + f4Starts.join(' | '));
+  if (f4Starts.length !== 1 || !f4Starts[0].includes('id=' + expectedAction)) {
+    errors.push('D06 F4 right-click did not use the selected weapon: ' + f4Starts.join(' | '));
   }
   await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
