@@ -23,6 +23,17 @@ sudo install -m 0755 "${download_dir}/editor/Godot_v${tag}_linux.x86_64" /usr/lo
 godot --headless --version
 godot --headless --version | grep -q '^4\.7\.2\.'
 
+# Save runner time on regular PRs: the Godot binary is sufficient for tests.
+# Full E2E still downloads and installs the matching export templates.
+case "${INSTALL_EXPORT_TEMPLATES:-true}" in
+  true) ;;
+  false)
+    echo "ACTION5_GODOT_SETUP_OK version=${version} templates=skipped"
+    exit 0
+    ;;
+  *) echo "INSTALL_EXPORT_TEMPLATES must be true or false" >&2; exit 2 ;;
+esac
+
 # This official archive is ~1.3 GiB. Extract only required templates to limit disk usage.
 download "${base}/Godot_v${tag}_export_templates.tpz" "${template_zip}"
 extract_dir="${download_dir}/selected-templates"
