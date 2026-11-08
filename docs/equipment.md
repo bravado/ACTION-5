@@ -36,7 +36,7 @@ NPCs omit FirstPersonPresenter and can use an alternative tiny
 | Key | Command |
 |---|---|
 | E | Pick up nearest Bat/Shovel within reach |
-| Q | Swap between carried weapons |
+| Q | Swap between carried weapons (or re-equip the last stowed item) |
 | G | Drop current weapon into the persistent world |
 | F | Use equipped weapon's first configured attack |
 | Left/right mouse or J/K | D05 Punch/Kick remain available |

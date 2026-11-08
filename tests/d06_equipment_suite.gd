@@ -112,9 +112,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and combat.get_attack(&"shovel_swing") == null,
         "Dropped weapon cannot still request or execute its attack")
 
-    verify.call(equipment.equip(bat) and equipment.current_weapon == bat
+    verify.call(equipment.swap_next() and equipment.current_weapon == bat
         and equipment.drop_current() and equipment.inventory.is_empty(),
-        "Stowed Bat can re-equip and drop; inventory returns to empty")
+        "Swap selects remaining stowed Bat after a drop; both items can be dropped")
     for tick in range(2):
         await tree.process_frame
     verify.call(fps.world_visual_shadows.size() == starting_shadows

@@ -74,6 +74,12 @@ func equip(weapon: WeaponScript) -> bool:
 
 
 func swap_next() -> bool:
+    if inventory.is_empty():
+        return false
+    # Dropping the selected item may leave a stowed item in inventory.
+    # The same swap command must be able to equip that remaining item.
+    if current_weapon == null:
+        return equip(inventory[0])
     if inventory.size() < 2:
         return false
     var current_index: int = inventory.find(current_weapon)
