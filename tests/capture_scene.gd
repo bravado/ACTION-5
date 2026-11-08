@@ -365,15 +365,25 @@ func _capture() -> void:
         quit(1)
         return
     var bat_action: Resource = combat.call("get_attack", &"bat_swing")
-    for frame in range(int(bat_action.get("startup_ticks")) + 2):
+    var sampled_contact: bool = false
+    # Sample each actual physics tick until we reach the authored contact
+    # window, instead of awaiting both process_frame and physics_frame in
+    # every iteration (which advances two ticks on some CI runners).
+    for frame in range(int(bat_action.call("total_ticks")) + 3):
         await physics_frame
-        await process_frame
-    equipment_visual.call("refresh_presentation")
+        equipment_visual.call("refresh_presentation")
+        var current_progress: float = float(equipped_view.get("pose_progress"))
+        if current_progress >= 0.42 and current_progress <= 0.56:
+            sampled_contact = true
+            break
     var active_grip: Vector3 = grip.position
-    if active_grip.distance_to(rest_grip) < 0.22 or not grip.position.is_equal_approx(
+    if not sampled_contact or active_grip.distance_to(rest_grip) < 0.22 or not grip.position.is_equal_approx(
         (gripped_arm.get_node("Extremity") as Node3D).position
-    ) or float(equipped_view.get("pose_progress")) <= 0.15:
-        push_error("D06: weapon/gripping hand did not follow its authored active pose")
+    ):
+        push_error("D06: weapon/gripping hand did not follow contact pose; progress="
+            + str(equipped_view.get("pose_progress"))
+            + " displacement=" + str(active_grip.distance_to(rest_grip))
+            + " contact=" + str(sampled_contact))
         quit(1)
         return
     paused = true
