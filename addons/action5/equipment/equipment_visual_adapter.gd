@@ -16,7 +16,6 @@ class_name Action5EquipmentVisualAdapter
 
 var _registered_meshes: Array[MeshInstance3D] = []
 var _viewmodel: Node3D
-var _viewmodel_base: Transform3D
 var _active_weapon: Node3D
 
 
@@ -53,8 +52,7 @@ func _on_equipped(weapon: Node3D) -> void:
     var candidate := scene.instantiate() as Node3D
     if candidate != null and first_person.call("register_first_person_visual", candidate):
         _viewmodel = candidate
-        _viewmodel_base = candidate.transform
-        set_process(true)
+        set_process(candidate.has_method("apply_pose"))
     elif candidate != null:
         candidate.queue_free()
 
@@ -63,23 +61,30 @@ func _on_unequipped(_weapon: Node3D) -> void:
     _clear_visuals()
 
 
+## Each authored viewmodel positions hand, forearm and weapon as a single
+## gripped pose, driven by the D05 action clock (not by a new timer).
 func _process(_delta: float) -> void:
+    refresh_presentation()
+
+
+func show_unarmed_limbs() -> bool:
+    return not is_instance_valid(equipment) or equipment.get("current_weapon") == null
+
+
+func refresh_presentation() -> void:
     if not is_instance_valid(_viewmodel) or not is_instance_valid(_active_weapon):
         set_process(false)
         return
-    _viewmodel.transform = _viewmodel_base
-    if not is_instance_valid(visual_state) or not visual_state.has_method("get_visual_action"):
+    if not _viewmodel.has_method("apply_pose"):
         return
-    var state: Dictionary = visual_state.call("get_visual_action")
-    if state.is_empty():
-        return
-    var definition: Resource = _active_weapon.get("definition")
-    for attack in _active_weapon.call("get_attack_definitions"):
-        if state.get("key", &"") == attack.get("animation_key"):
-            var progress: float = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
-            var degrees: Vector3 = definition.get("first_person_swing_degrees")
-            _viewmodel.rotation_degrees += degrees * sin(progress * PI)
-            break
+    var progress: float = 0.0
+    if is_instance_valid(visual_state) and visual_state.has_method("get_visual_action"):
+        var state: Dictionary = visual_state.call("get_visual_action")
+        for attack in _active_weapon.call("get_attack_definitions"):
+            if state.get("key", &"") == attack.get("animation_key"):
+                progress = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
+                break
+    _viewmodel.call("apply_pose", progress)
 
 
 func _clear_visuals() -> void:
