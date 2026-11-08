@@ -30,6 +30,7 @@ There is exactly one 3D game world and one authoritative player actor. Camera sw
 - `make web`, `make linux`, and `make build` import before exporting.
 - The Makefile must fail closed on Godot errors and retain `.godot/` as a generated, ignored cache.
 - CI must exercise Makefile targets rather than maintaining a conflicting implementation of the import/build steps. Do not add a requirement to commit the generated class registry.
+- Use Node.js 24-native GitHub Actions for checkout, artifacts and Pages (including roadmap sync). Full E2E uses Playwright's headless Chromium shell to avoid downloading a headed browser. Do not shorten gameplay/render waits solely to reduce CI minutes; preserve genuine WebGL2 regressions.
 
 ## Working cycle
 

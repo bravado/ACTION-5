@@ -99,6 +99,8 @@ The [ACTION-5 CI workflow](../.github/workflows/godot-ci.yml) has two stable job
 
 Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full E2E job. Each job shares the phony Godot import across its Make targets in one invocation.
 
+**Action runtime maintenance:** workflows use Node.js 24-native versions of GitHub's checkout, artifact and Pages actions (GitHub-hosted runners on Ubuntu 24.04). Keep these dependencies upgraded together; changing the JavaScript action runtime does not change Godot's pinned version or Playwright's pinned test version. The full E2E browser test uses the **headless Chromium shell only** (no unused headed browser download), with a 10-minute bound on real WebGL2 smoke. The full E2E job has an 18-minute safety limit, compared with the prior 30-minute limit. The WebGL2 screenshot/timing assertions are unchanged.
+
 ```bash
 make test     # Local Godot headless tests, requires Godot 4.7.2 and Python 3
 make check    # Local PR-equivalent tests, additionally requires Node.js
