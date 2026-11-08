@@ -276,7 +276,7 @@ func _capture() -> void:
         # Capture at authored contact progress, not after an arbitrary
         # number of paired render/physics waits. Software CI may advance
         # two physics ticks per iteration and finish a 15-tick Punch.
-        var sampled_contact: bool = false
+        var sampled_limb_contact: bool = false
         for frame in range(action.total_ticks() + 2):
             await physics_frame
             limb_presenter.call("refresh_presentation")
@@ -284,10 +284,10 @@ func _capture() -> void:
                 "CombatVisualState").call("get_visual_action")
             var progress: float = float(snapshot.get("progress", 0.0))
             if snapshot.get("key", &"") == attack_id and progress >= 0.27 and progress <= 0.43:
-                sampled_contact = true
+                sampled_limb_contact = true
                 break
         var limb: Node3D = limb_presenter.call("get_limb_root", attack_id)
-        if not sampled_contact or limb == null or not limb.visible or not fps.first_person:
+        if not sampled_limb_contact or limb == null or not limb.visible or not fps.first_person:
             push_error("D05: F4 authored contact pose not observed for " + str(attack_id))
             quit(1)
             return
