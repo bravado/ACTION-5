@@ -236,6 +236,10 @@ func _run_tests() -> void:
             player.apply_move_intent(idle_first_person)
             manager.switch_view(2)
             await physics_frame
+        # Physics can shift the actor/follow target slightly between
+        # switches. Compare the same settled isometric camera composition.
+        fps_rig._snap_next = true
+        fps_rig._update_camera(1.0 / 60.0)
         _check(is_equal_approx(fps_rig.orbit_yaw, iso_orbit_yaw)
             and is_equal_approx(fps_rig.orbit_pitch, iso_orbit_pitch)
             and manager.get_active_camera().global_basis.is_equal_approx(iso_orbit_basis),
