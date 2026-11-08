@@ -10,6 +10,7 @@ const moveChanges = [];
 const settingsVisibility = [];
 const rigViews = [];
 const combatStarts = [];
+const weaponEvents = [];
 const limbVisibility = [];
 const browser = await chromium.launch({
   headless: true,
@@ -25,6 +26,7 @@ try {
     if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
+    if (line.includes('ACTION5_WEAPON_')) weaponEvents.push(line);
     if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
@@ -128,6 +130,95 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
+
+  // D06 E/Q/G/F gameplay smoke. No direct Godot script calls: real keyboard
+  // inputs must cause two distinct pickups, a swap, a registered D05 attack,
+  // and two drops restoring the camera-only viewmodel state.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const firstEquipIndex = weaponEvents.length;
+  await page.keyboard.press('e', { delay: 120 });
+  await page.waitForTimeout(350);
+  await page.keyboard.press('e', { delay: 120 });
+  await page.waitForTimeout(350);
+  const pickups = weaponEvents.slice(firstEquipIndex).filter(s => s.includes('ACTION5_WEAPON_PICKUP'));
+  if (pickups.length !== 2 || pickups[0] === pickups[1]) {
+    errors.push('D06 E-key did not pick up two different weapon definitions: ' +
+      pickups.join(' | '));
+  }
+  await page.keyboard.press('q');
+  await page.waitForTimeout(350);
+  const equipped = weaponEvents.filter(s => s.includes('ACTION5_WEAPON_EQUIPPED'));
+  if (equipped.length < 2 || equipped.at(-1) === equipped[0] ||
+      !equipped.at(-1).includes('meshes=2 f4_visual=1')) {
+    errors.push('D06 Q-key did not swap to the second multi-mesh weapon: ' +
+      equipped.join(' | '));
+  }
+  const beforeWeaponAction = combatStarts.length;
+  await page.keyboard.press('f', { delay: 140 });
+  await page.waitForTimeout(520);
+  if (!combatStarts.slice(beforeWeaponAction).some(s =>
+      s.includes('id=bat_swing') || s.includes('id=shovel_swing'))) {
+    errors.push('D06 F-key did not start a configured equipment attack');
+  }
+
+  await page.keyboard.press('3');
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: 'build/evidence/web-d06-world-equipped.png', fullPage: true });
+  await page.keyboard.press('4');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
+  await page.evaluate(() => {
+    const gameCanvas = document.querySelector('canvas');
+    const mirror = document.createElement('canvas');
+    mirror.width = gameCanvas.width;
+    mirror.height = gameCanvas.height;
+    const ctx = mirror.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(gameCanvas, 0, 0);
+    const bounds = {
+      x: Math.floor(mirror.width * 0.50), y: Math.floor(mirror.height * 0.44),
+      w: Math.floor(mirror.width * 0.44), h: Math.floor(mirror.height * 0.51),
+    };
+    window.__d06Visual = {
+      mirror, bounds,
+      equipped: ctx.getImageData(bounds.x, bounds.y, bounds.w, bounds.h).data,
+    };
+  });
+
+  await page.keyboard.press('g');
+  await page.waitForTimeout(400);
+  // One item remains stowed. Q must equip it even though the current
+  // slot is empty, so the player can drop both and return to D05 baseline.
+  await page.keyboard.press('q');
+  await page.waitForTimeout(400);
+  await page.keyboard.press('g');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-dropped.png', fullPage: true });
+  const changedD06 = await page.evaluate(() => {
+    const gameCanvas = document.querySelector('canvas');
+    const state = window.__d06Visual;
+    const ctx = state.mirror.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(gameCanvas, 0, 0);
+    const current = ctx.getImageData(
+      state.bounds.x, state.bounds.y, state.bounds.w, state.bounds.h).data;
+    let changed = 0;
+    for (let i = 0; i < current.length; i += 16) {
+      if (Math.abs(current[i] - state.equipped[i]) +
+          Math.abs(current[i + 1] - state.equipped[i + 1]) +
+          Math.abs(current[i + 2] - state.equipped[i + 2]) > 75) changed++;
+    }
+    delete window.__d06Visual;
+    return changed;
+  });
+  const drops = weaponEvents.filter(s => s.includes('ACTION5_WEAPON_DROPPED'));
+  if (drops.length !== 2 || drops.some(s => !s.includes('f4_visual=0')) ||
+      changedD06 < 50) {
+    errors.push('D06 drop/F4 visual cleanup failed: drops=' + drops.join(' | ') +
+      ' changed_pixels=' + changedD06);
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D06_EQUIPMENT_OK pickup=2 swap=1 action=1 drop=2 f4=1 pixels=' +
+    changedD06);
 
   // F4 always shows the articulated arm, which punches. Kick adds a
   // lower-framed leg without the obsolete tool. Input

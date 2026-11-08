@@ -29,6 +29,9 @@ func _ready() -> void:
     _combat.attack_started.connect(_on_attack_started)
     _combat.attack_hit.connect(_on_attack_hit)
     _health.health_changed.connect(_on_health_changed)
+    _equipment.weapon_picked_up.connect(_on_weapon_picked_up)
+    _equipment.weapon_equipped.connect(_on_weapon_equipped)
+    _equipment.weapon_dropped.connect(_on_weapon_dropped)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
@@ -129,6 +132,32 @@ func _on_attack_started(id: StringName) -> void:
 
 func _on_attack_hit(id: StringName, target: Node) -> void:
     print("ACTION5_ATTACK_HIT id=", id, " target=", target.name)
+
+
+## D06 demo-only diagnostics: browser CI sends real keys, not script hooks.
+func _on_weapon_picked_up(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    print("ACTION5_WEAPON_PICKUP id=", definition.get("weapon_id"))
+
+
+func _on_weapon_equipped(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    var adapter: Node = _player.get_node("EquipmentVisualAdapter")
+    var f4_visual: Node3D = adapter.get("_viewmodel") as Node3D
+    print("ACTION5_WEAPON_EQUIPPED id=", definition.get("weapon_id"),
+        " meshes=", weapon.call("get_world_meshes").size(),
+        " f4_visual=", int(f4_visual != null))
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
+
+
+func _on_weapon_dropped(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    var adapter: Node = _player.get_node("EquipmentVisualAdapter")
+    print("ACTION5_WEAPON_DROPPED id=", definition.get("weapon_id"),
+        " f4_visual=", int(adapter.get("_viewmodel") != null))
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
 
 
 ## Avoid laying out the HUD 60 times/sec while idle: software WebGL2
