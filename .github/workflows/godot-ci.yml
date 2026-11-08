@@ -223,3 +223,30 @@ jobs:
             build/web/
           if-no-files-found: error
           retention-days: 14
+
+      # Reuse the exact Web export validated by the browser smoke above;
+      # do not spend another runner/build on an independent Pages export.
+      - name: Package validated Web export for GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+  deploy-pages:
+    name: CI / Deploy Pages
+    # Only publish validated artifacts from master; never from PRs or
+    # workflow_dispatch runs (including their full-e2e opt-in).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: full-e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish Web game to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
