@@ -108,7 +108,7 @@ make build        # Import and export Linux + Web
 
 Or prepare the project once explicitly with `make import`. For other Godot executable names use `make run GODOT=godot4`. The `.godot/` cache stays local and is not committed. See `make help` for all targets.
 
-Normal PR updates run only `make check`, while pushes to `master` run the full native/browser E2E suite. To request full E2E on a PR, put `[full-e2e]` in its latest commit message (subject or body). You can also choose the full E2E option in the workflow's manual dispatch. For details, see [docs/development.md](docs/development.md).
+Normal PR updates run `CI / Checks` (the same suite as `make check`), while pushes to `master` run `CI / Full E2E` as well. To request full E2E on a PR, put `[full-e2e]` in its latest commit message (subject or body). You can also choose the full E2E option in the workflow's manual dispatch. For details, see [docs/development.md](docs/development.md).
 
 ## License and assets
 

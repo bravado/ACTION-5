@@ -1,4 +1,4 @@
-name: ACTION-5 Godot CI (D01–D04)
+name: ACTION-5 CI
 
 on:
   pull_request:
@@ -21,12 +21,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  d01-smoke:
-    name: Godot checks (full native/WebGL2 E2E on demand)
+  checks:
+    name: CI / Checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      GODOT_VERSION: 4.7.2
+    timeout-minutes: 8
+    outputs:
+      run_full_e2e: ${{ steps.tier.outputs.full }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,9 +61,9 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "ACTION5_CI_MODE full_e2e=$full event=$EVENT_NAME"
 
-      - name: Install pinned Godot (templates for full E2E only)
+      - name: Install pinned Godot editor
         env:
-          INSTALL_EXPORT_TEMPLATES: ${{ steps.tier.outputs.full }}
+          INSTALL_EXPORT_TEMPLATES: 'false'
         run: bash ci/install-godot.sh
 
       - name: Cold-start addon scripts without class cache or imported assets
@@ -78,34 +78,58 @@ jobs:
           python3 tools/check_godot_log.py build/evidence/cold-start.log
           grep -q ACTION5_COLD_START_SCRIPTS_OK build/evidence/cold-start.log
 
-      - name: Run fast checks and optionally build exports
+      - name: Run make check
         shell: bash
-        env:
-          FULL_E2E: ${{ steps.tier.outputs.full }}
         run: |
           set -euo pipefail
           mkdir -p build/evidence
-          # One Make invocation means the phony import runs once, not
-          # separately for tests, demo startup and each export.
-          if [[ "$FULL_E2E" == 'true' ]]; then
-            timeout 240s make check run build RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/checks.log
-          else
-            timeout 100s make check 2>&1 | tee build/evidence/checks.log
-          fi
+          timeout 100s make check 2>&1 | tee build/evidence/checks.log
           cp build/logs/import.log build/evidence/import.log
           cp build/logs/test.log build/evidence/tests.log
           python3 tools/check_godot_log.py build/evidence/checks.log build/evidence/import.log build/evidence/tests.log
           grep -q 'ACTION5_TEST_RESULT' build/evidence/tests.log
           grep -q 'failures=0' build/evidence/tests.log
-          if [[ "$FULL_E2E" == 'true' ]]; then
-            cp build/logs/export-linux.log build/evidence/export-linux.log
-            cp build/logs/export-web.log build/evidence/export-web.log
-            python3 tools/check_godot_log.py build/evidence/export-linux.log build/evidence/export-web.log
-            python3 tools/check_exports.py
-          fi
+
+      - name: Upload checks evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-checks-evidence
+          path: build/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  full-e2e:
+    name: CI / Full E2E
+    needs: checks
+    # This check is skipped successfully on ordinary PR updates. If a PR
+    # opts in via [full-e2e], GitHub branch protection requires it to pass.
+    if: needs.checks.outputs.run_full_e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Godot and export templates
+        env:
+          INSTALL_EXPORT_TEMPLATES: 'true'
+        run: bash ci/install-godot.sh
+
+      - name: Build Linux/Web and smoke native scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/evidence
+          # One Make invocation shares the import across game and two exports.
+          timeout 240s make run build RUN_ARGS="--headless --quit-after 20" 2>&1 | tee build/evidence/build.log
+          cp build/logs/import.log build/evidence/import.log
+          cp build/logs/export-linux.log build/evidence/export-linux.log
+          cp build/logs/export-web.log build/evidence/export-web.log
+          python3 tools/check_godot_log.py build/evidence/build.log build/evidence/import.log build/evidence/export-linux.log build/evidence/export-web.log
+          python3 tools/check_exports.py
 
       - name: Verify test runner fails for an intentional broken assertion
-        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -118,7 +142,6 @@ jobs:
           echo ACTION5_NEGATIVE_SELF_TEST_OK
 
       - name: Run exported Linux executable
-        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -126,7 +149,6 @@ jobs:
           python3 tools/check_godot_log.py build/evidence/native-export-run.log
 
       - name: Capture native rendered evidence
-        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -149,7 +171,6 @@ jobs:
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log
 
       - name: Verify real WebGL2 browser startup
-        if: steps.tier.outputs.full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -184,20 +205,19 @@ jobs:
           grep -q 'ACTION5_BROWSER_CAMERA_SETTINGS_OK open=1 shortcut=1' build/evidence/browser-smoke.log
           grep -q 'ACTION5_BROWSER_FIVE_VIEWS_OK unique=5 selector=1' build/evidence/browser-smoke.log
 
-      - name: Upload build logs, screenshots and verification
+      - name: Upload full E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: d04-evidence
+          name: ci-full-e2e-evidence
           path: build/evidence/
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Upload Linux and Web smoke exports
-        if: success() && steps.tier.outputs.full == 'true'
+      - name: Upload full E2E exports
         uses: actions/upload-artifact@v4
         with:
-          name: d04-exports
+          name: ci-full-e2e-exports
           path: |
             build/linux/
             build/web/

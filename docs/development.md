@@ -90,14 +90,14 @@ Godot must have the export templates matching the editor version. The CI install
 
 ## Tests and CI evidence
 
-The [Godot CI workflow](../.github/workflows/d01-godot.yml) has two tiers:
+The [ACTION-5 CI workflow](../.github/workflows/godot-ci.yml) has two stable job names (independent of D01–D12 milestones):
 
-- **Every PR update:** cold-start parser smoke, reproducible original/alternate GLBs and the entire headless GDScript regression suite. No export-template download, browser installation, native screenshots or WebGL2 startup.
-- **Push to `master`:** always runs those fast checks **plus** Linux/Web exports, an exported native executable smoke, native camera screenshots, Chromium/WebGL2 tests and the negative-test runner self-check.
+- **`CI / Checks` (every PR update):** cold-start parser smoke, reproducible original/alternate GLBs and the entire headless GDScript regression suite. No export-template download, browser installation, native screenshots or WebGL2 startup.
+- **`CI / Full E2E` (conditional):** Linux/Web exports, an exported native executable smoke, native camera screenshots, Chromium/WebGL2 tests and the negative-test runner self-check. Runs on **every push to `master`**, or when explicitly requested. Depends on `CI / Checks`, but does not repeat its tests.
 - **Explicit PR full check:** include `[full-e2e]` in the **latest commit message** (subject or body, case-insensitive), then push the commit. The workflow reads the actual PR head commit, not the synthetic merge commit or PR title.
 - **Manual dispatch:** select `full_e2e` in GitHub Actions to run the full suite; otherwise the fast tier runs.
 
-Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full tier. Multiple Make goals use one process, so the shared phony import executes only once per run.
+Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full E2E job. Each job shares the phony Godot import across its Make targets in one invocation.
 
 ```bash
 make test     # Local Godot headless tests, requires Godot 4.7.2 and Python 3
@@ -105,6 +105,16 @@ make check    # Local PR-equivalent tests, additionally requires Node.js
 make build    # Local Linux and Web exports, requires matching templates
 ```
 
-The workflow uploads `d04-evidence` logs for both tiers; full E2E additionally includes native/Web screenshots and `d04-exports` Linux and Web builds. The full tests are not deleted—only deferred to master merges or explicitly opted-in PR validation. For visual-sensitive PRs, request full E2E before merge; a merge to `master` runs it automatically but cannot gate that merge retrospectively.
+The workflow uploads `ci-checks-evidence` for fast checks and `ci-full-e2e-evidence` plus `ci-full-e2e-exports` for full E2E. The full tests are not deleted—only deferred to master merges or explicitly opted-in PR validation. For visual-sensitive PRs, request full E2E before merge; a merge to `master` runs it automatically but cannot gate that merge retrospectively.
+
+### GitHub branch protection
+
+Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch protection rules**) for `master`, require these **exact** job check names from **GitHub Actions**:
+
+- `CI / Checks` — always executes on each PR and must pass.
+- `CI / Full E2E` — normal PRs skip this job; GitHub treats conditionally skipped jobs as passing required checks. When `[full-e2e]` requests E2E, its failure blocks the merge.
+
+Do **not** require the workflow display name (`ACTION-5 CI`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
+
 
 D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. Combat and weapons remain separate D05–D07 work.

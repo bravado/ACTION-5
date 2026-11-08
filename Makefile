@@ -22,7 +22,7 @@ help:
 		'ACTION-5 (Godot 4.7.2) development commands:' \
 		'  make import       Import resources and refresh the GDScript class registry' \
 		'  make test         Import, then run all Godot headless tests' \
-		'  make check        Verify asset fixtures and run the PR checks locally' \
+		'  make check        Run the same checks as CI / Checks (asset + Godot)' \
 		'  make run          Import, then run the game' \
 		'  make editor       Import, then open the Godot editor' \
 		'  make web          Import, then export the browser build' \
