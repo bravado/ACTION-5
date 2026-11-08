@@ -143,6 +143,26 @@ weapon IDs to shared profile defaults; custom moves and actions extend
 `clip_map` via data and use the generic animation presentation ports.
 `tests/d04_suite.gd` covers both generic and demo-specific validation.
 
+## D05 heading fallback and merge verification
+
+CombatController never inspects a child named `Visual` or reads an animation,
+camera, facing or movement component to infer attack direction.
+`request_attack(id, world_xz_direction)` uses a finite supplied direction;
+an omitted/zero direction retains the controller's last resolved attack heading
+(initially X/Z = (0, -1)). Input/AI providers are responsible for resolving
+view-appropriate aim before requesting an attack. A standalone
+CharacterBody3D with a CombatController must pass the same behavior without
+any `Visual`, Facing, Locomotion, Health or camera nodes.
+
+D05 merge review includes `make check`, a third attack via resources, standalone
+Health, optional HealthActorAdapter and CombatAnimationAdapter lifecycle,
+a replaceable ActionInputContext provider, resource-only clip requirements,
+mouse click/UI suppression, bounded knockback and native/WebGL2 limb evidence.
+Use the current `CI / Checks` and `CI / Full E2E` jobs; request the latter
+with `[full-e2e]` in the latest PR commit. Passing automated rendering tests
+does not replace a human visual assessment where required by PLAN.md.
+Do not mark D05 complete or merge it on the strength of earlier commit CI.
+
 ## D05 attack authoring
 
 Follow [docs/combat.md](docs/combat.md) and ADR-0003. New attacks use an AttackDefinition and the existing CombatController/CombatInputAdapter request contract: never add attack-name branches to Actor, Locomotion, MovementController, ActorInputAdapter, AnimationPresenter or CameraRig. Combat owns physics-tick startup/active/recovery, mutable hit history, and Health/Hurtbox filtering. The only generic locomotion integration is apply_external_impulse; no combat code writes CharacterBody3D.velocity. Input edges must release-to-rearm through focus/settings interruption. Tests must prove new third-attack configuration and dedup across multiple hurtboxes before D05 is accepted.
