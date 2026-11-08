@@ -312,6 +312,12 @@ func _capture() -> void:
             await physics_frame
         print("ACTION5_F4_NATIVE_LIMB_OK action=", attack_id, " pixels=", changed)
 
+    # D05 placed a training dummy directly against the camera for hitbox
+    # checks. Restore an unobstructed view of the held Bat: F4 pose
+    # evidence must reflect moving arm/weapon geometry, not a damaged
+    # training dummy changing color in the center of the screenshot.
+    dummy.global_position = Vector3(6.0, 0.0, -5.0)
+
     # D06-01 native evidence: the real Bat remains attached to the world
     # skeleton during camera switches. The camera-only prop must disappear
     # after dropping, while the original D04 training tool returns.
