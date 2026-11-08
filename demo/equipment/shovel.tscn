@@ -1,0 +1,28 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/equipment/weapon.gd" id="1"]
+[ext_resource type="Resource" path="res://demo/equipment/shovel.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="handle"]
+size = Vector3(0.10, 0.11, 1.22)
+
+[sub_resource type="BoxMesh" id="blade"]
+size = Vector3(0.39, 0.06, 0.43)
+
+[sub_resource type="StandardMaterial3D" id="steel"]
+albedo_color = Color(0.50, 0.64, 0.75, 1)
+metallic = 0.65
+roughness = 0.38
+
+[node name="Shovel" type="Node3D" groups=["action5_weapon_pickup"]]
+script = ExtResource("1")
+definition = ExtResource("2")
+
+[node name="Handle" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.05, -0.49)
+mesh = SubResource("handle")
+
+[node name="Blade" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.05, -1.32)
+mesh = SubResource("blade")
+material_override = SubResource("steel")
