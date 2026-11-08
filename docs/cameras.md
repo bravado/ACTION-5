@@ -14,7 +14,7 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 **Number row 1–5** is the primary shortcut on both desktop and Web. F1–F5 is an optional secondary binding, because browsers may reserve function keys. There are five visible in-game selector buttons and configurable gamepad shoulder-button cycling. `Ctrl+1–5` is *not* a supported browser fallback: browsers use Ctrl+number for tab navigation.
 
-Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F4, the camera restores its previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on the first entry only; mouse-look direction is not persisted between game launches. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
+Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
 
 ## One isometric/shoulder profile
 

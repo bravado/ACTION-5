@@ -16,9 +16,10 @@ var orbit_yaw: float = 0.0
 var orbit_pitch: float = 0.0
 var transition_count: int = 0
 var _snap_next: bool = true
-# Preserve F4 mouse look while other modes borrow orbit_yaw/orbit_pitch.
-var _first_person_orbit: Vector2 = Vector2.ZERO
-var _first_person_orbit_initialized: bool = false
+# Each orbit view retains its own look direction across profile changes.
+var _orbit_angles: Dictionary = {}
+## Advances only for actual mouse-look input, not for camera view changes.
+var look_input_revision: int = 0
 
 
 func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void:
@@ -27,25 +28,29 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
     var leaving_first_person: bool = (
         profile != null and profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     )
-    if leaving_first_person:
-        _first_person_orbit = Vector2(orbit_yaw, orbit_pitch)
+    if profile != null and profile.is_orbit_mode():
+        _orbit_angles[profile.mode] = Vector2(orbit_yaw, orbit_pitch)
     profile = next_profile
     target = next_target
     _eye_offset = target.get_node_or_null(eye_offset_path) as Node3D
-    # Isometric uses mouse offsets relative to the zoom-dependent angle.
-    # F4 remembers its own direct yaw/pitch when switching to other views.
-    if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
-        if not _first_person_orbit_initialized:
-            _first_person_orbit = Vector2(
-                deg_to_rad(profile.default_yaw_degrees),
-                deg_to_rad(profile.default_pitch_degrees)
+    # F3 stores user offsets from its zoom-dependent orbit; F4 stores
+    # direct yaw/pitch. Never discard one while activating the other.
+    if profile.is_orbit_mode():
+        if not _orbit_angles.has(profile.mode):
+            _orbit_angles[profile.mode] = (
+                Vector2(deg_to_rad(profile.default_yaw_degrees),
+                    deg_to_rad(profile.default_pitch_degrees))
+                if profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+                else Vector2.ZERO
             )
-            _first_person_orbit_initialized = true
-        orbit_yaw = _first_person_orbit.x
-        orbit_pitch = clampf(
-            _first_person_orbit.y,
-            deg_to_rad(profile.min_pitch_degrees),
-            deg_to_rad(profile.max_pitch_degrees)
+        var saved_orbit: Vector2 = _orbit_angles[profile.mode]
+        orbit_yaw = saved_orbit.x
+        orbit_pitch = (
+            clampf(saved_orbit.y,
+                deg_to_rad(profile.min_pitch_degrees),
+                deg_to_rad(profile.max_pitch_degrees))
+            if profile.mode == ViewProfileScript.Mode.FIRST_PERSON
+            else saved_orbit.y
         )
     else:
         orbit_yaw = 0.0
@@ -82,8 +87,9 @@ func refresh_settings(update_pitch: bool = false) -> void:
 
 
 func apply_mouse_motion(relative: Vector2) -> void:
-    if profile == null or not profile.is_orbit_mode():
+    if profile == null or not profile.is_orbit_mode() or not relative.is_finite() or relative.is_zero_approx():
         return
+    look_input_revision += 1
     orbit_yaw -= relative.x * profile.mouse_sensitivity
     if profile.mode == ViewProfileScript.Mode.ISOMETRIC:
         orbit_pitch = clampf(

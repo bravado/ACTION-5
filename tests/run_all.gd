@@ -205,6 +205,52 @@ func _run_tests() -> void:
             "Wide F3 view starts at isometric zoom, not the shoulder zoom")
         _check(manager.get_active_camera().global_basis.z.y > 0.5,
             "Wide F3 isometric view is visibly inclined")
+
+        # Reproduce 3 -> 4 -> 3 while the actor is facing east and idle.
+        # Both the isometric mouse orbit AND the visual facing must survive.
+        var original_facing: Vector2 = player.facing.facing_world
+        player.facing.set_facing(Vector2.RIGHT)
+        var iso_base_basis: Basis = manager.get_active_camera().global_basis
+        fps_rig.apply_mouse_motion(Vector2(170.0, -95.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        var iso_orbit_yaw: float = fps_rig.orbit_yaw
+        var iso_orbit_pitch: float = fps_rig.orbit_pitch
+        var iso_orbit_basis: Basis = manager.get_active_camera().global_basis
+        _check(not iso_orbit_basis.is_equal_approx(iso_base_basis),
+            "F3 mouse orbit is non-default before the round trip")
+        for repeat_index in range(3):
+            manager.switch_view(3)
+            var idle_first_person = actor_input.compose_intent(Vector2.ZERO)
+            _check(idle_first_person.face_world.is_zero_approx()
+                and idle_first_person.aim_world.is_zero_approx(),
+                "Entering F4 without input does not issue an implicit north-facing command")
+            player.apply_move_intent(idle_first_person)
+            manager.switch_view(2)
+        _check(is_equal_approx(fps_rig.orbit_yaw, iso_orbit_yaw)
+            and is_equal_approx(fps_rig.orbit_pitch, iso_orbit_pitch)
+            and manager.get_active_camera().global_basis.is_equal_approx(iso_orbit_basis),
+            "F3 keeps its yaw, pitch and camera basis after repeated F4 switches")
+        _check(player.facing.facing_world.is_equal_approx(Vector2.RIGHT),
+            "Idle F4 round trips preserve the player's east-facing direction")
+
+        # Actual F4 mouse look still directs the character, and that new
+        # intentional facing must remain when returning to F3.
+        manager.switch_view(3)
+        fps_rig.apply_mouse_motion(Vector2(150.0, 0.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        var looked_intent = actor_input.compose_intent(Vector2.ZERO)
+        _check(looked_intent.face_world.length_squared() > 0.9,
+            "Active F4 mouse look provides a world-space facing direction")
+        player.apply_move_intent(looked_intent)
+        manager.switch_view(2)
+        _check(player.facing.facing_world.is_equal_approx(looked_intent.face_world),
+            "Intentional F4 mouse look remains the actor facing in F3")
+        # Restore independent camera and facing state for subsequent tests.
+        fps_rig.apply_mouse_motion(Vector2(-170.0, 95.0))
+        fps_rig._update_camera(1.0 / 60.0)
+        player.facing.set_facing(original_facing)
+        _check(manager.get_active_camera().global_basis.is_equal_approx(iso_base_basis),
+            "F3 orbit returns to its previous angle after inverse mouse input")
         _check(manager.profiles[2].shoulder_offset > 0.5
             and manager.profiles[2].aim_ahead > 1.0
             and manager.profiles[2].close_chase_distance < 4.0,
