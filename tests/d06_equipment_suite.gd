@@ -98,14 +98,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     Input.action_press(&"actor_kick")
     var pressed: bool = Input.is_action_just_pressed(&"actor_kick")
     action_input.call("_physics_process", 1.0 / 60.0)
-    print("ACTION5_D06_INPUT_DIAG just_pressed=", pressed,
-        " action_down=", Input.is_action_pressed(&"actor_kick"),
-        " context=", (action_input.get("context_source") as Node).call(
-            "get_action_input_context").accepting_actions,
-        " requested=", combat._pending_id,
-        " release=", action_input.get("release_to_rearm"))
     Input.action_release(&"actor_kick")
-    verify.call(combat._pending_id == &"bat_swing"
+    verify.call(pressed and combat._pending_id == &"bat_swing"
         and combat._pending_id != &"kick",
         "Real right-click action mapping requests equipped Bat instead of unarmed Kick")
     combat.cancel()
