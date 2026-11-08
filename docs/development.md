@@ -107,6 +107,20 @@ make build    # Local Linux and Web exports, requires matching templates
 
 The workflow uploads `ci-checks-evidence` for fast checks and `ci-full-e2e-evidence` plus `ci-full-e2e-exports` for full E2E. The full tests are not deleted—only deferred to master merges or explicitly opted-in PR validation. For visual-sensitive PRs, request full E2E before merge; a merge to `master` runs it automatically but cannot gate that merge retrospectively.
 
+### GitHub Pages deployment
+
+On every **push to `master`** (including merged PRs), `CI / Checks` and `CI / Full E2E` run first. Only after both jobs succeed does `CI / Deploy Pages` publish the **same `build/web/` export already verified in Chromium/WebGL2**. A PR, a manually dispatched workflow or a failing E2E run **never deploys**. The game is exported to `index.html` and its associated JavaScript, WASM and PCK assets; no `gh-pages` branch or separate export is created.
+
+**Repository setup (one-time):**
+
+1. Open **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**.
+2. Under **Settings → Environments → github-pages**, allow deployments from **`master` only**. If you add reviewers, deployment will wait for that approval.
+3. Ensure **Settings → Actions → General → Workflow permissions** permits the needed `GITHUB_TOKEN` rights. The workflow scopes `pages: write` and `id-token: write` **only** to the deployment job (normal CI retains `contents: read`).
+
+The resulting project site should appear at **https://bravado.github.io/ACTION-5/**, unless the organization has configured a custom Pages domain. Confirm the actual address from the `github-pages` environment after the first successful deployment. The first publish can only be verified following a successful push to `master` with Pages enabled.
+
+`CI / Deploy Pages` is **not a required PR status check**: it is intended to run *after* merging, while the checks below guard the merge itself.
+
 ### GitHub branch protection
 
 Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch protection rules**) for `master`, require these **exact** job check names from **GitHub Actions**:
@@ -114,7 +128,7 @@ Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch
 - `CI / Checks` — always executes on each PR and must pass.
 - `CI / Full E2E` — normal PRs skip this job; GitHub treats conditionally skipped jobs as passing required checks. When `[full-e2e]` requests E2E, its failure blocks the merge.
 
-Do **not** require the workflow display name (`ACTION-5 CI`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
+Do **not** require the workflow display name (`ACTION-5 CI`), deployment job (`CI / Deploy Pages`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
 
 
 D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. Combat and weapons remain separate D05–D07 work.
