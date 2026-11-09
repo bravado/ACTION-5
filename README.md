@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D04 are merged; D05 is the next planned deliverable.** The crouch movement example is merged; D05 combat is in PR #28. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D05 are merged** (D05 via squash-merged PR #28); the crouch movement example is also merged. **D06-01 Bat/Shovel equipment** is under review in PR #31 with authored world/F4 weapon animations, independent attacks, and lifecycle/fast-melee hardening. **D06-02 Gun** and **D07 AI** are next, not part of PR #31. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
