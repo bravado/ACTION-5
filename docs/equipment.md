@@ -6,6 +6,73 @@ Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
 D06-02 Gun and D07 AI remain separate future deliverables.
 
+## D06-02 development branch: hitscan gun (NOT YET VERIFIED)
+
+D06-02 uses the accepted D06-01 equipment and D05 action clocks. The demo
+adds a Pistol pickup, magazine/reserve display, R reload, physical WorldRecoil
+mesh effect, and camera-local firing/reload grip poses. A Heavy Pistol fixture
+demonstrates different 3-round capacity, T reload command, 135-tick reload,
+fire recovery, muzzle placement, appearance and separate attack ID.
+
+**Authoritative ownership:** Action5Gun derives from the existing
+Action5Weapon instance. Per-instance magazine, reserve, reload ticks and
+firing counters live on the instance only. The D05 active phase emits
+one hitscan ray. Neither gun nor equipment touches movement intent, player
+view mode, camera transforms, render layers or raw input. World Muzzle is
+the physical origin; the F4 camera-anchored GunF4 is presentation only.
+
+**Aim contract:** The optional ViewAimTargetProvider translates a D05
+ActionInputContext into a world-space destination. F4 traces through the
+center of Camera3D; the independent physical trace ALWAYS runs from the
+world Muzzle to this target, excluding the owner body's collision objects.
+Other views use world aim/facing, with retro F5 optionally quantized to
+8 sectors by the aim policy alone. No gun-specific camera checks and no
+retro quantization in its AttackDefinition. A nearer layer-1 wall takes
+precedence over a layer-2 Hurtbox. A valid active shot consumes one bullet
+even when a wall blocks its target; a dry/invalid/cancelled request does not.
+Hurtbox/Health handle friendly-team rejection, damage and stagger; no mesh
+has authority to hit.
+
+**Reload:** A separate optional WeaponCommandInputAdapter reads the existing
+action-permission snapshot and forwards the equipped weapon's configured
+command. Gun owns its tick countdown, moves rounds on successful completion,
+and cancels an incomplete reload when stowed, dropped or destroyed. Already
+consumed rounds remain consumed. A view change, run or jump does not reset
+the timer. A full magazine, empty reserve, active reload or busy attack
+rejects a new reload request. Weapon switching does not construct a second
+gun or a second gameplay clock. The GunReloadVisual adapter listens to
+reload events for the world skinned reload clip (if authored). F4 selects a
+camera-space reload grip; its visual pose cannot finish the reload.
+
+**Extension:** Copy the Gun scene/resource pair, author a new unique
+AttackDefinition (use_melee_hit_query=false, facing_sectors=Free, own
+visual_action_key), a separate world Muzzle Marker3D and separate optional
+F4 render-only viewmodel. Set magazine_size, starting_reserve,
+reload_ticks, fire_attack_id, reload_action, reload_key, maximum_range and
+ray_mask on that **instance**. The external aim provider is a replaceable
+actor-local Node implementing get_world_target(origin, range, exclude).
+Choose clip profiles via authored F4 resources and an optional world
+animation adapter. No actor/locomotion/movement/animation/combat/equipment
+core branches are needed for another gun.
+
+**Shared visual adapter exception:** A tiny optional
+set_visual_source(weapon) call was added to EquipmentVisualAdapter when
+registering an F4 scene. This only supplies the existing world instance to
+an independently authored render-only Gun viewmodel so its reload pose
+can follow that instance. Existing melee models are unchanged and all
+physical muzzle/damage/ammo logic remains world-authoritative. It does
+not add a gun-type condition, and an alternative F4 model can omit the port.
+
+**Testing and handoff:** tests/d06_gun_suite.gd is registered with
+tests/run_all.gd and covers shots, body exclusions, obstruction, reload
+across views, alternate gun scene and cleanup. Run `make check`, native
+and WebGL2 Full E2E, and perform real visual inspection before marking
+issue #14 complete. Initial repository edit was made through GitHub;
+local Godot import, native and WebGL2 smoke are NOT VERIFIED at this stage.
+No release approval or issue closure is implied.
+
+---
+
 ## Component responsibilities
 
 `Action5WeaponDefinition` (Resource) contains immutable weapon ID,
