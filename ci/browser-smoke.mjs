@@ -131,9 +131,9 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
 
-  // D06 real browser input: E/Q/G are equipment lifecycle. Existing
-  // LMB/RMB perform the equipped action (not unarmed Punch/Kick) and no
-  // special F swing key or direct script input is needed.
+  // D06 real browser input: E/Q/G manage equipment. Weapons register
+  // their own input actions: LMB claims swing; unassigned RMB keeps Kick.
+  // No separate F swing key or test-only input bridge is needed.
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const firstEquipIndex = weaponEvents.length;
@@ -167,8 +167,8 @@ try {
   await page.mouse.click(700, 420, { button: 'right' });
   await page.waitForTimeout(850);
   const fromRight = combatStarts.slice(beforeRight);
-  if (fromRight.length !== 1 || !fromRight[0].includes('id=' + expectedAction)) {
-    errors.push('D06 right-click must start ONLY the selected weapon, not Kick/Punch: ' +
+  if (fromRight.length !== 1 || !fromRight[0].includes('id=kick')) {
+    errors.push('D06 unassigned right-click must perform normal Kick while equipped: ' +
       fromRight.join(' | '));
   }
   const beforeLeft = combatStarts.length;
@@ -187,14 +187,22 @@ try {
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
   const beforeF4Attack = combatStarts.length;
-  await page.mouse.down({ button: 'right' });
+  await page.mouse.down({ button: 'left' });
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-swing.png', fullPage: true });
-  await page.mouse.up({ button: 'right' });
+  await page.mouse.up({ button: 'left' });
   await page.waitForTimeout(850);
   const f4Starts = combatStarts.slice(beforeF4Attack);
   if (f4Starts.length !== 1 || !f4Starts[0].includes('id=' + expectedAction)) {
-    errors.push('D06 F4 right-click did not use the selected weapon: ' + f4Starts.join(' | '));
+    errors.push('D06 F4 left-click did not use the selected weapon: ' + f4Starts.join(' | '));
+  }
+  // A second right-click in F4 must remain Kick, not a weapon swing.
+  const beforeF4Kick = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'right' });
+  await page.waitForTimeout(850);
+  const f4KickStarts = combatStarts.slice(beforeF4Kick);
+  if (f4KickStarts.length !== 1 || !f4KickStarts[0].includes('id=kick')) {
+    errors.push('D06 equipped F4 right-click must keep normal Kick: ' + f4KickStarts.join(' | '));
   }
   await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
