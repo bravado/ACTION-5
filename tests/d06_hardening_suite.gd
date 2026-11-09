@@ -138,6 +138,39 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     await tree.process_frame
     await tree.process_frame
 
+    # A failed first pickup stages the inventory and then attempts to
+    # auto-equip. Neither success notification may escape a failed
+    # registration: listeners must not observe a phantom owned item.
+    var rejecting_actor: Node3D = _make_actor(level, "D06RejectedInitialPickup",
+        Vector3(25, 0.5, 25))
+    var rejecting_equipment: EquipmentScript = rejecting_actor.get_node("Equipment")
+    var rejecting_port: Node = rejecting_actor.get_node("CombatController")
+    var rejected_item: WeaponScript = _make_weapon(level, "D06RejectedAutoEquip",
+        [&"d06_initial_fail"], rejecting_actor.global_position + Vector3(0.3, 0, 0))
+    var rejected_pickups: Array[Node3D] = []
+    var rejected_equips: Array[Node3D] = []
+    rejecting_equipment.weapon_picked_up.connect(
+        func(w: Node3D) -> void: rejected_pickups.append(w))
+    rejecting_equipment.weapon_equipped.connect(
+        func(w: Node3D) -> void: rejected_equips.append(w))
+    rejecting_port.set("reject_id", &"d06_initial_fail")
+    verify.call(not rejecting_equipment.pickup(rejected_item)
+        and rejected_pickups.is_empty() and rejected_equips.is_empty()
+        and rejecting_equipment.inventory.is_empty()
+        and rejecting_equipment.current_weapon == null
+        and rejected_item.get_parent() == level
+        and rejected_item.visible and rejected_item.equipment_owner == null
+        and rejecting_port.call("get_attack", &"d06_initial_fail") == null,
+        "Failed initial auto-equip rolls back inventory without phantom pickup/equip signals")
+    rejecting_port.set("reject_id", &"")
+    verify.call(rejecting_equipment.pickup(rejected_item)
+        and rejected_pickups.size() == 1 and rejected_equips.size() == 1
+        and rejecting_equipment.current_weapon == rejected_item,
+        "Successful retry emits exactly one committed pickup and equip")
+    rejecting_actor.queue_free()
+    await tree.process_frame
+    await tree.process_frame
+
     # Equipment/actor teardown must release valid objects from its inventory
     # to the world when the original world parent survives. No model/camera
     # dependency is necessary for a future D07 enemy actor.
