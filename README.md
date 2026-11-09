@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (2026-11-08): D01–D05 merged.** D05 unarmed combat, health, 3D aim and camera-local first-person poses were squash-merged in PR #28. **D06-01 Bat/Shovel equipment is under development** on `feat/d06-01-equipment`, with generic pickup/swap/drop and presentation adapters. Gun/ammo/muzzle obstruction (D06-02) and enemy AI (D07) are not yet implemented.
+> **Project status (2026-11-09): D01–D05 merged.** D05 unarmed combat, health, 3D aim and camera-local first-person poses were squash-merged in PR #28. **D06-01 Bat/Shovel equipment is under development** on `feat/d06-01-equipment`, with generic pickup/swap/drop and presentation adapters. Gun/ammo/muzzle obstruction (D06-02) and enemy AI (D07) are not yet implemented.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
