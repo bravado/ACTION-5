@@ -356,17 +356,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     views.call("switch_view", 3)
     await tree.process_frame
     unarmed_limb.call("refresh_presentation")
-    print("ACTION5_F4_FALLBACK_DIAG world=", int(world_fallback_visible),
-        " camera_model=", int(visual._viewmodel != null),
-        " registered=", visual._registered_meshes.size(),
-        " shadows=", fps.world_visual_shadows.size(),
-        " initial_shadows=", starting_shadows,
-        " fps=", int(fps.first_person),
-        " world_layer=", int(views.get_active_camera().get_cull_mask_value(1)),
-        " resting_arm=", int(unarmed_limb.get_limb_root(&"punch").visible))
+    # The demo training tool is hidden while equipped; without an F4
+    # replacement, the fallback world meshes cast their own shadows and
+    # require no duplicated FirstPersonPresenter shadow registrations.
     verify.call(world_fallback_visible and visual._viewmodel == null
         and visual._registered_meshes.is_empty()
-        and fps.world_visual_shadows.size() == starting_shadows
+        and fps.world_visual_shadows.is_empty()
         and fps.first_person and views.get_active_camera().get_cull_mask_value(1)
         and unarmed_limb.get_limb_root(&"punch").visible,
         "Third weapon without an F4 scene remains world-visible and keeps the unarmed hand")
