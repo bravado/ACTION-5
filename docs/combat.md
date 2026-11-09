@@ -217,10 +217,11 @@ registers/unregisters **every** weapon world mesh with the existing D04
 local-body shadow API. An optional authored F4 viewmodel is render-only,
 uses the D05 `get_visual_action()` snapshot, and never supplies physical
 hit/aim transforms. The optional `EquipmentAttackSelector` replaces
-unarmed Punch/Kick definitions for the existing click/J/K input actions
+only explicitly claimed input actions via equipment `AttackDefinition.input_action`;
+unassigned click/J/K actions retain their normal Punch/Kick definitions
 when equipment is held, and restores them on drop. The F4 limb presenter
-consults a duck-typed visibility gate to hide unarmed fist/leg visuals
-while equipped. Each weapon's authored camera-space arm profile drives
+consults a duck-typed action-aware visibility gate to hide the replaced
+unarmed limb, while preserving an unassigned Kick leg during equipped play. Each weapon's authored camera-space arm profile drives
 the grip and the attached weapon mesh together, without changing world
 physics or adding an animation clock. NPCs have no private F4 model. See
 [equipment authoring and current state](equipment.md) and ADR-0005.
