@@ -345,6 +345,67 @@ func _capture() -> void:
     if not _save_image(output_dir.path_join("native-d06-bat-world.png")):
         quit(1)
         return
+
+    # VT-08: capture the imported world rig's TWO distinct Bat clips in all
+    # four exterior cameras. Each view observes the SAME physical skeleton,
+    # right-hand socket, D05 clock and actual animation (not a static prop).
+    var world_socket: Node3D = actor.get_node("AnimationPresenter").call(
+        "get_socket", &"right_hand") as Node3D
+    var world_animator: Node = actor.get_node("AnimationPresenter")
+    for world_view_index in [0, 1, 2, 4]:
+        if not manager.switch_view(world_view_index):
+            push_error("D06: cannot enter world view " + str(world_view_index + 1))
+            quit(1)
+            return
+        for settle in range(8):
+            await process_frame
+        for strike_index in range(2):
+            combat.call("cancel")
+            for settle in range(2):
+                await process_frame
+            var world_clip: StringName = (
+                &"bat_vertical" if strike_index == 0 else &"bat_horizontal"
+            )
+            var rest_hand: Vector3 = world_socket.global_position
+            if not equipment.call("request_equipped_action", strike_index, Vector2(0, -1)):
+                push_error("D06: world Bat action not registered: " + str(world_clip))
+                quit(1)
+                return
+            var sampled_world: bool = false
+            # Clip selection is authored in the AttackDefinition, independent
+            # of camera input and the equipment's index.
+            var selected_action: Resource = combat.call("get_attack",
+                &"bat_swing" if strike_index == 0 else &"bat_horizontal")
+            for tick in range(int(selected_action.call("total_ticks")) + 3):
+                await physics_frame
+                var snapshot: Dictionary = actor.get_node(
+                    "CombatVisualState").call("get_visual_action")
+                if snapshot.get("action_id", &"") == selected_action.get("attack_id") \
+                        and float(snapshot.get("progress", 0.0)) >= 0.42 \
+                        and float(snapshot.get("progress", 0.0)) <= 0.61:
+                    sampled_world = true
+                    break
+            if not sampled_world or world_animator.get("upper_body_clip") != world_clip:
+                push_error("D06: world Bat skeletal clip did not play in view "
+                    + str(world_view_index + 1) + " clip=" + str(world_clip))
+                quit(1)
+                return
+            paused = true
+            await RenderingServer.frame_post_draw
+            var image_path: String = output_dir.path_join(
+                "native-d06-bat-%s-view-%d.png" % [world_clip, world_view_index + 1])
+            if not _save_image(image_path):
+                paused = false
+                quit(1)
+                return
+            paused = false
+            print("ACTION5_D06_WORLD_POSE_NATIVE_OK view=", world_view_index + 1,
+                " attack=", world_clip, " hand_travel=",
+                world_socket.global_position.distance_to(rest_hand))
+            combat.call("cancel")
+    manager.switch_view(2)
+    for settle in range(10):
+        await process_frame
     manager.switch_view(3)
     for frame in range(10):
         await process_frame
@@ -499,6 +560,57 @@ func _capture() -> void:
         quit(1)
         return
     print("ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1 pixels=", delta)
+
+    # Shovel also uses a dedicated world overhead clip, not unarmed Punch.
+    var shovel: Node3D = scene.get_node("ShovelPickup") as Node3D
+    if not equipment.call("pickup", shovel):
+        push_error("D06: cannot pick up Shovel for native world pose matrix")
+        quit(1)
+        return
+    for world_view_index in [0, 1, 2, 4]:
+        if not manager.switch_view(world_view_index):
+            push_error("D06: cannot enter Shovel world view " + str(world_view_index + 1))
+            quit(1)
+            return
+        for settle in range(8):
+            await process_frame
+        combat.call("cancel")
+        for settle in range(2):
+            await process_frame
+        if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+            push_error("D06: Shovel world overhead clip could not start")
+            quit(1)
+            return
+        var sampled_shovel: bool = false
+        var shovel_attack: Resource = combat.call("get_attack", &"shovel_swing")
+        for tick in range(int(shovel_attack.call("total_ticks")) + 3):
+            await physics_frame
+            var snapshot: Dictionary = actor.get_node(
+                "CombatVisualState").call("get_visual_action")
+            if snapshot.get("action_id", &"") == &"shovel_swing" \
+                    and float(snapshot.get("progress", 0.0)) >= 0.42 \
+                    and float(snapshot.get("progress", 0.0)) <= 0.61:
+                sampled_shovel = true
+                break
+        if not sampled_shovel or world_animator.get("upper_body_clip") != &"shovel_overhead":
+            push_error("D06: Shovel overhead clip missing in view " + str(world_view_index + 1))
+            quit(1)
+            return
+        paused = true
+        await RenderingServer.frame_post_draw
+        if not _save_image(output_dir.path_join(
+            "native-d06-shovel-overhead-view-%d.png" % (world_view_index + 1))):
+            paused = false
+            quit(1)
+            return
+        paused = false
+        print("ACTION5_D06_WORLD_POSE_NATIVE_OK view=", world_view_index + 1,
+            " attack=shovel_overhead")
+        combat.call("cancel")
+    if not equipment.call("drop_current"):
+        push_error("D06: cannot drop Shovel after world pose matrix")
+        quit(1)
+        return
 
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)
