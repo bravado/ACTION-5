@@ -218,8 +218,8 @@ cancellation and hit resolution. See [combat authoring](combat.md).
 exists, each is a `BoneAttachment3D` under the imported Skeleton3D,
 so its children follow the actual animated hand or head. Without the
 specified bone, a non-animated fallback Node3D is still returned and the
-validator reports a warning. D06 should attach real weapons to these
-anchors and keep them installed across camera switches.
+validator reports a warning. D06-01 attaches real Bat/Shovel weapons to
+these anchors and keeps them installed across all five camera views.
 
 ## Local first person (view 4)
 
@@ -266,7 +266,9 @@ configured right leg during Kick. Both follow the original animated
 skeleton, without separate gameplay or duplicate animation tracks.
 The arm anchor is calibrated to stay in the lower-right viewport at rest,
 and the leg anchor keeps the bent knee below the center of the screen.
-Matching production-quality first-person equipment belongs to D06.
+D06-01 supplies independently authored Bat/Shovel F4 gripping-arm
+viewmodels and three unique world-space weapon animations, synchronized
+with D05 action state instead of creating another gameplay clock.
 
 Camera-layer culling does not need a head-specific profile property, mesh
 naming convention or head-mesh validator warning. The `head_bone` profile
