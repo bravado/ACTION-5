@@ -8,6 +8,10 @@ const DefinitionScript = preload("res://addons/action5/equipment/weapon_definiti
 
 @export var definition: DefinitionScript
 var is_equipped: bool = false
+## Exclusive inventory owner while stowed or equipped. Clearing is permitted
+## only after a successful drop or an aborted pickup; an unequipped weapon
+## still owned by another actor is not a world pickup.
+var equipment_owner: Node = null
 
 
 func get_attack_definitions() -> Array[Resource]:
