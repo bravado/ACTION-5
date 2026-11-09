@@ -209,6 +209,9 @@ clips. Reuse `Action5FirstPersonLimbProfile` pose
 data and `Action5FirstPersonWeaponViewmodel`; suppress the original
 resting/unassigned fist using the optional action-aware limb-visibility
 policy while equipped; an unassigned Kick must still show its F4 leg.
+Use the optional `get_visual_action().action_id` for exact ownership
+when equipment shares an unarmed world animation key; preserve
+backwards compatibility with `{key, progress}`-only visual sources.
 Do not rotate a floating entire tool independently or use skinned
 world-bone positions to place the local hand.
 
