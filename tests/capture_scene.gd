@@ -607,6 +607,38 @@ func _capture() -> void:
         print("ACTION5_D06_WORLD_POSE_NATIVE_OK view=", world_view_index + 1,
             " attack=shovel_overhead")
         combat.call("cancel")
+
+    manager.switch_view(3)
+    for settle in range(10):
+        await process_frame
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06: Shovel F4 swing could not start")
+        quit(1)
+        return
+    var shovel_view: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var shovel_f4_seen: bool = false
+    var shovel_attack: Resource = combat.call("get_attack", &"shovel_swing")
+    for tick in range(int(shovel_attack.call("total_ticks")) + 3):
+        await physics_frame
+        equipment_visual.call("refresh_presentation")
+        if shovel_view != null \
+                and float(shovel_view.get("pose_progress")) >= 0.42 \
+                and float(shovel_view.get("pose_progress")) <= 0.60:
+            shovel_f4_seen = true
+            break
+    if not shovel_f4_seen or shovel_view.get_node_or_null("Grip") == null:
+        push_error("D06: Shovel F4 authored grip animation was not observed")
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-shovel-f4-overhead.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    combat.call("cancel")
+
     if not equipment.call("drop_current"):
         push_error("D06: cannot drop Shovel after world pose matrix")
         quit(1)
