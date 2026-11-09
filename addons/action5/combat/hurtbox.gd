@@ -31,6 +31,14 @@ func get_health() -> HealthScript:
     return get_node_or_null(health_path) as HealthScript
 
 
+func has_active_shape() -> bool:
+    for child in get_children():
+        var collider := child as CollisionShape3D
+        if collider != null and not collider.disabled and collider.shape != null:
+            return true
+    return false
+
+
 ## A conservative receiver bound, including local shape offsets. The
 ## authoritative hit is still subject to team/health/dedup filtering.
 func motion_half_extents() -> Vector3:
