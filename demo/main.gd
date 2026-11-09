@@ -107,6 +107,9 @@ func _pickup_closest_weapon() -> bool:
         var weapon := candidate as Node3D
         if weapon == null or bool(weapon.get("is_equipped")):
             continue
+        # Stowed items are still scene nodes, but no longer world pickups.
+        if weapon.get("equipment_owner") != null:
+            continue
         if (_equipment.get("inventory") as Array).has(weapon):
             continue
         var distance: float = weapon.global_position.distance_to(_player.global_position)
