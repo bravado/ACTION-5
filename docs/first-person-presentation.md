@@ -169,12 +169,15 @@ near-camera poses.
 **D06** attaches world equipment to the D04 socket, then optionally
 registers a separate camera-local viewmodel on the same layer 19 and
 consumes a visual adapter. When equipment is active, a replaceable
-visibility source hides D05's unarmed F4 arm and leg; the equipment F4
-scene instead uses an authored `FirstPersonLimbProfile` for its own
+visibility source hides D05's resting F4 fist and any replaced action
+limb, **but preserves the normal Kick leg when `actor_kick` is unassigned**;
+the equipment F4 scene instead uses an authored `FirstPersonLimbProfile` for its own
 hand/forearm, with all held weapon meshes parented to that hand's
 animated grip. Input selection is handled before combat by the optional
-`EquipmentAttackSelector`: existing clicks/J/K request equipped
-actions, without a special swing key or weapon type branch. **Do not make Combat or
+`EquipmentAttackSelector`: equipped attacks explicitly claim each
+InputMap action through `AttackDefinition.input_action`; unassigned
+clicks/J/K keep normal Punch/Kick, without any special swing key or
+weapon-type branch. **Do not make Combat or
 FirstPersonPresenter know weapon type names.** A viewmodel is never a
 second actor and never owns damage or ammo.
 
