@@ -234,7 +234,9 @@ func _resolve_receiver_motion(previous: Transform3D, current: Transform3D) -> vo
         var hurtbox: HurtboxScript = candidate as HurtboxScript
         if not is_instance_valid(hurtbox) or not hurtbox.is_inside_tree() \
                 or hurtbox.is_queued_for_deletion() \
-                or hurtbox.get_world_3d() != body.get_world_3d():
+                or hurtbox.get_world_3d() != body.get_world_3d() \
+                or not hurtbox.monitorable or not hurtbox.has_active_shape() \
+                or (hurtbox.collision_layer & hurtbox_mask) == 0:
             continue
         var old_center: Vector3 = hurtbox.previous_physics_origin
         var new_center: Vector3 = hurtbox.global_position
