@@ -27,15 +27,23 @@ the mesh but preserves skinned world shadows, and attaches at most one
 optional camera-space render-only viewmodel. The viewmodel uses
 `CombatVisualState.get_visual_action()` for its authored swing motion; it
 never drives hitbox position, damage, weapon inventory or aim. A separate
-`EquipmentAttackSelector` replaces the selected attack definition for
-the existing LMB/RMB and J/K intents. `CombatInputAdapter` consumes this
-small duck-typed policy without importing equipment. With one configured
-weapon attack, either button requests that attack; with two attacks, the
-left/J input selects the first and right/K selects the second.
-When unequipped, the original Punch and Kick definitions return.
+`EquipmentAttackSelector` resolves each incoming InputMap action through
+the equipped instance's `get_attack_for_input(input_action)` port.
+Each equipment `AttackDefinition.input_action` explicitly registers the
+button/action it replaces; there is **no index-based default or automatic
+duplication onto the other button**. For example, Bat and Shovel configure
+`input_action = &"actor_punch"`, so **LMB/J swings the weapon while
+RMB/K still performs the normal Kick**. A weapon may instead assign
+`actor_kick`, both (with two distinct attacks), another InputMap action,
+or none. Unassigned actions keep their original Punch/Kick behavior.
+`CombatInputAdapter` consumes only the replaceable selection policy, not
+equipment internals. Duplicate nonempty action assignments on one weapon
+are invalid.
 
-For F4, `FirstPersonCombatLimbs` uses an optional visibility policy so
-the unarmed fist/leg is hidden while equipped. The weapon's own
+For F4, `FirstPersonCombatLimbs` uses an optional action-aware visibility
+policy: an equipped F4 model hides the resting fist and its own substituted
+attack limb, **but an unassigned Kick keeps its normal animated leg**.
+The weapon's own
 `Action5FirstPersonWeaponViewmodel` builds an arm from an authored
 `FirstPersonLimbProfile` and attaches its weapon mesh to the actual
 camera-space grip (fist transform). The arm, grip and weapon sweep
@@ -63,7 +71,8 @@ NPCs omit FirstPersonPresenter and can use an alternative tiny
 | E | Pick up nearest Bat/Shovel within reach |
 | Q | Swap between carried weapons (or re-equip the last stowed item) |
 | G | Drop current weapon into the persistent world |
-| Left/right mouse or J/K | Equipped weapon attacks when held; otherwise unarmed Punch/Kick |
+| Left mouse / J | Bat/Shovel swing; default Punch if the item does not assign `actor_punch` |
+| Right mouse / K | Default Kick; an item may explicitly override `actor_kick` |
 | 1–5 | Switch perspective without changing equipment |
 
 The current sample arena places both pickups near the starting point.
@@ -74,7 +83,11 @@ complex inventory system). Drop restores the same Node3D to the world.
 
 1. Create an `Action5AttackDefinition` with a unique ID, attack ticks,
    hitbox size/forward offset, damage, knockback and generic animation
-   key/channel already present in the actor's SkeletonProfile.
+   key/channel already present in the actor's SkeletonProfile. Set its
+   `input_action` to the action it should claim (e.g. `&"actor_punch"`
+   for left mouse/J, `&"actor_kick"` for right mouse/K); leave empty to
+   register an attack usable by other callers without overriding either
+   button. Each nonempty input action may be claimed only once per weapon.
 2. Create a `WeaponDefinition` resource with a unique `weapon_id`,
    a socket and `attacks = [new_attack]`. An optional F4 PackedScene
    may contain any number of geometry meshes; authored grip and swing
@@ -90,7 +103,8 @@ complex inventory system). Drop restores the same Node3D to the world.
    the first item. Swap/drop operate on instances. To invoke a
    configured swing from gameplay/AI, call `EquipmentController.request_equipped_action(
    index, world_xz_direction)`. Player input uses its existing
-   Punch/Kick actions and the replaceable selector, with no special swing key.
+   Punch/Kick actions and the replaceable selector. **Unassigned inputs
+   automatically retain Punch/Kick** and no special swing key is required.
 5. Add a test-only third weapon with different attack parameters. Verify
    no edits to `Action5Actor`, `Action5Locomotion`, MovementController,
    AnimationPresenter, CameraRig, FirstPersonPresenter, CombatController
