@@ -213,9 +213,11 @@ func _on_owned_weapon_exiting(weapon: WeaponScript) -> void:
 
 
 func _exit_tree() -> void:
-    # Actor removal or independent Equipment teardown must not leave owned
-    # world items, attack IDs or camera registrations behind. Release valid
-    # items to their original surviving world parent when possible.
+    # Godot forbids reparenting children while the actor hierarchy is
+    # exiting the tree. A destroyed actor takes its carried items with it;
+    # surviving equipment must be explicitly dropped BEFORE actor teardown.
+    # An independently removed controller also discards its attached items
+    # rather than orphaning an equipped (unregistered) mesh in the socket.
     for weapon in inventory.duplicate():
         if not is_instance_valid(weapon):
             continue
@@ -223,15 +225,11 @@ func _exit_tree() -> void:
             current_weapon = null
             weapon_unequipped.emit(weapon)
             _unregister_attacks(weapon)
-        var origin: Node3D = _world_parents.get(weapon) as Node3D
         _forget_weapon(weapon)
         weapon.equipment_owner = null
         weapon.is_equipped = false
-        if is_instance_valid(origin) and origin.is_inside_tree() \
-                and not origin.is_queued_for_deletion() \
-                and not weapon.is_queued_for_deletion():
-            _move_weapon(weapon, origin)
-            weapon.visible = true
+        if not weapon.is_queued_for_deletion():
+            weapon.queue_free()
     inventory.clear()
     current_weapon = null
     _world_parents.clear()
