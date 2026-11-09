@@ -46,7 +46,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(controls.text.contains("D06 EQUIPMENT")
         and controls.text.contains("E: pickup")
         and controls.text.contains("Q: swap")
-        and controls.text.contains("LMB/RMB/J/K: equipped weapon")
+        and controls.text.contains("Unassigned actions: Punch/Kick")
         and not controls.text.contains("F: swing")
         and controls.text.contains("G: drop"),
         "D06 HUD help lists equipment controls after a camera switch")
@@ -74,15 +74,15 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and visual._viewmodel != null and visual._viewmodel.get_parent() == views.get_active_camera(),
         "Local multi-mesh Bat keeps one world shadow per mesh and one camera-only viewmodel")
 
-    # Both existing attack intents select the equipped definition. No
-    # additional F button and no Punch/Kick when holding a single-action
-    # melee weapon; the shared combat input adapter never imports equipment.
+    # Attack definitions explicitly opt in to inputs. Bat takes actor_punch
+    # (LMB/J) but leaves actor_kick (RMB/K) as the normal unarmed Kick.
     verify.call(action_input.get("action_selection_source") == selector
+        and bat.definition.attacks[0].input_action == &"actor_punch"
         and selector.call("get_attack_for_input", &"actor_punch", combat.get_attack(&"punch"))
             == combat.get_attack(&"bat_swing")
         and selector.call("get_attack_for_input", &"actor_kick", combat.get_attack(&"kick"))
-            == combat.get_attack(&"bat_swing"),
-        "Equipped Bat replaces both left/right attack intents with Bat swing")
+            == combat.get_attack(&"kick"),
+        "Equipped Bat claims only the configured left action; right keeps Kick")
     combat.cancel()
     # D05's destructive input suite may have used the same action
     # within the current physics frame. Release and drain the old edge
@@ -99,9 +99,20 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var pressed: bool = Input.is_action_just_pressed(&"actor_kick")
     action_input.call("_physics_process", 1.0 / 60.0)
     Input.action_release(&"actor_kick")
-    verify.call(pressed and combat._pending_id == &"bat_swing"
-        and combat._pending_id != &"kick",
-        "Real right-click action mapping requests equipped Bat instead of unarmed Kick")
+    verify.call(pressed and combat._pending_id == &"kick",
+        "Right attack input falls back to Kick even while Bat is equipped")
+    combat.cancel()
+    Input.action_release(&"actor_punch")
+    for tick in range(2):
+        await tree.physics_frame
+    await tree.process_frame
+    action_input.set("release_to_rearm", false)
+    Input.action_press(&"actor_punch")
+    var pressed_left: bool = Input.is_action_just_pressed(&"actor_punch")
+    action_input.call("_physics_process", 1.0 / 60.0)
+    Input.action_release(&"actor_punch")
+    verify.call(pressed_left and combat._pending_id == &"bat_swing",
+        "Left attack input requests the equipped Bat swing, not Punch")
     combat.cancel()
     action_input.set("release_to_rearm", true)
     for tick in range(2):
@@ -125,6 +136,20 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and not unarmed_limb.get_limb_root(&"kick").visible,
         "F4 Bat has one authored gripping arm; held mesh follows hand and unarmed overlays hide")
     visual.call("refresh_presentation")
+
+    verify.call(combat.request_attack(&"kick", Vector2.RIGHT),
+        "Unassigned secondary action still executes the D05 Kick")
+    await tree.physics_frame
+    unarmed_limb.call("refresh_presentation")
+    verify.call(combat.current_id == &"kick"
+        and unarmed_limb.get_limb_root(&"kick").visible
+        and not unarmed_limb.get_limb_root(&"punch").visible
+        and visual._viewmodel != null,
+        "F4 unassigned Kick shows the real leg alongside the equipped gripping arm")
+    combat.cancel()
+    unarmed_limb.call("refresh_presentation")
+    verify.call(not unarmed_limb.get_limb_root(&"kick").visible,
+        "F4 Kick limb hides again after action cancellation while equipped")
     views.call("switch_view", 2)
 
     # F3 <-> F4 only changes rendering, never item identity, socket or action.
@@ -270,7 +295,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(selector.call("get_attack_for_input", &"actor_punch",
         combat.get_attack(&"punch")) == combat.get_attack(&"shovel_swing")
         and selector.call("get_attack_for_input", &"actor_kick",
-        combat.get_attack(&"kick")) == combat.get_attack(&"shovel_swing")
+        combat.get_attack(&"kick")) == combat.get_attack(&"kick")
         and visual._viewmodel != null
         and visual._viewmodel.get_node_or_null("Grip") != null,
         "Shovel uses the same click routing and independent F4 gripping model")
@@ -321,7 +346,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     # controller, actor, renderer or input adapter.
     var custom_attack: AttackScript = AttackScript.new()
     custom_attack.attack_id = &"test_club_swing"
+    custom_attack.input_action = &"actor_kick"
     custom_attack.animation_key = &"punch"
+    custom_attack.visual_action_key = &"test_club_swing"
     custom_attack.damage = 7.0
     custom_attack.hitbox_size = Vector3(0.65, 1.0, 1.1)
     var custom_def: DefinitionScript = DefinitionScript.new()
@@ -344,6 +371,19 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(combat.get_attack(&"test_club_swing") == custom_attack
         and is_equal_approx(custom_attack.hitbox_size.x, 0.65),
         "Third weapon registers its exact configured attack and hit dimensions")
+    verify.call(selector.call("get_attack_for_input", &"actor_punch",
+        combat.get_attack(&"punch")) == combat.get_attack(&"punch")
+        and selector.call("get_attack_for_input", &"actor_kick",
+        combat.get_attack(&"kick")) == custom_attack,
+        "Right-only custom weapon leaves Punch intact and replaces only Kick")
+    var conflict: AttackScript = AttackScript.new()
+    conflict.attack_id = &"test_conflicting_action"
+    conflict.input_action = &"actor_kick"
+    var invalid_definition: DefinitionScript = DefinitionScript.new()
+    invalid_definition.weapon_id = &"test_duplicate_binding"
+    invalid_definition.attacks = [custom_attack, conflict]
+    verify.call(not invalid_definition.valid(),
+        "Weapon validation rejects two attacks assigned to the same input")
     # A third item intentionally has NO camera-local scene. It must keep
     # its world meshes on visible render layers and retain the F4 hand,
     # instead of registering meshes for culling with no replacement.
@@ -369,6 +409,32 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(equipment.drop_current()
         and combat.get_attack(&"test_club_swing") == null,
         "Third weapon cleans up its attack registry on drop")
+    for tick in range(2):
+        await tree.process_frame
+
+    # An item may register attacks without assigning any button. The base
+    # Punch/Kick mappings remain available with equipment held.
+    var unassigned_attack: AttackScript = AttackScript.new()
+    unassigned_attack.attack_id = &"test_unassigned"
+    var unassigned_definition: DefinitionScript = DefinitionScript.new()
+    unassigned_definition.weapon_id = &"test_unassigned_item"
+    unassigned_definition.attacks = [unassigned_attack]
+    var unassigned_weapon: WeaponScript = WeaponScript.new()
+    unassigned_weapon.definition = unassigned_definition
+    unassigned_weapon.name = "IndependentUnassigned"
+    level.add_child(unassigned_weapon)
+    unassigned_weapon.global_position = actor.global_position + Vector3(0.3, 0.4, 0.2)
+    verify.call(equipment.pickup(unassigned_weapon)
+        and combat.get_attack(&"test_unassigned") == unassigned_attack
+        and selector.call("get_attack_for_input", &"actor_punch",
+            combat.get_attack(&"punch")) == combat.get_attack(&"punch")
+        and selector.call("get_attack_for_input", &"actor_kick",
+            combat.get_attack(&"kick")) == combat.get_attack(&"kick"),
+        "Weapon with zero assigned inputs preserves both Punch and Kick")
+    verify.call(equipment.drop_current()
+        and combat.get_attack(&"test_unassigned") == null,
+        "Unassigned weapon unregisters cleanly on drop")
+    unassigned_weapon.queue_free()
     for tick in range(2):
         await tree.process_frame
 
