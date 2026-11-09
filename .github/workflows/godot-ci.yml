@@ -180,6 +180,7 @@ jobs:
           test -s build/evidence/native-d06-bat-f4.png
           test -s build/evidence/native-d06-bat-f4-swing.png
           test -s build/evidence/native-d06-bat-f4-horizontal.png
+          test -s build/evidence/native-d06-bat-f4-near-wall.png
           test -s build/evidence/native-d06-shovel-f4-overhead.png
           for view in 1 2 3 5; do
             test -s "build/evidence/native-d06-bat-bat_vertical-view-$view.png"
