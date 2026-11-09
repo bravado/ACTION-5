@@ -63,6 +63,21 @@ can follow that instance. Existing melee models are unchanged and all
 physical muzzle/damage/ammo logic remains world-authoritative. It does
 not add a gun-type condition, and an alternative F4 model can omit the port.
 
+**Demo compatibility:** the Pistol pickup is at (4.5, 0.45, 3.5),
+outside the spawn E-key radius of Bat/Shovel. This preserves D06-01
+browser regression's two-item pickup sequence. Walk southeast and press E
+to pick up the Pistol; use LMB/J to fire and R to reload. Ammo appears
+in the HUD. The Heavy Pistol is a separate packed scene fixture, not an
+additional default arena pickup.
+
+**E2E visual capture:** tests/capture_scene.gd must generate
+native-d06-gun-view-{1,2,3,5}.png, native-d06-gun-f4-idle/fire/reload/
+near-wall.png, and ACTION5_D06_GUN_NATIVE_OK. The WebGL2 browser smoke
+restarts its arena after legacy equipment tests, approaches the Pistol
+using real WASD/E, and captures its F4 idle, J fire and R reload. These
+are automated rendering smoke artifacts, **not** subjective manual
+inspection of grip, aim alignment and obstruction.
+
 **Testing and handoff:** tests/d06_gun_suite.gd is registered with
 tests/run_all.gd and covers shots, body exclusions, obstruction, reload
 across views, alternate gun scene and cleanup. Run `make check`, native
