@@ -211,8 +211,14 @@ The viewmodel may export `action_profiles` to choose alternate authored
 `Action5FirstPersonLimbProfile` poses using the visual action key,
 while reusing a single hand and Grip. The same generic visual bridge
 routes keys/progress; no weapon-specific presenter or second clock.
-All three demo actions currently reuse imported upper-body world Punch
-clips until dedicated world swings are authored. Suppress the original
+The demo rig now includes dedicated skinned world clips
+`bat_vertical`, `bat_horizontal` and `shovel_overhead` mapped by
+`SkeletonProfile`; F1/F2/F3/F5 must use those clips (with animated
+right-hand sockets), not substitute the unarmed Punch/Kick visual.
+To add a new weapon, author/import its world clip, map the logical key
+in the actor's SkeletonProfile and configure its attack resource.
+The alternate rig fixture must map/retarget the same logical key.
+The F4 profiles remain camera-local and consume the same D05 clock. Suppress the original
 resting/unassigned fist using the optional action-aware limb-visibility
 policy while equipped; an unassigned Kick must still show its F4 leg.
 Use the optional `get_visual_action().action_id` for exact ownership
