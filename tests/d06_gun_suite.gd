@@ -66,12 +66,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var requested: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(requested and gun.shots_fired == 1 and gun.magazine == ammo_before - 1
         and health.get("current_health") < old_hp and gun.hits_landed == 1,
-        "Active-phase muzzle ray hits a physical Hurtbox once and consumes one round")
+        "Active-phase hit: req=%s fired=%d mag=%d hp=%.1f hits=%d muzzle=%s" % [str(requested), gun.shots_fired, gun.magazine, float(health.get("current_health")), gun.hits_landed, str(muzzle.global_position)])
 
     # The same request never fires twice during one active/recovery window.
     await _ticks(tree, 2)
     verify.call(gun.shots_fired == 1 and gun.hits_landed == 1,
-        "Multiple active/recovery physics frames cannot duplicate one shot")
+        "No duplicates: shots=%d hits=%d" % [gun.shots_fired, gun.hits_landed])
     await _ticks(tree, 20)
 
     # An opaque layer-1 obstacle must win over a layer-2 target, regardless
@@ -92,7 +92,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     requested = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(requested and gun.magazine == ammo_before - 1
         and health.get("current_health") == old_hp and gun.hits_landed == 1,
-        "Near-wall muzzle obstruction blocks damage but an active blocked shot consumes a round")
+        "Muzzle obstruction: req=%s shots=%d ammo=%d hp=%.1f hits=%d" % [str(requested), gun.shots_fired, gun.magazine, float(health.get("current_health")), gun.hits_landed])
     await _ticks(tree, 20)
 
     # Actual F4 view-specific camera ray sees the target above the short
@@ -103,7 +103,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     camera.look_at(target.global_position + Vector3(0, 0.8, 0), Vector3.UP)
     source.snapshot = ContextScript.new(true, Vector2.ZERO, Vector2(0, -1),
         ProfileScript.Mode.FIRST_PERSON, camera)
-    var camera_target: Vector3 = aim.call("get_world_target", muzzle.global_position, 60.0, [actor.get_rid()])
+    var camera_excludes: Array[RID] = [actor.get_rid()]
+    var camera_target: Vector3 = aim.call("get_world_target",
+        muzzle.global_position, 60.0, camera_excludes)
     verify.call(camera_target.distance_to(target.global_position + Vector3(0, 0.8, 0)) < 1.1,
         "F4 resolves the camera-visible target independently of weapon muzzle")
     old_hp = health.get("current_health")
