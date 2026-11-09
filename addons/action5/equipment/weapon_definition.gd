@@ -15,7 +15,13 @@ class_name Action5WeaponDefinition
 func valid() -> bool:
     if weapon_id == &"" or socket_id == &"":
         return false
+    var assigned_inputs: Dictionary = {}
     for attack in attacks:
         if attack == null or not attack.has_method("valid") or not attack.call("valid"):
             return false
+        var input_action: StringName = attack.get("input_action")
+        if input_action != &"":
+            if assigned_inputs.has(input_action):
+                return false
+            assigned_inputs[input_action] = true
     return true
