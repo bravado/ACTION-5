@@ -120,6 +120,7 @@ func refresh_presentation() -> void:
     if not _viewmodel.has_method("apply_pose"):
         return
     var progress: float = 0.0
+    var selected_key: StringName = &""
     if is_instance_valid(visual_state) and visual_state.has_method("get_visual_action"):
         var state: Dictionary = visual_state.call("get_visual_action")
         for attack in _active_weapon.call("get_attack_definitions"):
@@ -136,8 +137,12 @@ func refresh_presentation() -> void:
                 if state.get("key", &"") != key:
                     continue
             progress = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
+            selected_key = state.get("key", &"")
             break
-    _viewmodel.call("apply_pose", progress)
+    if _viewmodel.has_method("apply_action_pose"):
+        _viewmodel.call("apply_action_pose", selected_key, progress)
+    else:
+        _viewmodel.call("apply_pose", progress)
 
 
 func _clear_visuals() -> void:
