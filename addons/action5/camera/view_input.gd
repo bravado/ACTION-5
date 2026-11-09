@@ -76,6 +76,11 @@ func _unhandled_input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion:
         if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+            if OS.has_feature("web") and event.relative.length_squared() > 900.0:
+                print("ACTION5_POINTER_DIAG relative=", event.relative,
+                    " ms_after_capture=", Time.get_ticks_msec() - _capture_started_ms,
+                    " pitch=", manager.camera_rig.orbit_pitch,
+                    " yaw=", manager.camera_rig.orbit_yaw)
             if _ignore_capture_warp:
                 _ignore_capture_warp = false
                 return
@@ -89,6 +94,11 @@ func _unhandled_input(event: InputEvent) -> void:
                     _capture_started_ms = -1
             manager.camera_rig.apply_mouse_motion(event.relative)
     elif event is InputEventMouseButton and event.pressed:
+        if OS.has_feature("web") and manager.current_profile.is_orbit_mode():
+            print("ACTION5_POINTER_DIAG button=", event.button_index,
+                " mode=", Input.mouse_mode,
+                " pitch=", manager.camera_rig.orbit_pitch,
+                " yaw=", manager.camera_rig.orbit_yaw)
         if event.button_index == MOUSE_BUTTON_LEFT and manager.current_profile.is_orbit_mode():
             if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
                 # A first click may both attack and lock the pointer. The
