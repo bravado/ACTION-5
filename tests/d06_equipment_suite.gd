@@ -90,11 +90,15 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     print("ACTION5_WORLD_CLIP_DIAG valid=", world_clips_valid,
         " arms=", contact_arms.keys(),
         " installed=", imported_clips.get_animation_list() if imported_clips != null else [])
+    var arm_vertical: Quaternion = contact_arms.get(&"bat_vertical", Quaternion.IDENTITY)
+    var arm_horizontal: Quaternion = contact_arms.get(&"bat_horizontal", Quaternion.IDENTITY)
+    var arm_shovel: Quaternion = contact_arms.get(&"shovel_overhead", Quaternion.IDENTITY)
+    print("ACTION5_WORLD_CLIP_ANGLES sweep=", arm_vertical.angle_to(arm_horizontal),
+        " shovel=", arm_vertical.angle_to(arm_shovel),
+        " samples=", [arm_vertical, arm_horizontal, arm_shovel])
     verify.call(world_clips_valid and contact_arms.size() == 3
-        and (contact_arms[&"bat_vertical"] as Quaternion).angle_to(
-            contact_arms[&"bat_horizontal"]) > 0.35
-        and (contact_arms[&"bat_vertical"] as Quaternion).angle_to(
-            contact_arms[&"shovel_overhead"]) > 0.20,
+        and arm_vertical.angle_to(arm_horizontal) > 0.35
+        and arm_vertical.angle_to(arm_shovel) > 0.20,
         "Imported world rig has three different keyed equipment arm animations, with authored durations")
     verify.call(equipment != null and visual != null and socket != null
         and bat.definition.weapon_id == &"bat" and shovel.definition.weapon_id == &"shovel",
