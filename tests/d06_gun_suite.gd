@@ -68,29 +68,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     target.global_position = Vector3(initial_muzzle.x, initial_muzzle.y - 0.8, initial_muzzle.z - 4.0)
     health.set("current_health", 100.0)
-    var trace_excludes: Array[RID] = []
-    print("D06_GUN_TRACE before muzzle=", muzzle.global_position,
-        " actor=", actor.global_position, " socket=", (gun.get_parent() as Node3D).global_position,
-        " target=", target.global_position, " hurtbox=",
-        (target.get_node("Hurtbox") as Area3D).global_position,
-        " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, trace_excludes))
     var old_hp: float = health.get("current_health")
-    gun.fired.connect(func(point: Vector3, landed: bool) -> void:
-        print("D06_GUN_FIRED impact=", point, " landed=", landed,
-            " muzzle=", muzzle.global_position, " actor=", actor.global_position,
-        " socket=", (gun.get_parent() as Node3D).global_position, " velocity=", actor.velocity,
-        " gunlocal=", gun.position, " target=",
-            (target.get_node("Hurtbox") as Area3D).global_position))
     var ammo_before: int = gun.magazine
     var requested: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(requested and gun.shots_fired == 1 and gun.magazine == ammo_before - 1
         and health.get("current_health") < old_hp and gun.hits_landed == 1,
-        "Active-phase hit: req=%s fired=%d mag=%d hp=%.1f hits=%d muzzle=%s" % [str(requested), gun.shots_fired, gun.magazine, float(health.get("current_health")), gun.hits_landed, str(muzzle.global_position)])
+        "One active phase must fire, spend one round and damage the physical Hurtbox")
 
     # The same request never fires twice during one active/recovery window.
     await _ticks(tree, 2)
     verify.call(gun.shots_fired == 1 and gun.hits_landed == 1,
-        "No duplicates: shots=%d hits=%d" % [gun.shots_fired, gun.hits_landed])
+        "One active/recovery window cannot duplicate a Gun shot")
     await _ticks(tree, 20)
 
     # An opaque layer-1 obstacle must win over a layer-2 target, regardless
@@ -111,7 +99,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     requested = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(requested and gun.magazine == ammo_before - 1
         and health.get("current_health") == old_hp and gun.hits_landed == 1,
-        "Muzzle obstruction: req=%s shots=%d ammo=%d hp=%.1f hits=%d" % [str(requested), gun.shots_fired, gun.magazine, float(health.get("current_health")), gun.hits_landed])
+        "Physical muzzle obstruction blocks damage and still spends one round")
     await _ticks(tree, 20)
 
     # Actual F4 view-specific camera ray sees the target above the short
@@ -125,8 +113,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var camera_excludes: Array[RID] = [actor.get_rid()]
     var camera_target: Vector3 = aim.call("get_world_target",
         muzzle.global_position, 60.0, camera_excludes)
-    print("D06_F4_TARGET computed=", camera_target, " target=",
-        target.global_position + Vector3(0, 0.8, 0), " camera=", camera.global_position)
     verify.call(camera_target.distance_to(target.global_position + Vector3(0, 0.8, 0)) < 1.1,
         "F4 resolves the camera-visible target independently of weapon muzzle")
     old_hp = health.get("current_health")
