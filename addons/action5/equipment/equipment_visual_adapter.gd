@@ -80,9 +80,24 @@ func _process(_delta: float) -> void:
 
 
 func show_unarmed_limbs() -> bool:
-    # The equipped F4 replacement, not inventory ownership, determines
-    # when the default arm can be hidden. Missing viewmodels fail visibly.
+    # Backwards-compatible idle gate for other F4 presentation consumers.
     return not is_instance_valid(_viewmodel)
+
+
+func show_unarmed_limb(action_key: StringName) -> bool:
+    # A held weapon hides only the idle hand and its own visual action.
+    # Unclaimed actions (such as the ordinary Kick) stay visible in F4.
+    if not is_instance_valid(_viewmodel):
+        return true
+    if action_key == &"" or not is_instance_valid(_active_weapon):
+        return false
+    for attack in _active_weapon.call("get_attack_definitions"):
+        var key: StringName = attack.get("visual_action_key")
+        if key == &"":
+            key = attack.get("animation_key")
+        if action_key == key:
+            return false
+    return true
 
 
 func refresh_presentation() -> void:
