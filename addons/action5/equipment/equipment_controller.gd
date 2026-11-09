@@ -1,8 +1,7 @@
 extends Node3D
 class_name Action5EquipmentController
-## Equipment inventory and lifecycle ONLY. No camera, animation or weapon IDs.
-## A replaceable mount provider supplies world attachment sockets. D05 combat
-## remains the authoritative action clock and hit resolver.
+## Equipment inventory and lifecycle only. Combat owns action timing; an
+## injected mount provider owns socket lookup. No camera or weapon IDs here.
 
 const WeaponScript = preload("res://addons/action5/equipment/weapon.gd")
 
@@ -22,11 +21,15 @@ signal weapon_dropped(weapon: Node3D)
 var inventory: Array[WeaponScript] = []
 var current_weapon: WeaponScript
 var _world_parents: Dictionary = {}
+## Reparenting normally emits tree_exiting. Only an *external* tree exit
+## (free, node removal, actor teardown) should release inventory ownership.
+var _relocating: Dictionary = {}
 
 
 func pickup(weapon: WeaponScript) -> bool:
     var actor := get_parent() as Node3D
-    if actor == null or not is_instance_valid(weapon) or weapon.definition == null:
+    if actor == null or not is_instance_valid(weapon) or weapon.is_queued_for_deletion() \
+            or weapon.definition == null:
         return false
     if not weapon.definition.valid() or weapon.is_equipped or inventory.has(weapon):
         return false
@@ -39,36 +42,44 @@ func pickup(weapon: WeaponScript) -> bool:
         return false
     _world_parents[weapon] = origin
     weapon.equipment_owner = self
-    weapon.reparent(self, false)
-    weapon.visible = false
     inventory.append(weapon)
+    _watch_weapon(weapon)
+    _move_weapon(weapon, self)
+    weapon.visible = false
     weapon_picked_up.emit(weapon)
     if current_weapon == null and not equip(weapon):
         inventory.erase(weapon)
-        weapon.reparent(origin, false)
+        _forget_weapon(weapon)
+        _move_weapon(weapon, origin)
         weapon.visible = true
         weapon.equipment_owner = null
-        _world_parents.erase(weapon)
         return false
     return true
 
 
 func equip(weapon: WeaponScript) -> bool:
-    if not inventory.has(weapon) or weapon.equipment_owner != self \
-            or not _can_register(weapon):
+    if not is_instance_valid(weapon) or weapon.is_queued_for_deletion() \
+            or not inventory.has(weapon) or weapon.equipment_owner != self:
         return false
     if current_weapon == weapon:
         return true
+    if not _can_register(weapon):
+        return false
     var mount: Node3D = null
     if is_instance_valid(mount_source) and mount_source.has_method("get_mount"):
         mount = mount_source.call("get_mount", weapon.definition.socket_id) as Node3D
-    if mount == null:
+    if not is_instance_valid(mount) or mount.is_queued_for_deletion():
+        return false
+    # Transaction boundary: stage ALL new registrations while the old
+    # weapon, attack clock, visual and signals remain untouched. Partial
+    # rejections roll back only the staged IDs. Two inventory items with
+    # overlapping attack IDs are invalid: swapping cannot replace an
+    # active ID without cancelling its authoritative timeline.
+    if not _register_attacks(weapon):
         return false
     if current_weapon != null:
         _stow_current()
-    if not _register_attacks(weapon):
-        return false
-    weapon.reparent(mount, false)
+    _move_weapon(weapon, mount)
     weapon.position = weapon.definition.grip_position
     weapon.rotation_degrees = weapon.definition.grip_rotation_degrees
     weapon.visible = true
@@ -81,28 +92,30 @@ func equip(weapon: WeaponScript) -> bool:
 func swap_next() -> bool:
     if inventory.is_empty():
         return false
-    # Dropping the selected item may leave a stowed item in inventory.
-    # The same swap command must be able to equip that remaining item.
     if current_weapon == null:
         return equip(inventory[0])
     if inventory.size() < 2:
         return false
     var current_index: int = inventory.find(current_weapon)
+    if current_index < 0:
+        return false
     return equip(inventory[(current_index + 1) % inventory.size()])
 
 
 func drop_current() -> bool:
-    if current_weapon == null:
+    if current_weapon == null or not is_instance_valid(current_weapon) \
+            or current_weapon.is_queued_for_deletion():
         return false
     var actor := get_parent() as Node3D
     var weapon: WeaponScript = current_weapon
     var destination: Node3D = _world_parents.get(weapon) as Node3D
-    if actor == null or not is_instance_valid(destination):
+    if actor == null or not is_instance_valid(destination) \
+            or destination.is_queued_for_deletion():
         return false
     _stow_current()
     inventory.erase(weapon)
-    _world_parents.erase(weapon)
-    weapon.reparent(destination, false)
+    _forget_weapon(weapon)
+    _move_weapon(weapon, destination)
     weapon.global_transform = Transform3D(
         Basis.IDENTITY, actor.global_position + Vector3(1.3, 0.4, 0.5)
     )
@@ -114,7 +127,7 @@ func drop_current() -> bool:
 
 
 func request_equipped_action(index: int, world_direction: Vector2) -> bool:
-    if current_weapon == null:
+    if not is_instance_valid(current_weapon) or current_weapon.is_queued_for_deletion():
         return false
     return current_weapon.request_action(index, world_direction, combat)
 
@@ -126,26 +139,22 @@ func _stow_current() -> void:
     current_weapon = null
     weapon_unequipped.emit(previous)
     _unregister_attacks(previous)
-    previous.reparent(self, false)
+    _move_weapon(previous, self)
     previous.visible = false
     previous.is_equipped = false
 
 
 func _can_register(weapon: WeaponScript) -> bool:
-    if not is_instance_valid(combat) or not combat.has_method("get_attack"):
+    if not is_instance_valid(combat) or not combat.has_method("get_attack") \
+            or not combat.has_method("register_attack") \
+            or not combat.has_method("unregister_attack"):
         return false
-    var existing_ids: Dictionary = {}
-    if current_weapon != null:
-        for old_attack in current_weapon.get_attack_definitions():
-            existing_ids[old_attack.get("attack_id")] = true
     var seen_ids: Dictionary = {}
     for attack in weapon.get_attack_definitions():
         var id: StringName = attack.get("attack_id")
-        if id == &"" or seen_ids.has(id):
+        if id == &"" or seen_ids.has(id) or combat.call("get_attack", id) != null:
             return false
         seen_ids[id] = true
-        if combat.call("get_attack", id) != null and not existing_ids.has(id):
-            return false
     return true
 
 
@@ -165,3 +174,65 @@ func _unregister_attacks(weapon: WeaponScript) -> void:
         return
     for attack in weapon.get_attack_definitions():
         combat.call("unregister_attack", attack.get("attack_id"))
+
+
+func _watch_weapon(weapon: WeaponScript) -> void:
+    var callback: Callable = _on_owned_weapon_exiting.bind(weapon)
+    if not weapon.tree_exiting.is_connected(callback):
+        weapon.tree_exiting.connect(callback)
+
+
+func _forget_weapon(weapon: WeaponScript) -> void:
+    _world_parents.erase(weapon)
+    if not is_instance_valid(weapon):
+        return
+    var callback: Callable = _on_owned_weapon_exiting.bind(weapon)
+    if weapon.tree_exiting.is_connected(callback):
+        weapon.tree_exiting.disconnect(callback)
+
+
+func _move_weapon(weapon: WeaponScript, destination: Node3D) -> void:
+    _relocating[weapon] = true
+    weapon.reparent(destination, false)
+    _relocating.erase(weapon)
+
+
+func _on_owned_weapon_exiting(weapon: WeaponScript) -> void:
+    # Called synchronously BEFORE Node.free() invalidates the Resource and
+    # child meshes. An intentional equip/stow/drop reparent is not deletion.
+    if _relocating.has(weapon) or not inventory.has(weapon):
+        return
+    if current_weapon == weapon:
+        current_weapon = null
+        weapon_unequipped.emit(weapon)
+        _unregister_attacks(weapon)
+    inventory.erase(weapon)
+    _forget_weapon(weapon)
+    weapon.is_equipped = false
+    weapon.equipment_owner = null
+
+
+func _exit_tree() -> void:
+    # Actor removal or independent Equipment teardown must not leave owned
+    # world items, attack IDs or camera registrations behind. Release valid
+    # items to their original surviving world parent when possible.
+    for weapon in inventory.duplicate():
+        if not is_instance_valid(weapon):
+            continue
+        if current_weapon == weapon:
+            current_weapon = null
+            weapon_unequipped.emit(weapon)
+            _unregister_attacks(weapon)
+        var origin: Node3D = _world_parents.get(weapon) as Node3D
+        _forget_weapon(weapon)
+        weapon.equipment_owner = null
+        weapon.is_equipped = false
+        if is_instance_valid(origin) and origin.is_inside_tree() \
+                and not origin.is_queued_for_deletion() \
+                and not weapon.is_queued_for_deletion():
+            _move_weapon(weapon, origin)
+            weapon.visible = true
+    inventory.clear()
+    current_weapon = null
+    _world_parents.clear()
+    _relocating.clear()
