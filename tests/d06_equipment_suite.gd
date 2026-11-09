@@ -70,8 +70,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         )
         if absf(clip.length - float(expected_ticks) / 60.0) > 0.025:
             world_clips_valid = false
+        print("ACTION5_WORLD_CLIP_DIAG name=", id,
+            " seconds=", clip.length,
+            " expected=", float(expected_ticks) / 60.0,
+            " tracks=", clip.get_track_count())
         for track in range(clip.get_track_count()):
             var bone_path: NodePath = clip.track_get_path(track)
+            if track < 5:
+                print("ACTION5_WORLD_CLIP_TRACK name=", id,
+                    " path=", bone_path,
+                    " type=", clip.track_get_type(track))
             if clip.track_get_type(track) == Animation.TYPE_ROTATION_3D \
                     and bone_path.get_subname_count() > 0 \
                     and str(bone_path.get_subname(0)) == "UpperArm_R":
@@ -79,6 +87,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
                     track, clip.length * 0.50
                 )
                 break
+    print("ACTION5_WORLD_CLIP_DIAG valid=", world_clips_valid,
+        " arms=", contact_arms.keys(),
+        " installed=", imported_clips.get_animation_list() if imported_clips != null else [])
     verify.call(world_clips_valid and contact_arms.size() == 3
         and (contact_arms[&"bat_vertical"] as Quaternion).angle_to(
             contact_arms[&"bat_horizontal"]) > 0.35
