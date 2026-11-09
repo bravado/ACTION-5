@@ -139,7 +139,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     verify.call(combat.request_attack(&"kick", Vector2.RIGHT),
         "Unassigned secondary action still executes the D05 Kick")
-    await tree.physics_frame
+    # SceneTree.physics_frame fires before physics-process consumers.
+    # Observe the real D05 action start, not the frame in which it queued.
+    for tick in range(4):
+        await tree.physics_frame
+        if combat.current_id == &"kick":
+            break
     unarmed_limb.call("refresh_presentation")
     verify.call(combat.current_id == &"kick"
         and unarmed_limb.get_limb_root(&"kick").visible
