@@ -1,6 +1,6 @@
 # ADR-0005 — One weapon instance with independent equipment and presentation
 
-Status: Accepted implementation contract — D06-01 pending final E2E and merge (2026-11-09).
+Status: Accepted and validated — D06-01 PR #31 approved; 908 assertions, native/WebGL2 Full E2E and manual visuals passed (2026-11-09).
 
 ## Context
 
@@ -22,7 +22,9 @@ in shared actor, locomotion, camera or animation classes.
   Camera3D, view enum, render layer or weapon type. Before replacing a
   selected item it stages **all** of the candidate's unique attack IDs,
   rolling back partial registration failure without changing the old
-  item, signals, clock or viewmodel. No two carried weapons may claim
+  item, signals, clock or viewmodel. A failed initial auto-equip publishes
+  no pickup/equip event; a committed first pickup emits pickup then equip
+  exactly once. No two carried weapons may claim
   the same ID; this is rejected before a destructive swap.
 - `Action5EquipmentVisualAdapter` optionally maps the mount port onto
   `AnimationPresenter.get_socket()`, registers/unregisters each world mesh
@@ -98,7 +100,8 @@ viewmodel cleanup; NPC use without FPS; native/WebGL2 screenshots.
 
 The owner has visually accepted Bat vertical/horizontal and Shovel overhead
 in all five views, including first-person poses and the requested movement
-and narrow-aspect cases. The completed hardening fixtures cover registration
+and narrow-aspect cases. Current-head CI #42668808972 has passed 908/908
+headless assertions and real native/WebGL2 Full E2E. The completed hardening fixtures cover registration
 failure rollback, destruction of equipped/stowed weapons, actor removal,
 VT-08 moving hitboxes, and movement/view continuity. Automated acceptance
 must be based on **the latest PR head**: both headless Checks and Full E2E
