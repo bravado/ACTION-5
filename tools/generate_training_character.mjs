@@ -205,6 +205,40 @@ const clipDefinitions = [
     [4, 'X',  [0, .13, .28, .28, .16, .07, 0]],
     [16, 'X', [0, -.26, -.38, -.38, -.20, -.08, 0]],
   ]],
+  // D06: three original, fully articulated 3D equipment actions. These
+  // are WORLD skinned poses, independent of F4's camera-local grip profiles.
+  // Each frame keeps the hand-mounted weapon on Hand_R; all lower-body
+  // tracks remain free for Walk/Run/Crouch and incoming locomotion clips.
+  //
+  // Seven explicit keyframes: rest, chamber, windup, contact, follow-through,
+  // recovery, rest. Duration matches each D05 AttackDefinition tick count.
+  ['bat_vertical', 17 / 60, [
+    [5, 'E', [[0, 0, 0], [1.75, -.22, -.30], [2.45, -.25, -.18],
+              [1.05, .24, .16], [.64, .10, .08], [.15, .03, 0], [0, 0, 0]]],
+    [17, 'X', [0, -1.10, -1.25, .08, -.05, -.08, 0]],
+    [2, 'E', [[0, 0, 0], [-.16, -.23, .03], [-.28, -.32, .06],
+              [.25, .20, -.06], [.18, .12, -.03], [.04, .03, 0], [0, 0, 0]]],
+    [4, 'X', [0, .25, .40, -.12, -.10, 0, 0]],
+    [16, 'X', [0, -.18, -.35, -.20, -.10, 0, 0]],
+  ]],
+  ['bat_horizontal', 21 / 60, [
+    [5, 'E', [[0, 0, 0], [1.45, -.70, -.16], [1.50, -1.25, -.11],
+              [1.30, 1.08, .10], [1.13, .88, .15], [.38, .25, 0], [0, 0, 0]]],
+    [17, 'X', [0, -1.00, -.93, -.18, -.03, -.05, 0]],
+    [2, 'E', [[0, 0, 0], [0, -.28, 0], [0, -.48, .04],
+              [0, .56, -.04], [0, .30, 0], [0, .10, 0], [0, 0, 0]]],
+    [4, 'X', [0, .16, .35, -.32, -.20, 0, 0]],
+    [16, 'X', [0, -.24, -.30, -.18, -.10, 0, 0]],
+  ]],
+  ['shovel_overhead', 20 / 60, [
+    [5, 'E', [[0, 0, 0], [1.96, -.10, 0], [2.65, -.18, .08],
+              [1.25, .10, .02], [.74, .08, .01], [.28, 0, 0], [0, 0, 0]]],
+    [17, 'X', [0, -1.12, -1.24, -.18, -.06, -.10, 0]],
+    [2, 'E', [[0, 0, 0], [-.08, -.10, 0], [-.28, -.10, .04],
+              [.30, .10, -.04], [.22, .10, 0], [.05, .02, 0], [0, 0, 0]]],
+    [4, 'X', [0, 1.15, 1.50, .85, .50, .20, 0]],
+    [16, 'X', [0, -.55, -.80, -.25, -.08, 0, 0]],
+  ]],
   ['hit', .52, [[2, 'X', [0, -.24, -.42, -.21, 0]]]],
   ['death', 1.4, [[1, 'Z', [0, .17, .8, 1.5, 1.52]]]],
   ['reload', 1, [[5, 'X', [0, .28, .62, .28, 0]]]],
@@ -239,6 +273,21 @@ const clipDefinitions = [
   ]],
 ];
 function quaternion(axis, angle) {
+  // Euler XYZ lets an imported world arm aim and sweep in more than one
+  // plane per joint (single glTF quaternion channel, no duplicate tracks).
+  // The product qx*qy*qz is stable and needs no runtime skeletal code.
+  if (axis === 'E') {
+    const [x, y, z] = angle.map(v => v / 2);
+    const [sx, cx] = [Math.sin(x), Math.cos(x)];
+    const [sy, cy] = [Math.sin(y), Math.cos(y)];
+    const [sz, cz] = [Math.sin(z), Math.cos(z)];
+    return [
+      sx * cy * cz + cx * sy * sz,
+      cx * sy * cz - sx * cy * sz,
+      cx * cy * sz + sx * sy * cz,
+      cx * cy * cz - sx * sy * sz,
+    ];
+  }
   const s = Math.sin(angle / 2), c = Math.cos(angle / 2);
   return axis === 'X' ? [s, 0, 0, c]
     : axis === 'Y' ? [0, s, 0, c] : [0, 0, s, c];
