@@ -320,6 +320,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             break
     var shovel_snapshot: Dictionary = actor.get_node(
         "CombatVisualState").call("get_visual_action")
+    print("ACTION5_SHOVEL_WORLD_DIAG active=", combat.current_id,
+        " upper=", animation.get("upper_body_clip"),
+        " full=", animation.get("action_clip"),
+        " visual=", shovel_snapshot.get("key", &""),
+        " adapter_channel=", actor.get_node("CombatAnimationAdapter").get("_active_channel"))
     verify.call(combat.current_id == &"shovel_swing"
         and animation.get("upper_body_clip") == &"punch"
         and animation.get("action_clip") == &""
