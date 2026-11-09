@@ -131,9 +131,10 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
 
-  // D06 real browser input: E/Q/G manage equipment. Weapons register
-  // their own input actions: LMB claims swing; unassigned RMB keeps Kick.
-  // No separate F swing key or test-only input bridge is needed.
+  // D06 real browser input: E/Q/G manage equipment. The Bat uses
+  // separate left/vertical and right/horizontal attack definitions,
+  // whereas Shovel still uses a left swing with right-side Kick.
+  // No extra attack key or test-only gameplay input is needed.
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const firstEquipIndex = weaponEvents.length;
@@ -154,21 +155,30 @@ try {
     errors.push('D06 Q-key did not swap to the second multi-mesh weapon: ' +
       equipped.join(' | '));
   }
-  // The pickups begin at equal range: the first E may select Bat or
-  // Shovel depending on group iteration. Derive expected action from
-  // the actual weapon selected by Q, never an assumed scene order.
-  const selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\s|$)/)?.[1];
-  if (!selectedWeapon) {
-    errors.push('D06 cannot identify equipped weapon from actual gameplay events: ' +
-      equipped.at(-1));
+  // Pickups have equal range, so selection order is nondeterministic.
+  // After proving swap, select the Bat explicitly using the normal Q
+  // input so the browser exercises BOTH attacks on one equipped item.
+  let selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\s|$)/)?.[1];
+  if (selectedWeapon === 'shovel') {
+    await page.keyboard.press('q');
+    await page.waitForTimeout(400);
+    selectedWeapon = weaponEvents.filter(
+      s => s.includes('ACTION5_WEAPON_EQUIPPED')).at(-1)
+      ?.match(/id=(bat|shovel)(?:\s|$)/)?.[1];
   }
-  const expectedAction = selectedWeapon + '_swing';
+  if (selectedWeapon !== 'bat') {
+    errors.push('D06 could not select Bat using the two independent pickup slots: ' +
+      weaponEvents.join(' | '));
+  }
+  const expectedAction = 'bat_swing';
+  const expectedSecondaryAction = 'bat_horizontal';
   const beforeRight = combatStarts.length;
   await page.mouse.click(700, 420, { button: 'right' });
   await page.waitForTimeout(850);
   const fromRight = combatStarts.slice(beforeRight);
-  if (fromRight.length !== 1 || !fromRight[0].includes('id=kick')) {
-    errors.push('D06 unassigned right-click must perform normal Kick while equipped: ' +
+  if (fromRight.length !== 1 ||
+      !fromRight[0].includes('id=' + expectedSecondaryAction)) {
+    errors.push('D06 Bat right click must start horizontal strike, not Kick: ' +
       fromRight.join(' | '));
   }
   const beforeLeft = combatStarts.length;
@@ -218,13 +228,20 @@ try {
   if (f4Starts.length !== 1 || !f4Starts[0].includes('id=' + expectedAction)) {
     errors.push('D06 F4 left-click did not use the selected weapon: ' + f4Starts.join(' | '));
   }
-  // A second right-click in F4 must remain Kick, not a weapon swing.
-  const beforeF4Kick = combatStarts.length;
-  await page.mouse.click(640, 360, { button: 'right' });
+  // The secondary action must also drive the horizontal F4 grip pose.
+  const beforeF4Horizontal = combatStarts.length;
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(170);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-bat-horizontal.png', fullPage: true,
+  });
+  await page.mouse.up({ button: 'right' });
   await page.waitForTimeout(850);
-  const f4KickStarts = combatStarts.slice(beforeF4Kick);
-  if (f4KickStarts.length !== 1 || !f4KickStarts[0].includes('id=kick')) {
-    errors.push('D06 equipped F4 right-click must keep normal Kick: ' + f4KickStarts.join(' | '));
+  const f4HorizontalStarts = combatStarts.slice(beforeF4Horizontal);
+  if (f4HorizontalStarts.length !== 1 ||
+      !f4HorizontalStarts[0].includes('id=' + expectedSecondaryAction)) {
+    errors.push('D06 equipped F4 right-click did not start Bat horizontal: ' +
+      f4HorizontalStarts.join(' | '));
   }
   await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
