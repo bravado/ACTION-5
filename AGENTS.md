@@ -189,12 +189,16 @@ signal for physical muzzle tracing. No type-specific hit branches. Equipped weap
 provide attack definitions to D05 and request action IDs; they do not
 execute a second attack timer, own hit queries or read raw inputs.
 Attack input is resolved by the optional, duck-typed
-`EquipmentAttackSelector.get_attack_for_input(action, fallback)` policy:
-the same LMB/RMB and J/K intents select a weapon attack when equipped
-(one attack supports both, two attacks map primary/secondary separately).
-Never add an F-only swing key or let equipped clicks fall through to
-unarmed Punch/Kick. The CombatInputAdapter sees only this optional port,
-not the EquipmentController or weapon IDs.
+`EquipmentAttackSelector.get_attack_for_input(action, fallback)` policy.
+Each equipped attack explicitly sets `AttackDefinition.input_action` to
+claim its corresponding InputMap action; `Action5Weapon.get_attack_for_input`
+provides the configured match. **Missing assignments retain the original
+unarmed Punch/Kick, even when equipment is held.** There is no positional
+action replication or hardcoded LMB/RMB index mapping. One equipment action
+may claim `actor_punch`; a different one may claim `actor_kick`.
+Duplicate nonempty bindings within a definition are invalid.
+Do not add an F-only swing key or equipment-specific branches to
+CombatInputAdapter; it sees only this optional selection port.
 
 An equipped F4 viewmodel must include an authored **gripping arm and
 weapon** that move together. `AttackDefinition.visual_action_key`
@@ -203,7 +207,8 @@ optionally identifies the F4 pose independently of the world
 Bat/Shovel configure distinct F4 keys while still using imported world
 clips. Reuse `Action5FirstPersonLimbProfile` pose
 data and `Action5FirstPersonWeaponViewmodel`; suppress the original
-unarmed fist using the optional limb-visibility policy while equipped.
+resting/unassigned fist using the optional action-aware limb-visibility
+policy while equipped; an unassigned Kick must still show its F4 leg.
 Do not rotate a floating entire tool independently or use skinned
 world-bone positions to place the local hand.
 
