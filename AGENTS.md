@@ -229,8 +229,17 @@ world-bone positions to place the local hand.
 
 Stowed and equipped weapon instances retain exclusive equipment ownership:
 another actor cannot claim a stowed world-group node. A successful drop
-releases it. Unregister only the matching active/buffered attack; never
-cancel an unrelated action just because an equipped attack was queued.
+releases it. **Equip/swap MUST stage every candidate attack registration
+before stowing the previous weapon; partial failure rolls back staged IDs
+without unequip/equip signals.** IDs must be unique across carried
+weapons, so a collision rejects the swap without cancelling an
+existing timeline. Unregister only the matching active/buffered attack;
+never cancel an unrelated action just because an equipped attack was queued.
+Observe independent `tree_exiting` only for actual destruction, never
+for internal reparenting; cleanup must remove inventory, attack IDs, F4
+meshes and world shadows. Actor removal destroys carried weapons;
+drop first if they should persist as world pickups. Do not reparent
+children synchronously during `_exit_tree()`.
 If a weapon lacks a usable F4 viewmodel, keep its actual world meshes and
 the default F4 hand visible; only cull world meshes after a valid visual
 replacement is installed. Prove all three invariants with two-actor and
@@ -239,7 +248,15 @@ mid-action regression tests, not weapon-ID branches.
 Test Bat, Shovel and a third fixture with different attack data, all five
 views, F3/F4 mid action, click routing, return to unarmed on drop,
 gripped F4 weapon contact pose, teardown/shadows and an NPC without
-local first-person presentation. D06-02 must reuse this controller with a Gun
+local first-person presentation. VT-08 must test fast actor AND
+receiver crossings using authoritative physics hurtboxes, not the
+world or first-person mesh. Use the separate D06 hardening fixture to
+inject a partially rejecting registration port and free equipped/stowed
+items while recording signals. Test live Run/Jump/Crouch with
+F3→F4→F5 during an actual swing; keyboard and mouse for Bat's two
+attacks and Shovel's swing/Kick in F2 and F4. Human review includes
+wide/narrow F4, near-wall poses, grip and ground shadows. Do not
+remove browser scene-readability assertions merely to pass CI. D06-02 must reuse this controller with a Gun
 instance owning ammo/reload, a per-weapon ranged effect and a physical
 world-muzzle obstruction query. **Never** infer a valid shot solely from
 a clear camera ray, and never add `is_gun` or weapon-ID switches.
