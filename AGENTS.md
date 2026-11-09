@@ -285,3 +285,17 @@ after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
 ## Starting task
 
 **D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. The next feature is D06-02 Gun (#14), then D07 AI (#15), both using those established ports.
+## D06-02 gun extension (implementation in PR, validation pending)
+
+A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
+D05's active attack phase is the only firing moment. The gun uses
+ViewAimTargetProvider.get_world_target(), then traces from its world Muzzle,
+never the F4 viewmodel; a camera-visible target must not bypass a wall.
+Optional WeaponCommandInputAdapter routes per-instance reload input without
+touching CombatInputAdapter or movement. The Gun first-person model uses
+a generic set_visual_source() handoff from EquipmentVisualAdapter for its
+render-only reload pose. A second gun config must need no shared core edits.
+An equipped shot blocked by geometry still spends one round; cancelled
+startup/empty magazine does not. Stowing cancels reload, preserves ammo.
+Keep issue #14 open until pinned Godot tests and native/WebGL2/full visual
+acceptance pass. Consult docs/equipment.md for authoring and boundaries.
