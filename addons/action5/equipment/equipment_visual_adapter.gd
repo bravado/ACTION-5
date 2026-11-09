@@ -41,20 +41,32 @@ func _on_equipped(weapon: Node3D) -> void:
         return
     if not bool(first_person.call("is_local_actor")):
         return
-    for candidate in weapon.call("get_world_meshes"):
-        var mesh := candidate as MeshInstance3D
-        if mesh != null and first_person.call("register_world_visual", mesh):
-            _registered_meshes.append(mesh)
     var definition: Resource = weapon.get("definition")
     var scene: PackedScene = definition.get("first_person_scene")
+    # Only cull the world weapon once a usable camera-local replacement
+    # exists. Without one, keep its normal world mesh and unarmed F4 hand
+    # visible instead of rendering an empty/weaponless first-person view.
     if scene == null:
         return
-    var candidate := scene.instantiate() as Node3D
-    if candidate != null and first_person.call("register_first_person_visual", candidate):
-        _viewmodel = candidate
-        set_process(candidate.has_method("apply_pose"))
-    elif candidate != null:
+    var created: Node = scene.instantiate()
+    var candidate := created as Node3D
+    if candidate == null or not candidate.has_method("apply_pose"):
+        if created != null:
+            created.queue_free()
+        push_warning("ACTION5: F4 weapon scene needs Node3D + apply_pose(); using world fallback")
+        return
+    if not bool(first_person.call("register_first_person_visual", candidate)):
         candidate.queue_free()
+        return
+    _viewmodel = candidate
+    for world_mesh in weapon.call("get_world_meshes"):
+        var mesh := world_mesh as MeshInstance3D
+        if mesh == null or not bool(first_person.call("register_world_visual", mesh)):
+            push_warning("ACTION5: world weapon visual registration failed; using world fallback")
+            _clear_visuals()
+            return
+        _registered_meshes.append(mesh)
+    set_process(true)
 
 
 func _on_unequipped(_weapon: Node3D) -> void:
@@ -68,7 +80,9 @@ func _process(_delta: float) -> void:
 
 
 func show_unarmed_limbs() -> bool:
-    return not is_instance_valid(equipment) or equipment.get("current_weapon") == null
+    # The equipped F4 replacement, not inventory ownership, determines
+    # when the default arm can be hidden. Missing viewmodels fail visibly.
+    return not is_instance_valid(_viewmodel)
 
 
 func refresh_presentation() -> void:
