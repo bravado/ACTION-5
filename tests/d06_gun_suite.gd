@@ -65,7 +65,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     health.set("current_health", 100.0)
     var trace_excludes: Array[RID] = []
     print("D06_GUN_TRACE before muzzle=", muzzle.global_position,
-        " actor=", actor.global_position, " socket=", gun.get_parent().global_position,
+        " actor=", actor.global_position, " socket=", (gun.get_parent() as Node3D).global_position,
         " target=", target.global_position, " hurtbox="
         (target.get_node("Hurtbox") as Area3D).global_position,
         " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, trace_excludes))
@@ -73,7 +73,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     gun.fired.connect(func(point: Vector3, landed: bool) -> void:
         print("D06_GUN_FIRED impact=", point, " landed=", landed,
             " muzzle=", muzzle.global_position, " actor=", actor.global_position,
-        " socket=", gun.get_parent().global_position, " velocity=", actor.velocity,
+        " socket=", (gun.get_parent() as Node3D).global_position, " velocity=", actor.velocity,
         " gunlocal=", gun.position, " target=",
             (target.get_node("Hurtbox") as Area3D).global_position))
     var ammo_before: int = gun.magazine
