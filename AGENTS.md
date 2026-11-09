@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 equipment is in progress; D06-02 guns and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -167,7 +167,7 @@ Do not mark D05 complete or merge it on the strength of earlier commit CI.
 
 Follow [docs/combat.md](docs/combat.md) and ADR-0003. New attacks use an AttackDefinition and the existing CombatController/CombatInputAdapter request contract: never add attack-name branches to Actor, Locomotion, MovementController, ActorInputAdapter, AnimationPresenter or CameraRig. Combat owns physics-tick startup/active/recovery, mutable hit history, and Health/Hurtbox filtering. The only generic locomotion integration is apply_external_impulse; no combat code writes CharacterBody3D.velocity. Input edges must release-to-rearm through focus/settings interruption. Tests must prove new third-attack configuration and dedup across multiple hurtboxes before D05 is accepted.
 
-## D06 weapon and equipment extension contract (in progress)
+## D06-01 weapon and equipment extension contract (implemented and verified)
 
 Read [docs/equipment.md](docs/equipment.md) and ADR-0005 before modifying D06.
 An equipped world weapon is one `Action5Weapon` instance. An immutable
@@ -227,6 +227,8 @@ backwards compatibility with `{key, progress}`-only visual sources.
 Do not rotate a floating entire tool independently or use skinned
 world-bone positions to place the local hand.
 
+**Pickup event atomicity:** on a failed initial auto-equip, roll back inventory and emit neither `weapon_picked_up` nor `weapon_equipped`. On a successful first pickup emit each signal exactly once, in **pickup → equip** order. A failed swap cannot produce unequip/equip events. This protects HUD and AI listeners from phantom state; extend `tests/d06_hardening_suite.gd` for every new failure path.
+
 Stowed and equipped weapon instances retain exclusive equipment ownership:
 another actor cannot claim a stowed world-group node. A successful drop
 releases it. **Equip/swap MUST stage every candidate attack registration
@@ -256,15 +258,30 @@ items while recording signals. Test live Run/Jump/Crouch with
 F3→F4→F5 during an actual swing; keyboard and mouse for Bat's two
 attacks and Shovel's swing/Kick in F2 and F4. Human review includes
 wide/narrow F4, near-wall poses, grip and ground shadows. Do not
-remove browser scene-readability assertions merely to pass CI. D06-02 must reuse this controller with a Gun
-instance owning ammo/reload, a per-weapon ranged effect and a physical
-world-muzzle obstruction query. **Never** infer a valid shot solely from
-a clear camera ray, and never add `is_gun` or weapon-ID switches.
+remove browser scene-readability assertions merely to pass CI.
 
-Status: D06-01 is in development. Do not mark issue #13 complete or
-claim native/WebGL2 visual acceptance until the current branch has passed
-its E2E gates. D06-02 (#14) and D07 (#15) remain separate deliveries.
+**D06-02 handoff:** reuse this controller with a Gun instance owning ammo,
+reload, cooldown, a per-weapon ranged effect and a physical world-muzzle
+obstruction query. Send reload through a small **optional weapon-command
+input adapter**, not a Gun branch in `CombatInputAdapter`, the Actor, or
+generic Equipment. Use existing equip/unequip signals to bind/unbind
+per-instance effects to D05 active-phase events and test a second configured
+gun. **Never** infer a valid shot solely from a clear camera ray, and never
+add `is_gun` or weapon-ID switches. F5-only 4/8-way aiming belongs in a
+view-specific aim policy: `AttackDefinition.facing_sectors` currently also
+quantizes direction in D05 for **every** view, so do not assign retro-only
+sectors to a weapon expecting continuous F1–F4 aim. See issue #14, #18 and
+ADR-0005.
+
+**D06-01 completion record (2026-11-09):** PR #31 is approved, latest-head
+`CI / Checks` passed **908 assertions / 0 failures**, `CI / Full E2E`
+passed native/Linux and real WebGL2 smoke (run #42668808972), and owner
+visual acceptance passed. The release tests are
+`tests/d06_equipment_suite.gd`, `tests/d06_hardening_suite.gd`,
+`tests/d06_fast_swing_suite.gd`, `tests/d06_movement_view_suite.gd`,
+`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. Close issue #13 only
+after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
 
 ## Starting task
 
-**D01–D05 are merged.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference implementation. D05 is complete. For D06, follow the equipment adapter contract above; keep future gun effects and enemy AI separate from the reusable movement, animation and camera classes.
+**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. The next feature is D06-02 Gun (#14), then D07 AI (#15), both using those established ports.
