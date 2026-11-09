@@ -77,20 +77,25 @@ func get_limb_root(key: StringName) -> Node3D:
     return state.get("root") as Node3D
 
 
-func _unarmed_visible() -> bool:
-    return not is_instance_valid(visibility_source) or (
-        not visibility_source.has_method("show_unarmed_limbs")
-        or bool(visibility_source.call("show_unarmed_limbs"))
+func _unarmed_visible(action_key: StringName = &"") -> bool:
+    if not is_instance_valid(visibility_source):
+        return true
+    # An optional action-aware gate keeps a default Kick visible while
+    # the equipped gripped arm replaces Punch. Older providers still work.
+    if visibility_source.has_method("show_unarmed_limb"):
+        return bool(visibility_source.call("show_unarmed_limb", action_key))
+    return not visibility_source.has_method("show_unarmed_limbs") or bool(
+        visibility_source.call("show_unarmed_limbs")
     )
 
 
 func active_limb_key() -> StringName:
     if not is_instance_valid(fps) or not fps.first_person \
-        or not is_instance_valid(visual_state) or not _unarmed_visible():
+        or not is_instance_valid(visual_state):
         return &""
     var action: Dictionary = visual_state.call("get_visual_action")
     var key: StringName = action.get("key", &"")
-    return key if _limbs.has(key) else &""
+    return key if _limbs.has(key) and _unarmed_visible(key) else &""
 
 
 func _process(_delta: float) -> void:
@@ -105,8 +110,10 @@ func refresh_presentation() -> void:
     if not is_instance_valid(fps) or not is_instance_valid(visual_state):
         return
     var action: Dictionary = visual_state.call("get_visual_action")
-    var show_unarmed: bool = _unarmed_visible()
-    var key: StringName = action.get("key", &"") if fps.first_person and show_unarmed else &""
+    var requested_key: StringName = action.get("key", &"")
+    var key: StringName = requested_key if fps.first_person and _unarmed_visible(
+        requested_key
+    ) else &""
     if not _limbs.has(key):
         key = &""
     if key != _last_action:
@@ -120,9 +127,9 @@ func refresh_presentation() -> void:
         if not is_instance_valid(viewmodel) or viewmodel.is_queued_for_deletion():
             continue
         var profile: ProfileScript = state["profile"]
-        viewmodel.visible = fps.first_person and show_unarmed and (
-            profile.visible_at_rest or registered == key
-        )
+        var show_idle: bool = profile.visible_at_rest and _unarmed_visible()
+        var show_action: bool = registered == key and key != &""
+        viewmodel.visible = fps.first_person and (show_idle or show_action)
         if viewmodel.visible:
             viewmodel.call("apply_pose", progress if registered == key else 0.0)
 
