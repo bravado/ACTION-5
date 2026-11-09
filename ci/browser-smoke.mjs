@@ -264,6 +264,17 @@ try {
       f4HorizontalStarts.join(' | '));
   }
 
+  // Capture actual narrow/portrait browser output with the real equipped
+  // hand, rather than assuming that a 16:9 smoke proves F4 framing.
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.waitForTimeout(520);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-bat-narrow.png', fullPage: true,
+  });
+  await requireReadableF4('Bat narrow-viewport rendering');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(330);
+
   // Shovel is a one-action weapon. Swap through Q, not a script-only
   // equipment hook, and prove right click/K still executes ordinary Kick
   // in BOTH world and camera-local first-person rendering.
@@ -326,6 +337,14 @@ try {
       !combatStarts.at(-1).includes('id=kick')) {
     errors.push('D06 F4 Shovel RMB must retain normal Kick');
   }
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.waitForTimeout(500);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-narrow.png', fullPage: true,
+  });
+  await requireReadableF4('Shovel narrow-viewport rendering');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(330);
   console.log('ACTION5_BROWSER_D06_DUAL_INPUT_OK bat=2 shovel=1 shovel_kick=1 views=2,4 keyboards=1');
 
   await page.evaluate(() => {
