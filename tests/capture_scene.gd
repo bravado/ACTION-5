@@ -419,6 +419,59 @@ func _capture() -> void:
         return
     print("ACTION5_D06_F4_SWING_NATIVE_OK grip=1 unarmed_hidden=1 pixels=", swing_pixels)
 
+    # The Bat also has a separately authored lateral RMB/K swing.
+    # Verify a real D05 secondary attack drives its own F4 profile,
+    # without adding another hand, changing the world weapon or reusing
+    # the vertical pose. The same physical Grip follows the arm.
+    combat.call("cancel")
+    equipment_visual.call("refresh_presentation")
+    if not equipment.call("request_equipped_action", 1, Vector2(0, -1)):
+        push_error("D06: Bat horizontal action not registered on its secondary slot")
+        quit(1)
+        return
+    var horizontal_action: Resource = combat.call("get_attack", &"bat_horizontal")
+    var sampled_horizontal: bool = false
+    for frame in range(int(horizontal_action.call("total_ticks")) + 3):
+        await physics_frame
+        equipment_visual.call("refresh_presentation")
+        var current_progress: float = float(equipped_view.get("pose_progress"))
+        if current_progress >= 0.43 and current_progress <= 0.57:
+            sampled_horizontal = true
+            break
+    var lateral_grip: Vector3 = grip.position
+    if not sampled_horizontal or lateral_grip.x >= active_grip.x - 0.65 or (
+        gripped_arm.get("profile") as Resource).get("animation_key") != &"bat_horizontal" or (
+        not grip.position.is_equal_approx(
+            (gripped_arm.get_node("Extremity") as Node3D).position)):
+        push_error("D06: F4 horizontal Bat pose did not sweep sideways with the hand"
+            + " x_delta=" + str(lateral_grip.x - active_grip.x)
+            + " progress=" + str(equipped_view.get("pose_progress")))
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    var horizontal_image: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-horizontal.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    var horizontal_pixels: int = 0
+    for y in range(int(armed_f4.get_height() * 0.33), int(armed_f4.get_height() * 0.95), 4):
+        for x in range(int(armed_f4.get_width() * 0.28), int(armed_f4.get_width() * 0.95), 4):
+            var start_color: Color = armed_f4.get_pixel(x, y)
+            var strike_color: Color = horizontal_image.get_pixel(x, y)
+            if absf(start_color.r - strike_color.r) + absf(start_color.g - strike_color.g) + absf(start_color.b - strike_color.b) > 0.24:
+                horizontal_pixels += 1
+    if horizontal_pixels < 50:
+        push_error("D06: horizontal F4 Bat strike not visibly different from rest")
+        quit(1)
+        return
+    print("ACTION5_D06_F4_HORIZONTAL_NATIVE_OK grip=1 distinct=1 pixels=",
+        horizontal_pixels)
+    combat.call("cancel")
+    equipment_visual.call("refresh_presentation")
+
     if not equipment.call("drop_current"):
         push_error("D06: cannot drop Bat from native equipped state")
         quit(1)
