@@ -88,14 +88,24 @@ NPCs omit FirstPersonPresenter and can use an alternative tiny
 | Right mouse / K | Bat horizontal strike; Shovel retains Kick; otherwise the equipped assignment or Kick |
 | 1–5 | Switch perspective without changing equipment |
 
-The demo rig has no dedicated Shovel or horizontal-Bat world clips.
-Both Bat attacks and Shovel temporarily reuse the **upper-body Punch
-clip**, never full-body Kick, in F1/F2/F3/F5. Their contact volumes,
-damage and action timelines are already independent; F4 has distinct
-authored grip/arm poses for each attack. A dedicated world horizontal
-Bat animation remains an art/visual-acceptance follow-up, configurable
-through the actor's SkeletonProfile and attack resource with no edits to
-movement, combat or generic equipment.
+The checked-in, MIT-licensed training rig has **three dedicated world-space
+skeletal attack clips**: `bat_vertical` (an overhand downward chop),
+`bat_horizontal` (a torso-driven lateral sweep) and `shovel_overhead`
+(a deliberate two-arm overhead strike). Each has seven articulated
+keyframes and moves the same right-hand socket and physical weapon used
+by F1/F2/F3/F5. These clips play through the existing upper-body
+AnimationTree channel, preserving locomotion in the legs and keeping D05
+hit timing authoritative. F4 uses separate first-person grip profiles
+for camera framing, not a second gameplay weapon. No attack reuses
+the unarmed Punch/Kick clip. The demo also regenerates an alternate
+skeleton with independently renamed copies of these clips.
+
+To create another weapon, import/author its 3D world animation on the
+character rig, map the stable action key to the actual clip in that
+rig's `SkeletonProfile.clip_map`, then set the attack's
+`animation_key` to the logical key and `animation_channel = 0`.
+Author an optional separate `visual_action_key` and F4 grip profile.
+No type-specific branches or runtime bone hacks are needed.
 
 The current sample arena places both pickups near the starting point.
 Weapon pickup is a proximity interaction (not a physics impact or
@@ -104,8 +114,10 @@ complex inventory system). Drop restores the same Node3D to the world.
 ## Add a melee weapon without changing core code
 
 1. Create an `Action5AttackDefinition` with a unique ID, attack ticks,
-   hitbox size/forward offset, damage, knockback and generic animation
-   key/channel already present in the actor's SkeletonProfile. Set its
+   hitbox size/forward offset, damage, knockback and a **dedicated mapped
+   world animation** key/channel present in the actor's SkeletonProfile.
+   The clip must animate the mounted hand/socket; do not use `punch` or
+   `kick` as a stand-in for weapon swings. Set its
    `input_action` to the action it should claim (e.g. `&"actor_punch"`
    for left mouse/J, `&"actor_kick"` for right mouse/K); leave empty to
    register an attack usable by other callers without overriding either
