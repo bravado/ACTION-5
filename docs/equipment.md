@@ -80,6 +80,13 @@ NPCs omit FirstPersonPresenter and can use an alternative tiny
 | Right mouse / K | Default Kick; an item may explicitly override `actor_kick` |
 | 1–5 | Switch perspective without changing equipment |
 
+The demo rig currently has no dedicated Shovel world animation. Shovel
+reuses the **upper-body Punch clip**, not the full-body Kick clip, while
+its F4 viewmodel continues to use the separate authored `shovel_swing`
+grip/arm motion. Production weapons can supply their own world clip and
+upper-body channel through their attack resources without modifying the
+animation presenter.
+
 The current sample arena places both pickups near the starting point.
 Weapon pickup is a proximity interaction (not a physics impact or
 complex inventory system). Drop restores the same Node3D to the world.
