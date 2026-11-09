@@ -8,7 +8,7 @@ ACTION-5 is a planned open-source framework for creating action games that share
 
 It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawlers, third-person action games, first-person dungeon combat, and classic NES-style top-down action.
 
-**D06-01 demo controls (development branch):** E picks up the nearest Bat/Shovel, Q swaps between carried weapons, G drops the equipped item. The **existing LMB/RMB or J/K attack controls use the weapon when equipped** (with one configured attack, either button swings it); when no weapon is held, they perform D05 Punch/Kick. There is no separate swing button. Pickups are placed near the player in the sample arena. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
+**D06-01 demo controls (development branch):** E picks up the nearest Bat/Shovel, Q swaps between carried weapons, G drops the equipped item. **Left click/J swings Bat or Shovel**; **right click/K still kicks**, because each equipped attack claims only its configured `input_action`. Other items can bind either/both actions independently; unassigned inputs always retain normal Punch/Kick. There is no separate swing button. Pickups are placed near the player in the sample arena. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
 
 ## Five perspectives
 
@@ -77,7 +77,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch) and **right click / K** (Kick) when unarmed, or their equipped weapon action against the training targets; gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Kick unless independently assigned by equipment); gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
