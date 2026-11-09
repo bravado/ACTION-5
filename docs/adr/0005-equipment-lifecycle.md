@@ -1,6 +1,6 @@
 # ADR-0005 — One weapon instance with independent equipment and presentation
 
-Status: Proposed — D06-01 release hardening (2026-11-09).
+Status: Accepted implementation contract — D06-01 pending final E2E and merge (2026-11-09).
 
 ## Context
 
@@ -93,3 +93,61 @@ Real Godot import and physics tests for Bat, Shovel and an independently
 authored third instance; pickup/equip/swap/drop/reattach; registration and
 cancellation; F3↔F4 continuity; multi-mesh local shadows and camera-only
 viewmodel cleanup; NPC use without FPS; native/WebGL2 screenshots.
+
+## D06-01 release handoff (approved visual matrix)
+
+The owner has visually accepted Bat vertical/horizontal and Shovel overhead
+in all five views, including first-person poses and the requested movement
+and narrow-aspect cases. The completed hardening fixtures cover registration
+failure rollback, destruction of equipped/stowed weapons, actor removal,
+VT-08 moving hitboxes, and movement/view continuity. Automated acceptance
+must be based on **the latest PR head**: both headless Checks and Full E2E
+(Linux/WebGL2, native and browser screenshots) are required before merge.
+
+### D06-02 ranged extension: keep weapon commands out of combat input
+
+- The equipment lifecycle already emits `weapon_equipped` /
+  `weapon_unequipped` and scopes D05 attack registrations to the held
+  instance. A Gun's **child behavior** can connect to these existing signals
+  (or receive an injected actor-local combat reference on equip), subscribe
+  to its own attack IDs and own magazine, reserve, reload and cooldown.
+  Never store these mutable properties in `WeaponDefinition`.
+- Use a **separate optional action/command input component** for reload,
+  consuming the existing `ActionInputContext` focus/permission snapshot
+  and invoking a duck-typed command on the current weapon's behavior.
+  Do not introduce `if gun` or reload branches into
+  `CombatInputAdapter`, `EquipmentController` or `Action5Actor`.
+  No speculative general command/event framework is needed.
+- A trigger may queue a D05 attack; a Gun firing effect must subscribe to
+  its authoritative active phase exactly once. Consume ammo under a
+  documented policy, after checking its **world muzzle** obstruction
+  and shot eligibility, with owner/self-exclusion. A camera ray selects a
+  world target only; it never deals damage or defines the firing origin.
+- Explicitly test the policy for pending fire cancelled by swap, active
+  fire interrupted, reload while stowed, and freed gun during reload.
+  View switches cannot restart reload/ammo/action clocks. Add a second
+  independently configured gun scene as the no-core-edits extension test.
+
+### D07/D09/F5 action-direction boundary
+
+- AI is only an alternate intent producer: `MoveIntent.request_move(id)`
+  currently queues IDs and movement reads **latest physics-tick** intent;
+  D05 `request_attack(id, world_xz_direction)` snapshots attack heading
+  at request time. Document/test that difference, or change it only with
+  explicit generic tests. Multiple actors own separate inventory, D05
+  clocks and health; NPCs do not depend on local F4/camera presenters.
+- Current `AttackDefinition.facing_sectors` also quantizes heading inside
+  `CombatController._begin_attack()`, **regardless of camera**. Therefore
+  blindly setting 4/8-way sectors on a sword/gun would quantize F1-F4
+  too. D09-02 must make retro-only 4/8-way policy view-scoped in the
+  aim/action-context provider, passing an already resolved world vector
+  into the existing attack port; do not add named weapon/view branches to
+  CombatController or locomotion. Add F3/F4/F5 transitions and independent
+  right-stick aim regressions.
+- D08 interactables should consume a tiny independent actor/interact
+  request port, not expand the D06 E/Q/G demo keyboard handler into a
+  permanent global dispatcher. D10-D12 must validate a blank-project
+  `addons/action5/` installation without `demo/` references.
+
+These are constraints for **future issues**, not scope to be implemented
+in the Bat/Shovel PR.
