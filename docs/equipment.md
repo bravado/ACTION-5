@@ -1,8 +1,9 @@
 # D06 equipment authoring and implementation state
 
-**Status (2026-11-09):** D05 is merged via PR #28. D06-01 Bat/Shovel
-and the generic equipment contract are under release review in PR #31.
-Native/WebGL2 visual evidence and current-head CI are release gates;
+**Status (2026-11-09):** D05 is merged via PR #28. **D06-01 Bat/Shovel
+and the reusable equipment contract are implemented and approved in PR #31.**
+Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
+Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
 D06-02 Gun and D07 AI remain separate future deliverables.
 
 ## Component responsibilities
@@ -20,7 +21,9 @@ that weapon's attacks. **Equip is transactional:** new registrations
 are staged and all rejected/partial registrations rolled back before
 any prior item, signal or F4 visual is changed. Distinct carried weapons
 must have distinct `attack_id` values, preventing destructive active-ID
-replacement. It asks a replaceable `get_mount(socket_id)`
+replacement. A failed first auto-equip publishes neither pickup nor equip;
+a successful first pickup emits exactly one `weapon_picked_up` **before**
+`weapon_equipped`, after committing. It asks a replaceable `get_mount(socket_id)`
 provider for a socket. It never imports `AnimationPresenter`, reads
 camera keys/modes, or writes the actor's velocity.
 
@@ -172,7 +175,10 @@ lifecycle with no first-person presenter. The controller owns no
 camera, movement, animation or weapon-type behavior.
 
 D06-02 should add a Gun instance with its own ammo, reserve, reload and
-cooldown state. Configure a D05 AttackDefinition with
+cooldown state. Bind its per-instance effects to the existing equipment and
+D05 action lifecycle signals; route reload via a small optional
+**weapon-command input adapter**, not special cases in generic combat input
+or equipment. Configure a D05 AttackDefinition with
 `use_melee_hit_query = false` and subscribe to the existing
 `attack_phase_changed(..., "active", ...)` signal to resolve its ranged
 effect. Gun must consume an already-resolved world aim target and trace
@@ -187,7 +193,8 @@ damage a target. Gun effects must not rely on D05's melee box hit test.
   cancellation, shadows and NPC mounting without CameraRig.
 - `tests/d06_hardening_suite.gd` injects a rejecting registration port
   **after** a successful staged attack, asserts atomic rollback and signal
-  stability, rejects colliding IDs, frees stowed/equipped items directly,
+  stability (including failed first pickup and successful pickup → equip
+  signal ordering), rejects colliding IDs, frees stowed/equipped items directly,
   tears down actor inventories and checks real F4 model/shadow cleanup.
 - `tests/d06_fast_swing_suite.gd` uses D05's actual physics query with
   fast actor and target crossings, grazing active-window contacts,
@@ -210,6 +217,6 @@ native/Web exports. The release matrix (native Xvfb screenshots and real
 Playwright WebGL2 browser input) is implemented by
 `.github/workflows/godot-ci.yml`: add `[full-e2e]` to the latest PR
 commit to run it. Review native and WebGL2 screenshot/log artifacts,
-including narrow/wide viewport and near-wall images; owner signoff is
-required before the PR is moved out of draft. Issue #13 remains open
-until the tested PR merges.
+including narrow/wide viewport and near-wall images. **PR #31 passed**
+908 headless assertions, native/WebGL2 Full E2E and owner visual review
+on 2026-11-09. Issue #13 closes upon squash merge of that tested PR.
