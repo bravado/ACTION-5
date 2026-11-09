@@ -54,6 +54,37 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     var socket: Node3D = animation.call("get_socket", &"right_hand") as Node3D
     var starting_shadows: int = fps.world_visual_shadows.size()
+    var imported_clips: AnimationPlayer = animation.get("animation_player") as AnimationPlayer
+    var world_clips_valid: bool = imported_clips != null
+    var contact_arms: Dictionary = {}
+    for id in [&"bat_vertical", &"bat_horizontal", &"shovel_overhead"]:
+        var clip: Animation = (
+            imported_clips.get_animation(id)
+            if world_clips_valid and imported_clips.has_animation(id) else null
+        )
+        if clip == null:
+            world_clips_valid = false
+            continue
+        var expected_ticks: int = 17 if id == &"bat_vertical" else (
+            21 if id == &"bat_horizontal" else 20
+        )
+        if absf(clip.length - float(expected_ticks) / 60.0) > 0.025:
+            world_clips_valid = false
+        for track in range(clip.get_track_count()):
+            var bone_path: NodePath = clip.track_get_path(track)
+            if clip.track_get_type(track) == Animation.TYPE_ROTATION_3D \
+                    and bone_path.get_subname_count() > 0 \
+                    and str(bone_path.get_subname(0)) == "UpperArm_R":
+                contact_arms[id] = clip.rotation_track_interpolate(
+                    track, clip.length * 0.50
+                )
+                break
+    verify.call(world_clips_valid and contact_arms.size() == 3
+        and (contact_arms[&"bat_vertical"] as Quaternion).angle_to(
+            contact_arms[&"bat_horizontal"]) > 0.35
+        and (contact_arms[&"bat_vertical"] as Quaternion).angle_to(
+            contact_arms[&"shovel_overhead"]) > 0.20,
+        "Imported world rig has three different keyed equipment arm animations, with authored durations")
     verify.call(equipment != null and visual != null and socket != null
         and bat.definition.weapon_id == &"bat" and shovel.definition.weapon_id == &"shovel",
         "D06 installs the generic equipment, socket and distinct weapon definitions")
@@ -87,6 +118,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and selector.call("get_attack_for_input", &"actor_kick", combat.get_attack(&"kick"))
             == combat.get_attack(&"bat_horizontal"),
         "Bat left maps to vertical swing; right maps to distinct horizontal strike")
+    verify.call(bat.definition.attacks[0].animation_key == &"bat_vertical"
+        and bat.definition.attacks[1].animation_key == &"bat_horizontal"
+        and bat.definition.attacks[0].animation_channel == 0
+        and bat.definition.attacks[1].animation_channel == 0,
+        "Both Bat attacks select unique upper-body world clips, never unarmed Punch/Kick")
     verify.call(bat.definition.attacks[1].hitbox_size.x >
         bat.definition.attacks[0].hitbox_size.x
         and bat.definition.attacks[1].hitbox_size.y <
@@ -193,6 +229,14 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     target.set("blocking", false)
     target.set("immune", false)
     target.set("team_id", 2)
+    # D05's lifecycle tests remove the optional animation bridge. Reattach
+    # it for actual world-pose verification, without changing Combat's API.
+    var bat_animation_bridge: Node = actor.get_node_or_null("CombatAnimationAdapter")
+    var temporary_bat_bridge: bool = bat_animation_bridge == null
+    if temporary_bat_bridge:
+        bat_animation_bridge = AnimationBridgeScript.new()
+        bat_animation_bridge.name = "D06BatWorldAnimationBridge"
+        actor.add_child(bat_animation_bridge)
     verify.call(equipment.request_equipped_action(0, Vector2.RIGHT),
         "Bat delegates its configured swing to the D05 physics action runner")
     for tick in range(11):
@@ -202,8 +246,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
                 actor.get_node("CombatVisualState").call("get_visual_action")
             )
             verify.call(action_visual.get("key", &"") == &"bat_swing"
-                and combat.current_attack.animation_key == &"punch",
-                "F4 weapon uses its own visual key while the world rig keeps an existing clip")
+                and combat.current_attack.animation_key == &"bat_vertical"
+                and animation.get("upper_body_clip") == &"bat_vertical"
+                and animation.get("action_clip") == &"",
+                "World rig plays authored Bat vertical upper-body clip; F4 retains its independent pose")
     verify.call(float(target.get("current_health")) ==
         float(target.get("max_health")) - 16.0 and combat.hit_count == 1,
         "Bat vertical swing hits the nearby target once across two hurtboxes")
@@ -214,9 +260,19 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Secondary Bat action can be requested independently of primary")
     for tick in range(13):
         await tree.physics_frame
+        if tick == 3:
+            verify.call(animation.get("upper_body_clip") == &"bat_horizontal"
+                and animation.get("action_clip") == &"",
+                "Bat horizontal uses distinct world upper-body clip and never Kick")
     verify.call(float(target.get("current_health")) ==
         float(target.get("max_health")) - 13.0 and combat.hit_count == 1,
         "Horizontal Bat sweep uses its own contact volume/damage and deduplicates hits")
+    combat.cancel()
+    verify.call(animation.get("upper_body_clip") == &"",
+        "Cancelling Bat action restores locomotion-only animation")
+    if temporary_bat_bridge:
+        bat_animation_bridge.queue_free()
+        await tree.process_frame
 
     # An externally resolved hit uses the same action clock but must never
     # run a melee box query. D06-02 gun effects can consume the existing
@@ -350,13 +406,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     combat.cancel()
     views.call("switch_view", 2)
 
-    # Shovel must NEVER start the rig's full-body Kick animation: the
-    # temporary imported upper-body Punch clip drives the world arm, while
-    # the separate shovel_swing visual key drives the authored F4 grip.
-    verify.call(shovel.definition.attacks[0].animation_key == &"punch"
+    # Shovel uses its own imported overhead clip, not Punch or Kick.
+    # The same world skeleton and socket animate in every camera view.
+    verify.call(shovel.definition.attacks[0].animation_key == &"shovel_overhead"
         and int(shovel.definition.attacks[0].animation_channel) == 0
         and shovel.definition.attacks[0].visual_action_key == &"shovel_swing",
-        "Shovel binds a world upper-body swing and an independent F4 swing")
+        "Shovel binds its own authored overhead world action and separate F4 grip")
     # D05's lifecycle suite intentionally removes the optional animation
     # bridge. Reattach it only while verifying real world animation output.
     # Production Player.tscn already includes this component.
@@ -375,11 +430,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var shovel_snapshot: Dictionary = actor.get_node(
         "CombatVisualState").call("get_visual_action")
     verify.call(combat.current_id == &"shovel_swing"
-        and animation.get("upper_body_clip") == &"punch"
+        and animation.get("upper_body_clip") == &"shovel_overhead"
         and animation.get("action_clip") == &""
         and world_animation_bridge.get("_active_channel") == 0
         and shovel_snapshot.get("key", &"") == &"shovel_swing",
-        "Shovel uses upper-body Punch world clip, not full-body Kick, without losing F4 motion")
+        "Shovel plays a distinct world overhead clip without affecting leg locomotion or F4")
     combat.cancel()
     verify.call(animation.get("upper_body_clip") == &"",
         "Cancelling Shovel clears its upper-body overlay without affecting locomotion")
