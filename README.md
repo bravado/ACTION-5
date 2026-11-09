@@ -2,13 +2,13 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (2026-11-09): D01–D05 merged; D06-01 completed and approved in PR #31.** D05 unarmed combat, health and F4 poses were squash-merged in PR #28. D06-01 adds Bat/Shovel equipment with transactional pickup/swap/drop, three distinct world animations, separate F4 grips, multi-button attacks and lifecycle/fast-melee hardening. CI and owner visual checks passed. Gun/ammo/muzzle obstruction (D06-02) and enemy AI (D07) remain future milestones.
+> **Project status (2026-11-09): D01–D05 merged; D06-01 completed and approved in PR #31.** D05 unarmed combat, health and F4 poses were squash-merged in PR #28. D06-01 adds Bat/Shovel equipment with transactional pickup/swap/drop, three distinct world animations, separate F4 grips, multi-button attacks and lifecycle/fast-melee hardening. CI and owner visual checks passed. D06-02 Gun development is available in draft PR #32 and awaits CI/visual release gates; enemy AI (D07) remains a future milestone.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
 It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawlers, third-person action games, first-person dungeon combat, and classic NES-style top-down action.
 
-**D06-01 demo controls:** E picks up the nearest Bat/Shovel, Q swaps between carried weapons, G drops the equipped item. **Bat:** left click/J performs a vertical swing and right click/K performs a separate horizontal strike. **Shovel:** left click/J swings and right click/K still kicks. Each attack claims only its configured `input_action`; unassigned inputs retain Punch/Kick. There is no separate swing button. Pickups are placed near the player in the sample arena. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
+**D06 demo controls:** E picks up the nearest Bat/Shovel (or the Pistol when close to its separate pickup), Q swaps between carried weapons, G drops the equipped item. **Bat:** left click/J performs a vertical swing and right click/K performs a separate horizontal strike. **Shovel:** left click/J swings and right click/K still kicks. Each attack claims only its configured `input_action`; unassigned inputs retain Punch/Kick. There is no separate swing button. Bat and Shovel pickups are near spawn; the Pistol pickup is farther southeast so existing two-weapon demos stay deterministic. Pistol left click/J fires, R reloads. A second, independently configured heavy-pistol scene uses T for reload. The physical muzzle controls obstruction, never the F4 camera model. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
 
 ## Five perspectives
 
@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D05 are merged** (D05 via squash-merged PR #28); the crouch movement example is also merged. **D06-01 Bat/Shovel equipment** is complete in approved PR #31, with authored world/F4 weapon animations, independent attacks, and lifecycle/fast-melee hardening; 908 headless assertions, real WebGL2 Full E2E and manual visual acceptance passed. **D06-02 Gun** and **D07 AI** are next, not part of PR #31. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D05 are merged** (D05 via squash-merged PR #28); the crouch movement example is also merged. **D06-01 Bat/Shovel equipment** is complete in approved PR #31, with authored world/F4 weapon animations, independent attacks, and lifecycle/fast-melee hardening; 908 headless assertions, real WebGL2 Full E2E and manual visual acceptance passed. **D06-02 Gun** is under development in draft PR #32 and still requires native/WebGL2 and manual visual acceptance. **D07 AI** is next. Neither is part of PR #31. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
