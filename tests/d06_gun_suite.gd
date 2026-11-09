@@ -66,7 +66,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var trace_excludes: Array[RID] = []
     print("D06_GUN_TRACE before muzzle=", muzzle.global_position,
         " actor=", actor.global_position, " socket=", (gun.get_parent() as Node3D).global_position,
-        " target=", target.global_position, " hurtbox="
+        " target=", target.global_position, " hurtbox=",
         (target.get_node("Hurtbox") as Area3D).global_position,
         " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, trace_excludes))
     var old_hp: float = health.get("current_health")
