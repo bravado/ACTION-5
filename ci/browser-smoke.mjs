@@ -189,6 +189,22 @@ try {
     errors.push('D06 left-click must also use the selected weapon: ' +
       fromLeft.join(' | '));
   }
+  // Both keyboard equivalents must route through the identical InputMap
+  // selection policy, with no dedicated swing key or weapon-ID dispatcher.
+  const beforeBatJ = combatStarts.length;
+  await page.keyboard.press('j');
+  await page.waitForTimeout(650);
+  if (combatStarts.slice(beforeBatJ).length !== 1 ||
+      !combatStarts.at(-1).includes('id=bat_swing')) {
+    errors.push('D06 equipped Bat J must use vertical swing');
+  }
+  const beforeBatK = combatStarts.length;
+  await page.keyboard.press('k');
+  await page.waitForTimeout(650);
+  if (combatStarts.slice(beforeBatK).length !== 1 ||
+      !combatStarts.at(-1).includes('id=bat_horizontal')) {
+    errors.push('D06 equipped Bat K must use horizontal swing');
+  }
 
   await page.keyboard.press('3');
   await page.waitForTimeout(450);
@@ -243,6 +259,69 @@ try {
     errors.push('D06 equipped F4 right-click did not start Bat horizontal: ' +
       f4HorizontalStarts.join(' | '));
   }
+
+  // Shovel is a one-action weapon. Swap through Q, not a script-only
+  // equipment hook, and prove right click/K still executes ordinary Kick
+  // in BOTH world and camera-local first-person rendering.
+  await page.keyboard.press('q');
+  await page.waitForTimeout(460);
+  const currentShovel = weaponEvents.filter(
+    s => s.includes('ACTION5_WEAPON_EQUIPPED')).at(-1) || '';
+  if (!currentShovel.includes('id=shovel')) {
+    errors.push('D06 Q swap failed to equip single-action Shovel: ' + currentShovel);
+  }
+  await page.keyboard.press('2');
+  await page.waitForTimeout(400);
+  async function checkShovelInput(input, action, label) {
+    const before = combatStarts.length;
+    if (input === 'left' || input === 'right') {
+      await page.mouse.click(700, 420, { button: input });
+    } else {
+      await page.keyboard.press(input);
+    }
+    await page.waitForTimeout(780);
+    const started = combatStarts.slice(before);
+    if (started.length !== 1 || !started[0].includes('id=' + action)) {
+      errors.push('D06 ' + label + ' must start ' + action + ': ' +
+        started.join(' | '));
+    }
+  }
+  await checkShovelInput('left', 'shovel_swing', 'F2 Shovel LMB');
+  await checkShovelInput('right', 'kick', 'F2 Shovel RMB');
+  await checkShovelInput('j', 'shovel_swing', 'F2 Shovel J');
+  await checkShovelInput('k', 'kick', 'F2 Shovel K');
+
+  await page.mouse.move(640, 360);
+  await page.keyboard.press('4');
+  await page.waitForTimeout(450);
+  const beforeShovelF4 = combatStarts.length;
+  await page.mouse.down({ button: 'left' });
+  await page.waitForTimeout(160);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-overhead.png', fullPage: true,
+  });
+  await page.mouse.up({ button: 'left' });
+  await page.waitForTimeout(730);
+  const shovelF4Starts = combatStarts.slice(beforeShovelF4);
+  if (shovelF4Starts.length !== 1 ||
+      !shovelF4Starts[0].includes('id=shovel_swing')) {
+    errors.push('D06 F4 Shovel LMB did not start its overhead swing: ' +
+      shovelF4Starts.join(' | '));
+  }
+  const beforeF4Kick = combatStarts.length;
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(150);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-kick.png', fullPage: true,
+  });
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(750);
+  if (combatStarts.slice(beforeF4Kick).length !== 1 ||
+      !combatStarts.at(-1).includes('id=kick')) {
+    errors.push('D06 F4 Shovel RMB must retain normal Kick');
+  }
+  console.log('ACTION5_BROWSER_D06_DUAL_INPUT_OK bat=2 shovel=1 shovel_kick=1 views=2,4 keyboards=1');
+
   await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
     const mirror = document.createElement('canvas');
