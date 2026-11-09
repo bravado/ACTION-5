@@ -677,6 +677,89 @@ func _capture() -> void:
         quit(1)
         return
 
+    # D06-02 actual-render evidence: the same physical Gun is socket-mounted
+    # in four exterior views and has one camera-local F4 gripping arm.
+    # Rendering never supplies the authoritative muzzle or a second weapon.
+    var gun: Node3D = scene.get_node("GunPickup") as Node3D
+    gun.global_position = actor.global_position + Vector3(0.4, 0.4, 0)
+    if not equipment.call("pickup", gun):
+        push_error("D06-02: cannot pick up Gun after Shovel drop")
+        quit(1)
+        return
+    var gun_muzzle := gun.get_node_or_null("Muzzle") as Node3D
+    var gun_viewmodel: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    if gun_muzzle == null or gun_viewmodel == null or gun_viewmodel.get_node_or_null("Grip") == null:
+        push_error("D06-02: missing physical Gun muzzle or camera-only hand/grip")
+        quit(1)
+        return
+    for gun_view_index in [0, 1, 2, 4]:
+        if not manager.switch_view(gun_view_index):
+            push_error("D06-02: cannot enter Gun view " + str(gun_view_index + 1))
+            quit(1)
+            return
+        for settle in range(10):
+            await process_frame
+        await RenderingServer.frame_post_draw
+        if not _save_image(output_dir.path_join("native-d06-gun-view-%d.png" % (gun_view_index + 1))):
+            quit(1)
+            return
+    manager.switch_view(3)
+    for settle in range(15):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-gun-f4-idle.png")):
+        quit(1)
+        return
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06-02: cannot start F4 Gun fire through equipment")
+        quit(1)
+        return
+    for tick in range(4):
+        await physics_frame
+    equipment_visual.call("refresh_presentation")
+    if not is_instance_valid(gun_viewmodel) or gun.get("shots_fired") != 1:
+        push_error("D06-02: Gun F4 camera visual lost its world active-phase source")
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-gun-f4-fire.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    combat.call("cancel")
+    for tick in range(20):
+        await physics_frame
+    if not gun.call("request_weapon_command", &"weapon_reload"):
+        push_error("D06-02: failed to begin ammo reload for F4 visual")
+        quit(1)
+        return
+    for tick in range(18):
+        await physics_frame
+    equipment_visual.call("refresh_presentation")
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-gun-f4-reload.png")):
+        quit(1)
+        return
+    # Near-wall F4 checks that world geometry remains readable while the
+    # rendered gun/hand and physics muzzle stay separate.
+    actor.call("clear_motion")
+    actor.global_position = Vector3(0, 0.15, -8.1)
+    actor.velocity = Vector3.ZERO
+    for settle in range(15):
+        await physics_frame
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-gun-f4-near-wall.png")):
+        quit(1)
+        return
+    if gun_muzzle.get_parent() != gun or equipment.get("current_weapon") != gun:
+        push_error("D06-02: near-wall view disowned the physical world Gun")
+        quit(1)
+        return
+    print("ACTION5_D06_GUN_NATIVE_OK world=4 f4=1 muzzle=1 reload=1")
+    equipment.call("drop_current")
+
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)
 
