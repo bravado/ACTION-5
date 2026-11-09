@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 attack_id = &"bat_swing"
+input_action = &"actor_punch"
 startup_ticks = 5
 active_ticks = 5
 recovery_ticks = 7
