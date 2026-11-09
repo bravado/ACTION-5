@@ -153,15 +153,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     await tree.process_frame
     await tree.process_frame
     verify.call(not is_instance_valid(doomed)
-        and is_instance_valid(held) and held.get_parent() == level
-        and is_instance_valid(stowed) and stowed.get_parent() == level
-        and held.equipment_owner == null and not held.is_equipped
-        and stowed.equipment_owner == null and not stowed.is_equipped
-        and held.visible and stowed.visible,
-        "Removing actor releases both weapons to the world without dangling owners")
-    held.queue_free()
-    stowed.queue_free()
-    await tree.process_frame
+        and not is_instance_valid(held) and not is_instance_valid(stowed),
+        "Removing an armed actor destroys its equipped and stowed items without orphaning them")
 
     # Real local F4 adapter and renderer: externally freeing an equipped
     # multi-mesh Bat must release the camera viewmodel/shadow registrations.
