@@ -204,8 +204,12 @@ damage a target. Gun effects must not rely on D05's melee box hit test.
   for **both** Bat and Shovel in F2/F4, captures the F4 poses and checks
   that pointer capture never leaves the arena dark.
 
-Run `make check` and `make full-e2e` (or use the latest PR
-`[full-e2e]` commit). Review native and WebGL2 screenshot/log artifacts,
+Run `make check` for import, assets and headless tests, plus
+`make run build RUN_ARGS="--headless --quit-after 20"` to check the
+native/Web exports. The release matrix (native Xvfb screenshots and real
+Playwright WebGL2 browser input) is implemented by
+`.github/workflows/godot-ci.yml`: add `[full-e2e]` to the latest PR
+commit to run it. Review native and WebGL2 screenshot/log artifacts,
 including narrow/wide viewport and near-wall images; owner signoff is
 required before the PR is moved out of draft. Issue #13 remains open
 until the tested PR merges.
