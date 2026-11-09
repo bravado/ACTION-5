@@ -32,13 +32,16 @@ in shared actor, locomotion, camera or animation classes.
   Weapons own their attack data and use `request_attack()`; no second
   action clock, damage resolver or action-name branch is created.
 - The demo maps E pickup, Q swap and G drop through its local input
-  adapter. LMB/RMB and J/K are unchanged InputMap actions, but an optional
-  `EquipmentAttackSelector` resolves them to the equipped weapon's
-  first/second action definition (one action serves both buttons).
-  When unequipped, they resolve to unarmed Punch/Kick. No raw keyboard
-  input belongs to a weapon or the reusable equipment controller.
-- `FirstPersonCombatLimbs` uses a duck-typed visibility gate to hide
-  unarmed F4 limbs while a weapon is held. The equipped F4 viewmodel
+  adapter. LMB/RMB and J/K remain existing InputMap actions; an optional
+  `EquipmentAttackSelector` resolves only **explicit bindings** from each
+  equipped `AttackDefinition.input_action`. Unassigned buttons preserve
+  original Punch/Kick, even while holding equipment; one configured
+  swing never automatically occupies both buttons. Duplicate claims on
+  the same weapon are invalid. No raw keyboard input belongs to weapons
+  or the reusable equipment controller.
+- `FirstPersonCombatLimbs` uses a duck-typed action-aware visibility
+  gate to hide replaced F4 limbs, but leave an unassigned Kick leg visible
+  while the weapon remains held. The equipped F4 viewmodel
   provides its own arm and grip pose profile; the weapon meshes are
   parented to the same animated grip as the hand. All pose progress
   comes from `CombatVisualState`, not from another action timer.
