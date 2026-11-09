@@ -50,8 +50,10 @@ in shared actor, locomotion, camera or animation classes.
   progress comes from `CombatVisualState`, not from another action timer.
   `AttackDefinition.visual_action_key` can differ from its world
   `animation_key`, with an empty value falling back to D05 behavior.
-  Bat/Shovel use distinct F4 visual keys without adding imported world
-  animation requirements or new action dispatch logic.
+  Bat/Shovel use distinct F4 visual keys AND dedicated imported world
+  clips per attack (`bat_vertical`, `bat_horizontal`, `shovel_overhead`).
+  World clips come from the rig-specific SkeletonProfile mapping, including
+  an alternate renamed rig; no attack-name branches or new action clocks.
 
 ## Consequences and D06-02 handoff
 
