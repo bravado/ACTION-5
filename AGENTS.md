@@ -204,9 +204,15 @@ An equipped F4 viewmodel must include an authored **gripping arm and
 weapon** that move together. `AttackDefinition.visual_action_key`
 optionally identifies the F4 pose independently of the world
 `animation_key`; if blank it falls back to the original D05 action key.
-Bat/Shovel configure distinct F4 keys while still using imported world
-clips. Reuse `Action5FirstPersonLimbProfile` pose
-data and `Action5FirstPersonWeaponViewmodel`; suppress the original
+Bat configures two independent attack definitions and visual keys:
+LMB/J vertical `bat_swing` and RMB/K horizontal `bat_horizontal`.
+Shovel keeps one attack on LMB/J, leaving RMB/K as Kick.
+The viewmodel may export `action_profiles` to choose alternate authored
+`Action5FirstPersonLimbProfile` poses using the visual action key,
+while reusing a single hand and Grip. The same generic visual bridge
+routes keys/progress; no weapon-specific presenter or second clock.
+All three demo actions currently reuse imported upper-body world Punch
+clips until dedicated world swings are authored. Suppress the original
 resting/unassigned fist using the optional action-aware limb-visibility
 policy while equipped; an unassigned Kick must still show its F4 leg.
 Use the optional `get_visual_action().action_id` for exact ownership
