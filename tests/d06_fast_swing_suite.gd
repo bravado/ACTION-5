@@ -21,6 +21,7 @@ func _target(parent: Node3D, label: String, position: Vector3) -> Node3D:
     hurtbox.position.y = 1.0
     host.add_child(hurtbox)
     var collider := CollisionShape3D.new()
+    collider.name = "CollisionShape3D"
     var box := BoxShape3D.new()
     box.size = Vector3(0.44, 1.15, 0.48)
     collider.shape = box
