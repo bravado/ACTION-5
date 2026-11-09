@@ -68,22 +68,32 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and equipment.inventory.size() == 1 and bat.is_equipped,
         "Pickup makes the existing physical Bat instance the equipped item")
     verify.call(bat.get_parent() == socket and bat.get_world_meshes().size() == 2
-        and combat.get_attack(&"bat_swing") != null,
-        "Bat attaches to animated right-hand socket and registers only configured attack")
+        and combat.get_attack(&"bat_swing") == bat.definition.attacks[0]
+        and combat.get_attack(&"bat_horizontal") == bat.definition.attacks[1],
+        "Bat equips one instance and registers two independent configured attacks")
     verify.call(visual._registered_meshes.size() == 2
         and fps.world_visual_shadows.size() == starting_shadows + 1
         and visual._viewmodel != null and visual._viewmodel.get_parent() == views.get_active_camera(),
         "Local multi-mesh Bat keeps one world shadow per mesh and one camera-only viewmodel")
 
-    # Attack definitions explicitly opt in to inputs. Bat takes actor_punch
-    # (LMB/J) but leaves actor_kick (RMB/K) as the normal unarmed Kick.
+    # Distinct resources claim the two physical buttons independently.
     verify.call(action_input.get("action_selection_source") == selector
+        and bat.definition.attacks.size() == 2
+        and bat.definition.valid()
         and bat.definition.attacks[0].input_action == &"actor_punch"
+        and bat.definition.attacks[1].input_action == &"actor_kick"
         and selector.call("get_attack_for_input", &"actor_punch", combat.get_attack(&"punch"))
             == combat.get_attack(&"bat_swing")
         and selector.call("get_attack_for_input", &"actor_kick", combat.get_attack(&"kick"))
-            == combat.get_attack(&"kick"),
-        "Equipped Bat claims only the configured left action; right keeps Kick")
+            == combat.get_attack(&"bat_horizontal"),
+        "Bat left maps to vertical swing; right maps to distinct horizontal strike")
+    verify.call(bat.definition.attacks[1].hitbox_size.x >
+        bat.definition.attacks[0].hitbox_size.x
+        and bat.definition.attacks[1].hitbox_size.y <
+            bat.definition.attacks[0].hitbox_size.y
+        and bat.definition.attacks[1].damage != bat.definition.attacks[0].damage
+        and bat.definition.attacks[1].visual_action_key == &"bat_horizontal",
+        "Horizontal attack has a wider, flatter contact volume and unique visual key")
     combat.cancel()
     # D05's destructive input suite may have used the same action
     # within the current physics frame. Release and drain the old edge
@@ -100,8 +110,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var pressed: bool = Input.is_action_just_pressed(&"actor_kick")
     action_input.call("_physics_process", 1.0 / 60.0)
     Input.action_release(&"actor_kick")
-    verify.call(pressed and combat._pending_id == &"kick",
-        "Right attack input falls back to Kick even while Bat is equipped")
+    verify.call(pressed and combat._pending_id == &"bat_horizontal",
+        "Right attack input requests Bat horizontal, never Kick")
     combat.cancel()
     Input.action_release(&"actor_punch")
     for tick in range(2):
@@ -127,35 +137,42 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var grip: Node3D = bat_view.get_node_or_null("Grip") as Node3D
     var gripped_arm: Node3D = bat_view.get("arm") as Node3D
     var resting_grip: Vector3 = grip.position if grip != null else Vector3.ZERO
-    bat_view.call("apply_pose", 0.48)
-    var contact_grip: Vector3 = grip.position if grip != null else Vector3.ZERO
-    verify.call(bat_view.has_method("apply_pose")
+    bat_view.call("apply_action_pose", &"bat_swing", 0.50)
+    var vertical_contact: Vector3 = grip.position
+    bat_view.call("apply_action_pose", &"bat_horizontal", 0.50)
+    var horizontal_contact: Vector3 = grip.position
+    verify.call(bat_view.has_method("apply_action_pose")
         and gripped_arm != null and grip != null
+        and gripped_arm.profile.animation_key == &"bat_horizontal"
         and grip.position.is_equal_approx(gripped_arm.get_node("Extremity").position)
-        and contact_grip.distance_to(resting_grip) > 0.3
+        and absf(horizontal_contact.x - vertical_contact.x) > 0.65
+        and horizontal_contact.x < vertical_contact.x
+        and vertical_contact.distance_to(resting_grip) > 0.3
         and not unarmed_limb.get_limb_root(&"punch").visible
         and not unarmed_limb.get_limb_root(&"kick").visible,
-        "F4 Bat has one authored gripping arm; held mesh follows hand and unarmed overlays hide")
-    visual.call("refresh_presentation")
-
-    verify.call(combat.request_attack(&"kick", Vector2.RIGHT),
-        "Unassigned secondary action still executes the D05 Kick")
-    # SceneTree.physics_frame fires before physics-process consumers.
-    # Observe the real D05 action start, not the frame in which it queued.
-    for tick in range(4):
+        "F4 horizontal strike sweeps laterally with its attached hand and weapon")
+    bat_view.call("apply_action_pose", &"", 0.0)
+    verify.call(gripped_arm.profile == bat_view.grip_profile
+        and grip.position.distance_to(resting_grip) < 0.01,
+        "F4 alternate sweep returns to the single resting hand with no second copy")
+    verify.call(combat.request_attack(&"bat_horizontal", Vector2.RIGHT),
+        "F4 right-side Bat action starts through the normal D05 timeline")
+    for tick in range(9):
         await tree.physics_frame
-        if combat.current_id == &"kick":
-            break
-    unarmed_limb.call("refresh_presentation")
-    verify.call(combat.current_id == &"kick"
-        and unarmed_limb.get_limb_root(&"kick").visible
-        and not unarmed_limb.get_limb_root(&"punch").visible
-        and visual._viewmodel != null,
-        "F4 unassigned Kick shows the real leg alongside the equipped gripping arm")
+    visual.call("refresh_presentation")
+    var horizontal_snapshot: Dictionary = actor.get_node(
+        "CombatVisualState").call("get_visual_action")
+    verify.call(horizontal_snapshot.get("key", &"") == &"bat_horizontal"
+        and horizontal_snapshot.get("action_id", &"") == &"bat_horizontal"
+        and gripped_arm.profile.animation_key == &"bat_horizontal"
+        and bat_view.pose_progress > 0.2
+        and grip.position.is_equal_approx(gripped_arm.get_node("Extremity").position),
+        "Real F4 Bat horizontal attack selects its own profile without another combat clock")
     combat.cancel()
-    unarmed_limb.call("refresh_presentation")
-    verify.call(not unarmed_limb.get_limb_root(&"kick").visible,
-        "F4 Kick limb hides again after action cancellation while equipped")
+    visual.call("refresh_presentation")
+    verify.call(gripped_arm.profile == bat_view.grip_profile
+        and is_zero_approx(bat_view.pose_progress),
+        "F4 bat horizontal action resets to the original rest profile on cancel")
     views.call("switch_view", 2)
 
     # F3 <-> F4 only changes rendering, never item identity, socket or action.
@@ -189,7 +206,17 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
                 "F4 weapon uses its own visual key while the world rig keeps an existing clip")
     verify.call(float(target.get("current_health")) ==
         float(target.get("max_health")) - 16.0 and combat.hit_count == 1,
-        "Bat configured damage/hitbox hits a nearby target once across two hurtboxes")
+        "Bat vertical swing hits the nearby target once across two hurtboxes")
+    combat.cancel()
+    target.set("current_health", target.get("max_health"))
+    target.set("invulnerability_left", 0)
+    verify.call(equipment.request_equipped_action(1, Vector2.RIGHT),
+        "Secondary Bat action can be requested independently of primary")
+    for tick in range(13):
+        await tree.physics_frame
+    verify.call(float(target.get("current_health")) ==
+        float(target.get("max_health")) - 13.0 and combat.hit_count == 1,
+        "Horizontal Bat sweep uses its own contact volume/damage and deduplicates hits")
 
     # An externally resolved hit uses the same action clock but must never
     # run a melee box query. D06-02 gun effects can consume the existing
@@ -295,6 +322,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and not bat.is_equipped and not bat.visible and shovel.is_equipped,
         "Swap moves the Shovel to the same socket and stows Bat")
     verify.call(combat.get_attack(&"bat_swing") == null
+        and combat.get_attack(&"bat_horizontal") == null
         and combat.get_attack(&"shovel_swing") != null
         and shovel.definition.attacks[0].get("damage") == 24.0,
         "Unequip unregisters Bat's attack and Shovel uses its own authored parameters")
@@ -304,7 +332,23 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         combat.get_attack(&"kick")) == combat.get_attack(&"kick")
         and visual._viewmodel != null
         and visual._viewmodel.get_node_or_null("Grip") != null,
-        "Shovel uses the same click routing and independent F4 gripping model")
+        "Shovel keeps right-click Kick while the Bat had its own horizontal attack")
+
+    # F4 still renders a default Kick for weapons without a right binding.
+    views.call("switch_view", 3)
+    verify.call(combat.request_attack(&"kick", Vector2.RIGHT),
+        "Shovel leaves the unassigned secondary input mapped to normal Kick")
+    for tick in range(4):
+        await tree.physics_frame
+        if combat.current_id == &"kick":
+            break
+    unarmed_limb.call("refresh_presentation")
+    verify.call(combat.current_id == &"kick"
+        and unarmed_limb.get_limb_root(&"kick").visible
+        and visual._viewmodel != null,
+        "Unassigned Shovel Kick retains the real first-person leg")
+    combat.cancel()
+    views.call("switch_view", 2)
 
     # Shovel must NEVER start the rig's full-body Kick animation: the
     # temporary imported upper-body Punch clip drives the world arm, while
@@ -367,7 +411,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Dropped weapon cannot still request or execute its attack")
 
     verify.call(equipment.swap_next() and equipment.current_weapon == bat
-        and equipment.drop_current() and equipment.inventory.is_empty(),
+        and combat.get_attack(&"bat_horizontal") == bat.definition.attacks[1]
+        and equipment.drop_current() and equipment.inventory.is_empty()
+        and combat.get_attack(&"bat_horizontal") == null,
         "Swap selects remaining stowed Bat after a drop; both items can be dropped")
     for tick in range(2):
         await tree.process_frame
