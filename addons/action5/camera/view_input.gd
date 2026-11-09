@@ -15,8 +15,6 @@ var manager: ViewManagerScript
 ## Capturing the pointer may generate one synthetic warp-motion event in
 ## WebGL2/desktop. Never interpret that event as player mouse look.
 var _ignore_capture_warp: bool = false
-## Temporary WebGL2 diagnostic for the first captured pointer motions.
-var _capture_motion_diagnostic_left: int = 0
 
 
 func _ready() -> void:
@@ -74,11 +72,6 @@ func _unhandled_input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion:
         if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-            if _capture_motion_diagnostic_left > 0 and OS.has_feature("web"):
-                print("ACTION5_CAPTURE_DIAG relative=", event.relative,
-                    " skipped=", int(_ignore_capture_warp),
-                    " pitch=", manager.camera_rig.orbit_pitch)
-                _capture_motion_diagnostic_left -= 1
             if _ignore_capture_warp:
                 _ignore_capture_warp = false
                 return
@@ -90,10 +83,6 @@ func _unhandled_input(event: InputEvent) -> void:
                 # browser-generated recenter motion must not rotate the
                 # camera before the following deliberate mouse movement.
                 _ignore_capture_warp = true
-                _capture_motion_diagnostic_left = 8
-                if OS.has_feature("web"):
-                    print("ACTION5_CAPTURE_DIAG capture first-person=",
-                        int(manager.current_profile.mode))
                 Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     elif event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed:
         _ignore_capture_warp = false
