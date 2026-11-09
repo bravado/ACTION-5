@@ -13,9 +13,6 @@ damage = 24.0
 hitbox_size = Vector3(1.35, 1.05, 1.2)
 hitbox_forward = 1.12
 hitbox_height = 0.92
-# Imported demo rig has no dedicated Shovel clip yet; reuse the
-# upper-body Punch overlay rather than playing the full-body Kick.
-# The camera-local Shovel viewmodel uses its own independent swing poses.
 animation_key = &"punch"
 visual_action_key = &"shovel_swing"
 animation_channel = 0
