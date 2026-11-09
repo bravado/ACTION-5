@@ -11,6 +11,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     arena.position = Vector3(90, 0, 90)
     tree.root.add_child(arena)
     await tree.process_frame
+    # This fixture supplies authoritative Run/Jump/Crouch intents directly;
+    # disable its human input adapter so a neutral global keyboard does not
+    # overwrite those commands every physics tick.
+    arena.get_node("ActorInput").call("set_enabled", false)
     for tick in range(3):
         await tree.physics_frame
     var actor: CharacterBody3D = arena.get_node("Player") as CharacterBody3D
