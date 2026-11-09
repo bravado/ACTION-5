@@ -123,12 +123,20 @@ func refresh_presentation() -> void:
     if is_instance_valid(visual_state) and visual_state.has_method("get_visual_action"):
         var state: Dictionary = visual_state.call("get_visual_action")
         for attack in _active_weapon.call("get_attack_definitions"):
-            var key: StringName = attack.get("visual_action_key")
-            if key == &"":
-                key = attack.get("animation_key")
-            if state.get("key", &"") == key:
-                progress = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
-                break
+            # The exact registered action ID takes precedence when exposed:
+            # playing an unarmed Punch with the same world clip must NOT
+            # animate the equipped weapon's grip.
+            if state.has("action_id"):
+                if state.get("action_id", &"") != attack.get("attack_id"):
+                    continue
+            else:
+                var key: StringName = attack.get("visual_action_key")
+                if key == &"":
+                    key = attack.get("animation_key")
+                if state.get("key", &"") != key:
+                    continue
+            progress = clampf(float(state.get("progress", 0.0)), 0.0, 1.0)
+            break
     _viewmodel.call("apply_pose", progress)
 
 
