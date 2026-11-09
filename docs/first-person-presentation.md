@@ -179,8 +179,12 @@ animated grip. Input selection is handled before combat by the optional
 `EquipmentAttackSelector`: equipped attacks explicitly claim each
 InputMap action through `AttackDefinition.input_action`; unassigned
 clicks/J/K keep normal Punch/Kick, without any special swing key or
-weapon-type branch. **Do not make Combat or
-FirstPersonPresenter know weapon type names.** A viewmodel is never a
+weapon-type branch. `Action5FirstPersonWeaponViewmodel` accepts optional
+`action_profiles` keyed by the visual-action key, using the same
+instantiated arm and Grip for multiple attack styles. Bat showcases
+a vertical primary and lateral secondary F4 strike; Shovel remains
+single-action. **Do not make Combat or FirstPersonPresenter know
+weapon type names.** A viewmodel is never a
 second actor and never owns damage or ammo.
 
 ## Acceptance and limitations
