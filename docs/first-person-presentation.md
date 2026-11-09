@@ -85,7 +85,9 @@ flowchart TD
   ticks remain in CombatController.
 - `CombatVisualState` is a one-way, replaceable adapter. Its public
   interface is `get_visual_action() -> Dictionary`, returning
-  `{key:StringName, progress:float}` or `{}` while idle.
+  `{key:StringName, progress:float}` and optional
+  `action_id:StringName` for unambiguous ownership-sensitive presentation,
+  or `{}` while idle.
 - `FirstPersonCombatLimbs` consumes **only the visual snapshot** and
   the existing `FirstPersonPresenter.register_first_person_visual()`
   port, not CombatController or Skeleton3D. The pose clock comes from
