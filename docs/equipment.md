@@ -43,6 +43,10 @@ are invalid.
 For F4, `FirstPersonCombatLimbs` uses an optional action-aware visibility
 policy: an equipped F4 model hides the resting fist and its own substituted
 attack limb, **but an unassigned Kick keeps its normal animated leg**.
+When an item reuses an unarmed world animation key, the optional
+`CombatVisualState.get_visual_action().action_id` distinguishes the
+actual active equipped action from normal Punch/Kick, preventing false
+limb suppression even with a shared clip.
 The weapon's own
 `Action5FirstPersonWeaponViewmodel` builds an arm from an authored
 `FirstPersonLimbProfile` and attaches its weapon mesh to the actual
