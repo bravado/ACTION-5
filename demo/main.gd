@@ -236,7 +236,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | G: drop | LMB/RMB/J/K: equipped weapon"
+    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: kick\nE: pickup | Q: swap | G: drop | Unassigned actions: Punch/Kick"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE
