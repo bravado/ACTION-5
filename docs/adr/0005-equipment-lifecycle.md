@@ -43,8 +43,11 @@ in shared actor, locomotion, camera or animation classes.
   gate to hide replaced F4 limbs, but leave an unassigned Kick leg visible
   while the weapon remains held. The equipped F4 viewmodel
   provides its own arm and grip pose profile; the weapon meshes are
-  parented to the same animated grip as the hand. All pose progress
-  comes from `CombatVisualState`, not from another action timer.
+  parented to the same animated grip as the hand. Multiple actions
+  optionally supply independent `action_profiles` in the SAME viewmodel,
+  selected by `visual_action_key`; Bat uses vertical LMB/J and horizontal
+  RMB/K while Shovel keeps Kick as its unassigned right action. All pose
+  progress comes from `CombatVisualState`, not from another action timer.
   `AttackDefinition.visual_action_key` can differ from its world
   `animation_key`, with an empty value falling back to D05 behavior.
   Bat/Shovel use distinct F4 visual keys without adding imported world
