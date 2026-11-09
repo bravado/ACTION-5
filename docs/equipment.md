@@ -1,9 +1,9 @@
 # D06 equipment authoring and implementation state
 
-**Status (2026-11-08):** D05 merged in PR #28. D06-01 Bat/Shovel and the
-equipment contract are in development on `feat/d06-01-equipment`; do
-not treat them as complete until current-head CI and native/WebGL2 evidence
-pass. D06-02 Gun and D07 Enemy AI have not been implemented.
+**Status (2026-11-09):** D05 is merged via PR #28. D06-01 Bat/Shovel
+and the generic equipment contract are under release review in PR #31.
+Native/WebGL2 visual evidence and current-head CI are release gates;
+D06-02 Gun and D07 AI remain separate future deliverables.
 
 ## Component responsibilities
 
@@ -16,7 +16,11 @@ a configured attack to `CombatController.request_attack()`.
 
 `Action5EquipmentController` (Node3D) owns a small inventory, distance
 check, equipped selection, swap/drop and generic register/unregister of
-that weapon's attacks. It asks a replaceable `get_mount(socket_id)`
+that weapon's attacks. **Equip is transactional:** new registrations
+are staged and all rejected/partial registrations rolled back before
+any prior item, signal or F4 visual is changed. Distinct carried weapons
+must have distinct `attack_id` values, preventing destructive active-ID
+replacement. It asks a replaceable `get_mount(socket_id)`
 provider for a socket. It never imports `AnimationPresenter`, reads
 camera keys/modes, or writes the actor's velocity.
 
@@ -157,6 +161,16 @@ ownership and returns it to the world for a different actor to pick up.
 Definitions never store equip state. Dropped items restore normal world
 render layers and shadows, and re-pickup uses the same original instance.
 
+**Destruction semantics:** equipped/stowed weapons have a narrowly scoped
+`tree_exiting` listener. Intentional equip/stow reparent operations are
+ignored; separately freed weapons promptly clear selection, combat IDs,
+F4 visuals and inventory references. On actor/equipment destruction,
+all still-owned items are destroyed with their owner, with no unsafe
+reparent during Godot's tree-exit notification. **Drop a weapon before
+removing its actor if the world item should survive.** NPCs use the same
+lifecycle with no first-person presenter. The controller owns no
+camera, movement, animation or weapon-type behavior.
+
 D06-02 should add a Gun instance with its own ammo, reserve, reload and
 cooldown state. Configure a D05 AttackDefinition with
 `use_melee_hit_query = false` and subscribe to the existing
@@ -168,11 +182,30 @@ damage a target. Gun effects must not rely on D05's melee box hit test.
 
 ## Verification
 
-`tests/d06_equipment_suite.gd` exercises the live world: item distance,
-pickup, equipped socket, registration, real melee hit, swap cancellation,
-drop/re-pickup, optional F4 visuals, multi-mesh shadow cleanup,
-third-weapon extensibility, left/right attack selection, single gripped
-F4 arm and a camera-free NPC mount provider. Final
-E2E acceptance additionally needs F3/F4 while running/jumping/attacking,
-real screenshots and WebGL2 interaction evidence. See issue #13 and
-ADR-0005; keep the issue open until the PR is approved and merged.
+- `tests/d06_equipment_suite.gd` covers configured Bat/Shovel/third-weapon
+  attacks, real hits, ownership, F4 profiles, static hit dedup, active
+  cancellation, shadows and NPC mounting without CameraRig.
+- `tests/d06_hardening_suite.gd` injects a rejecting registration port
+  **after** a successful staged attack, asserts atomic rollback and signal
+  stability, rejects colliding IDs, frees stowed/equipped items directly,
+  tears down actor inventories and checks real F4 model/shadow cleanup.
+- `tests/d06_fast_swing_suite.gd` uses D05's actual physics query with
+  fast actor and target crossings, grazing active-window contacts,
+  self-hit filtering and per-target hit deduplication. The physics
+  `CombatController` interpolates moving hitboxes, while `Hurtbox`
+  exposes its previous physics position to cover a target that traverses
+  the box entirely between consecutive samples. Neither reads a
+  weapon's visible mesh or camera pose.
+- `tests/d06_movement_view_suite.gd` uses an independent real demo
+  arena to test Run/Jump/Crouch, F3→F4→F5 mid-attack,
+  socket/actor identity, swap cancellation and shadow teardown.
+- `tests/capture_scene.gd` captures world clips in F1/F2/F3/F5 and
+  authored F4 actions. `ci/browser-smoke.mjs` sends real LMB/RMB/J/K
+  for **both** Bat and Shovel in F2/F4, captures the F4 poses and checks
+  that pointer capture never leaves the arena dark.
+
+Run `make check` and `make full-e2e` (or use the latest PR
+`[full-e2e]` commit). Review native and WebGL2 screenshot/log artifacts,
+including narrow/wide viewport and near-wall images; owner signoff is
+required before the PR is moved out of draft. Issue #13 remains open
+until the tested PR merges.
