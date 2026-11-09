@@ -183,6 +183,10 @@ try {
   await page.keyboard.press('3');
   await page.waitForTimeout(450);
   await page.screenshot({ path: 'build/evidence/web-d06-world-equipped.png', fullPage: true });
+  // In pointer-locked F4, do not let Playwright's cursor jump from its last
+  // F2 click position to a different F4 click position. That generates a
+  // synthetic-look delta and can pitch the camera into the empty sky.
+  await page.mouse.move(640, 360);
   await page.keyboard.press('4');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
@@ -198,7 +202,7 @@ try {
   }
   // A second right-click in F4 must remain Kick, not a weapon swing.
   const beforeF4Kick = combatStarts.length;
-  await page.mouse.click(700, 420, { button: 'right' });
+  await page.mouse.click(640, 360, { button: 'right' });
   await page.waitForTimeout(850);
   const f4KickStarts = combatStarts.slice(beforeF4Kick);
   if (f4KickStarts.length !== 1 || !f4KickStarts[0].includes('id=kick')) {
