@@ -223,21 +223,24 @@ try {
   // The first F4 attack may also capture the mouse. Synthetic warp events
   // must not pitch the camera into a black/empty world. This asserts a
   // real rendered world pixel, not just a successful combat-start log.
-  const worldAfterCapture = await page.evaluate(() => {
-    const canvas = document.querySelector('canvas');
-    const mirror = document.createElement('canvas');
-    mirror.width = canvas.width;
-    mirror.height = canvas.height;
-    const ctx = mirror.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(canvas, 0, 0);
-    const px = ctx.getImageData(
-      Math.floor(canvas.width * 0.50), Math.floor(canvas.height * 0.51), 1, 1).data;
-    return px[0] + px[1] + px[2];
-  });
-  if (worldAfterCapture < 60) {
-    errors.push('D06 F4 attack caused a dark camera view after pointer capture: ' +
-      worldAfterCapture);
+  async function requireReadableF4(label) {
+    const rgb = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas');
+      const mirror = document.createElement('canvas');
+      mirror.width = canvas.width;
+      mirror.height = canvas.height;
+      const ctx = mirror.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(canvas, 0, 0);
+      const px = ctx.getImageData(
+        Math.floor(canvas.width * 0.50), Math.floor(canvas.height * 0.51), 1, 1).data;
+      return px[0] + px[1] + px[2];
+    });
+    if (rgb < 60) {
+      errors.push('D06 F4 camera lost the visible arena after ' + label +
+        ' (center RGB sum=' + rgb + ')');
+    }
   }
+  await requireReadableF4('Bat primary pointer capture');
   await page.mouse.up({ button: 'left' });
   await page.waitForTimeout(850);
   const f4Starts = combatStarts.slice(beforeF4Attack);
@@ -251,6 +254,7 @@ try {
   await page.screenshot({
     path: 'build/evidence/web-d06-f4-bat-horizontal.png', fullPage: true,
   });
+  await requireReadableF4('Bat horizontal action');
   await page.mouse.up({ button: 'right' });
   await page.waitForTimeout(850);
   const f4HorizontalStarts = combatStarts.slice(beforeF4Horizontal);
@@ -300,6 +304,7 @@ try {
   await page.screenshot({
     path: 'build/evidence/web-d06-f4-shovel-overhead.png', fullPage: true,
   });
+  await requireReadableF4('Shovel overhead action');
   await page.mouse.up({ button: 'left' });
   await page.waitForTimeout(730);
   const shovelF4Starts = combatStarts.slice(beforeShovelF4);
@@ -314,6 +319,7 @@ try {
   await page.screenshot({
     path: 'build/evidence/web-d06-f4-shovel-kick.png', fullPage: true,
   });
+  await requireReadableF4('Shovel unassigned Kick');
   await page.mouse.up({ button: 'right' });
   await page.waitForTimeout(750);
   if (combatStarts.slice(beforeF4Kick).length !== 1 ||
@@ -348,6 +354,7 @@ try {
   await page.keyboard.press('g');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-dropped.png', fullPage: true });
+  await requireReadableF4('dropping both weapons');
   const changedD06 = await page.evaluate(() => {
     const gameCanvas = document.querySelector('canvas');
     const state = window.__d06Visual;
