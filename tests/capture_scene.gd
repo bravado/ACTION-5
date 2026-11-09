@@ -409,6 +409,39 @@ func _capture() -> void:
     manager.switch_view(3)
     for frame in range(10):
         await process_frame
+
+    # Real equipped F4 near-wall evidence; the gripping hand/weapon must
+    # stay in frame while the player is against the actual NorthWall.
+    actor.global_position = Vector3(0, 0.15, -8.1)
+    for settle in range(12):
+        await physics_frame
+    for settle in range(8):
+        await process_frame
+    var near_model: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var near_grip: Node3D = (
+        near_model.get_node_or_null("Grip") as Node3D if near_model != null else null
+    )
+    var near_eye: Camera3D = manager.get_active_camera()
+    var near_screen: Vector2 = (
+        near_eye.unproject_position(near_grip.global_position)
+        if near_grip != null else Vector2(-1, -1)
+    )
+    var viewport_size: Vector2 = near_eye.get_viewport().get_visible_rect().size
+    if near_grip == null or near_eye.is_position_behind(near_grip.global_position) \
+            or near_screen.x < 0.0 or near_screen.x > viewport_size.x \
+            or near_screen.y < 0.0 or near_screen.y > viewport_size.y:
+        push_error("D06: equipped F4 grip clipped outside viewport near solid wall")
+        quit(1)
+        return
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-near-wall.png")):
+        quit(1)
+        return
+    actor.global_position = Vector3(0, 0.15, 0)
+    for settle in range(12):
+        await physics_frame
+    for frame in range(10):
+        await process_frame
     await RenderingServer.frame_post_draw
     var armed_f4: Image = root.get_texture().get_image()
     if not _save_image(output_dir.path_join("native-d06-bat-f4.png")):
