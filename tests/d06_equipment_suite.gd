@@ -438,6 +438,38 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for tick in range(2):
         await tree.process_frame
 
+    # Two independently configured attacks may each claim one existing
+    # input, without creating a weapon-type branch or reusing list indices.
+    var dual_left: AttackScript = AttackScript.new()
+    dual_left.attack_id = &"test_dual_left"
+    dual_left.input_action = &"actor_punch"
+    var dual_right: AttackScript = AttackScript.new()
+    dual_right.attack_id = &"test_dual_right"
+    dual_right.input_action = &"actor_kick"
+    var dual_definition: DefinitionScript = DefinitionScript.new()
+    dual_definition.weapon_id = &"test_dual_binding"
+    dual_definition.attacks = [dual_left, dual_right]
+    var dual_weapon: WeaponScript = WeaponScript.new()
+    dual_weapon.name = "IndependentDualBinding"
+    dual_weapon.definition = dual_definition
+    level.add_child(dual_weapon)
+    dual_weapon.global_position = actor.global_position + Vector3(0.3, 0.4, 0.2)
+    verify.call(equipment.pickup(dual_weapon) and dual_definition.valid()
+        and combat.get_attack(&"test_dual_left") == dual_left
+        and combat.get_attack(&"test_dual_right") == dual_right
+        and selector.call("get_attack_for_input", &"actor_punch",
+            combat.get_attack(&"punch")) == dual_left
+        and selector.call("get_attack_for_input", &"actor_kick",
+            combat.get_attack(&"kick")) == dual_right,
+        "Two explicitly bound equipment actions independently replace Punch and Kick")
+    verify.call(equipment.drop_current()
+        and combat.get_attack(&"test_dual_left") == null
+        and combat.get_attack(&"test_dual_right") == null,
+        "Removing dual-action equipment unregisters both assigned actions")
+    dual_weapon.queue_free()
+    for tick in range(2):
+        await tree.process_frame
+
     # D07 NPC reuses the same EquipmentController without a first-person
     # renderer. The mount is a tiny duck-typed provider; no CameraRig.
     var npc := CharacterBody3D.new()
