@@ -15,6 +15,10 @@ var manager: ViewManagerScript
 ## Capturing the pointer may generate one synthetic warp-motion event in
 ## WebGL2/desktop. Never interpret that event as player mouse look.
 var _ignore_capture_warp: bool = false
+## Pointer-lock changes can emit several synthetic browser recenter events,
+## not just one. Ignore initial motion briefly and reject large warp spikes
+## during the capture transition, without affecting normal mouse look.
+var _capture_started_ms: int = -1
 
 
 func _ready() -> void:
@@ -75,6 +79,14 @@ func _unhandled_input(event: InputEvent) -> void:
             if _ignore_capture_warp:
                 _ignore_capture_warp = false
                 return
+            if _capture_started_ms >= 0:
+                var elapsed_ms: int = Time.get_ticks_msec() - _capture_started_ms
+                if elapsed_ms < 180 or (
+                    elapsed_ms < 650 and event.relative.length_squared() > 1024.0
+                ):
+                    return
+                if elapsed_ms >= 650:
+                    _capture_started_ms = -1
             manager.camera_rig.apply_mouse_motion(event.relative)
     elif event is InputEventMouseButton and event.pressed:
         if event.button_index == MOUSE_BUTTON_LEFT and manager.current_profile.is_orbit_mode():
@@ -83,9 +95,11 @@ func _unhandled_input(event: InputEvent) -> void:
                 # browser-generated recenter motion must not rotate the
                 # camera before the following deliberate mouse movement.
                 _ignore_capture_warp = true
+                _capture_started_ms = Time.get_ticks_msec()
                 Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     elif event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed:
         _ignore_capture_warp = false
+        _capture_started_ms = -1
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
