@@ -7,6 +7,7 @@ const DefinitionScript = preload("res://addons/action5/equipment/weapon_definiti
 const EquipmentScript = preload("res://addons/action5/equipment/equipment_controller.gd")
 const VisualScript = preload("res://addons/action5/equipment/equipment_visual_adapter.gd")
 const CombatScript = preload("res://addons/action5/combat/combat_controller.gd")
+const AnimationBridgeScript = preload("res://addons/action5/animation/combat_animation_adapter.gd")
 const AttackScript = preload("res://addons/action5/combat/attack_definition.gd")
 const MountScript = preload("res://tests/fixtures/equipment_mount_source.gd")
 
@@ -312,6 +313,15 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and int(shovel.definition.attacks[0].animation_channel) == 0
         and shovel.definition.attacks[0].visual_action_key == &"shovel_swing",
         "Shovel binds a world upper-body swing and an independent F4 swing")
+    # D05's lifecycle suite intentionally removes the optional animation
+    # bridge. Reattach it only while verifying real world animation output.
+    # Production Player.tscn already includes this component.
+    var world_animation_bridge: Node = actor.get_node_or_null("CombatAnimationAdapter")
+    var temporary_animation_bridge: bool = world_animation_bridge == null
+    if temporary_animation_bridge:
+        world_animation_bridge = AnimationBridgeScript.new()
+        world_animation_bridge.name = "D06TemporaryAnimationBridge"
+        actor.add_child(world_animation_bridge)
     verify.call(equipment.request_equipped_action(0, Vector2.RIGHT),
         "Equipped Shovel requests its registered attack")
     for tick in range(4):
@@ -320,19 +330,18 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             break
     var shovel_snapshot: Dictionary = actor.get_node(
         "CombatVisualState").call("get_visual_action")
-    print("ACTION5_SHOVEL_WORLD_DIAG active=", combat.current_id,
-        " upper=", animation.get("upper_body_clip"),
-        " full=", animation.get("action_clip"),
-        " visual=", shovel_snapshot.get("key", &""),
-        " adapter_channel=", actor.get_node("CombatAnimationAdapter").get("_active_channel"))
     verify.call(combat.current_id == &"shovel_swing"
         and animation.get("upper_body_clip") == &"punch"
         and animation.get("action_clip") == &""
+        and world_animation_bridge.get("_active_channel") == 0
         and shovel_snapshot.get("key", &"") == &"shovel_swing",
         "Shovel uses upper-body Punch world clip, not full-body Kick, without losing F4 motion")
     combat.cancel()
     verify.call(animation.get("upper_body_clip") == &"",
         "Cancelling Shovel clears its upper-body overlay without affecting locomotion")
+    if temporary_animation_bridge:
+        world_animation_bridge.queue_free()
+        await tree.process_frame
 
     verify.call(equipment.request_equipped_action(0, Vector2.RIGHT)
         and equipment.swap_next() and combat.get_attack(&"shovel_swing") == null
