@@ -149,10 +149,15 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         [&"d06_initial_fail"], rejecting_actor.global_position + Vector3(0.3, 0, 0))
     var rejected_pickups: Array[Node3D] = []
     var rejected_equips: Array[Node3D] = []
+    var signal_order: Array[String] = []
     rejecting_equipment.weapon_picked_up.connect(
-        func(w: Node3D) -> void: rejected_pickups.append(w))
+        func(w: Node3D) -> void:
+            rejected_pickups.append(w)
+            signal_order.append("pickup"))
     rejecting_equipment.weapon_equipped.connect(
-        func(w: Node3D) -> void: rejected_equips.append(w))
+        func(w: Node3D) -> void:
+            rejected_equips.append(w)
+            signal_order.append("equip"))
     rejecting_port.set("reject_id", &"d06_initial_fail")
     verify.call(not rejecting_equipment.pickup(rejected_item)
         and rejected_pickups.is_empty() and rejected_equips.is_empty()
@@ -165,8 +170,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     rejecting_port.set("reject_id", &"")
     verify.call(rejecting_equipment.pickup(rejected_item)
         and rejected_pickups.size() == 1 and rejected_equips.size() == 1
+        and signal_order == ["pickup", "equip"]
         and rejecting_equipment.current_weapon == rejected_item,
-        "Successful retry emits exactly one committed pickup and equip")
+        "Successful retry emits one committed pickup then equip, in original order")
     rejecting_actor.queue_free()
     await tree.process_frame
     await tree.process_frame
