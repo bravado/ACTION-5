@@ -58,6 +58,10 @@ func _on_equipped(weapon: Node3D) -> void:
     if not bool(first_person.call("register_first_person_visual", candidate)):
         candidate.queue_free()
         return
+    # Optional, visual-only owner port. Gameplay and muzzle authority never
+    # move to the F4 model. Existing melee viewmodels need no changes.
+    if candidate.has_method("set_visual_source"):
+        candidate.call("set_visual_source", weapon)
     _viewmodel = candidate
     for world_mesh in weapon.call("get_world_meshes"):
         var mesh := world_mesh as MeshInstance3D
