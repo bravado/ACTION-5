@@ -45,7 +45,13 @@ camera-local sequence independently of `animation_key` (which still
 selects the existing world skeleton clip). Bat and Shovel use unique
 visual keys while D05 Punch/Kick keep their original defaults.
 These poses are visual only: the socket-mounted world weapon stays
-authoritative for shadow rendering and physics.
+authoritative for shadow rendering and physics. **Optional F4 fallback:**
+when `first_person_scene` is missing or unusable, the adapter leaves the
+world weapon meshes on their normal visible layers and retains the default
+F4 hand instead of hiding everything. This is an intentionally basic visual
+fallback; author a proper gripped F4 scene for production-quality framing.
+Only after a usable F4 viewmodel registers successfully are the real world
+meshes locally culled and replaced by camera-space visuals.
 
 NPCs omit FirstPersonPresenter and can use an alternative tiny
 `get_mount()` provider. They keep regular world meshes and shadows.
@@ -92,7 +98,11 @@ complex inventory system). Drop restores the same Node3D to the world.
 
 ## Lifecycle and D06-02 constraints
 
-Unequipping a weapon cancels and unregisters that weapon's D05 attack IDs.
+Unequipping a weapon unregisters its D05 attack IDs and cancels only matching
+active/buffered actions; unrelated active and pending actions keep their own
+timelines. Stowed and equipped instances have exactly one `equipment_owner`,
+so another actor cannot claim a still-owned item. A successful drop releases
+ownership and returns it to the world for a different actor to pick up.
 Definitions never store equip state. Dropped items restore normal world
 render layers and shadows, and re-pickup uses the same original instance.
 
