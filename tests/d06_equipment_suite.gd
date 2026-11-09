@@ -506,9 +506,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         if combat.current_id == &"punch":
             break
     unarmed_limb.call("refresh_presentation")
+    visual.call("refresh_presentation")
     verify.call(combat.current_id == &"punch"
-        and unarmed_limb.get_limb_root(&"punch").visible,
-        "F4 unassigned Punch remains visible despite shared equipment visual key")
+        and unarmed_limb.get_limb_root(&"punch").visible
+        and is_zero_approx(float(visual._viewmodel.get("pose_progress"))),
+        "F4 unassigned Punch remains visible and weapon grip stays idle despite shared key")
     combat.cancel()
     verify.call(combat.request_attack(&"test_right_alias", Vector2.RIGHT),
         "Right-only equipped action can start with a shared visual clip")
@@ -517,9 +519,11 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         if combat.current_id == &"test_right_alias":
             break
     unarmed_limb.call("refresh_presentation")
+    visual.call("refresh_presentation")
     verify.call(combat.current_id == &"test_right_alias"
-        and not unarmed_limb.get_limb_root(&"punch").visible,
-        "Equipped action hides bare fist even when it shares the Punch clip")
+        and not unarmed_limb.get_limb_root(&"punch").visible
+        and float(visual._viewmodel.get("pose_progress")) > 0.0,
+        "Equipped action hides bare fist and animates grip despite shared Punch clip")
     combat.cancel()
     views.call("switch_view", 2)
     verify.call(equipment.drop_current(), "Shared-clip weapon drops cleanly")
