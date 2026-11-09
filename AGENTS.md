@@ -297,5 +297,6 @@ a generic set_visual_source() handoff from EquipmentVisualAdapter for its
 render-only reload pose. A second gun config must need no shared core edits.
 An equipped shot blocked by geometry still spends one round; cancelled
 startup/empty magazine does not. Stowing cancels reload, preserves ammo.
-Keep issue #14 open until pinned Godot tests and native/WebGL2/full visual
-acceptance pass. Consult docs/equipment.md for authoring and boundaries.
+Pinned Godot 4.7.2 checks and native/WebGL2 Full E2E passed on
+2026-11-09 ([run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885), 941 assertions, 0 failures).
+Keep issue #14 open until the owner's five-view visual acceptance passes. Consult docs/equipment.md for authoring and boundaries.

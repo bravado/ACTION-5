@@ -6,7 +6,7 @@ Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
 D06-02 Gun and D07 AI remain separate future deliverables.
 
-## D06-02 development branch: hitscan gun (NOT YET VERIFIED)
+## D06-02 development branch: hitscan gun (automated validation passed; manual visuals pending)
 
 D06-02 uses the accepted D06-01 equipment and D05 action clocks. The demo
 adds a Pistol pickup, magazine/reserve display, R reload, physical WorldRecoil
@@ -78,13 +78,11 @@ using real WASD/E, and captures its F4 idle, J fire and R reload. These
 are automated rendering smoke artifacts, **not** subjective manual
 inspection of grip, aim alignment and obstruction.
 
+**Automated acceptance (2026-11-09):** [CI #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885) passed **941 Godot assertions (0 failures)** and Linux/native + WebGL2 Full E2E, including all native Gun screenshots, browser E pickup / J attack / R reload screenshot captures, existing D05/D06-01 regressions and negative-runner self-test. Manual owner review of F1–F5 physical/visual gun alignment, F4 grip and reload, near-wall obstruction and F5 directional aim is still required before this draft becomes merge-ready.
+
 **Testing and handoff:** tests/d06_gun_suite.gd is registered with
 tests/run_all.gd and covers shots, body exclusions, obstruction, reload
-across views, alternate gun scene and cleanup. Run `make check`, native
-and WebGL2 Full E2E, and perform real visual inspection before marking
-issue #14 complete. Initial repository edit was made through GitHub;
-local Godot import, native and WebGL2 smoke are NOT VERIFIED at this stage.
-No release approval or issue closure is implied.
+across views, alternate gun scene and cleanup. Automated import/tests, native screenshots and WebGL2 Full E2E passed on the cited branch head. Perform real manual visual inspection before marking issue #14 complete. No release approval or issue closure is implied.
 
 ---
 
