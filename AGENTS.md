@@ -207,6 +207,15 @@ unarmed fist using the optional limb-visibility policy while equipped.
 Do not rotate a floating entire tool independently or use skinned
 world-bone positions to place the local hand.
 
+Stowed and equipped weapon instances retain exclusive equipment ownership:
+another actor cannot claim a stowed world-group node. A successful drop
+releases it. Unregister only the matching active/buffered attack; never
+cancel an unrelated action just because an equipped attack was queued.
+If a weapon lacks a usable F4 viewmodel, keep its actual world meshes and
+the default F4 hand visible; only cull world meshes after a valid visual
+replacement is installed. Prove all three invariants with two-actor and
+mid-action regression tests, not weapon-ID branches.
+
 Test Bat, Shovel and a third fixture with different attack data, all five
 views, F3/F4 mid action, click routing, return to unarmed on drop,
 gripped F4 weapon contact pose, teardown/shadows and an NPC without
