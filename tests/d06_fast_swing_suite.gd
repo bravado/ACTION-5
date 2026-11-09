@@ -129,6 +129,31 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and combat.hit_count == 1,
         "VT-08 grazing volume makes one edge contact only in active phase")
     combat.cancel()
+
+    # The continuous fallback is still a normal masked physics hit: do not
+    # allow a fast trajectory to bypass the collision-layer opt-out.
+    var receiver: HurtboxScript = target.get_node("Hurtbox") as HurtboxScript
+    target_health.current_health = target_health.max_health
+    receiver.collision_layer = 4  # D05 hit mask is layer 2 only.
+    target.global_position = Vector3(45.4, 0, 47)
+    for tick in range(3):
+        await tree.physics_frame
+    verify.call(await _start_active(tree, combat, attack.attack_id),
+        "VT-08 begins receiver-layer filtering at the actual active window")
+    target.global_position.x = 50.6
+    for tick in range(2):
+        await tree.physics_frame
+    verify.call(target_health.current_health == target_health.max_health
+        and combat.hit_count == 0,
+        "VT-08 moving receiver on excluded collision layer cannot be hit")
+    combat.cancel()
+    receiver.collision_layer = 2
+    var collider: CollisionShape3D = receiver.get_node("CollisionShape3D")
+    collider.disabled = true
+    verify.call(not receiver.has_active_shape(),
+        "VT-08 continuous receiver motion rejects disabled physics shapes")
+    collider.disabled = false
+
     fighter.queue_free()
     target.queue_free()
     await tree.process_frame
