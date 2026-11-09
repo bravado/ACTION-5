@@ -18,3 +18,11 @@ procedural two-mesh third-weapon fixture.
 All scene, script and configuration sources are part of ACTION-5 and licensed under the repository MIT LICENSE.
 
 When adding third-party material in later deliverables, record its exact filename, author, source URL, license (including any attribution requirements), and whether redistribution is permitted **before** committing it.
+
+
+## D06-02 procedural gun models (2026-11-09)
+
+The two gun fixtures and their first-person versions are Godot procedural
+BoxMesh geometry, custom animation pose resources and project-authored
+GDScript. They contain no third-party mesh, texture, audio or reference
+asset; they are distributed under ACTION-5's repository license.
