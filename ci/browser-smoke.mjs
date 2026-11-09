@@ -27,6 +27,7 @@ try {
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
     if (line.includes('ACTION5_WEAPON_')) weaponEvents.push(line);
+    if (line.includes('ACTION5_POINTER_DIAG')) console.log(line);
     if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
