@@ -9,6 +9,9 @@ clip_map = {
 "walk": "walk",
 "run": "run",
 "punch": "punch",
+"bat_vertical": "bat_vertical",
+"bat_horizontal": "bat_horizontal",
+"shovel_overhead": "shovel_overhead",
 "kick": "kick",
 "hit": "hit",
 "death": "death",
@@ -16,4 +19,4 @@ clip_map = {
 "crouch": "crouch",
 "crouch_walk": "crouch_walk"
 }
-required_clips = PackedStringArray("idle", "run", "punch", "kick", "hit", "death")
+required_clips = PackedStringArray("idle", "run", "punch", "kick", "hit", "death", "bat_vertical", "bat_horizontal", "shovel_overhead")
