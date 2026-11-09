@@ -63,7 +63,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     target.global_position = Vector3(initial_muzzle.x, initial_muzzle.y - 0.8, initial_muzzle.z - 4.0)
     health.set("current_health", 100.0)
+    print("D06_GUN_TRACE before muzzle=", muzzle.global_position,
+        " target=", target.global_position, " hurtbox=",
+        (target.get_node("Hurtbox") as Area3D).global_position,
+        " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, Array[RID]()))
     var old_hp: float = health.get("current_health")
+    gun.fired.connect(func(point: Vector3, landed: bool) -> void:
+        print("D06_GUN_FIRED impact=", point, " landed=", landed,
+            " muzzle=", muzzle.global_position, " target=",
+            (target.get_node("Hurtbox") as Area3D).global_position))
     var ammo_before: int = gun.magazine
     var requested: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(requested and gun.shots_fired == 1 and gun.magazine == ammo_before - 1
@@ -108,6 +116,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var camera_excludes: Array[RID] = [actor.get_rid()]
     var camera_target: Vector3 = aim.call("get_world_target",
         muzzle.global_position, 60.0, camera_excludes)
+    print("D06_F4_TARGET computed=", camera_target, " target=",
+        target.global_position + Vector3(0, 0.8, 0), " camera=", camera.global_position)
     verify.call(camera_target.distance_to(target.global_position + Vector3(0, 0.8, 0)) < 1.1,
         "F4 resolves the camera-visible target independently of weapon muzzle")
     old_hp = health.get("current_health")
