@@ -95,10 +95,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var crouch: MoveIntentScript = MoveIntentScript.new()
     crouch.request_move(&"crouch")
     actor.call("apply_move_intent", crouch)
-    for tick in range(3):
-        await tree.physics_frame
+    # Crouch is a toggle request. Deliver exactly one physics tick before
+    # the neutral follow-up; repeating the same requested_moves across
+    # several ticks would legitimately toggle the actor back to standing.
+    await tree.physics_frame
     actor.call("apply_move_intent", MoveIntentScript.new())
-    for tick in range(2):
+    for tick in range(4):
         await tree.physics_frame
     verify.call(controller.get("active_id") == &"crouch"
         and equipment.get("current_weapon") == bat and bat.get_parent() == socket,
