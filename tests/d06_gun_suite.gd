@@ -15,7 +15,9 @@ func _ticks(tree: SceneTree, count: int) -> void:
 
 func _fire(tree: SceneTree, combat: Node, id: StringName, heading: Vector2) -> bool:
     var requested: bool = combat.call("request_attack", id, heading)
-    await _ticks(tree, 3)
+    # SceneTree.physics_frame is emitted before node _physics_process.
+    # Include the active transition, not just the startup frame boundary.
+    await _ticks(tree, 4)
     return requested
 
 
