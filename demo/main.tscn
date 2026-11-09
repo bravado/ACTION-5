@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -11,6 +11,9 @@
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
 [ext_resource type="PackedScene" path="res://demo/equipment/bat.tscn" id="10_bat"]
 [ext_resource type="PackedScene" path="res://demo/equipment/shovel.tscn" id="11_shovel"]
+
+[ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
+[ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -163,6 +166,9 @@ position = Vector3(1.4, 0.45, 1.0)
 [node name="ShovelPickup" parent="." instance=ExtResource("11_shovel")]
 position = Vector3(-1.4, 0.45, 1.0)
 
+[node name="GunPickup" parent="." instance=ExtResource("12_gun")]
+position = Vector3(0.75, 0.45, 1.65)
+
 [node name="NearDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(2.1, 0.0, -2.0)
 
@@ -190,6 +196,9 @@ script = ExtResource("7_actor_input")
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9_combat_input")
 action_selection_path = NodePath("../Player/EquipmentAttackSelector")
+
+[node name="WeaponCommandInput" type="Node" parent="."]
+script = ExtResource("13_weapon_command")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, 24, 0)

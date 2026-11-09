@@ -160,6 +160,9 @@ func _physics_process(_delta: float) -> void:
     var active: bool = _combat.get("current_attack") != null
     if (active or _combat_was_active) and _views.current_profile != null:
         _refresh_status(_views.current_profile)
+    var held: Node = _equipment.get("current_weapon") as Node
+    if is_instance_valid(held) and held.has_method("get_ammo_status")             and _views.current_profile != null:
+        _refresh_status(_views.current_profile)
     _combat_was_active = active
 
 
@@ -188,6 +191,11 @@ func _refresh_status(profile: ViewProfileScript) -> void:
     if held != null:
         var item_definition: Resource = held.get("definition")
         next_text += " | Weapon " + str(item_definition.get("display_name"))
+        if held.has_method("get_ammo_status"):
+            var ammo: Dictionary = held.call("get_ammo_status")
+            next_text += " | Ammo %d/%d" % [ammo["magazine"], ammo["reserve"]]
+            if ammo["reloading"]:
+                next_text += " | Reload %d" % ammo["reload_left"]
     if _status.text != next_text:
         _status.text = next_text
 
@@ -236,7 +244,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup | Q: swap | G: drop | Unassigned actions: Punch/Kick"
+    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup | Q: swap | G: drop | R: gun reload | Unassigned actions: Punch/Kick"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE
