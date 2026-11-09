@@ -1,6 +1,6 @@
 # ADR-0005 — One weapon instance with independent equipment and presentation
 
-Status: Proposed — D06-01 in progress.
+Status: Proposed — D06-01 release hardening (2026-11-09).
 
 ## Context
 
@@ -19,7 +19,11 @@ in shared actor, locomotion, camera or animation classes.
 - `Action5EquipmentController` owns slots, pickup radius, selection,
   mount lifecycle and attack registration only. It resolves a duck-typed
   `get_mount(socket_id)` provider; never loads a model or examines a
-  Camera3D, view enum, render layer or weapon type.
+  Camera3D, view enum, render layer or weapon type. Before replacing a
+  selected item it stages **all** of the candidate's unique attack IDs,
+  rolling back partial registration failure without changing the old
+  item, signals, clock or viewmodel. No two carried weapons may claim
+  the same ID; this is rejected before a destructive swap.
 - `Action5EquipmentVisualAdapter` optionally maps the mount port onto
   `AnimationPresenter.get_socket()`, registers/unregisters each world mesh
   through `FirstPersonPresenter` and adds one camera-local render-only
@@ -54,6 +58,19 @@ in shared actor, locomotion, camera or animation classes.
   clips per attack (`bat_vertical`, `bat_horizontal`, `shovel_overhead`).
   World clips come from the rig-specific SkeletonProfile mapping, including
   an alternate renamed rig; no attack-name branches or new action clocks.
+
+- Intentional item reparenting cannot be confused with destruction:
+  explicit `tree_exiting` subscriptions observe independently freed
+  equipped/stowed items; the owner removes combat registrations and
+  camera visuals while the item's data still exists. Actor teardown
+  destroys carried equipment with the actor. A world item survives
+  only when explicitly dropped first; no synchronous reparenting during
+  Godot tree exit is allowed.
+- VT-08 collision remains in the camera-independent D05 physics layer:
+  swept actor hitbox samples plus receiver motion history prevent fast
+  one-tick crossings from tunneling. Damage and dedup use the same
+  `Health` and `CombatController` clock; the world socket and F4 grip
+  are presentation, never hit authority.
 
 ## Consequences and D06-02 handoff
 
