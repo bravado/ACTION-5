@@ -1,0 +1,33 @@
+[gd_scene load_steps=7 format=3]
+[ext_resource type="Script" path="res://addons/action5/equipment/gun.gd" id="1"]
+[ext_resource type="Resource" path="res://demo/equipment/gun.tres" id="2"]
+[ext_resource type="Script" path="res://addons/action5/animation/gun_world_recoil.gd" id="3"]
+[sub_resource type="BoxMesh" id="body"]
+size = Vector3(0.13, 0.18, 0.48)
+[sub_resource type="BoxMesh" id="grip"]
+size = Vector3(0.12, 0.24, 0.13)
+[sub_resource type="StandardMaterial3D" id="steel"]
+albedo_color = Color(0.17, 0.19, 0.22, 1)
+roughness = 0.42
+metallic = 0.48
+[node name="Gun" type="Node3D" groups=["action5_weapon_pickup"]]
+script = ExtResource("1")
+definition = ExtResource("2")
+fire_attack_id = &"gun_fire"
+magazine_size = 8
+starting_reserve = 32
+reload_ticks = 90
+reload_action = &"weapon_reload"
+reload_key = 82
+[node name="Muzzle" type="Marker3D" parent="."]
+position = Vector3(0, 0.08, -0.54)
+[node name="WorldRecoil" type="Node3D" parent="."]
+script = ExtResource("3")
+[node name="Barrel" type="MeshInstance3D" parent="WorldRecoil"]
+position = Vector3(0, 0.05, -0.27)
+mesh = SubResource("body")
+material_override = SubResource("steel")
+[node name="Handle" type="MeshInstance3D" parent="WorldRecoil"]
+position = Vector3(0, -0.14, -0.12)
+mesh = SubResource("grip")
+material_override = SubResource("steel")

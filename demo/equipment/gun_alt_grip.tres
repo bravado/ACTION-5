@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Action5FirstPersonLimbProfile" load_steps=6 format=3]
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_limb_profile.gd" id="1"]
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_pose_key.gd" id="2"]
+[sub_resource type="Resource" id="Rest"]
+script = ExtResource("2")
+time = 0.0
+shoulder = Vector3(1.05, -1.02, -0.43)
+joint = Vector3(0.66, -0.72, -0.73)
+extremity = Vector3(0.38, -0.49, -0.98)
+extremity_rotation = Vector3(0.11, 0.02, -0.08)
+[sub_resource type="Resource" id="Fire"]
+script = ExtResource("2")
+time = 0.20
+shoulder = Vector3(1.05, -1.02, -0.43)
+joint = Vector3(0.76, -0.68, -0.66)
+extremity = Vector3(0.43, -0.40, -0.80)
+extremity_rotation = Vector3(0.72, 0.04, -0.18)
+[sub_resource type="Resource" id="Recover"]
+script = ExtResource("2")
+time = 0.65
+shoulder = Vector3(1.05, -1.02, -0.43)
+joint = Vector3(0.69, -0.72, -0.78)
+extremity = Vector3(0.39, -0.47, -0.94)
+extremity_rotation = Vector3(0.17, 0.03, -0.10)
+[sub_resource type="Resource" id="End"]
+script = ExtResource("2")
+time = 1.0
+shoulder = Vector3(1.05, -1.02, -0.43)
+joint = Vector3(0.66, -0.72, -0.73)
+extremity = Vector3(0.38, -0.49, -0.98)
+extremity_rotation = Vector3(0.11, 0.02, -0.08)
+[resource]
+script = ExtResource("1")
+animation_key = &"gun_alt_fire"
+visible_at_rest = true
+poses = Array[Resource]([SubResource("Rest"), SubResource("Fire"), SubResource("Recover"), SubResource("End")])
+upper_radius = 0.065
+lower_radius = 0.055
+limb_color = Color(0.11, 0.66, 0.76, 1)
+extremity_color = Color(0.82, 0.52, 0.31, 1)
+extremity_size = Vector3(0.14, 0.105, 0.13)

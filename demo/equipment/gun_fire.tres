@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Action5AttackDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://addons/action5/combat/attack_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+attack_id = &"gun_fire"
+input_action = &"actor_punch"
+startup_ticks = 2
+active_ticks = 1
+recovery_ticks = 11
+damage = 18
+use_melee_hit_query = false
+visual_action_key = &"gun_fire"
+animation_channel = 0
+facing_sectors = 0
+knockback_speed = 2.0
+knockback_ticks = 4
+stagger_ticks = 2
