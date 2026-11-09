@@ -46,7 +46,6 @@ func pickup(weapon: WeaponScript) -> bool:
     _watch_weapon(weapon)
     _move_weapon(weapon, self)
     weapon.visible = false
-    weapon_picked_up.emit(weapon)
     if current_weapon == null and not equip(weapon):
         inventory.erase(weapon)
         _forget_weapon(weapon)
@@ -54,6 +53,10 @@ func pickup(weapon: WeaponScript) -> bool:
         weapon.visible = true
         weapon.equipment_owner = null
         return false
+    # Publish a pickup only after the entire operation commits. In
+    # particular, a rejected first auto-equip must not leave HUD/AI
+    # observers with a phantom pickup that was rolled back.
+    weapon_picked_up.emit(weapon)
     return true
 
 
