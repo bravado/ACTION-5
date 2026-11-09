@@ -46,7 +46,8 @@ func pickup(weapon: WeaponScript) -> bool:
     _watch_weapon(weapon)
     _move_weapon(weapon, self)
     weapon.visible = false
-    if current_weapon == null and not equip(weapon):
+    var auto_equipped: bool = current_weapon == null
+    if auto_equipped and not _equip_weapon(weapon, false):
         inventory.erase(weapon)
         _forget_weapon(weapon)
         _move_weapon(weapon, origin)
@@ -57,10 +58,18 @@ func pickup(weapon: WeaponScript) -> bool:
     # particular, a rejected first auto-equip must not leave HUD/AI
     # observers with a phantom pickup that was rolled back.
     weapon_picked_up.emit(weapon)
+    # Preserve the original successful pickup -> equip signal ordering
+    # without publishing either event if the auto-equip had to roll back.
+    if auto_equipped:
+        weapon_equipped.emit(weapon)
     return true
 
 
 func equip(weapon: WeaponScript) -> bool:
+    return _equip_weapon(weapon, true)
+
+
+func _equip_weapon(weapon: WeaponScript, notify: bool) -> bool:
     if not is_instance_valid(weapon) or weapon.is_queued_for_deletion() \
             or not inventory.has(weapon) or weapon.equipment_owner != self:
         return false
@@ -88,7 +97,8 @@ func equip(weapon: WeaponScript) -> bool:
     weapon.visible = true
     weapon.is_equipped = true
     current_weapon = weapon
-    weapon_equipped.emit(weapon)
+    if notify:
+        weapon_equipped.emit(weapon)
     return true
 
 
