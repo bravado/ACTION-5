@@ -27,6 +27,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     if scene == null:
         return
     var level := scene.instantiate() as Node3D
+    # The legacy D06 arena is still live in tests/run_all.gd. Keep this
+    # second authoritative actor and its physics world far from that fixture;
+    # overlapping CharacterBody3D capsules otherwise push one actor upward
+    # during every move_and_slide tick without apparent vertical velocity.
+    level.position = Vector3(100.0, 0.0, 0.0)
     tree.root.add_child(level)
     await _ticks(tree, 3)
     var actor := level.get_node("Player") as CharacterBody3D
@@ -47,7 +52,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # A picked up gun is still one physical, socket-mounted instance. The
     # authoritative muzzle is a child of it, not the F4 viewmodel.
-    actor.global_position = Vector3.ZERO
+    actor.global_position = Vector3(100.0, 0.15, 0.0)
     gun.global_position = actor.global_position + Vector3(0.3, 0.4, 0.3)
     verify.call(equipment.pickup(gun) and equipment.current_weapon == gun
         and gun.is_equipped and gun.get_parent() != level
