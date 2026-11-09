@@ -63,10 +63,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     target.global_position = Vector3(initial_muzzle.x, initial_muzzle.y - 0.8, initial_muzzle.z - 4.0)
     health.set("current_health", 100.0)
+    var trace_excludes: Array[RID] = []
     print("D06_GUN_TRACE before muzzle=", muzzle.global_position,
         " target=", target.global_position, " hurtbox=",
         (target.get_node("Hurtbox") as Area3D).global_position,
-        " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, Array[RID]()))
+        " aim=", aim.call("get_world_target", muzzle.global_position, 60.0, trace_excludes))
     var old_hp: float = health.get("current_health")
     gun.fired.connect(func(point: Vector3, landed: bool) -> void:
         print("D06_GUN_FIRED impact=", point, " landed=", landed,
