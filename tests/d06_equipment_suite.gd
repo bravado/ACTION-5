@@ -305,6 +305,30 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and visual._viewmodel.get_node_or_null("Grip") != null,
         "Shovel uses the same click routing and independent F4 gripping model")
 
+    # Shovel must NEVER start the rig's full-body Kick animation: the
+    # temporary imported upper-body Punch clip drives the world arm, while
+    # the separate shovel_swing visual key drives the authored F4 grip.
+    verify.call(shovel.definition.attacks[0].animation_key == &"punch"
+        and int(shovel.definition.attacks[0].animation_channel) == 0
+        and shovel.definition.attacks[0].visual_action_key == &"shovel_swing",
+        "Shovel binds a world upper-body swing and an independent F4 swing")
+    verify.call(equipment.request_equipped_action(0, Vector2.RIGHT),
+        "Equipped Shovel requests its registered attack")
+    for tick in range(4):
+        await tree.physics_frame
+        if combat.current_id == &"shovel_swing":
+            break
+    var shovel_snapshot: Dictionary = actor.get_node(
+        "CombatVisualState").call("get_visual_action")
+    verify.call(combat.current_id == &"shovel_swing"
+        and animation.get("upper_body_clip") == &"punch"
+        and animation.get("action_clip") == &""
+        and shovel_snapshot.get("key", &"") == &"shovel_swing",
+        "Shovel uses upper-body Punch world clip, not full-body Kick, without losing F4 motion")
+    combat.cancel()
+    verify.call(animation.get("upper_body_clip") == &"",
+        "Cancelling Shovel clears its upper-body overlay without affecting locomotion")
+
     verify.call(equipment.request_equipped_action(0, Vector2.RIGHT)
         and equipment.swap_next() and combat.get_attack(&"shovel_swing") == null
         and combat._pending_id == &"" and combat.current_attack == null,
