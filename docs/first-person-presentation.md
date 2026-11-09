@@ -1,7 +1,7 @@
 # First-person presentation architecture — research and D05 refactor
 
 Status: D05 merged via [PR #28](https://github.com/bravado/ACTION-5/pull/28).
-D06-01 equipped viewmodel/attack selection is in development in PR #31.
+D06-01 equipped viewmodel/attack selection was implemented and visually approved in PR #31, with real native/WebGL2 Full E2E evidence.
 
 ## Root-cause analysis
 
