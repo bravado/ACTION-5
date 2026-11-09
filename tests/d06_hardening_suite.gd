@@ -162,3 +162,30 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     held.queue_free()
     stowed.queue_free()
     await tree.process_frame
+
+    # Real local F4 adapter and renderer: externally freeing an equipped
+    # multi-mesh Bat must release the camera viewmodel/shadow registrations.
+    var player: Node3D = level.get_node("Player")
+    var live_equipment: EquipmentScript = player.get_node("Equipment")
+    var live_combat: Node = player.get_node("CombatController")
+    var fps: Node = player.get_node("FirstPersonPresenter")
+    var visual: Node = player.get_node("EquipmentVisualAdapter")
+    var bat: WeaponScript = level.get_node("BatPickup")
+    var shadows_before: int = fps.world_visual_shadows.size()
+    verify.call(live_equipment.pickup(bat)
+        and live_equipment.current_weapon == bat
+        and visual.get("_viewmodel") != null
+        and fps.world_visual_shadows.size() > shadows_before,
+        "Local actor re-equips the same Bat for independent destruction cleanup")
+    bat.queue_free()
+    await tree.process_frame
+    await tree.process_frame
+    verify.call(not is_instance_valid(bat)
+        and live_equipment.current_weapon == null
+        and live_equipment.inventory.is_empty()
+        and live_combat.get_attack(&"bat_swing") == null
+        and live_combat.get_attack(&"bat_horizontal") == null
+        and visual.get("_viewmodel") == null
+        and visual.get("_registered_meshes").is_empty()
+        and fps.world_visual_shadows.size() == shadows_before,
+        "Freeing equipped local Bat releases attack IDs, F4 viewmodel and every world shadow")
