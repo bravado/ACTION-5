@@ -30,12 +30,15 @@ func pickup(weapon: WeaponScript) -> bool:
         return false
     if not weapon.definition.valid() or weapon.is_equipped or inventory.has(weapon):
         return false
+    if weapon.equipment_owner != null:
+        return false
     if inventory.size() >= max_items or weapon.global_position.distance_to(actor.global_position) > pickup_radius:
         return false
     var origin := weapon.get_parent() as Node3D
     if origin == null or not _can_register(weapon):
         return false
     _world_parents[weapon] = origin
+    weapon.equipment_owner = self
     weapon.reparent(self, false)
     weapon.visible = false
     inventory.append(weapon)
@@ -44,13 +47,15 @@ func pickup(weapon: WeaponScript) -> bool:
         inventory.erase(weapon)
         weapon.reparent(origin, false)
         weapon.visible = true
+        weapon.equipment_owner = null
         _world_parents.erase(weapon)
         return false
     return true
 
 
 func equip(weapon: WeaponScript) -> bool:
-    if not inventory.has(weapon) or not _can_register(weapon):
+    if not inventory.has(weapon) or weapon.equipment_owner != self \
+            or not _can_register(weapon):
         return false
     if current_weapon == weapon:
         return true
@@ -103,6 +108,7 @@ func drop_current() -> bool:
     )
     weapon.visible = true
     weapon.is_equipped = false
+    weapon.equipment_owner = null
     weapon_dropped.emit(weapon)
     return true
 
