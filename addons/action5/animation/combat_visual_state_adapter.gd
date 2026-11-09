@@ -21,4 +21,7 @@ func get_visual_action() -> Dictionary:
     return {
         "key": action_key,
         "progress": clampf(float(combat.elapsed_ticks) / float(total), 0.0, 1.0),
+        # Optional exact action identity for display policies when a weapon
+        # and an unarmed move intentionally reuse the same world clip.
+        "action_id": combat.current_id,
     }
