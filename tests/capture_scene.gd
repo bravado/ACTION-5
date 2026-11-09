@@ -439,10 +439,14 @@ func _capture() -> void:
             sampled_horizontal = true
             break
     var lateral_grip: Vector3 = grip.position
-    if not sampled_horizontal or lateral_grip.x >= active_grip.x - 0.65 or (
-        gripped_arm.get("profile") as Resource).get("animation_key") != &"bat_horizontal" or (
-        not grip.position.is_equal_approx(
-            (gripped_arm.get_node("Extremity") as Node3D).position)):
+    var horizontal_profile: Resource = gripped_arm.get("profile") as Resource
+    var hand_follows_grip: bool = grip.position.is_equal_approx(
+        (gripped_arm.get_node("Extremity") as Node3D).position)
+    if not (sampled_horizontal
+            and lateral_grip.x < active_grip.x - 0.65
+            and horizontal_profile != null
+            and horizontal_profile.get("animation_key") == &"bat_horizontal"
+            and hand_follows_grip):
         push_error("D06: F4 horizontal Bat pose did not sweep sideways with the hand"
             + " x_delta=" + str(lateral_grip.x - active_grip.x)
             + " progress=" + str(equipped_view.get("pose_progress")))
