@@ -204,38 +204,90 @@ func _resolve_hits() -> void:
     query.collide_with_areas = true
     query.collide_with_bodies = false
     for index in range(substeps + 1):
-        # Each sample uses a true physics Shape3D query; drawing an F4 grip
-        # or changing camera mode cannot create, suppress or shift a hit.
+        # Sweep the authoritative collision volume. F4 grip geometry and
+        # visual clip selection cannot change an attack's hit authority.
         query.transform = (
             previous.interpolate_with(current_transform, float(index) / float(substeps))
             if substeps > 0 else current_transform
         )
         for entry in body.get_world_3d().direct_space_state.intersect_shape(query, 64):
-            var hurtbox: HurtboxScript = entry.get("collider") as HurtboxScript
-            if hurtbox == null:
-                continue
-            var target: HealthScript = hurtbox.get_health()
-            if target == null or target == health or _hit_actor_ids.has(target.get_instance_id()):
-                continue
-            if health != null and health.team_id != 0 and health.team_id == target.team_id \
-                    and not current_attack.allow_friendly_fire:
-                continue
-            if target.take_hit(
-                current_attack.damage, body, current_attack, _active_direction,
-                current_attack.knockback_speed, current_attack.knockback_ticks,
-                current_attack.stagger_ticks
-            ):
-                _hit_actor_ids[target.get_instance_id()] = true
-                hit_count += 1
-                attack_hit.emit(current_id, target.get_parent())
-            # A hit subscriber can cancel the attack; do not use its
-            # definition after cancellation in subsequent sweep samples.
+            _apply_hit(entry.get("collider") as HurtboxScript)
             if current_attack == null:
                 break
         if current_attack == null:
             break
+
+    # Hurtboxes record the PREVIOUS physics position after actor movement.
+    # A fast target can cross the active hitbox without overlapping it at
+    # either discrete endpoint; check its relative segment against the
+    # physics BoxShape3D, expanded by the receiver's own collision bounds.
+    # Only a real D05 active window can apply damage.
+    if current_attack != null:
+        _resolve_receiver_motion(previous, current_transform)
     _previous_hit_transform = current_transform
     _has_previous_hit_transform = current_attack != null
+
+
+func _resolve_receiver_motion(previous: Transform3D, current: Transform3D) -> void:
+    var half: Vector3 = current_attack.hitbox_size * 0.5
+    for candidate in get_tree().get_nodes_in_group("action5_hurtbox"):
+        var hurtbox: HurtboxScript = candidate as HurtboxScript
+        if not is_instance_valid(hurtbox) or not hurtbox.is_inside_tree() \
+                or hurtbox.is_queued_for_deletion() \
+                or hurtbox.get_world_3d() != body.get_world_3d():
+            continue
+        var old_center: Vector3 = hurtbox.previous_physics_origin
+        var new_center: Vector3 = hurtbox.global_position
+        if old_center.distance_squared_to(new_center) < 0.0001:
+            continue
+        var from_local: Vector3 = previous.affine_inverse() * old_center
+        var to_local: Vector3 = current.affine_inverse() * new_center
+        if _segment_hits_box(
+            from_local, to_local, half + hurtbox.motion_half_extents()
+        ):
+            _apply_hit(hurtbox)
+            if current_attack == null:
+                break
+
+
+## Segment/AABB slab test in the attack's local coordinates. A target's
+## swept center is compared to the receiver-expanded hit volume; no
+## camera, weapon model, or view-specific aiming code is consulted.
+func _segment_hits_box(start: Vector3, finish: Vector3, half: Vector3) -> bool:
+    var delta: Vector3 = finish - start
+    var earliest: float = 0.0
+    var latest: float = 1.0
+    for axis in range(3):
+        if absf(delta[axis]) < 0.00001:
+            if absf(start[axis]) > half[axis]:
+                return false
+        else:
+            var first: float = (-half[axis] - start[axis]) / delta[axis]
+            var last: float = (half[axis] - start[axis]) / delta[axis]
+            earliest = maxf(earliest, minf(first, last))
+            latest = minf(latest, maxf(first, last))
+            if earliest > latest:
+                return false
+    return true
+
+
+func _apply_hit(hurtbox: HurtboxScript) -> void:
+    if current_attack == null or not is_instance_valid(hurtbox):
+        return
+    var target: HealthScript = hurtbox.get_health()
+    if target == null or target == health or _hit_actor_ids.has(target.get_instance_id()):
+        return
+    if health != null and health.team_id != 0 and health.team_id == target.team_id \
+            and not current_attack.allow_friendly_fire:
+        return
+    if target.take_hit(
+        current_attack.damage, body, current_attack, _active_direction,
+        current_attack.knockback_speed, current_attack.knockback_ticks,
+        current_attack.stagger_ticks
+    ):
+        _hit_actor_ids[target.get_instance_id()] = true
+        hit_count += 1
+        attack_hit.emit(current_id, target.get_parent())
 
 
 func _finish_attack(was_cancelled: bool = false) -> void:
