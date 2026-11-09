@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 attack_id = &"shovel_swing"
+input_action = &"actor_punch"
 startup_ticks = 7
 active_ticks = 4
 recovery_ticks = 9
