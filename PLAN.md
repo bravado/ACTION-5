@@ -682,3 +682,12 @@ Next: <lowest numbered unblocked deliverable>
 ```
 
 **Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/five-view architecture.
+### D06-02 active implementation (2026-11-09; verification pending)
+
+The separate `feat/d06-02-gun` branch implements the D06-01/ D05
+consumer for Gun, independent world-space muzzle tracing, view-specific
+aiming, optional reload input and a second authored fixture. The
+gun-specific live-physics test suite is registered with `make test`.
+Do **not** mark D06-02 or D06 complete until CI import/tests, full native
+and WebGL2 E2E, five-view user visual tests, cleanup/occlusion and
+documentation review are verified. See issue #14 and docs/equipment.md.
