@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Action5AttackDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/combat/attack_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+attack_id = &"bat_swing"
+input_action = &"actor_punch"
+startup_ticks = 5
+active_ticks = 5
+recovery_ticks = 7
+damage = 16.0
+hitbox_size = Vector3(1.2, 1.1, 1.05)
+hitbox_forward = 1.0
+hitbox_height = 1.0
+animation_key = &"bat_vertical"
+visual_action_key = &"bat_swing"
+animation_channel = 0
+knockback_speed = 5.0
+knockback_ticks = 12

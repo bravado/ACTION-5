@@ -12,6 +12,13 @@ const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 @export var bind_controller_cycle: bool = true
 
 var manager: ViewManagerScript
+## Capturing the pointer may generate one synthetic warp-motion event in
+## WebGL2/desktop. Never interpret that event as player mouse look.
+var _ignore_capture_warp: bool = false
+## Pointer-lock changes can emit several synthetic browser recenter events,
+## not just one. Ignore initial motion briefly and reject large warp spikes
+## during the capture transition, without affecting normal mouse look.
+var _capture_started_ms: int = -1
 
 
 func _ready() -> void:
@@ -69,14 +76,44 @@ func _unhandled_input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion:
         if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+            # Browser pointer-lock may emit viewport-sized recenter deltas
+            # long after capture (including after clicks or resize). These
+            # are not real mouse movement and must never rotate the camera.
+            if OS.has_feature("web"):
+                var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+                if viewport_size.x > 0.0 and viewport_size.y > 0.0 and (
+                    absf(event.relative.x) >= viewport_size.x * 0.45 or
+                    absf(event.relative.y) >= viewport_size.y * 0.45
+                ):
+                    return
+            if _ignore_capture_warp:
+                _ignore_capture_warp = false
+                return
+            if _capture_started_ms >= 0:
+                var elapsed_ms: int = Time.get_ticks_msec() - _capture_started_ms
+                if elapsed_ms < 180 or (
+                    elapsed_ms < 650 and event.relative.length_squared() > 1024.0
+                ):
+                    return
+                if elapsed_ms >= 650:
+                    _capture_started_ms = -1
             manager.camera_rig.apply_mouse_motion(event.relative)
     elif event is InputEventMouseButton and event.pressed:
         if event.button_index == MOUSE_BUTTON_LEFT and manager.current_profile.is_orbit_mode():
-            Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+            if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+                # A first click may both attack and lock the pointer. The
+                # browser-generated recenter motion must not rotate the
+                # camera before the following deliberate mouse movement.
+                _ignore_capture_warp = true
+                _capture_started_ms = Time.get_ticks_msec()
+                Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     elif event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed:
+        _ignore_capture_warp = false
+        _capture_started_ms = -1
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _notification(what: int) -> void:
     if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+        _ignore_capture_warp = false
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

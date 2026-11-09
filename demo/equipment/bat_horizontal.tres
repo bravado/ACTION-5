@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Action5AttackDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/combat/attack_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+attack_id = &"bat_horizontal"
+input_action = &"actor_kick"
+startup_ticks = 4
+active_ticks = 6
+recovery_ticks = 11
+damage = 13.0
+hitbox_size = Vector3(2.25, 0.76, 1.05)
+hitbox_forward = 0.98
+hitbox_height = 1.03
+animation_key = &"bat_horizontal"
+visual_action_key = &"bat_horizontal"
+animation_channel = 0
+knockback_speed = 4.0
+knockback_ticks = 11

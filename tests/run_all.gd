@@ -10,6 +10,10 @@ const D05SuiteScript = preload("res://tests/d05_suite.gd")
 const D05AnimationSuiteScript = preload("res://tests/d05_animation_suite.gd")
 const D05FirstPersonSuiteScript = preload("res://tests/d05_first_person_suite.gd")
 const D05CombatAnimationSuiteScript = preload("res://tests/d05_combat_animation_suite.gd")
+const D06EquipmentSuiteScript = preload("res://tests/d06_equipment_suite.gd")
+const D06HardeningSuiteScript = preload("res://tests/d06_hardening_suite.gd")
+const D06FastSwingSuiteScript = preload("res://tests/d06_fast_swing_suite.gd")
+const D06MovementViewSuiteScript = preload("res://tests/d06_movement_view_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -628,6 +632,17 @@ func _run_tests() -> void:
     # Run last: the regular combat suite ends with a lethal damage test.
     var d05_combat_animation_suite := D05CombatAnimationSuiteScript.new()
     await d05_combat_animation_suite.run_tests(self, level, Callable(self, "_check"))
+
+    # D06 runs after the destructive D05 lifecycle suite and restores the
+    # same actor; it verifies real equipment/mount/visual registration.
+    var d06_equipment_suite := D06EquipmentSuiteScript.new()
+    await d06_equipment_suite.run_tests(self, level, Callable(self, "_check"))
+    var d06_hardening_suite := D06HardeningSuiteScript.new()
+    await d06_hardening_suite.run_tests(self, level, Callable(self, "_check"))
+    var d06_fast_suite := D06FastSwingSuiteScript.new()
+    await d06_fast_suite.run_tests(self, level, Callable(self, "_check"))
+    var d06_movement_suite := D06MovementViewSuiteScript.new()
+    await d06_movement_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

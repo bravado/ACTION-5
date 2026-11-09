@@ -35,6 +35,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "idle": "rest", "walk": "stride", "run": "sprint",
         "punch": "jab", "kick": "boot", "hit": "flinch",
         "death": "collapse", "reload": "rearm",
+        "bat_vertical": "club_chop", "bat_horizontal": "club_sweep",
+        "shovel_overhead": "spade_chop",
     }
     presenter.profile = profile
 
@@ -117,6 +119,17 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Alternative upper-body animation plays through Torso-filtered tracks")
     presenter.clear_full_body_action()
     presenter.clear_upper_body_action()
+
+    for key in [&"bat_vertical", &"bat_horizontal", &"shovel_overhead"]:
+        var before_weapon: Vector3 = right_hand.global_position
+        verify.call(presenter.set_upper_body_action(key),
+            "Alternate rig maps and starts world weapon clip " + str(key))
+        for i in range(9):
+            await tree.physics_frame
+        verify.call(presenter.upper_body_clip == key
+            and right_hand.global_position.distance_to(before_weapon) > 0.015,
+            "Alternate rig animates the real equipment socket with " + str(key))
+        presenter.clear_upper_body_action()
 
     # Imported Animation resources are read-only, even after building three
     # state machines and transitioning through their action channels.

@@ -10,6 +10,7 @@ const moveChanges = [];
 const settingsVisibility = [];
 const rigViews = [];
 const combatStarts = [];
+const weaponEvents = [];
 const limbVisibility = [];
 const browser = await chromium.launch({
   headless: true,
@@ -25,6 +26,8 @@ try {
     if (line.includes('ACTION5_MOVE_CHANGED')) moveChanges.push(line);
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
+    if (line.includes('ACTION5_WEAPON_')) weaponEvents.push(line);
+    if (line.includes('ACTION5_POINTER_DIAG')) console.log(line);
     if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
   });
@@ -128,6 +131,275 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D05_MOUSE_OK punch=1 kick=1 hud_blocked=1');
+
+  // D06 real browser input: E/Q/G manage equipment. The Bat uses
+  // separate left/vertical and right/horizontal attack definitions,
+  // whereas Shovel still uses a left swing with right-side Kick.
+  // No extra attack key or test-only gameplay input is needed.
+  await page.keyboard.press('2');
+  await page.waitForTimeout(300);
+  const firstEquipIndex = weaponEvents.length;
+  await page.keyboard.press('e', { delay: 120 });
+  await page.waitForTimeout(350);
+  await page.keyboard.press('e', { delay: 120 });
+  await page.waitForTimeout(350);
+  const pickups = weaponEvents.slice(firstEquipIndex).filter(s => s.includes('ACTION5_WEAPON_PICKUP'));
+  if (pickups.length !== 2 || pickups[0] === pickups[1]) {
+    errors.push('D06 E-key did not pick up two different weapon definitions: ' +
+      pickups.join(' | '));
+  }
+  await page.keyboard.press('q');
+  await page.waitForTimeout(350);
+  const equipped = weaponEvents.filter(s => s.includes('ACTION5_WEAPON_EQUIPPED'));
+  if (equipped.length < 2 || equipped.at(-1) === equipped[0] ||
+      !equipped.at(-1).includes('meshes=2 f4_visual=1')) {
+    errors.push('D06 Q-key did not swap to the second multi-mesh weapon: ' +
+      equipped.join(' | '));
+  }
+  // Pickups have equal range, so selection order is nondeterministic.
+  // After proving swap, select the Bat explicitly using the normal Q
+  // input so the browser exercises BOTH attacks on one equipped item.
+  let selectedWeapon = equipped.at(-1).match(/id=(bat|shovel)(?:\s|$)/)?.[1];
+  if (selectedWeapon === 'shovel') {
+    await page.keyboard.press('q');
+    await page.waitForTimeout(400);
+    selectedWeapon = weaponEvents.filter(
+      s => s.includes('ACTION5_WEAPON_EQUIPPED')).at(-1)
+      ?.match(/id=(bat|shovel)(?:\s|$)/)?.[1];
+  }
+  if (selectedWeapon !== 'bat') {
+    errors.push('D06 could not select Bat using the two independent pickup slots: ' +
+      weaponEvents.join(' | '));
+  }
+  const expectedAction = 'bat_swing';
+  const expectedSecondaryAction = 'bat_horizontal';
+  const beforeRight = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'right' });
+  await page.waitForTimeout(850);
+  const fromRight = combatStarts.slice(beforeRight);
+  if (fromRight.length !== 1 ||
+      !fromRight[0].includes('id=' + expectedSecondaryAction)) {
+    errors.push('D06 Bat right click must start horizontal strike, not Kick: ' +
+      fromRight.join(' | '));
+  }
+  const beforeLeft = combatStarts.length;
+  await page.mouse.click(700, 420, { button: 'left' });
+  await page.waitForTimeout(850);
+  const fromLeft = combatStarts.slice(beforeLeft);
+  if (fromLeft.length !== 1 || !fromLeft[0].includes('id=' + expectedAction)) {
+    errors.push('D06 left-click must also use the selected weapon: ' +
+      fromLeft.join(' | '));
+  }
+  // Both keyboard equivalents must route through the identical InputMap
+  // selection policy, with no dedicated swing key or weapon-ID dispatcher.
+  const beforeBatJ = combatStarts.length;
+  await page.keyboard.press('j');
+  await page.waitForTimeout(650);
+  if (combatStarts.slice(beforeBatJ).length !== 1 ||
+      !combatStarts.at(-1).includes('id=bat_swing')) {
+    errors.push('D06 equipped Bat J must use vertical swing');
+  }
+  const beforeBatK = combatStarts.length;
+  await page.keyboard.press('k');
+  await page.waitForTimeout(650);
+  if (combatStarts.slice(beforeBatK).length !== 1 ||
+      !combatStarts.at(-1).includes('id=bat_horizontal')) {
+    errors.push('D06 equipped Bat K must use horizontal swing');
+  }
+
+  await page.keyboard.press('3');
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: 'build/evidence/web-d06-world-equipped.png', fullPage: true });
+  // In pointer-locked F4, do not let Playwright's cursor jump from its last
+  // F2 click position to a different F4 click position. That generates a
+  // synthetic-look delta and can pitch the camera into the empty sky.
+  await page.mouse.move(640, 360);
+  await page.keyboard.press('4');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
+  const beforeF4Attack = combatStarts.length;
+  await page.mouse.down({ button: 'left' });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-swing.png', fullPage: true });
+  // The first F4 attack may also capture the mouse. Synthetic warp events
+  // must not pitch the camera into a black/empty world. This asserts a
+  // real rendered world pixel, not just a successful combat-start log.
+  async function requireReadableF4(label) {
+    const rgb = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas');
+      const mirror = document.createElement('canvas');
+      mirror.width = canvas.width;
+      mirror.height = canvas.height;
+      const ctx = mirror.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(canvas, 0, 0);
+      const px = ctx.getImageData(
+        Math.floor(canvas.width * 0.50), Math.floor(canvas.height * 0.51), 1, 1).data;
+      return px[0] + px[1] + px[2];
+    });
+    if (rgb < 60) {
+      errors.push('D06 F4 camera lost the visible arena after ' + label +
+        ' (center RGB sum=' + rgb + ')');
+    }
+  }
+  await requireReadableF4('Bat primary pointer capture');
+  await page.mouse.up({ button: 'left' });
+  await page.waitForTimeout(850);
+  const f4Starts = combatStarts.slice(beforeF4Attack);
+  if (f4Starts.length !== 1 || !f4Starts[0].includes('id=' + expectedAction)) {
+    errors.push('D06 F4 left-click did not use the selected weapon: ' + f4Starts.join(' | '));
+  }
+  // The secondary action must also drive the horizontal F4 grip pose.
+  const beforeF4Horizontal = combatStarts.length;
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(170);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-bat-horizontal.png', fullPage: true,
+  });
+  await requireReadableF4('Bat horizontal action');
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(850);
+  const f4HorizontalStarts = combatStarts.slice(beforeF4Horizontal);
+  if (f4HorizontalStarts.length !== 1 ||
+      !f4HorizontalStarts[0].includes('id=' + expectedSecondaryAction)) {
+    errors.push('D06 equipped F4 right-click did not start Bat horizontal: ' +
+      f4HorizontalStarts.join(' | '));
+  }
+
+  // Capture actual narrow/portrait browser output with the real equipped
+  // hand, rather than assuming that a 16:9 smoke proves F4 framing.
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.waitForTimeout(520);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-bat-narrow.png', fullPage: true,
+  });
+  await requireReadableF4('Bat narrow-viewport rendering');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(330);
+
+  // Shovel is a one-action weapon. Swap through Q, not a script-only
+  // equipment hook, and prove right click/K still executes ordinary Kick
+  // in BOTH world and camera-local first-person rendering.
+  await page.keyboard.press('q');
+  await page.waitForTimeout(460);
+  const currentShovel = weaponEvents.filter(
+    s => s.includes('ACTION5_WEAPON_EQUIPPED')).at(-1) || '';
+  if (!currentShovel.includes('id=shovel')) {
+    errors.push('D06 Q swap failed to equip single-action Shovel: ' + currentShovel);
+  }
+  await page.keyboard.press('2');
+  await page.waitForTimeout(400);
+  async function checkShovelInput(input, action, label) {
+    const before = combatStarts.length;
+    if (input === 'left' || input === 'right') {
+      await page.mouse.click(700, 420, { button: input });
+    } else {
+      await page.keyboard.press(input);
+    }
+    await page.waitForTimeout(780);
+    const started = combatStarts.slice(before);
+    if (started.length !== 1 || !started[0].includes('id=' + action)) {
+      errors.push('D06 ' + label + ' must start ' + action + ': ' +
+        started.join(' | '));
+    }
+  }
+  await checkShovelInput('left', 'shovel_swing', 'F2 Shovel LMB');
+  await checkShovelInput('right', 'kick', 'F2 Shovel RMB');
+  await checkShovelInput('j', 'shovel_swing', 'F2 Shovel J');
+  await checkShovelInput('k', 'kick', 'F2 Shovel K');
+
+  await page.mouse.move(640, 360);
+  await page.keyboard.press('4');
+  await page.waitForTimeout(450);
+  const beforeShovelF4 = combatStarts.length;
+  await page.mouse.down({ button: 'left' });
+  await page.waitForTimeout(160);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-overhead.png', fullPage: true,
+  });
+  await requireReadableF4('Shovel overhead action');
+  await page.mouse.up({ button: 'left' });
+  await page.waitForTimeout(730);
+  const shovelF4Starts = combatStarts.slice(beforeShovelF4);
+  if (shovelF4Starts.length !== 1 ||
+      !shovelF4Starts[0].includes('id=shovel_swing')) {
+    errors.push('D06 F4 Shovel LMB did not start its overhead swing: ' +
+      shovelF4Starts.join(' | '));
+  }
+  const beforeF4Kick = combatStarts.length;
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(150);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-kick.png', fullPage: true,
+  });
+  await requireReadableF4('Shovel unassigned Kick');
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(750);
+  if (combatStarts.slice(beforeF4Kick).length !== 1 ||
+      !combatStarts.at(-1).includes('id=kick')) {
+    errors.push('D06 F4 Shovel RMB must retain normal Kick');
+  }
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.waitForTimeout(500);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-f4-shovel-narrow.png', fullPage: true,
+  });
+  await requireReadableF4('Shovel narrow-viewport rendering');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(330);
+  console.log('ACTION5_BROWSER_D06_DUAL_INPUT_OK bat=2 shovel=1 shovel_kick=1 views=2,4 keyboards=1');
+
+  await page.evaluate(() => {
+    const gameCanvas = document.querySelector('canvas');
+    const mirror = document.createElement('canvas');
+    mirror.width = gameCanvas.width;
+    mirror.height = gameCanvas.height;
+    const ctx = mirror.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(gameCanvas, 0, 0);
+    const bounds = {
+      x: Math.floor(mirror.width * 0.50), y: Math.floor(mirror.height * 0.44),
+      w: Math.floor(mirror.width * 0.44), h: Math.floor(mirror.height * 0.51),
+    };
+    window.__d06Visual = {
+      mirror, bounds,
+      equipped: ctx.getImageData(bounds.x, bounds.y, bounds.w, bounds.h).data,
+    };
+  });
+
+  await page.keyboard.press('g');
+  await page.waitForTimeout(400);
+  // One item remains stowed. Q must equip it even though the current
+  // slot is empty, so the player can drop both and return to D05 baseline.
+  await page.keyboard.press('q');
+  await page.waitForTimeout(400);
+  await page.keyboard.press('g');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'build/evidence/web-d06-f4-dropped.png', fullPage: true });
+  await requireReadableF4('dropping both weapons');
+  const changedD06 = await page.evaluate(() => {
+    const gameCanvas = document.querySelector('canvas');
+    const state = window.__d06Visual;
+    const ctx = state.mirror.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(gameCanvas, 0, 0);
+    const current = ctx.getImageData(
+      state.bounds.x, state.bounds.y, state.bounds.w, state.bounds.h).data;
+    let changed = 0;
+    for (let i = 0; i < current.length; i += 16) {
+      if (Math.abs(current[i] - state.equipped[i]) +
+          Math.abs(current[i + 1] - state.equipped[i + 1]) +
+          Math.abs(current[i + 2] - state.equipped[i + 2]) > 75) changed++;
+    }
+    delete window.__d06Visual;
+    return changed;
+  });
+  const drops = weaponEvents.filter(s => s.includes('ACTION5_WEAPON_DROPPED'));
+  if (drops.length !== 2 || drops.some(s => !s.includes('f4_visual=0')) ||
+      changedD06 < 50) {
+    errors.push('D06 drop/F4 visual cleanup failed: drops=' + drops.join(' | ') +
+      ' changed_pixels=' + changedD06);
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_D06_EQUIPMENT_OK pickup=2 swap=1 mouse=2 f4_swing=1 drop=2 f4=1 pixels=' +
+    changedD06);
 
   // F4 always shows the articulated arm, which punches. Kick adds a
   // lower-framed leg without the obsolete tool. Input

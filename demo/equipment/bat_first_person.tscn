@@ -1,0 +1,32 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_weapon_viewmodel.gd" id="1_viewmodel"]
+[ext_resource type="Resource" path="res://demo/equipment/bat_grip.tres" id="2_grip"]
+[ext_resource type="Resource" path="res://demo/equipment/bat_horizontal_grip.tres" id="3_horizontal"]
+
+[sub_resource type="BoxMesh" id="shaft"]
+size = Vector3(0.14, 0.14, 0.95)
+
+[sub_resource type="BoxMesh" id="barrel"]
+size = Vector3(0.22, 0.22, 0.47)
+
+[sub_resource type="StandardMaterial3D" id="wood"]
+albedo_color = Color(0.70, 0.39, 0.17, 1)
+roughness = 0.75
+
+[node name="BatF4" type="Node3D"]
+script = ExtResource("1_viewmodel")
+grip_profile = ExtResource("2_grip")
+action_profiles = Array[Resource]([ExtResource("3_horizontal")])
+
+[node name="Grip" type="Node3D" parent="."]
+
+[node name="Handle" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -0.38)
+mesh = SubResource("shaft")
+material_override = SubResource("wood")
+
+[node name="Head" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -0.94)
+mesh = SubResource("barrel")
+material_override = SubResource("wood")

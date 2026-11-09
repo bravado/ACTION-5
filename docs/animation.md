@@ -7,7 +7,7 @@ visual action requests, never edits collisions, hit timing or world movement.
 ## Reference rig and licensing
 
 The original MIT-licensed `demo/assets/action5_training_character.glb`
-contains 15 skinned joints (including two articulated knees and two elbows), separately skinned upper arms, forearms, thighs and shins in body/head meshes, and `idle`, `walk`, `run`, `punch`, `kick`, `hit`, `death`, `reload`, `crouch` and `crouch_walk` clips. A gold training
+contains 15 skinned joints (including two articulated knees and two elbows), separately skinned upper arms, forearms, thighs and shins in body/head meshes, and `idle`, `walk`, `run`, `punch`, `kick`, `hit`, `death`, `reload`, `crouch`, `crouch_walk` and three dedicated weapon clips (`bat_vertical`, `bat_horizontal`, `shovel_overhead`). A gold training
 prop is a demo-only MeshInstance3D child of the animated right-hand socket.
 No third-party model, motion-capture animation or font is included. See
 [asset inventory](assets/LICENSES.md).
@@ -22,7 +22,7 @@ git diff --exit-code -- demo/assets/action5_training_character.glb
 CI runs this reproducibility check before import and also regenerates
 `tests/fixtures/alternate_training_character.glb` using
 `node tools/generate_alternate_training_character.mjs`. The second GLB
-has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`, `ForearmJoint_R`, `ForearmJoint_L`, `Skull`, `KneeAlternate_L`, `KneeAlternate_R`) and differently named animation clips (`rest`, `stride`, `sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`, `squat`, `squat_stride`).
+has different bone names (`Pelvis`, `Torso`, `Grip_R`, `Grip_L`, `ForearmJoint_R`, `ForearmJoint_L`, `Skull`, `KneeAlternate_L`, `KneeAlternate_R`) and differently named animation clips (`rest`, `stride`, `sprint`, `jab`, `boot`, `flinch`, `collapse`, `rearm`, `squat`, `squat_stride`, `club_chop`, `club_sweep`, `spade_chop`).
 
 The model-replacement regression test **swaps the imported GLB scene**
 under `Visual/Model` before initializing the AnimationPresenter and
@@ -99,6 +99,28 @@ Damage timing still comes exclusively from combat, not from animation.
 `tests/d05_animation_suite.gd` validates joint parenting, elbow anticipation,
 knee-before-foot extension, movement geometry and duration alignment.
 CI regenerates **both** original and replacement GLBs byte-for-byte.
+
+## World-space weapon animations (D06)
+
+The reference generator authors **three real skeletal clips**, one per
+configured weapon action, using seven timed poses on shoulder, forearm,
+spine and counterbalancing arm. `bat_vertical` lifts the weapon and chops
+down, `bat_horizontal` winds up on the right and sweeps across the
+torso, and `shovel_overhead` raises both arms before striking downward.
+Each clip's duration matches `AttackDefinition.total_ticks()/60`.
+World clips are generated deterministically into both GLB fixtures:
+`tools/generate_training_character.mjs` and
+`tools/generate_alternate_training_character.mjs`. The demo's
+`crouch_skeleton_profile.tres` maps/requires the three new keys;
+a different imported rig maps the same logical keys to its own clips.
+D05 `CombatAnimationAdapter` continues to select the correct upper-body
+channel without inspecting weapon IDs. The mounted world weapon follows
+the imported skeleton's `Hand_R` attachment in F1/F2/F3/F5.
+
+F4 remains camera-local for framing: it uses the same D05 visual-action
+snapshot to select a dedicated `FirstPersonLimbProfile` for each attack
+and never writes back to the world skeleton. This is presentation
+decoupling, not a fallback to the unarmed Punch clip.
 
 ## First-person authored viewmodel animations
 
@@ -196,8 +218,8 @@ cancellation and hit resolution. See [combat authoring](combat.md).
 exists, each is a `BoneAttachment3D` under the imported Skeleton3D,
 so its children follow the actual animated hand or head. Without the
 specified bone, a non-animated fallback Node3D is still returned and the
-validator reports a warning. D06 should attach real weapons to these
-anchors and keep them installed across camera switches.
+validator reports a warning. D06-01 attaches real Bat/Shovel weapons to
+these anchors and keeps them installed across all five camera views.
 
 ## Local first person (view 4)
 
@@ -244,7 +266,9 @@ configured right leg during Kick. Both follow the original animated
 skeleton, without separate gameplay or duplicate animation tracks.
 The arm anchor is calibrated to stay in the lower-right viewport at rest,
 and the leg anchor keeps the bent knee below the center of the screen.
-Matching production-quality first-person equipment belongs to D06.
+D06-01 supplies independently authored Bat/Shovel F4 gripping-arm
+viewmodels and three unique world-space weapon animations, synchronized
+with D05 action state instead of creating another gameplay clock.
 
 Camera-layer culling does not need a head-specific profile property, mesh
 naming convention or head-mesh validator warning. The `head_bone` profile

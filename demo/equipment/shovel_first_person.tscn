@@ -1,0 +1,30 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_weapon_viewmodel.gd" id="1_viewmodel"]
+[ext_resource type="Resource" path="res://demo/equipment/shovel_grip.tres" id="2_grip"]
+
+[sub_resource type="BoxMesh" id="shaft"]
+size = Vector3(0.10, 0.13, 1.18)
+
+[sub_resource type="BoxMesh" id="blade"]
+size = Vector3(0.37, 0.045, 0.39)
+
+[sub_resource type="StandardMaterial3D" id="steel"]
+albedo_color = Color(0.53, 0.65, 0.73, 1)
+metallic = 0.65
+roughness = 0.36
+
+[node name="ShovelF4" type="Node3D"]
+script = ExtResource("1_viewmodel")
+grip_profile = ExtResource("2_grip")
+
+[node name="Grip" type="Node3D" parent="."]
+
+[node name="Handle" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -0.52)
+mesh = SubResource("shaft")
+
+[node name="Blade" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -1.27)
+mesh = SubResource("blade")
+material_override = SubResource("steel")

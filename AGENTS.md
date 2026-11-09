@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D04 are merged; D05 combat is in progress in PR #28.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -167,6 +167,121 @@ Do not mark D05 complete or merge it on the strength of earlier commit CI.
 
 Follow [docs/combat.md](docs/combat.md) and ADR-0003. New attacks use an AttackDefinition and the existing CombatController/CombatInputAdapter request contract: never add attack-name branches to Actor, Locomotion, MovementController, ActorInputAdapter, AnimationPresenter or CameraRig. Combat owns physics-tick startup/active/recovery, mutable hit history, and Health/Hurtbox filtering. The only generic locomotion integration is apply_external_impulse; no combat code writes CharacterBody3D.velocity. Input edges must release-to-rearm through focus/settings interruption. Tests must prove new third-attack configuration and dedup across multiple hurtboxes before D05 is accepted.
 
+## D06-01 weapon and equipment extension contract (implemented and verified)
+
+Read [docs/equipment.md](docs/equipment.md) and ADR-0005 before modifying D06.
+An equipped world weapon is one `Action5Weapon` instance. An immutable
+`Action5WeaponDefinition` describes its socket, independent attacks,
+world appearance and optional F4 scene; no ammo or mutable state in Resources.
+`Action5EquipmentController` handles only inventory/selection/lifecycle.
+`EquipmentVisualAdapter` resolves the generic `get_mount(socket_id)`
+port, tracks world-mesh/shadow registrations and creates at most one
+render-only F4 viewmodel. Weapons and the equipment controller must never
+inspect view modes, camera/FPS render layers, named specific weapon types,
+AnimationPresenter or FirstPersonPresenter internals.
+
+D05's generic `register_attack` / `unregister_attack` pair supports
+equipment lifecycle; unequip must cancel an active or buffered weapon
+attack before removing it. `AttackDefinition.use_melee_hit_query`
+defaults to true for D05/Bat/Shovel; set it false on an externally
+resolved action such as Gun fire, then observe the existing active-phase
+signal for physical muzzle tracing. No type-specific hit branches. Equipped weapons
+provide attack definitions to D05 and request action IDs; they do not
+execute a second attack timer, own hit queries or read raw inputs.
+Attack input is resolved by the optional, duck-typed
+`EquipmentAttackSelector.get_attack_for_input(action, fallback)` policy.
+Each equipped attack explicitly sets `AttackDefinition.input_action` to
+claim its corresponding InputMap action; `Action5Weapon.get_attack_for_input`
+provides the configured match. **Missing assignments retain the original
+unarmed Punch/Kick, even when equipment is held.** There is no positional
+action replication or hardcoded LMB/RMB index mapping. One equipment action
+may claim `actor_punch`; a different one may claim `actor_kick`.
+Duplicate nonempty bindings within a definition are invalid.
+Do not add an F-only swing key or equipment-specific branches to
+CombatInputAdapter; it sees only this optional selection port.
+
+An equipped F4 viewmodel must include an authored **gripping arm and
+weapon** that move together. `AttackDefinition.visual_action_key`
+optionally identifies the F4 pose independently of the world
+`animation_key`; if blank it falls back to the original D05 action key.
+Bat configures two independent attack definitions and visual keys:
+LMB/J vertical `bat_swing` and RMB/K horizontal `bat_horizontal`.
+Shovel keeps one attack on LMB/J, leaving RMB/K as Kick.
+The viewmodel may export `action_profiles` to choose alternate authored
+`Action5FirstPersonLimbProfile` poses using the visual action key,
+while reusing a single hand and Grip. The same generic visual bridge
+routes keys/progress; no weapon-specific presenter or second clock.
+The demo rig now includes dedicated skinned world clips
+`bat_vertical`, `bat_horizontal` and `shovel_overhead` mapped by
+`SkeletonProfile`; F1/F2/F3/F5 must use those clips (with animated
+right-hand sockets), not substitute the unarmed Punch/Kick visual.
+To add a new weapon, author/import its world clip, map the logical key
+in the actor's SkeletonProfile and configure its attack resource.
+The alternate rig fixture must map/retarget the same logical key.
+The F4 profiles remain camera-local and consume the same D05 clock. Suppress the original
+resting/unassigned fist using the optional action-aware limb-visibility
+policy while equipped; an unassigned Kick must still show its F4 leg.
+Use the optional `get_visual_action().action_id` for exact ownership
+when equipment shares an unarmed world animation key; preserve
+backwards compatibility with `{key, progress}`-only visual sources.
+Do not rotate a floating entire tool independently or use skinned
+world-bone positions to place the local hand.
+
+**Pickup event atomicity:** on a failed initial auto-equip, roll back inventory and emit neither `weapon_picked_up` nor `weapon_equipped`. On a successful first pickup emit each signal exactly once, in **pickup → equip** order. A failed swap cannot produce unequip/equip events. This protects HUD and AI listeners from phantom state; extend `tests/d06_hardening_suite.gd` for every new failure path.
+
+Stowed and equipped weapon instances retain exclusive equipment ownership:
+another actor cannot claim a stowed world-group node. A successful drop
+releases it. **Equip/swap MUST stage every candidate attack registration
+before stowing the previous weapon; partial failure rolls back staged IDs
+without unequip/equip signals.** IDs must be unique across carried
+weapons, so a collision rejects the swap without cancelling an
+existing timeline. Unregister only the matching active/buffered attack;
+never cancel an unrelated action just because an equipped attack was queued.
+Observe independent `tree_exiting` only for actual destruction, never
+for internal reparenting; cleanup must remove inventory, attack IDs, F4
+meshes and world shadows. Actor removal destroys carried weapons;
+drop first if they should persist as world pickups. Do not reparent
+children synchronously during `_exit_tree()`.
+If a weapon lacks a usable F4 viewmodel, keep its actual world meshes and
+the default F4 hand visible; only cull world meshes after a valid visual
+replacement is installed. Prove all three invariants with two-actor and
+mid-action regression tests, not weapon-ID branches.
+
+Test Bat, Shovel and a third fixture with different attack data, all five
+views, F3/F4 mid action, click routing, return to unarmed on drop,
+gripped F4 weapon contact pose, teardown/shadows and an NPC without
+local first-person presentation. VT-08 must test fast actor AND
+receiver crossings using authoritative physics hurtboxes, not the
+world or first-person mesh. Use the separate D06 hardening fixture to
+inject a partially rejecting registration port and free equipped/stowed
+items while recording signals. Test live Run/Jump/Crouch with
+F3→F4→F5 during an actual swing; keyboard and mouse for Bat's two
+attacks and Shovel's swing/Kick in F2 and F4. Human review includes
+wide/narrow F4, near-wall poses, grip and ground shadows. Do not
+remove browser scene-readability assertions merely to pass CI.
+
+**D06-02 handoff:** reuse this controller with a Gun instance owning ammo,
+reload, cooldown, a per-weapon ranged effect and a physical world-muzzle
+obstruction query. Send reload through a small **optional weapon-command
+input adapter**, not a Gun branch in `CombatInputAdapter`, the Actor, or
+generic Equipment. Use existing equip/unequip signals to bind/unbind
+per-instance effects to D05 active-phase events and test a second configured
+gun. **Never** infer a valid shot solely from a clear camera ray, and never
+add `is_gun` or weapon-ID switches. F5-only 4/8-way aiming belongs in a
+view-specific aim policy: `AttackDefinition.facing_sectors` currently also
+quantizes direction in D05 for **every** view, so do not assign retro-only
+sectors to a weapon expecting continuous F1–F4 aim. See issue #14, #18 and
+ADR-0005.
+
+**D06-01 completion record (2026-11-09):** PR #31 is approved, latest-head
+`CI / Checks` passed **908 assertions / 0 failures**, `CI / Full E2E`
+passed native/Linux and real WebGL2 smoke (run #42668808972), and owner
+visual acceptance passed. The release tests are
+`tests/d06_equipment_suite.gd`, `tests/d06_hardening_suite.gd`,
+`tests/d06_fast_swing_suite.gd`, `tests/d06_movement_view_suite.gd`,
+`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. Close issue #13 only
+after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
+
 ## Starting task
 
-**D01–D04 are merged.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference implementation. D05 combat is separate: keep attacks and weapons decoupled from movement registration and reuse existing animation/camera interfaces.
+**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. The next feature is D06-02 Gun (#14), then D07 AI (#15), both using those established ports.

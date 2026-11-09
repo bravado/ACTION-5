@@ -29,6 +29,8 @@ const boneNames = {
 const clipNames = {
   idle: 'rest', walk: 'stride', run: 'sprint', punch: 'jab',
   kick: 'boot', hit: 'flinch', death: 'collapse', reload: 'rearm',
+  bat_vertical: 'club_chop', bat_horizontal: 'club_sweep',
+  shovel_overhead: 'spade_chop',
   'crouch-loop': 'squat-loop', 'crouch_walk-loop': 'squat_stride-loop',
 };
 

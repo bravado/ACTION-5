@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://demo/player.gd" id="1_script"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2_locomotion"]
@@ -25,6 +25,9 @@
 [ext_resource type="Script" path="res://addons/action5/animation/combat_visual_state_adapter.gd" id="23_visual_state"]
 [ext_resource type="Script" path="res://addons/action5/animation/combat_animation_adapter.gd" id="24_combat_animation"]
 [ext_resource type="Script" path="res://addons/action5/combat/health_actor_adapter.gd" id="25_health_actor"]
+[ext_resource type="Script" path="res://addons/action5/equipment/equipment_controller.gd" id="26_equipment"]
+[ext_resource type="Script" path="res://addons/action5/equipment/equipment_visual_adapter.gd" id="27_equipment_visual"]
+[ext_resource type="Script" path="res://addons/action5/equipment/equipment_attack_selector.gd" id="28_equipment_attacks"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -107,6 +110,16 @@ script = ExtResource("23_visual_state")
 [node name="FirstPersonCombatLimbs" type="Node" parent="."]
 script = ExtResource("20_fps_combat")
 profiles = Array[Resource]([ExtResource("21_fps_punch"), ExtResource("22_fps_kick")])
+visibility_source_path = NodePath("../EquipmentVisualAdapter")
+
+[node name="Equipment" type="Node3D" parent="."]
+script = ExtResource("26_equipment")
+
+[node name="EquipmentVisualAdapter" type="Node" parent="."]
+script = ExtResource("27_equipment_visual")
+
+[node name="EquipmentAttackSelector" type="Node" parent="."]
+script = ExtResource("28_equipment_attacks")
 
 [node name="EyeOffset" type="Node3D" parent="."]
 

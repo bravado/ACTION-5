@@ -13,6 +13,7 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _combat: Node = $Player/CombatController
 @onready var _health: Node = $Player/Health
+@onready var _equipment: Node = $Player/Equipment
 
 var _combat_was_active: bool = false
 @onready var _status: Label = $Hud/Status
@@ -27,6 +28,9 @@ func _ready() -> void:
     _combat.attack_started.connect(_on_attack_started)
     _combat.attack_hit.connect(_on_attack_hit)
     _health.health_changed.connect(_on_health_changed)
+    _equipment.weapon_picked_up.connect(_on_weapon_picked_up)
+    _equipment.weapon_equipped.connect(_on_weapon_equipped)
+    _equipment.weapon_dropped.connect(_on_weapon_dropped)
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
@@ -83,6 +87,36 @@ func _unhandled_input(event: InputEvent) -> void:
         elif event.keycode == KEY_B and not _camera_settings.visible:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
+        elif not _camera_settings.visible:
+            var consumed: bool = false
+            match event.keycode:
+                KEY_E:
+                    consumed = _pickup_closest_weapon()
+                KEY_Q:
+                    consumed = bool(_equipment.call("swap_next"))
+                KEY_G:
+                    consumed = bool(_equipment.call("drop_current"))
+            if consumed:
+                get_viewport().set_input_as_handled()
+
+
+func _pickup_closest_weapon() -> bool:
+    var closest: Node3D
+    var best: float = float(_equipment.get("pickup_radius"))
+    for candidate in get_tree().get_nodes_in_group("action5_weapon_pickup"):
+        var weapon := candidate as Node3D
+        if weapon == null or bool(weapon.get("is_equipped")):
+            continue
+        # Stowed items are still scene nodes, but no longer world pickups.
+        if weapon.get("equipment_owner") != null:
+            continue
+        if (_equipment.get("inventory") as Array).has(weapon):
+            continue
+        var distance: float = weapon.global_position.distance_to(_player.global_position)
+        if distance <= best:
+            closest = weapon
+            best = distance
+    return closest != null and bool(_equipment.call("pickup", closest))
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.
@@ -92,6 +126,32 @@ func _on_attack_started(id: StringName) -> void:
 
 func _on_attack_hit(id: StringName, target: Node) -> void:
     print("ACTION5_ATTACK_HIT id=", id, " target=", target.name)
+
+
+## D06 demo-only diagnostics: browser CI sends real keys, not script hooks.
+func _on_weapon_picked_up(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    print("ACTION5_WEAPON_PICKUP id=", definition.get("weapon_id"))
+
+
+func _on_weapon_equipped(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    var adapter: Node = _player.get_node("EquipmentVisualAdapter")
+    var f4_visual: Node3D = adapter.get("_viewmodel") as Node3D
+    print("ACTION5_WEAPON_EQUIPPED id=", definition.get("weapon_id"),
+        " meshes=", weapon.call("get_world_meshes").size(),
+        " f4_visual=", int(f4_visual != null))
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
+
+
+func _on_weapon_dropped(weapon: Node3D) -> void:
+    var definition: Resource = weapon.get("definition")
+    var adapter: Node = _player.get_node("EquipmentVisualAdapter")
+    print("ACTION5_WEAPON_DROPPED id=", definition.get("weapon_id"),
+        " f4_visual=", int(adapter.get("_viewmodel") != null))
+    if _views.current_profile != null:
+        _refresh_status(_views.current_profile)
 
 
 ## Avoid laying out the HUD 60 times/sec while idle: software WebGL2
@@ -124,6 +184,10 @@ func _refresh_status(profile: ViewProfileScript) -> void:
         _views.active_index + 1, profile.display_name, _moves.active_id, hp,
         action_label, _combat.get("phase"), _combat.get("elapsed_ticks"), _views.switch_count
     ]
+    var held: Node3D = _equipment.get("current_weapon") as Node3D
+    if held != null:
+        var item_definition: Resource = held.get("definition")
+        next_text += " | Weapon " + str(item_definition.get("display_name"))
     if _status.text != next_text:
         _status.text = next_text
 
@@ -172,7 +236,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D05 UNARMED COMBAT\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nCtrl/R3: crouch | Alt: dodge | X: slide | B: hitbox debug | C: settings"
+    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup | Q: swap | G: drop | Unassigned actions: Punch/Kick"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE

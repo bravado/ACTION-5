@@ -7,11 +7,17 @@ const ActionContextScript = preload("res://addons/action5/input/action_input_con
 
 @export var combat_path: NodePath = ^"../Player/CombatController"
 @export var context_source_path: NodePath = ^"../ActorInput"
+## Replaceable selection policy: same J/K or mouse buttons can choose an
+## equipped action without importing equipment into this input adapter.
+@export var action_selection_path: NodePath = ^""
 
 @onready var combat: CombatScript = get_node_or_null(combat_path) as CombatScript
 ## Duck-typed provider implementing get_action_input_context().
 ## May be replaced by a test stub or another local input source at runtime.
 @onready var context_source: Node = get_node_or_null(context_source_path)
+@onready var action_selection_source: Node = (
+    get_node_or_null(action_selection_path) if not action_selection_path.is_empty() else null
+)
 
 var release_to_rearm: bool = false
 # InputMap sees mouse events even when GUI consumes them. Only an event
@@ -84,12 +90,24 @@ func _physics_process(_delta: float) -> void:
             continue
         if pressed_mouse_edges.has(attack.input_action) and not mouse_edges.has(attack.input_action):
             continue
+        # Resolve input intent before the D05 action request. No fallback
+        # to unarmed damage if an equipped action is unavailable/invalid.
+        var selected: Resource = attack
+        if is_instance_valid(action_selection_source) and action_selection_source.has_method(
+            "get_attack_for_input"
+        ):
+            selected = action_selection_source.call(
+                "get_attack_for_input", attack.input_action, attack
+            ) as Resource
+        if selected == null or combat.get_attack(selected.get("attack_id")) != selected:
+            break
+        var sectors: int = int(selected.get("facing_sectors"))
         var direction: Vector2 = AimScript.resolve_direction(
             context.world_aim, context.facing_world,
             context.view_mode, context.camera,
-            4 if attack.facing_sectors == 1 else (8 if attack.facing_sectors == 2 else 0)
+            4 if sectors == 1 else (8 if sectors == 2 else 0)
         )
-        combat.request_attack(attack.attack_id, direction)
+        combat.request_attack(selected.get("attack_id"), direction)
         break
 
 

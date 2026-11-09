@@ -201,14 +201,54 @@ rendering the full imported world character. See
 external impulse port**, not an attack-specific branch. The combat
 controller knows only definitions and shared Health/Hurtbox interfaces.
 
-## D06 handoff
+## D06 equipment integration (D06-01 implemented and accepted)
 
-D06 weapons should own their per-instance ammo/reload/equipment state and
-supply attack definitions to the existing combat runner. Equipment
-presentation uses D04 animated hand sockets and FPS world-visual
-registration. Ranged fire resolves a 3D camera target and separately
-traces from the muzzle; a camera-clear ray alone never authorizes damage.
-No Bat/Shovel/Gun ID dispatch belongs in these shared D05 classes.
+`Action5WeaponDefinition` supplies immutable socket, attack, appearance and
+F4 viewmodel configuration. `Action5Weapon` is the single authoritative
+world instance, and `Action5EquipmentController` owns pickup, inventory,
+swap, drop and attack lifecycle registration. `CombatController` now has
+an additive generic `unregister_attack(id)` operation: it cancels any
+matching active/buffered action before releasing the ID, avoiding stale
+attack capability after dropping equipment. No Bat/Shovel-specific cases
+enter combat, actor, locomotion or the generic animation presenter.
+
+`Action5EquipmentVisualAdapter` alone resolves D04 hand sockets and
+registers/unregisters **every** weapon world mesh with the existing D04
+local-body shadow API. An optional authored F4 viewmodel is render-only,
+uses the D05 `get_visual_action()` snapshot, and never supplies physical
+hit/aim transforms. The optional `EquipmentAttackSelector` replaces
+only explicitly claimed input actions via equipment `AttackDefinition.input_action`;
+unassigned click/J/K actions retain their normal Punch/Kick definitions
+when equipment is held, and restores them on drop. The F4 limb presenter
+consults a duck-typed action-aware visibility gate to hide the replaced
+unarmed limb, while preserving an unassigned Kick leg during equipped play. Each weapon's authored camera-space arm profile drives
+the grip and the attached weapon mesh together, without changing world
+physics or adding an animation clock. NPCs have no private F4 model. See
+[equipment authoring and current state](equipment.md) and ADR-0005.
+
+**D06-02 is still pending.** A Gun instance should own its ammo/reload and
+hitscan behavior, request actions through the D05 clock and aim interfaces,
+then trace independently from the **actual world muzzle**. A clear
+camera-target ray alone never authorizes damage; melee box sweep is not
+a ranged hit solver. No Bat/Shovel/Gun ID dispatch is allowed in shared
+equipment, combat, camera, animation or movement classes.
+
+## VT-08 — Fast melee and moving hurtboxes
+
+The melee physics query now samples the oriented D05 BoxShape3D along
+the actor's displacement between adjacent physics ticks, using
+substeps scaled to the contact width (maximum 48). A stationary box
+can also detect a fast-moving receiver: each `Action5Hurtbox`
+captures its preceding physics-frame origin; Combat tests the
+relative center trajectory against the receiver-expanded hit volume.
+This keeps D05's startup/active/recovery window, invulnerability,
+teams, self-hit filtering and one-hit-per-target dedup authoritative.
+It does **not** sample camera-local grip/weapon geometry, create
+another attack clock or add Bat/Shovel-specific branches. As with
+other discrete solvers, extreme teleports beyond the maximum sampled
+distance and unusual non-box receiver geometry still warrant game-
+specific acceptance tests; routine VT-08 actor/target crossings have
+executable regressions in `tests/d06_fast_swing_suite.gd`.
 
 ## Verification
 

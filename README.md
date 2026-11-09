@@ -2,11 +2,13 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status: D01–D04 merged; D05 combat under implementation in PR #28.** The five-camera foundation, pluggable movement and crouch/crouch-walk example are merged. D05 adds unarmed combat, health, hitboxes and 3D aim; weapons and enemy AI follow after D05 validation.
+> **Project status (2026-11-09): D01–D05 merged; D06-01 completed and approved in PR #31.** D05 unarmed combat, health and F4 poses were squash-merged in PR #28. D06-01 adds Bat/Shovel equipment with transactional pickup/swap/drop, three distinct world animations, separate F4 grips, multi-button attacks and lifecycle/fast-melee hardening. CI and owner visual checks passed. Gun/ammo/muzzle obstruction (D06-02) and enemy AI (D07) remain future milestones.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
 It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawlers, third-person action games, first-person dungeon combat, and classic NES-style top-down action.
+
+**D06-01 demo controls:** E picks up the nearest Bat/Shovel, Q swaps between carried weapons, G drops the equipped item. **Bat:** left click/J performs a vertical swing and right click/K performs a separate horizontal strike. **Shovel:** left click/J swings and right click/K still kicks. Each attack claims only its configured `input_action`; unassigned inputs retain Punch/Kick. There is no separate swing button. Pickups are placed near the player in the sample arena. See [equipment authoring](docs/equipment.md) for the extension contract and known limitations.
 
 ## Five perspectives
 
@@ -75,7 +77,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch) and **right click / K** (Kick) against the training targets, or gamepad X/Y. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Bat horizontal strike, otherwise Kick unless assigned by equipment); gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while F1/F2/F3/F5 use three dedicated skinned world weapon animations (Bat vertical, Bat horizontal, Shovel overhead) and all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
@@ -94,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D04 are merged; D05 is the next planned deliverable.** The crouch movement example is merged; D05 combat is in PR #28. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D05 are merged** (D05 via squash-merged PR #28); the crouch movement example is also merged. **D06-01 Bat/Shovel equipment** is complete in approved PR #31, with authored world/F4 weapon animations, independent attacks, and lifecycle/fast-melee hardening; 908 headless assertions, real WebGL2 Full E2E and manual visual acceptance passed. **D06-02 Gun** and **D07 AI** are next, not part of PR #31. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 

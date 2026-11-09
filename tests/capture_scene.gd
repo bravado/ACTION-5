@@ -273,20 +273,26 @@ func _capture() -> void:
             push_error("D05: failed to start F4 " + str(attack_id))
             quit(1)
             return
-        for frame in range(action.startup_ticks + 2):
+        # Capture at authored contact progress, not after an arbitrary
+        # number of paired render/physics waits. Software CI may advance
+        # two physics ticks per iteration and finish a 15-tick Punch.
+        var sampled_limb_contact: bool = false
+        for frame in range(action.total_ticks() + 2):
             await physics_frame
-            await process_frame
+            limb_presenter.call("refresh_presentation")
+            var snapshot: Dictionary = actor.get_node(
+                "CombatVisualState").call("get_visual_action")
+            var progress: float = float(snapshot.get("progress", 0.0))
+            if snapshot.get("key", &"") == attack_id and progress >= 0.27 and progress <= 0.43:
+                sampled_limb_contact = true
+                break
         var limb: Node3D = limb_presenter.call("get_limb_root", attack_id)
-        if limb == null or not limb.visible or not fps.first_person:
-            push_error("D05: F4 animated limb not visible during " + str(attack_id))
+        if not sampled_limb_contact or limb == null or not limb.visible or not fps.first_person:
+            push_error("D05: F4 authored contact pose not observed for " + str(attack_id))
             quit(1)
             return
-        # A 15-tick punch may finish before the software renderer
-        # produces its next frame. Freeze the REAL authoritative pose
-        # immediately after the active tick, render it, then resume.
-        # This is capture-only synchronization, not another attack clock
-        # or a synthetic viewmodel pose.
-        limb_presenter.call("refresh_presentation")
+        # Freeze the REAL authoritative pose at contact for a rendered
+        # screenshot, without creating a second action or animation clock.
         paused = true
         await RenderingServer.frame_post_draw
         var frame_image: Image = root.get_texture().get_image()
@@ -311,6 +317,365 @@ func _capture() -> void:
         for frame in range(action.total_ticks() + 2):
             await physics_frame
         print("ACTION5_F4_NATIVE_LIMB_OK action=", attack_id, " pixels=", changed)
+
+    # D05 placed a training dummy directly against the camera for hitbox
+    # checks. Restore an unobstructed view of the held Bat: F4 pose
+    # evidence must reflect moving arm/weapon geometry, not a damaged
+    # training dummy changing color in the center of the screenshot.
+    dummy.global_position = Vector3(6.0, 0.0, -5.0)
+
+    # D06-01 native evidence: the real Bat remains attached to the world
+    # skeleton during camera switches. The camera-only prop must disappear
+    # after dropping, while the original D04 training tool returns.
+    var equipment: Node = actor.get_node("Equipment")
+    var equipment_visual: Node = actor.get_node("EquipmentVisualAdapter")
+    var bat: Node3D = scene.get_node("BatPickup") as Node3D
+    if not equipment.call("pickup", bat):
+        push_error("D06: cannot pick up Bat in native arena")
+        quit(1)
+        return
+    if equipment_visual.get("_viewmodel") == null:
+        push_error("D06: F4 viewmodel missing after native Bat pickup")
+        quit(1)
+        return
+    manager.switch_view(2)
+    for frame in range(10):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-bat-world.png")):
+        quit(1)
+        return
+
+    # VT-08: capture the imported world rig's TWO distinct Bat clips in all
+    # four exterior cameras. Each view observes the SAME physical skeleton,
+    # right-hand socket, D05 clock and actual animation (not a static prop).
+    var world_socket: Node3D = actor.get_node("AnimationPresenter").call(
+        "get_socket", &"right_hand") as Node3D
+    var world_animator: Node = actor.get_node("AnimationPresenter")
+    for world_view_index in [0, 1, 2, 4]:
+        if not manager.switch_view(world_view_index):
+            push_error("D06: cannot enter world view " + str(world_view_index + 1))
+            quit(1)
+            return
+        for settle in range(8):
+            await process_frame
+        for strike_index in range(2):
+            combat.call("cancel")
+            for settle in range(2):
+                await process_frame
+            var world_clip: StringName = (
+                &"bat_vertical" if strike_index == 0 else &"bat_horizontal"
+            )
+            var rest_hand: Vector3 = world_socket.global_position
+            if not equipment.call("request_equipped_action", strike_index, Vector2(0, -1)):
+                push_error("D06: world Bat action not registered: " + str(world_clip))
+                quit(1)
+                return
+            var sampled_world: bool = false
+            # Clip selection is authored in the AttackDefinition, independent
+            # of camera input and the equipment's index.
+            var selected_action: Resource = combat.call("get_attack",
+                &"bat_swing" if strike_index == 0 else &"bat_horizontal")
+            for tick in range(int(selected_action.call("total_ticks")) + 3):
+                await physics_frame
+                var snapshot: Dictionary = actor.get_node(
+                    "CombatVisualState").call("get_visual_action")
+                if snapshot.get("action_id", &"") == selected_action.get("attack_id") \
+                        and float(snapshot.get("progress", 0.0)) >= 0.42 \
+                        and float(snapshot.get("progress", 0.0)) <= 0.61:
+                    sampled_world = true
+                    break
+            if not sampled_world or world_animator.get("upper_body_clip") != world_clip:
+                push_error("D06: world Bat skeletal clip did not play in view "
+                    + str(world_view_index + 1) + " clip=" + str(world_clip))
+                quit(1)
+                return
+            paused = true
+            await RenderingServer.frame_post_draw
+            var image_path: String = output_dir.path_join(
+                "native-d06-bat-%s-view-%d.png" % [world_clip, world_view_index + 1])
+            if not _save_image(image_path):
+                paused = false
+                quit(1)
+                return
+            paused = false
+            print("ACTION5_D06_WORLD_POSE_NATIVE_OK view=", world_view_index + 1,
+                " attack=", world_clip, " hand_travel=",
+                world_socket.global_position.distance_to(rest_hand))
+            combat.call("cancel")
+    manager.switch_view(2)
+    for settle in range(10):
+        await process_frame
+    manager.switch_view(3)
+    for frame in range(10):
+        await process_frame
+
+    # Real equipped F4 near-wall evidence; the gripping hand/weapon must
+    # stay in frame while the player is against the actual NorthWall.
+    actor.global_position = Vector3(0, 0.15, -8.1)
+    for settle in range(12):
+        await physics_frame
+    for settle in range(8):
+        await process_frame
+    var near_model: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var near_grip: Node3D = (
+        near_model.get_node_or_null("Grip") as Node3D if near_model != null else null
+    )
+    var near_eye: Camera3D = manager.get_active_camera()
+    var near_screen: Vector2 = (
+        near_eye.unproject_position(near_grip.global_position)
+        if near_grip != null else Vector2(-1, -1)
+    )
+    var viewport_size: Vector2 = near_eye.get_viewport().get_visible_rect().size
+    if near_grip == null or near_eye.is_position_behind(near_grip.global_position) \
+            or near_screen.x < 0.0 or near_screen.x > viewport_size.x \
+            or near_screen.y < 0.0 or near_screen.y > viewport_size.y:
+        push_error("D06: equipped F4 grip clipped outside viewport near solid wall")
+        quit(1)
+        return
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-near-wall.png")):
+        quit(1)
+        return
+    actor.global_position = Vector3(0, 0.15, 0)
+    for settle in range(12):
+        await physics_frame
+    for frame in range(10):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var armed_f4: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4.png")):
+        quit(1)
+        return
+    # The weapon has its own camera-space arm/profile. F4 must NOT render
+    # the old unarmed Punch fist behind it. Capture a real active physics
+    # tick with the hand, grip and weapon moving as one visual unit.
+    var equipped_view: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var gripped_arm: Node3D = (
+        equipped_view.get("arm") as Node3D if equipped_view != null else null
+    )
+    var grip: Node3D = (
+        equipped_view.get_node_or_null("Grip") as Node3D if equipped_view != null else null
+    )
+    var bare_limbs: Node = actor.get_node("FirstPersonCombatLimbs")
+    bare_limbs.call("refresh_presentation")
+    if gripped_arm == null or grip == null or (
+        bare_limbs.call("get_limb_root", &"punch") as Node3D
+    ).visible:
+        push_error("D06: F4 equipped view must show one gripping arm, not Punch")
+        quit(1)
+        return
+    var rest_grip: Vector3 = grip.position
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06: Bat's authoritative native swing request failed")
+        quit(1)
+        return
+    var bat_action: Resource = combat.call("get_attack", &"bat_swing")
+    var sampled_contact: bool = false
+    # Sample each actual physics tick until we reach the authored contact
+    # window, instead of awaiting both process_frame and physics_frame in
+    # every iteration (which advances two ticks on some CI runners).
+    for frame in range(int(bat_action.call("total_ticks")) + 3):
+        await physics_frame
+        equipment_visual.call("refresh_presentation")
+        var current_progress: float = float(equipped_view.get("pose_progress"))
+        if current_progress >= 0.42 and current_progress <= 0.56:
+            sampled_contact = true
+            break
+    var active_grip: Vector3 = grip.position
+    if not sampled_contact or active_grip.distance_to(rest_grip) < 0.22 or not grip.position.is_equal_approx(
+        (gripped_arm.get_node("Extremity") as Node3D).position
+    ):
+        push_error("D06: weapon/gripping hand did not follow contact pose; progress="
+            + str(equipped_view.get("pose_progress"))
+            + " displacement=" + str(active_grip.distance_to(rest_grip))
+            + " contact=" + str(sampled_contact))
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    var bat_swing_image: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-swing.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    var swing_pixels: int = 0
+    for y in range(int(armed_f4.get_height() * 0.33), int(armed_f4.get_height() * 0.95), 4):
+        for x in range(int(armed_f4.get_width() * 0.28), int(armed_f4.get_width() * 0.95), 4):
+            var start_color: Color = armed_f4.get_pixel(x, y)
+            var strike_color: Color = bat_swing_image.get_pixel(x, y)
+            if absf(start_color.r - strike_color.r) + absf(start_color.g - strike_color.g) + absf(start_color.b - strike_color.b) > 0.24:
+                swing_pixels += 1
+    if swing_pixels < 50:
+        push_error("D06: active weapon grip did not visibly move in F4; pixels=" + str(swing_pixels))
+        quit(1)
+        return
+    print("ACTION5_D06_F4_SWING_NATIVE_OK grip=1 unarmed_hidden=1 pixels=", swing_pixels)
+
+    # The Bat also has a separately authored lateral RMB/K swing.
+    # Verify a real D05 secondary attack drives its own F4 profile,
+    # without adding another hand, changing the world weapon or reusing
+    # the vertical pose. The same physical Grip follows the arm.
+    combat.call("cancel")
+    equipment_visual.call("refresh_presentation")
+    if not equipment.call("request_equipped_action", 1, Vector2(0, -1)):
+        push_error("D06: Bat horizontal action not registered on its secondary slot")
+        quit(1)
+        return
+    var horizontal_action: Resource = combat.call("get_attack", &"bat_horizontal")
+    var sampled_horizontal: bool = false
+    for frame in range(int(horizontal_action.call("total_ticks")) + 3):
+        await physics_frame
+        equipment_visual.call("refresh_presentation")
+        var current_progress: float = float(equipped_view.get("pose_progress"))
+        if current_progress >= 0.43 and current_progress <= 0.57:
+            sampled_horizontal = true
+            break
+    var lateral_grip: Vector3 = grip.position
+    var horizontal_profile: Resource = gripped_arm.get("profile") as Resource
+    var hand_follows_grip: bool = grip.position.is_equal_approx(
+        (gripped_arm.get_node("Extremity") as Node3D).position)
+    if not (sampled_horizontal
+            and lateral_grip.x < active_grip.x - 0.65
+            and horizontal_profile != null
+            and horizontal_profile.get("animation_key") == &"bat_horizontal"
+            and hand_follows_grip):
+        push_error("D06: F4 horizontal Bat pose did not sweep sideways with the hand"
+            + " x_delta=" + str(lateral_grip.x - active_grip.x)
+            + " progress=" + str(equipped_view.get("pose_progress")))
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    var horizontal_image: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-bat-f4-horizontal.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    var horizontal_pixels: int = 0
+    for y in range(int(armed_f4.get_height() * 0.33), int(armed_f4.get_height() * 0.95), 4):
+        for x in range(int(armed_f4.get_width() * 0.28), int(armed_f4.get_width() * 0.95), 4):
+            var start_color: Color = armed_f4.get_pixel(x, y)
+            var strike_color: Color = horizontal_image.get_pixel(x, y)
+            if absf(start_color.r - strike_color.r) + absf(start_color.g - strike_color.g) + absf(start_color.b - strike_color.b) > 0.24:
+                horizontal_pixels += 1
+    if horizontal_pixels < 50:
+        push_error("D06: horizontal F4 Bat strike not visibly different from rest")
+        quit(1)
+        return
+    print("ACTION5_D06_F4_HORIZONTAL_NATIVE_OK grip=1 distinct=1 pixels=",
+        horizontal_pixels)
+    combat.call("cancel")
+    equipment_visual.call("refresh_presentation")
+
+    if not equipment.call("drop_current"):
+        push_error("D06: cannot drop Bat from native equipped state")
+        quit(1)
+        return
+    for frame in range(12):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var dropped_f4: Image = root.get_texture().get_image()
+    if not _save_image(output_dir.path_join("native-d06-dropped-f4.png")):
+        quit(1)
+        return
+    var delta: int = 0
+    for y in range(int(armed_f4.get_height() * 0.44), int(armed_f4.get_height() * 0.93), 4):
+        for x in range(int(armed_f4.get_width() * 0.50), int(armed_f4.get_width() * 0.94), 4):
+            var a: Color = armed_f4.get_pixel(x, y)
+            var b: Color = dropped_f4.get_pixel(x, y)
+            if absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) > 0.24:
+                delta += 1
+    if delta < 50 or equipment_visual.get("_viewmodel") != null:
+        push_error("D06: native first-person Bat visual did not clear after drop; pixels=" + str(delta))
+        quit(1)
+        return
+    print("ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1 pixels=", delta)
+
+    # Shovel also uses a dedicated world overhead clip, not unarmed Punch.
+    var shovel: Node3D = scene.get_node("ShovelPickup") as Node3D
+    if not equipment.call("pickup", shovel):
+        push_error("D06: cannot pick up Shovel for native world pose matrix")
+        quit(1)
+        return
+    for world_view_index in [0, 1, 2, 4]:
+        if not manager.switch_view(world_view_index):
+            push_error("D06: cannot enter Shovel world view " + str(world_view_index + 1))
+            quit(1)
+            return
+        for settle in range(8):
+            await process_frame
+        combat.call("cancel")
+        for settle in range(2):
+            await process_frame
+        if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+            push_error("D06: Shovel world overhead clip could not start")
+            quit(1)
+            return
+        var sampled_shovel: bool = false
+        var shovel_attack: Resource = combat.call("get_attack", &"shovel_swing")
+        for tick in range(int(shovel_attack.call("total_ticks")) + 3):
+            await physics_frame
+            var snapshot: Dictionary = actor.get_node(
+                "CombatVisualState").call("get_visual_action")
+            if snapshot.get("action_id", &"") == &"shovel_swing" \
+                    and float(snapshot.get("progress", 0.0)) >= 0.42 \
+                    and float(snapshot.get("progress", 0.0)) <= 0.61:
+                sampled_shovel = true
+                break
+        if not sampled_shovel or world_animator.get("upper_body_clip") != &"shovel_overhead":
+            push_error("D06: Shovel overhead clip missing in view " + str(world_view_index + 1))
+            quit(1)
+            return
+        paused = true
+        await RenderingServer.frame_post_draw
+        if not _save_image(output_dir.path_join(
+            "native-d06-shovel-overhead-view-%d.png" % (world_view_index + 1))):
+            paused = false
+            quit(1)
+            return
+        paused = false
+        print("ACTION5_D06_WORLD_POSE_NATIVE_OK view=", world_view_index + 1,
+            " attack=shovel_overhead")
+        combat.call("cancel")
+
+    manager.switch_view(3)
+    for settle in range(10):
+        await process_frame
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06: Shovel F4 swing could not start")
+        quit(1)
+        return
+    var shovel_view: Node3D = equipment_visual.get("_viewmodel") as Node3D
+    var shovel_f4_seen: bool = false
+    var shovel_attack: Resource = combat.call("get_attack", &"shovel_swing")
+    for tick in range(int(shovel_attack.call("total_ticks")) + 3):
+        await physics_frame
+        equipment_visual.call("refresh_presentation")
+        if shovel_view != null \
+                and float(shovel_view.get("pose_progress")) >= 0.42 \
+                and float(shovel_view.get("pose_progress")) <= 0.60:
+            shovel_f4_seen = true
+            break
+    if not shovel_f4_seen or shovel_view.get_node_or_null("Grip") == null:
+        push_error("D06: Shovel F4 authored grip animation was not observed")
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-shovel-f4-overhead.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    combat.call("cancel")
+
+    if not equipment.call("drop_current"):
+        push_error("D06: cannot drop Shovel after world pose matrix")
+        quit(1)
+        return
 
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")
     quit(0)

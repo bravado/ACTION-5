@@ -1,7 +1,7 @@
 # First-person presentation architecture — research and D05 refactor
 
-Status: Implemented in draft [PR #28](https://github.com/bravado/ACTION-5/pull/28);
-Godot native/WebGL2 validation required before merging.
+Status: D05 merged via [PR #28](https://github.com/bravado/ACTION-5/pull/28).
+D06-01 equipped viewmodel/attack selection was implemented and visually approved in PR #31, with real native/WebGL2 Full E2E evidence.
 
 ## Root-cause analysis
 
@@ -85,7 +85,9 @@ flowchart TD
   ticks remain in CombatController.
 - `CombatVisualState` is a one-way, replaceable adapter. Its public
   interface is `get_visual_action() -> Dictionary`, returning
-  `{key:StringName, progress:float}` or `{}` while idle.
+  `{key:StringName, progress:float}` and optional
+  `action_id:StringName` for unambiguous ownership-sensitive presentation,
+  or `{}` while idle.
 - `FirstPersonCombatLimbs` consumes **only the visual snapshot** and
   the existing `FirstPersonPresenter.register_first_person_visual()`
   port, not CombatController or Skeleton3D. The pose clock comes from
@@ -166,10 +168,23 @@ near-camera poses.
    viewports; verify the projected fist/knee/end are within expected
    ranges, not just the action name in a log.
 
-**D06** should attach world equipment to the D04 socket, then optionally
-register a separate camera-local viewmodel on the same layer 19 and
-consume an equipment-specific visual adapter. **Do not make Combat or
-FirstPersonPresenter know weapon type names.** A viewmodel is never a
+**D06** attaches world equipment to the D04 socket, then optionally
+registers a separate camera-local viewmodel on the same layer 19 and
+consumes a visual adapter. When equipment is active, a replaceable
+visibility source hides D05's resting F4 fist and any replaced action
+limb, **but preserves the normal Kick leg when `actor_kick` is unassigned**;
+the equipment F4 scene instead uses an authored `FirstPersonLimbProfile` for its own
+hand/forearm, with all held weapon meshes parented to that hand's
+animated grip. Input selection is handled before combat by the optional
+`EquipmentAttackSelector`: equipped attacks explicitly claim each
+InputMap action through `AttackDefinition.input_action`; unassigned
+clicks/J/K keep normal Punch/Kick, without any special swing key or
+weapon-type branch. `Action5FirstPersonWeaponViewmodel` accepts optional
+`action_profiles` keyed by the visual-action key, using the same
+instantiated arm and Grip for multiple attack styles. Bat showcases
+a vertical primary and lateral secondary F4 strike; Shovel remains
+single-action. **Do not make Combat or FirstPersonPresenter know
+weapon type names.** A viewmodel is never a
 second actor and never owns damage or ammo.
 
 ## Acceptance and limitations
