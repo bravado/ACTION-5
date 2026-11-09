@@ -475,6 +475,58 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for tick in range(2):
         await tree.process_frame
 
+    # A right-only weapon deliberately reuses the unarmed "punch" world
+    # visual key. The unassigned Punch remains visible in F4; executing
+    # the equipped action with that same clip must not show a fake fist.
+    var alias_attack: AttackScript = AttackScript.new()
+    alias_attack.attack_id = &"test_right_alias"
+    alias_attack.input_action = &"actor_kick"
+    alias_attack.animation_key = &"punch"
+    var alias_definition: DefinitionScript = DefinitionScript.new()
+    alias_definition.weapon_id = &"test_right_alias_item"
+    alias_definition.attacks = [alias_attack]
+    alias_definition.first_person_scene = bat.definition.first_person_scene
+    var alias_weapon: WeaponScript = WeaponScript.new()
+    alias_weapon.name = "AliasWeapon"
+    alias_weapon.definition = alias_definition
+    level.add_child(alias_weapon)
+    alias_weapon.global_position = actor.global_position + Vector3(0.4, 0.4, 0.2)
+    verify.call(equipment.pickup(alias_weapon)
+        and selector.call("get_attack_for_input", &"actor_punch",
+            combat.get_attack(&"punch")) == combat.get_attack(&"punch")
+        and selector.call("get_attack_for_input", &"actor_kick",
+            combat.get_attack(&"kick")) == alias_attack
+        and visual._viewmodel != null,
+        "Right-only weapon reuses the Punch world clip without claiming left input")
+    views.call("switch_view", 3)
+    verify.call(combat.request_attack(&"punch", Vector2.RIGHT),
+        "Unassigned Punch starts normally while holding the right-only weapon")
+    for tick in range(4):
+        await tree.physics_frame
+        if combat.current_id == &"punch":
+            break
+    unarmed_limb.call("refresh_presentation")
+    verify.call(combat.current_id == &"punch"
+        and unarmed_limb.get_limb_root(&"punch").visible,
+        "F4 unassigned Punch remains visible despite shared equipment visual key")
+    combat.cancel()
+    verify.call(combat.request_attack(&"test_right_alias", Vector2.RIGHT),
+        "Right-only equipped action can start with a shared visual clip")
+    for tick in range(4):
+        await tree.physics_frame
+        if combat.current_id == &"test_right_alias":
+            break
+    unarmed_limb.call("refresh_presentation")
+    verify.call(combat.current_id == &"test_right_alias"
+        and not unarmed_limb.get_limb_root(&"punch").visible,
+        "Equipped action hides bare fist even when it shares the Punch clip")
+    combat.cancel()
+    views.call("switch_view", 2)
+    verify.call(equipment.drop_current(), "Shared-clip weapon drops cleanly")
+    alias_weapon.queue_free()
+    for tick in range(2):
+        await tree.process_frame
+
     # D07 NPC reuses the same EquipmentController without a first-person
     # renderer. The mount is a tiny duck-typed provider; no CameraRig.
     var npc := CharacterBody3D.new()
