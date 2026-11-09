@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="Action5WeaponDefinition" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="Action5WeaponDefinition" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_definition.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/bat_swing.tres" id="2"]
 [ext_resource type="PackedScene" path="res://demo/equipment/bat_first_person.tscn" id="3"]
+[ext_resource type="Resource" path="res://demo/equipment/bat_horizontal.tres" id="4"]
 
 [resource]
 script = ExtResource("1")
@@ -10,5 +11,5 @@ weapon_id = &"bat"
 display_name = "Bat"
 socket_id = &"right_hand"
 grip_position = Vector3(0, -0.03, -0.18)
-attacks = Array[Resource]([ExtResource("2")])
+attacks = Array[Resource]([ExtResource("2"), ExtResource("4")])
 first_person_scene = ExtResource("3")
