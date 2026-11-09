@@ -185,9 +185,81 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(combat.unregister_attack(&"test_external_effect"),
         "External-only action unregisters through the same generic lifecycle")
 
+    # Removing a buffered weapon action must not cancel a different active
+    # action. Conversely removing the active action retains another buffer.
+    var active_action: AttackScript = AttackScript.new()
+    active_action.attack_id = &"test_unrelated_active"
+    active_action.use_melee_hit_query = false
+    active_action.startup_ticks = 0
+    active_action.active_ticks = 12
+    active_action.recovery_ticks = 0
+    var queued_action: AttackScript = AttackScript.new()
+    queued_action.attack_id = &"test_queued_removed"
+    queued_action.use_melee_hit_query = false
+    queued_action.startup_ticks = 0
+    queued_action.active_ticks = 4
+    queued_action.recovery_ticks = 0
+    verify.call(combat.register_attack(active_action)
+        and combat.register_attack(queued_action)
+        and combat.request_attack(active_action.attack_id, Vector2.RIGHT),
+        "Independent active and buffered definitions register with the D05 clock")
+    await tree.physics_frame
+    var active_tick: int = combat.elapsed_ticks
+    verify.call(combat.current_id == active_action.attack_id
+        and combat.request_attack(queued_action.attack_id, Vector2.RIGHT)
+        and combat.unregister_attack(queued_action.attack_id)
+        and combat.current_id == active_action.attack_id
+        and combat.elapsed_ticks == active_tick and combat._pending_id == &"",
+        "Unregistering only a pending attack leaves the unrelated active clock intact")
+    await tree.physics_frame
+    verify.call(combat.current_id == active_action.attack_id
+        and combat.elapsed_ticks == active_tick + 1,
+        "Unrelated active attack keeps advancing after buffered removal")
+    combat.cancel()
+    verify.call(combat.register_attack(queued_action)
+        and combat.request_attack(active_action.attack_id, Vector2.RIGHT),
+        "Reverse cancellation case can register and request both actions")
+    await tree.physics_frame
+    verify.call(combat.request_attack(queued_action.attack_id, Vector2.RIGHT)
+        and combat.unregister_attack(active_action.attack_id)
+        and combat.current_attack == null
+        and combat._pending_id == queued_action.attack_id,
+        "Removing an active attack preserves a different queued action")
+    await tree.physics_frame
+    verify.call(combat.current_id == queued_action.attack_id
+        and combat.elapsed_ticks == 1,
+        "Preserved queued attack starts on the next physics tick")
+    combat.cancel()
+    combat.unregister_attack(queued_action.attack_id)
+
     verify.call(equipment.pickup(shovel) and equipment.inventory.size() == 2
-        and equipment.current_weapon == bat,
+        and equipment.current_weapon == bat and shovel.equipment_owner == equipment,
         "Second weapon is a stowed independent instance until explicitly swapped")
+
+    # A second actor with fully working equipment/combat/mount ports cannot
+    # steal a hidden/stowed item that still belongs to this actor.
+    var rival := CharacterBody3D.new()
+    rival.name = "IndependentCollector"
+    var rival_combat: CombatScript = CombatScript.new()
+    rival_combat.name = "CombatController"
+    rival.add_child(rival_combat)
+    var rival_mount: Node = MountScript.new()
+    rival_mount.name = "SocketProvider"
+    rival.add_child(rival_mount)
+    var rival_socket := Node3D.new()
+    rival_socket.name = "Socket"
+    rival_mount.add_child(rival_socket)
+    var rival_equipment: EquipmentScript = EquipmentScript.new()
+    rival_equipment.name = "Equipment"
+    rival_equipment.mount_source_path = ^"../SocketProvider"
+    rival.add_child(rival_equipment)
+    level.add_child(rival)
+    rival.global_position = shovel.global_position
+    verify.call(not rival_equipment.pickup(shovel)
+        and rival_equipment.inventory.is_empty() and equipment.inventory.has(shovel)
+        and shovel.equipment_owner == equipment and shovel.get_parent() == equipment,
+        "Another actor cannot claim an already-owned stowed Shovel")
+
     verify.call(equipment.swap_next() and equipment.current_weapon == shovel
         and not bat.is_equipped and not bat.visible and shovel.is_equipped,
         "Swap moves the Shovel to the same socket and stows Bat")
@@ -210,8 +282,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     verify.call(equipment.swap_next() and equipment.current_weapon == shovel
         and equipment.drop_current() and shovel.get_parent() == level
-        and not shovel.is_equipped and shovel.visible,
-        "Dropping restores Shovel's real world instance and appearance")
+        and not shovel.is_equipped and shovel.visible
+        and shovel.equipment_owner == null,
+        "Dropping restores Shovel's world instance and releases ownership")
+    rival.global_position = shovel.global_position
+    verify.call(rival_equipment.pickup(shovel)
+        and rival_equipment.current_weapon == shovel
+        and shovel.equipment_owner == rival_equipment
+        and rival_equipment.drop_current() and shovel.equipment_owner == null,
+        "Dropped Shovel transfers to another actor and can return to the world")
+    rival.queue_free()
     for tick in range(2):
         await tree.process_frame
     verify.call(not equipment.request_equipped_action(0, Vector2.RIGHT)
@@ -264,8 +344,25 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(combat.get_attack(&"test_club_swing") == custom_attack
         and is_equal_approx(custom_attack.hitbox_size.x, 0.65),
         "Third weapon registers its exact configured attack and hit dimensions")
-    verify.call(visual._registered_meshes.size() == 2,
-        "Third weapon receives two independent world-mesh shadow registrations")
+    # A third item intentionally has NO camera-local scene. It must keep
+    # its world meshes on visible render layers and retain the F4 hand,
+    # instead of registering meshes for culling with no replacement.
+    var world_fallback_visible: bool = true
+    for mesh in third.get_world_meshes():
+        world_fallback_visible = (
+            world_fallback_visible and mesh.visible and mesh.layers == 1
+            and mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        )
+    views.call("switch_view", 3)
+    await tree.process_frame
+    unarmed_limb.call("refresh_presentation")
+    verify.call(world_fallback_visible and visual._viewmodel == null
+        and visual._registered_meshes.is_empty()
+        and fps.world_visual_shadows.size() == starting_shadows
+        and fps.first_person and views.get_active_camera().get_cull_mask_value(1)
+        and unarmed_limb.get_limb_root(&"punch").visible,
+        "Third weapon without an F4 scene remains world-visible and keeps the unarmed hand")
+    views.call("switch_view", 2)
     verify.call(equipment.drop_current()
         and combat.get_attack(&"test_club_swing") == null,
         "Third weapon cleans up its attack registry on drop")
