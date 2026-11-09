@@ -194,6 +194,24 @@ try {
   await page.mouse.down({ button: 'left' });
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-swing.png', fullPage: true });
+  // The first F4 attack may also capture the mouse. Synthetic warp events
+  // must not pitch the camera into a black/empty world. This asserts a
+  // real rendered world pixel, not just a successful combat-start log.
+  const worldAfterCapture = await page.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    const mirror = document.createElement('canvas');
+    mirror.width = canvas.width;
+    mirror.height = canvas.height;
+    const ctx = mirror.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(canvas, 0, 0);
+    const px = ctx.getImageData(
+      Math.floor(canvas.width * 0.50), Math.floor(canvas.height * 0.51), 1, 1).data;
+    return px[0] + px[1] + px[2];
+  });
+  if (worldAfterCapture < 60) {
+    errors.push('D06 F4 attack caused a dark camera view after pointer capture: ' +
+      worldAfterCapture);
+  }
   await page.mouse.up({ button: 'left' });
   await page.waitForTimeout(850);
   const f4Starts = combatStarts.slice(beforeF4Attack);
