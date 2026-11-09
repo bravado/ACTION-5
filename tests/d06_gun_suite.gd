@@ -151,6 +151,29 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and gun.shots_fired == 3,
         "F1–F5 switches preserve the gun instance, physical muzzle and ammunition")
 
+    # Independent F5 right-stick aiming uses the view-specific policy, not
+    # movement or gun branches; F1–F3 retain continuous directions.
+    source.snapshot = ContextScript.new(true, Vector2(0.98, 0.18),
+        Vector2(-1, 0), ProfileScript.Mode.RETRO_TOPDOWN)
+    var retro_target: Vector3 = aim.call("get_world_target",
+        muzzle.global_position, 20.0, camera_excludes)
+    var retro_direction := Vector2(retro_target.x - muzzle.global_position.x,
+        retro_target.z - muzzle.global_position.z).normalized()
+    verify.call(retro_direction.dot(Vector2.RIGHT) > 0.99,
+        "F5 independent 8-way aim follows right stick, not moving/facing left")
+    for mode in [ProfileScript.Mode.SIDE, ProfileScript.Mode.BEATEMUP,
+            ProfileScript.Mode.ISOMETRIC]:
+        source.snapshot = ContextScript.new(true, Vector2(0.6, -0.8),
+            Vector2(-1, 0), mode)
+        var aim_target: Vector3 = aim.call("get_world_target",
+            muzzle.global_position, 20.0, camera_excludes)
+        var continuous_direction := Vector2(aim_target.x - muzzle.global_position.x,
+            aim_target.z - muzzle.global_position.z).normalized()
+        verify.call(continuous_direction.distance_to(Vector2(0.6, -0.8)) < 0.001,
+            "View %d retains continuous gun heading without retro quantization" % mode)
+    source.snapshot = ContextScript.new(true, Vector2(0, -1),
+        Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
+
     # Reload has a separate weapon-command timeline, not a combat action.
     verify.call(gun.request_weapon_command(&"weapon_reload") and gun.reload_left > 0,
         "Reload uses per-weapon command rather than an attack ID")
@@ -210,6 +233,18 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     requested = await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1))
     verify.call(requested and variant.magazine == initial_variant_magazine - 1,
         "Alternate cadence attack fires from the alternate gun without core conditionals")
+    await _ticks(tree, 30)
+    # Empty magazine must never create a phantom hit or negative ammo.
+    for shot in range(variant.magazine):
+        await _ticks(tree, 30)
+        verify.call(await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1)),
+            "Alternate gun can fire remaining configured rounds")
+    await _ticks(tree, 30)
+    var fired_before_dry: int = variant.shots_fired
+    requested = await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1))
+    verify.call(requested and variant.magazine == 0
+        and variant.shots_fired == fired_before_dry,
+        "Dry active attack cannot fire, damage or consume negative ammunition")
     await _ticks(tree, 30)
     verify.call(variant.request_weapon_command(&"weapon_alt_reload"),
         "Alternate gun accepts its own configured reload command")
