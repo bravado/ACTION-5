@@ -91,6 +91,19 @@ func show_unarmed_limb(action_key: StringName) -> bool:
         return true
     if action_key == &"" or not is_instance_valid(_active_weapon):
         return false
+    var state: Dictionary = {}
+    if is_instance_valid(visual_state) and visual_state.has_method("get_visual_action"):
+        state = visual_state.call("get_visual_action")
+    # Action identity, when provided, resolves even a weapon that shares
+    # the exact same animation key as an unassigned Punch/Kick.
+    if state.has("action_id"):
+        var action_id: StringName = state.get("action_id", &"")
+        for attack in _active_weapon.call("get_attack_definitions"):
+            if attack.get("attack_id") == action_id:
+                return false
+        return true
+    # Older visual sources expose only {key, progress}; keep their
+    # authored-visual-key fallback without importing CombatController.
     for attack in _active_weapon.call("get_attack_definitions"):
         var key: StringName = attack.get("visual_action_key")
         if key == &"":
