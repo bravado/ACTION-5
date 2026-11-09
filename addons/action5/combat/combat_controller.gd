@@ -35,6 +35,12 @@ var _pending_direction: Vector2 = Vector2.ZERO
 var _active_direction: Vector2 = Vector2(0.0, -1.0)
 var _hit_actor_ids: Dictionary = {}
 var _hit_shape: BoxShape3D = BoxShape3D.new()
+## Physics-only hit volume continuity. Track the previous attack volume
+## through startup and active ticks so fast actor movement cannot skip a
+## target between two discrete overlap samples. Never sample visual meshes.
+var _previous_hit_transform: Transform3D = Transform3D.IDENTITY
+var _has_previous_hit_transform: bool = false
+const MAX_HIT_SWEEP_SUBSTEPS: int = 48
 var _debug_mesh: MeshInstance3D
 
 
@@ -130,6 +136,13 @@ func _physics_process(_delta: float) -> void:
         attack_phase_changed.emit(current_id, phase, t)
     if phase == &"active" and definition.use_melee_hit_query:
         _resolve_hits()
+    elif current_attack != null:
+        # Keep the baseline current through startup and recovery. A target
+        # is only damaged in the authored active window.
+        _previous_hit_transform = _hit_transform()
+        _has_previous_hit_transform = true
+    if current_attack == null:
+        return
     _update_debug()
     elapsed_ticks += 1
     if elapsed_ticks >= definition.total_ticks():
@@ -159,6 +172,8 @@ func _begin_attack() -> void:
     var sector_count: int = 4 if current_attack.facing_sectors == 1 else (8 if current_attack.facing_sectors == 2 else 0)
     _active_direction = MovementPolicyScript.quantize_facing(direction, sector_count)
     phase = &"idle"
+    _previous_hit_transform = _hit_transform()
+    _has_previous_hit_transform = true
     attack_started.emit(current_id)
 
 
@@ -175,30 +190,52 @@ func _hit_transform() -> Transform3D:
 
 func _resolve_hits() -> void:
     _hit_shape.size = current_attack.hitbox_size
+    var current_transform: Transform3D = _hit_transform()
+    var previous: Transform3D = (
+        _previous_hit_transform if _has_previous_hit_transform else current_transform
+    )
+    var travel: float = previous.origin.distance_to(current_transform.origin)
+    var min_width: float = minf(current_attack.hitbox_size.x, current_attack.hitbox_size.z)
+    var step_width: float = maxf(min_width * 0.4, 0.15)
+    var substeps: int = mini(ceili(travel / step_width), MAX_HIT_SWEEP_SUBSTEPS)
     var query := PhysicsShapeQueryParameters3D.new()
     query.shape = _hit_shape
-    query.transform = _hit_transform()
     query.collision_mask = hurtbox_mask
     query.collide_with_areas = true
     query.collide_with_bodies = false
-    for entry in body.get_world_3d().direct_space_state.intersect_shape(query, 64):
-        var hurtbox: HurtboxScript = entry.get("collider") as HurtboxScript
-        if hurtbox == null:
-            continue
-        var target: HealthScript = hurtbox.get_health()
-        if target == null or target == health or _hit_actor_ids.has(target.get_instance_id()):
-            continue
-        if health != null and health.team_id != 0 and health.team_id == target.team_id \
-            and not current_attack.allow_friendly_fire:
-            continue
-        if target.take_hit(
-            current_attack.damage, body, current_attack, _active_direction,
-            current_attack.knockback_speed, current_attack.knockback_ticks,
-            current_attack.stagger_ticks
-        ):
-            _hit_actor_ids[target.get_instance_id()] = true
-            hit_count += 1
-            attack_hit.emit(current_id, target.get_parent())
+    for index in range(substeps + 1):
+        # Each sample uses a true physics Shape3D query; drawing an F4 grip
+        # or changing camera mode cannot create, suppress or shift a hit.
+        query.transform = (
+            previous.interpolate_with(current_transform, float(index) / float(substeps))
+            if substeps > 0 else current_transform
+        )
+        for entry in body.get_world_3d().direct_space_state.intersect_shape(query, 64):
+            var hurtbox: HurtboxScript = entry.get("collider") as HurtboxScript
+            if hurtbox == null:
+                continue
+            var target: HealthScript = hurtbox.get_health()
+            if target == null or target == health or _hit_actor_ids.has(target.get_instance_id()):
+                continue
+            if health != null and health.team_id != 0 and health.team_id == target.team_id \
+                    and not current_attack.allow_friendly_fire:
+                continue
+            if target.take_hit(
+                current_attack.damage, body, current_attack, _active_direction,
+                current_attack.knockback_speed, current_attack.knockback_ticks,
+                current_attack.stagger_ticks
+            ):
+                _hit_actor_ids[target.get_instance_id()] = true
+                hit_count += 1
+                attack_hit.emit(current_id, target.get_parent())
+            # A hit subscriber can cancel the attack; do not use its
+            # definition after cancellation in subsequent sweep samples.
+            if current_attack == null:
+                break
+        if current_attack == null:
+            break
+    _previous_hit_transform = current_transform
+    _has_previous_hit_transform = current_attack != null
 
 
 func _finish_attack(was_cancelled: bool = false) -> void:
@@ -208,6 +245,7 @@ func _finish_attack(was_cancelled: bool = false) -> void:
     phase = &"idle"
     elapsed_ticks = 0
     _hit_actor_ids.clear()
+    _has_previous_hit_transform = false
     _update_debug()
     if was_cancelled:
         attack_cancelled.emit(finished)
