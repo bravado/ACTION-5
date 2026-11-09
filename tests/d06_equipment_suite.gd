@@ -143,7 +143,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var horizontal_contact: Vector3 = grip.position
     verify.call(bat_view.has_method("apply_action_pose")
         and gripped_arm != null and grip != null
-        and gripped_arm.profile.animation_key == &"bat_horizontal"
+        and (gripped_arm.get("profile") as Resource).get("animation_key") == &"bat_horizontal"
         and grip.position.is_equal_approx(gripped_arm.get_node("Extremity").position)
         and absf(horizontal_contact.x - vertical_contact.x) > 0.65
         and horizontal_contact.x < vertical_contact.x
@@ -152,7 +152,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and not unarmed_limb.get_limb_root(&"kick").visible,
         "F4 horizontal strike sweeps laterally with its attached hand and weapon")
     bat_view.call("apply_action_pose", &"", 0.0)
-    verify.call(gripped_arm.profile == bat_view.grip_profile
+    verify.call(gripped_arm.get("profile") == bat_view.get("grip_profile")
         and grip.position.distance_to(resting_grip) < 0.01,
         "F4 alternate sweep returns to the single resting hand with no second copy")
     verify.call(combat.request_attack(&"bat_horizontal", Vector2.RIGHT),
@@ -164,14 +164,14 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "CombatVisualState").call("get_visual_action")
     verify.call(horizontal_snapshot.get("key", &"") == &"bat_horizontal"
         and horizontal_snapshot.get("action_id", &"") == &"bat_horizontal"
-        and gripped_arm.profile.animation_key == &"bat_horizontal"
-        and bat_view.pose_progress > 0.2
+        and (gripped_arm.get("profile") as Resource).get("animation_key") == &"bat_horizontal"
+        and float(bat_view.get("pose_progress")) > 0.2
         and grip.position.is_equal_approx(gripped_arm.get_node("Extremity").position),
         "Real F4 Bat horizontal attack selects its own profile without another combat clock")
     combat.cancel()
     visual.call("refresh_presentation")
-    verify.call(gripped_arm.profile == bat_view.grip_profile
-        and is_zero_approx(bat_view.pose_progress),
+    verify.call(gripped_arm.get("profile") == bat_view.get("grip_profile")
+        and is_zero_approx(float(bat_view.get("pose_progress"))),
         "F4 bat horizontal action resets to the original rest profile on cancel")
     views.call("switch_view", 2)
 
