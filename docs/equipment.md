@@ -31,11 +31,12 @@ never drives hitbox position, damage, weapon inventory or aim. A separate
 the equipped instance's `get_attack_for_input(input_action)` port.
 Each equipment `AttackDefinition.input_action` explicitly registers the
 button/action it replaces; there is **no index-based default or automatic
-duplication onto the other button**. For example, Bat and Shovel configure
-`input_action = &"actor_punch"`, so **LMB/J swings the weapon while
-RMB/K still performs the normal Kick**. A weapon may instead assign
-`actor_kick`, both (with two distinct attacks), another InputMap action,
-or none. Unassigned actions keep their original Punch/Kick behavior.
+duplication onto the other button**. The Bat demonstrates **two independent
+actions**: `bat_swing` (`actor_punch`, LMB/J, vertical) and
+`bat_horizontal` (`actor_kick`, RMB/K, wide lateral strike).
+The Shovel claims only `actor_punch`, leaving RMB/K as regular Kick.
+Other weapons may claim just one, both, another InputMap action, or none;
+unassigned inputs retain the normal Punch/Kick behavior.
 `CombatInputAdapter` consumes only the replaceable selection policy, not
 equipment internals. Duplicate nonempty action assignments on one weapon
 are invalid.
@@ -53,6 +54,13 @@ The weapon's own
 `FirstPersonLimbProfile` and attaches its weapon mesh to the actual
 camera-space grip (fist transform). The arm, grip and weapon sweep
 **together**, with no independent spinning item or extra attack timer.
+For multiple actions, the viewmodel optionally exports
+`action_profiles: Array[Resource]` of `FirstPersonLimbProfile` resources
+keyed by `animation_key` (matching the attack's `visual_action_key`).
+The same hand, grip and rendered Bat switch between vertical and horizontal
+profiles; an unmatched/idle key returns to the base `grip_profile`.
+The generic equipment renderer selects the pose from the existing visual
+action snapshot, without weapon-ID cases or another gameplay clock.
 `AttackDefinition.visual_action_key` optionally identifies the authored
 camera-local sequence independently of `animation_key` (which still
 selects the existing world skeleton clip). Bat and Shovel use unique
@@ -76,16 +84,18 @@ NPCs omit FirstPersonPresenter and can use an alternative tiny
 | E | Pick up nearest Bat/Shovel within reach |
 | Q | Swap between carried weapons (or re-equip the last stowed item) |
 | G | Drop current weapon into the persistent world |
-| Left mouse / J | Bat/Shovel swing; default Punch if the item does not assign `actor_punch` |
-| Right mouse / K | Default Kick; an item may explicitly override `actor_kick` |
+| Left mouse / J | Bat vertical swing or Shovel swing; otherwise Punch |
+| Right mouse / K | Bat horizontal strike; Shovel retains Kick; otherwise the equipped assignment or Kick |
 | 1–5 | Switch perspective without changing equipment |
 
-The demo rig currently has no dedicated Shovel world animation. Shovel
-reuses the **upper-body Punch clip**, not the full-body Kick clip, while
-its F4 viewmodel continues to use the separate authored `shovel_swing`
-grip/arm motion. Production weapons can supply their own world clip and
-upper-body channel through their attack resources without modifying the
-animation presenter.
+The demo rig has no dedicated Shovel or horizontal-Bat world clips.
+Both Bat attacks and Shovel temporarily reuse the **upper-body Punch
+clip**, never full-body Kick, in F1/F2/F3/F5. Their contact volumes,
+damage and action timelines are already independent; F4 has distinct
+authored grip/arm poses for each attack. A dedicated world horizontal
+Bat animation remains an art/visual-acceptance follow-up, configurable
+through the actor's SkeletonProfile and attack resource with no edits to
+movement, combat or generic equipment.
 
 The current sample arena places both pickups near the starting point.
 Weapon pickup is a proximity interaction (not a physics impact or
@@ -107,7 +117,10 @@ complex inventory system). Drop restores the same Node3D to the world.
    `FirstPersonLimbProfile` on a `FirstPersonWeaponViewmodel` scene,
    with a `Grip` node holding all first-person tool meshes. `Grip`
    follows the extremity transform for each pose, including the rest
-   pose, chamber, contact and recoil.
+   pose, chamber, contact and recoil. For an alternate attack, create a
+   second `FirstPersonLimbProfile` with `animation_key` equal to its
+   `visual_action_key` and add it to the viewmodel's `action_profiles`;
+   no additional equipment controller or separate viewmodel is needed.
 3. Create a `Weapon` Node3D scene with this definition and independently
    authored world MeshInstance3D children. Put it in the world. You
    may add it to the demo's `action5_weapon_pickup` group to allow E.
