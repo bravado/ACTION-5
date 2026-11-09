@@ -201,7 +201,7 @@ rendering the full imported world character. See
 external impulse port**, not an attack-specific branch. The combat
 controller knows only definitions and shared Health/Hurtbox interfaces.
 
-## D06 equipment integration (D06-01 in progress)
+## D06 equipment integration (D06-01 under review)
 
 `Action5WeaponDefinition` supplies immutable socket, attack, appearance and
 F4 viewmodel configuration. `Action5Weapon` is the single authoritative
@@ -232,6 +232,23 @@ then trace independently from the **actual world muzzle**. A clear
 camera-target ray alone never authorizes damage; melee box sweep is not
 a ranged hit solver. No Bat/Shovel/Gun ID dispatch is allowed in shared
 equipment, combat, camera, animation or movement classes.
+
+## VT-08 — Fast melee and moving hurtboxes
+
+The melee physics query now samples the oriented D05 BoxShape3D along
+the actor's displacement between adjacent physics ticks, using
+substeps scaled to the contact width (maximum 48). A stationary box
+can also detect a fast-moving receiver: each `Action5Hurtbox`
+captures its preceding physics-frame origin; Combat tests the
+relative center trajectory against the receiver-expanded hit volume.
+This keeps D05's startup/active/recovery window, invulnerability,
+teams, self-hit filtering and one-hit-per-target dedup authoritative.
+It does **not** sample camera-local grip/weapon geometry, create
+another attack clock or add Bat/Shovel-specific branches. As with
+other discrete solvers, extreme teleports beyond the maximum sampled
+distance and unusual non-box receiver geometry still warrant game-
+specific acceptance tests; routine VT-08 actor/target crossings have
+executable regressions in `tests/d06_fast_swing_suite.gd`.
 
 ## Verification
 
