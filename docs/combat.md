@@ -201,7 +201,7 @@ rendering the full imported world character. See
 external impulse port**, not an attack-specific branch. The combat
 controller knows only definitions and shared Health/Hurtbox interfaces.
 
-## D06 equipment integration (D06-01 under review)
+## D06 equipment integration (D06-01 implemented and accepted)
 
 `Action5WeaponDefinition` supplies immutable socket, attack, appearance and
 F4 viewmodel configuration. `Action5Weapon` is the single authoritative
