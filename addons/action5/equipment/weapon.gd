@@ -18,6 +18,17 @@ func get_attack_definitions() -> Array[Resource]:
     return definition.attacks if definition != null else []
 
 
+## AttackDefinition.input_action is the sole authored input-to-action binding.
+## No positional fallback: an unassigned input retains its unarmed action.
+func get_attack_for_input(input_action: StringName) -> Resource:
+    if not is_equipped or definition == null or input_action == &"":
+        return null
+    for attack in definition.attacks:
+        if attack != null and attack.get("input_action") == input_action:
+            return attack
+    return null
+
+
 func get_world_meshes() -> Array[MeshInstance3D]:
     var result: Array[MeshInstance3D] = []
     for node in find_children("*", "MeshInstance3D", true, false):
