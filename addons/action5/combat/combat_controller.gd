@@ -68,8 +68,14 @@ func register_attack(attack: AttackScript) -> bool:
 func unregister_attack(id: StringName) -> bool:
     if not _registry.has(id):
         return false
-    if current_id == id or _pending_id == id:
-        cancel()
+    # Unregister only the removed action. A buffered weapon action must
+    # never cancel an unrelated active punch, and removing an active
+    # weapon action must retain any unrelated buffered action.
+    if _pending_id == id:
+        _pending_id = &""
+        _pending_direction = Vector2.ZERO
+    if current_id == id:
+        _finish_attack(true)
     _registry.erase(id)
     attack_unregistered.emit(id)
     return true
