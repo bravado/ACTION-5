@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/animation/first_person_weapon_viewmodel.gd" id="1_viewmodel"]
 [ext_resource type="Resource" path="res://demo/equipment/bat_grip.tres" id="2_grip"]
+[ext_resource type="Resource" path="res://demo/equipment/bat_horizontal_grip.tres" id="3_horizontal"]
 
 [sub_resource type="BoxMesh" id="shaft"]
 size = Vector3(0.14, 0.14, 0.95)
@@ -16,6 +17,7 @@ roughness = 0.75
 [node name="BatF4" type="Node3D"]
 script = ExtResource("1_viewmodel")
 grip_profile = ExtResource("2_grip")
+action_profiles = Array[Resource]([ExtResource("3_horizontal")])
 
 [node name="Grip" type="Node3D" parent="."]
 
