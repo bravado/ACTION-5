@@ -28,6 +28,9 @@ func _press(scene: Node, code: int) -> void:
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var original_scene: Node = tree.current_scene
     var stage := (load("res://demo/main.tscn") as PackedScene).instantiate() as Node3D
+    # Other suites may retain an actor at the origin. Never let physical
+    # rays in this fixture hit colliders from a different live test world.
+    stage.position = Vector3(900, 0, 900)
     tree.root.add_child(stage)
     tree.current_scene = stage
     await _frames(tree, 9)
@@ -162,7 +165,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     verify.call(encounter.get_node_or_null("ReturnDoor") == null
         and door.get_instance_id() == arena_door_id
-        and door.global_position.distance_to(Vector3(14, 0, 0)) < 0.01,
+        and door.position.distance_to(Vector3(14, 0, 0)) < 0.01,
         "The same gateway is seen from both areas; no duplicate far-side return door")
     # E works from the opposite physical side, too. The panel closes and
     # opens again while the Player's position stays unchanged.
