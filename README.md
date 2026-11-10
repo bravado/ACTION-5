@@ -149,7 +149,7 @@ without authoring a second encounter map. See
 `demo/world/encounter_sector.tscn` dungeon (X=14..38), on the
 **same floor elevation and global axes**. The former ten-unit void and
 dungeon's far-side return door are removed. A single physical gate at
-**X=14, Z=-4** joins both floors; its split flanking wall segments
+**X=14, Z=0** joins both floors; its split flanking wall segments
 and overlapping floor slab form a real passable doorway. **E opens or
 closes the gate; walking across switches the active sector**, without
 replacing/teleporting the original player. The frame and two-sided
