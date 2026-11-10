@@ -476,3 +476,11 @@ Keep visual-only roofs and projectile tracers out of physics authority.
 D07 is merged: D08 is now the next deliverable. Rebase/retarget stacked
 PR #34 to `master`, revalidate both CI tiers and finish D08 without
 reopening the shared movement/combat/animation cores.
+
+The D07 merged baseline passed 1,018/1,018 pinned Godot assertions and
+native/Linux plus real WebGL2 Full E2E on GitHub Actions run
+#42871200034. The existing automated visual capture renders the main
+demo, not the D07 encounter: when changing NPC animation/weapon geometry,
+run `demo/ai/encounter.tscn` directly and inspect all five camera modes.
+For D08, keep its session/restart state separate from AI and combat
+and add independent persistent-world traversal acceptance tests.
