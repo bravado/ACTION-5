@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3]
+[gd_scene load_steps=40 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -14,15 +14,14 @@
 
 [ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
-[ext_resource type="Script" path="res://demo/interactions/scene_door.gd" id="14_door"]
-[ext_resource type="PackedScene" path="res://demo/ai/encounter.tscn" id="15_encounter"]
+[ext_resource type="Script" path="res://demo/interactions/world_portal_door.gd" id="14_door"]
+[ext_resource type="PackedScene" path="res://demo/world/encounter_sector.tscn" id="15_encounter"]
 [ext_resource type="Script" path="res://demo/interactions/interact_input.gd" id="16_interaction"]
 [ext_resource type="PackedScene" path="res://demo/ui/death_overlay.tscn" id="17_death"]
-[ext_resource type="Script" path="res://demo/interactions/scene_handoff_receiver.gd" id="18_receiver"]
-
-[ext_resource type="Script" path="res://demo/interactions/world_pickup_state.gd" id="19_world_pickups"]
-
-[ext_resource type="Script" path="res://demo/interactions/scene_visit_state.gd" id="20_scene_state"]
+[ext_resource type="Script" path="res://demo/world/world_session.gd" id="18_session"]
+[ext_resource type="Script" path="res://addons/action5/interactions/interactor.gd" id="19_interactor"]
+[ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="20_pickup"]
+[ext_resource type="Script" path="res://demo/interactions/world_switch.gd" id="21_switch"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -71,6 +70,9 @@ size = Vector3(1.0, 0.3, 2.5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_step"]
 size = Vector3(1.0, 0.3, 2.5)
+
+[sub_resource type="BoxShape3D" id="DoorShape"]
+size = Vector3(0.24, 2.45, 2.1)
 
 [sub_resource type="BoxMesh" id="DoorMesh"]
 size = Vector3(0.24, 2.45, 2.1)
@@ -196,7 +198,18 @@ position = Vector3(-3.0, 0.0, -5.0)
 [node name="EncounterDoor" type="Node3D" parent="." groups=["action5_interactable"]]
 position = Vector3(12.4, 0, -4)
 script = ExtResource("14_door")
-destination_scene = ExtResource("15_encounter")
+destination_sector = "encounter"
+
+[node name="Body" type="StaticBody3D" parent="EncounterDoor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EncounterDoor/Body"]
+position = Vector3(0, 1.225, 0)
+shape = SubResource("DoorShape")
+
+[node name="NavigationLink3D" type="NavigationLink3D" parent="EncounterDoor"]
+enabled = false
+start_position = Vector3(-1.0, 0, 0)
+end_position = Vector3(1.0, 0, 0)
 
 [node name="DoorMesh" type="MeshInstance3D" parent="EncounterDoor"]
 position = Vector3(0, 1.225, 0)
@@ -205,11 +218,48 @@ surface_material_override/0 = SubResource("DoorMaterial")
 
 [node name="DoorLabel" type="Label3D" parent="EncounterDoor"]
 position = Vector3(-0.28, 2.75, 0)
-text = "ENCOUNTER  [E]"
+text = "DUNGEON  [E]"
 font_size = 44
 pixel_size = 0.007
 billboard = 1
 no_depth_test = true
+
+[node name="EncounterSector" parent="." instance=ExtResource("15_encounter")]
+position = Vector3(36.0, 0, 0)
+
+[node name="ArenaSpawn" type="Marker3D" parent="."]
+position = Vector3(10.0, 0.15, -4.0)
+
+[node name="EncounterSpawn" type="Marker3D" parent="."]
+position = Vector3(40.5, 0.15, 0.0)
+
+[node name="WorldSession" type="Node" parent="."]
+script = ExtResource("18_session")
+encounter_scene = ExtResource("15_encounter")
+
+[node name="Interactor" type="Node" parent="."]
+script = ExtResource("19_interactor")
+
+[node name="BatPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("20_pickup")
+weapon_path = NodePath("../BatPickup")
+
+[node name="ShovelPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("20_pickup")
+weapon_path = NodePath("../ShovelPickup")
+
+[node name="GunPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("20_pickup")
+weapon_path = NodePath("../GunPickup")
+
+[node name="LightSwitch" type="Node3D" parent="." groups=["action5_interactable"]]
+position = Vector3(-9.0, 0, 1.0)
+script = ExtResource("21_switch")
+
+[node name="Light" type="OmniLight3D" parent="LightSwitch"]
+position = Vector3(0, 2.0, 0)
+visible = false
+omni_range = 5.0
 
 [node name="ViewManager" type="Node" parent="."]
 script = ExtResource("3_manager")
@@ -252,7 +302,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 106.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: punch | RMB/K: kick\nE: pickup | Q: swap | G: drop | LMB/RMB/J/K: equipped weapon"
+text = "ACTION-5 // PERSISTENT WORLD\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: attack | RMB/K: secondary\nE: pickup/door/switch | Q: swap | G: drop | R: reload"
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0
@@ -312,11 +362,4 @@ script = ExtResource("6_settings")
 
 [node name="DeathOverlay" parent="." instance=ExtResource("17_death")]
 
-[node name="SceneHandoffReceiver" type="Node" parent="."]
-script = ExtResource("18_receiver")
-
-[node name="WorldPickupState" type="Node" parent="."]
-script = ExtResource("19_world_pickups")
-
-[node name="SceneVisitState" type="Node" parent="."]
-script = ExtResource("20_scene_state")
+ 
