@@ -150,3 +150,30 @@ and enemies instead of calling `change_scene_to_packed()`. The one-shot
 scene-handoff prototype and its obsolete test suites were removed.
 Keep future AI regression coverage in this shared dungeon, without
 reintroducing another Player/Camera scene or touching combat-core APIs.
+
+## D08 closed-gate detection and retained aggro
+
+`Action5AITargetSensor.set_acquisition_gate(node)` accepts an
+optional, map-composed `allows_acquisition(observer, candidate) -> bool`
+protocol. The example `demo/interactions/door_acquisition_filter.gd`
+uses a physical door's opening plane: it rejects **new** player
+detection across a closed gate but permits acquisition within the
+same room and across an opened gate. When the gate closes, the
+already-acquired target remains valid until the ordinary forget-range
+or Health lifecycle clears it. AI keeps its navigation/pursuit intent
+but cannot physically cross a closed door or attack through its
+blocked world-space LoS.
+
+`WorldSession` connects the two dungeon sensors to this gate on
+normal startup and after a **Start fresh** room reinstance; the
+reusable sensor, AI FSM, navigation and combat do not import
+WorldDoor or scene coordinates. The demo now includes an arena
+NavigationRegion3D plus a conditional door NavigationLink3D.
+When adding more doors, compose independent acquisition filters and
+navigation links rather than testing global is_dungeon flags.
+
+`tests/d08_connections_suite.gd` verifies that enemies stay
+unalerted as the player approaches a **closed** adjacent door,
+become alerted when it opens, and keep their acquired target after
+closure while physical cover continues blocking attacks. D07
+same-room detection and obstacle pursuit remain separately tested.
