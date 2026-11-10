@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-10): D01–D07 are merged.** D05 was squash-merged through PR #28; D06-01 Bat/Shovel through PR #31; D06-02 Gun/tracers through PR #32; and D07 camera-independent, animated melee/ranged enemy AI through PR #33. The D07 implementation passed **1,018 Godot assertions (zero failures)** plus Linux/native and real WebGL2 Full E2E ([run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034)). The v0.2 Combat implementation baseline is complete. **D08 is next:** arena/dungeon traversal must preserve live actors in the same persistent world, with standalone interactions, doors, pickups and roof visibility. [Draft PR #34](https://github.com/bravado/ACTION-5/pull/34) contains only a scene-loading prototype and is not yet D08-complete. Remaining requirements and release gates below remain authoritative.
+**Status update (2026-11-10): D01–D07 are merged.** D05 was squash-merged through PR #28; D06-01 Bat/Shovel through PR #31; D06-02 Gun/tracers through PR #32; and D07 camera-independent, animated melee/ranged enemy AI through PR #33. The D07 implementation passed **1,018 Godot assertions (zero failures)** plus Linux/native and real WebGL2 Full E2E ([run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034)). The v0.2 Combat implementation baseline is complete. **D08 is next:** arena/dungeon traversal must preserve live actors in the same persistent world, with standalone interactions, doors, pickups and roof visibility. [Draft PR #34](https://github.com/bravado/ACTION-5/pull/34) now composes two physically connected rooms, a shared two-sided doorway and one live player; D08 state/visual/native-WebGL2 acceptance remains open. Remaining requirements and release gates below remain authoritative.
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -802,15 +802,30 @@ collected-pickup history and snapshot experiments were removed after
 transitioning to the persistent-world implementation. PR #34 now uses
 `demo/world/world_session.gd` with the live dungeon PackedScene, a shared
 Player/Health/Combat/Equipment, actor-local interactions and optional
-**fresh/restore** room entry. The former standalone scene-transition
+**fresh/restore** room entry.
+
+The playable layout joins the arena (east edge X=14) to the dungeon
+(west edge at world X=14, scene origin X=26), at equal floor elevation.
+The split east wall leaves an opening at **X=14, Z=-4**. A physical
+PassageFloor bridges both authored floor colliders and a **single
+two-sided WorldDoor** opens its BarrierMesh/collision while retaining a
+visible frame and navigation link. There is no duplicate ReturnDoor.
+The player walks through without teleportation; WorldSession watches
+their world-space X crossing and keeps dungeon physics preloaded near
+the gate. Scripted `travel_to()` remains an explicit testing/cutscene
+warp port, not the door behavior. The camera uses one continuous combined
+bounds rectangle, with no abrupt per-sector snaps. The former standalone scene-transition
 regressions are replaced by `tests/d08_world_suite.gd` and
 `tests/d08_camera_sector_suite.gd`. Native/WebGL2 and fresh-entry
 lifecycle acceptance are still required before D08 merge.
 
-D08 must still deliver an actor-local Interactor and an input-independent
-`interact(actor)` path, separate Door/WorldPickup/RoofVisibility components,
-locked/open physical door + navigation updates, presentation-only roof
-hiding, shared-world traversal and small step/gap/ledge/overhang fixtures.
+D08 components on the branch include an actor-local Interactor with
+input-independent `interact(actor)`, separate Door/WorldPickup and
+roof/lighting presentation, locked/open physical door + navigation
+updates, continuous shared-world travel and step/gap/ledge/overhang
+fixtures. The acceptance gate remains independent: prove real two-way
+walk-through, stable inventory/enemy state, optional fresh/restore,
+physical obstruction and native/WebGL2 in all views.
 Preserve world-muzzle first-hit authority and the same actor-owned
 equipment/Health/AI/animation instances through interactions. Test
 screen/UI input, all five views, scripted NPC interaction, traversal and
