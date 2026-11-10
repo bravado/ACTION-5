@@ -144,11 +144,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var roof := encounter.get_node("Roof") as StaticBody3D
     var roof_mesh := roof.get_node("Mesh") as MeshInstance3D
     var roof_shape := roof.get_node("CollisionShape3D") as CollisionShape3D
-    stage.get_node("ViewManager").switch_view(4)
-    await _frames(tree, 2)
-    verify.call(not roof_mesh.visible and not roof_shape.disabled
-        and roof.collision_layer != 0,
-        "F5 hides roof presentation but retains physical roof collision")
+    var view_manager := stage.get_node("ViewManager")
+    var roof_safe_in_all_views: bool = true
+    for view_index in range(5):
+        view_manager.switch_view(view_index)
+        await _frames(tree, 2)
+        roof_safe_in_all_views = roof_safe_in_all_views             and not roof_mesh.visible and roof_mesh.cast_shadow == 0             and not roof_shape.disabled and roof.collision_layer != 0
+    verify.call(roof_safe_in_all_views,
+        "All F1-F5 views omit the dungeon roof and its shadow without disabling collision")
+    var dungeon_light_a := encounter.get_node("DungeonFillLight") as OmniLight3D
+    var dungeon_light_b := encounter.get_node("DungeonCombatLight") as OmniLight3D
+    verify.call(dungeon_light_a != null and dungeon_light_b != null
+        and dungeon_light_a.light_energy > 0.0
+        and dungeon_light_b.light_energy > 0.0
+        and not dungeon_light_a.shadow_enabled and not dungeon_light_b.shadow_enabled,
+        "Reusable dungeon sector has shadow-free interior lights for visible player combat")
+    verify.call(encounter.scene_file_path == "res://demo/world/encounter_sector.tscn"
+        and tree.current_scene == stage,
+        "Dungeon is an independently authored PackedScene within one live world, not a scene swap")
 
     # Player and NPC/script callers share the exact same component contract.
     var interactor := stage.get_node("Interactor")
