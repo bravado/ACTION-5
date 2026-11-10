@@ -252,3 +252,43 @@ frame and door state persist across all visits, even when dungeon
 processing is suspended away from the passage. D08 release readiness
 still requires passing fresh head-specific CI, native/WebGL2 traversal
 and manual visual checks; these docs do **not** imply PR #34 is merged.
+
+### D08 door occlusion, awareness and remote PackedScene transitions
+
+In `demo/main.tscn`, the teal gate at **X=14, Z=0** joins two
+rooms. Physically press E at its near-side handle and then walk
+through. A closed door disables its NavigationLink3D, enables its
+blocking shape and restores the opaque panel. `RoomVisibility`
+hides the opposite room's render nodes, including world pickup
+meshes, **without disabling their physics or resetting AI state**.
+The linked `DoorAcquisitionFilter` prevents the two NPC sensors
+from *first* acquiring an actor across a closed boundary, while
+already-detected targets continue chasing until normal forget/Health
+rules apply; the door still blocks physical movement and attacks.
+
+`Action5Interactor` uses an optional
+`get_interaction_point(actor)` method so an opaque door can provide
+symmetric handles without the ray needing to terminate inside its
+own panel. The AI sensor likewise accepts an optional
+`allows_acquisition(observer, candidate)` filter. Both protocols
+are replaceable and have no input, camera or combat dependencies.
+ArenaNavigation uses a minimal flat demo NavMesh, connected to
+the dungeon's authored ring by the physical door link. For a real
+game, bake obstacle-aware nav polygons for each sector.
+
+The purple portal at **X=-11.5, Z=0** is *not* a physical doorway.
+Its independent `LocationPortal` loads
+`demo/world/remote_chamber.tscn` (or can instead target a Marker3D),
+then `LocationManager` repositions the **original player** to the
+arrival point and caches the detached scene instance. The room has a
+return-to-arena marker portal and is CPU-paused when inactive.
+`WorldSession` stops threshold checking only during detached travel.
+Camera bounds change only for the explicit distant jump, not while
+walking between adjacent rooms.
+
+Run `make check` and `tests/d08_connections_suite.gd` (through
+`tests/run_all.gd`). The tests exercise a real viewport E key,
+both-sided gate behavior, room invisibility before entry,
+acquisition denial/persistence, nav/collision states, and repeated
+detached scene travel with the same inventory/actor identity. The
+usual D07 NPC and D08 dropped-equipment/camera regressions still run.
