@@ -11,6 +11,7 @@ signal sector_changed(previous: StringName, current: StringName)
 @export var arena_spawn_path: NodePath = ^"../ArenaSpawn"
 @export var encounter_spawn_path: NodePath = ^"../EncounterSpawn"
 @export var encounter_scene: PackedScene
+@export var discovery_filter_path: NodePath = ^"../EncounterDoor/AcquisitionFilter"
 @export var participant_group: StringName = &"action5_scene_persistable"
 
 ## Shared wall threshold, expressed in parent-world local coordinates.
@@ -41,7 +42,23 @@ func _ready() -> void:
         if equipment != null:
             equipment.weapon_dropped.connect(_on_weapon_dropped)
             equipment.weapon_picked_up.connect(_on_weapon_picked_up)
+    _bind_enemy_discovery_filter()
     call_deferred("_capture_initial")
+
+
+## Scene-composition port: all NPC TargetSensors receive the optional
+## acquisition filter without the AI core knowing about a particular door.
+func _bind_enemy_discovery_filter() -> void:
+    var filter: Node = get_node_or_null(discovery_filter_path)
+    if not is_instance_valid(filter) or not is_instance_valid(encounter_sector):
+        return
+    for child in encounter_sector.get_children():
+        var actor := child as Node
+        if actor == null:
+            continue
+        var sensor: Node = actor.get_node_or_null("TargetSensor")
+        if sensor != null and sensor.has_method("set_acquisition_gate"):
+            sensor.call("set_acquisition_gate", filter)
 
 
 func _capture_initial() -> void:
@@ -113,7 +130,8 @@ func _set_encounter_active(value: bool) -> void:
     if not is_instance_valid(encounter_sector) or value == _encounter_active:
         return
     _encounter_active = value
-    encounter_sector.visible = value
+    # Presentation is independent; a closed door may hide the dungeon
+    # visually while its physical floor/collision is preloaded near us.
     encounter_sector.process_mode = (
         Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
     )
@@ -159,6 +177,7 @@ func _reset_encounter() -> bool:
     parent.move_child(replacement, index)
     encounter_sector = replacement
     _encounter_active = true
+    _bind_enemy_discovery_filter()
     return true
 
 
