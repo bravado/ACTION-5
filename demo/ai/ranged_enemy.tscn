@@ -19,6 +19,9 @@ reload_command = &"weapon_reload"
 maximum_range = 10.0
 minimum_range = 3.0
 
+[node name="AnimationPresenter" parent="."]
+run_speed_threshold = 3.2
+
 [node name="EnemyAppearance" parent="."]
 tint = Color(0.22, 0.55, 0.93, 0.26)
 
