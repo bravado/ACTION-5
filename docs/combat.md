@@ -270,3 +270,24 @@ teams, blocking, immunity, external impulse lifetime, focus release gate,
 active-view switching and death. The existing import-first CI additionally
 runs native and Web exports and WebGL2 view smoke. See PR #28 for
 run-specific results and limitations.
+
+
+## D07 AI requests versus D08 world interactions
+
+D07 `Action5AIController` is a camera-independent producer of the
+**existing** D05 combat requests; `Action5AIAttackPolicy` resolves
+an equipped action by ID, never by weapon name or array position.
+The target sensor and AI decision component gate requests by physical
+range and LoS and cancel their own accepted attacks if either changes,
+including during startup. The authoritative hitbox/hurtbox or Gun
+first-hit muzzle ray remains unchanged. Optional NPC animation adapters
+observe `attack_started`/`attack_finished`/`attack_cancelled`
+and Health events; they never control damage.
+
+`tests/d07_suite.gd` covers autonomous melee/Gun damage, startup
+range/cover cancellation, independent NPC clocks, player punch/kick
+input in the encounter, animations and death. See [AI authoring](ai.md).
+The next D08 world interaction layer may invoke Health, Combat or
+Equipment through their existing public ports but must **not** add
+door/restart/pickup branches to CombatController or create a second
+combat timeline for scene changes.
