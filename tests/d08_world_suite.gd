@@ -25,11 +25,6 @@ func _press(scene: Node, code: int) -> void:
     scene.call("_unhandled_input", _key(code))
 
 
-func _visit(scene: Node3D, actor: Node3D, door: Node3D) -> void:
-    actor.global_position = door.global_position + Vector3(-0.7, 0.15, 0)
-    _press(scene, KEY_E)
-
-
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var original_scene: Node = tree.current_scene
     var stage := (load("res://demo/main.tscn") as PackedScene).instantiate() as Node3D
@@ -41,7 +36,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var world := stage.get_node("WorldSession")
     var encounter := stage.get_node("EncounterSector") as Node3D
     var door := stage.get_node("EncounterDoor") as Node3D
-    var arena_door_mesh := door.get_node("DoorMesh") as MeshInstance3D
+    var arena_door_mesh := door.get_node("DoorMesh") as Node3D
+    var barrier_mesh := door.get_node("BarrierMesh") as MeshInstance3D
     var arena_door_id: int = door.get_instance_id()
     var player_id: int = player.get_instance_id()
     var stage_id: int = stage.get_instance_id()
@@ -96,20 +92,36 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and gun.equipment_owner == null,
         "G drops the selected Gun as a real independent world node")
 
-    _visit(stage, player, door)
-    await _frames(tree, 5)
+    # The physical entrance is exactly at the shared wall. Pressing E
+    # opens the barrier, but MUST NOT teleport the actor or change sector.
+    player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
+    await _physics_frames(tree, 2)
+    var before_open: Vector3 = player.global_position
+    _press(stage, KEY_E)
+    await _physics_frames(tree, 2)
+    verify.call(door.open and world.current_sector == &"arena"
+        and player.global_position.distance_to(before_open) < 0.20,
+        "E opens the shared gate without teleporting or switching sectors")
+    verify.call(not barrier_mesh.visible and arena_door_mesh.visible,
+        "Opening removes the barrier only; the two-sided physical door frame remains")
+    # Cross the same doorway in world space with the original player node;
+    # WorldSession observes the crossing after normal physics ticks.
+    player.global_position = door.global_position + Vector3(1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     verify.call(tree.current_scene == stage and stage.get_instance_id() == stage_id
         and player.get_instance_id() == player_id and world.current_sector == &"encounter"
         and encounter.visible and encounter.process_mode != Node.PROCESS_MODE_DISABLED,
-        "E enters the live encounter with EXACTLY the same world and player instance")
+        "Walking across the shared east opening enters the live dungeon without replacing player")
     verify.call(gun.get_instance_id() == loose_id and gun.get_parent() == stage
         and gun.global_position.distance_to(dropped_position) < 0.01
         and gun.equipment_owner == null,
         "A Gun dropped in the arena remains at its exact world position during travel")
     verify.call(door.open and door.get_node("NavigationLink3D").enabled,
         "Opening the portal changes authoritative navigation-link state")
-    verify.call(arena_door_mesh.visible and bool(door.get("keep_visual_when_open")),
-        "Arena portal remains visually present after entering dungeon despite open collision")
+    verify.call(arena_door_mesh.visible and bool(door.get("keep_visual_when_open"))
+        and not barrier_mesh.visible,
+        "The same two-sided doorway remains visible in the dungeon while its barrier is open")
     await _physics_frames(tree, 2)
     verify.call(door.get_node("Body/CollisionShape3D").disabled,
         "An opened door disables its real physical collision, not just its mesh")
@@ -119,13 +131,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(enemy_health.current_health == 0.0 and not enemy.alive,
         "Actual Health death disables the encountered NPC")
 
-    var exit_door := encounter.get_node("ReturnDoor") as Node3D
-    var dungeon_door_mesh := exit_door.get_node("DoorMesh") as MeshInstance3D
-    var dungeon_door_id: int = exit_door.get_instance_id()
-    verify.call(dungeon_door_mesh.visible and bool(exit_door.get("keep_visual_when_open")),
-        "Dungeon return portal is initially visible before the first return trip")
-    _visit(stage, player, exit_door)
-    await _frames(tree, 5)
+    verify.call(encounter.get_node_or_null("ReturnDoor") == null
+        and door.get_instance_id() == arena_door_id
+        and door.global_position.distance_to(Vector3(14, 0, -4)) < 0.01,
+        "The same gateway is seen from both areas; no duplicate far-side return door")
+    player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     verify.call(world.current_sector == &"arena" and not encounter.visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
         "Return to arena pauses encounter without unloading or replacing any actor")
@@ -134,9 +146,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(door.get_instance_id() == arena_door_id
         and arena_door_mesh.visible and door.open,
         "Arena door remains visible and is the SAME interactable after returning")
-    verify.call(exit_door.open and dungeon_door_mesh.visible
-        and exit_door.get_instance_id() == dungeon_door_id,
-        "Opened dungeon portal keeps its visible marker while the sector is suspended")
+    verify.call(door.open and arena_door_mesh.visible and not barrier_mesh.visible,
+        "Returning to arena preserves the open two-sided portal and its frame")
     verify.call(is_instance_valid(gun) and gun.get_parent() == stage
         and gun.get_instance_id() == loose_id
         and gun.global_position.distance_to(dropped_position) < 0.01,
@@ -148,15 +159,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and equipment.current_weapon == gun and gun.equipment_owner == equipment,
         "Returning player can pick up the exact same dropped Gun again")
     await _physics_frames(tree)
-    _visit(stage, player, door)
-    await _frames(tree, 4)
+    player.global_position = door.global_position + Vector3(1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     verify.call(stage.get_node("EncounterSector/Melee").get_instance_id() == enemy_id
         and enemy_health.current_health == 0.0 and not enemy.alive,
         "Restore entry preserves the exact dead enemy instance without resurrection")
-    verify.call(encounter.visible and dungeon_door_mesh.visible
-        and exit_door.get_instance_id() == dungeon_door_id
-        and arena_door_mesh.visible and door.get_instance_id() == arena_door_id,
-        "Both portal visuals remain present on the second visit; no reloaded doors")
+    verify.call(encounter.visible and arena_door_mesh.visible
+        and door.get_instance_id() == arena_door_id and not barrier_mesh.visible,
+        "Second visit reuses one visible open two-sided doorway; no duplicated portal")
     verify.call(equipment.inventory.size() == 2 and player.get_instance_id() == player_id,
         "Repeated travel never duplicates equipped items or the authoritative player")
 
@@ -171,10 +182,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(bat.get_parent() == stage and bat.equipment_owner == null
         and equipment.inventory.size() == 1,
         "G leaves an encounter weapon as a live world item instead of destroying it")
-    _visit(stage, player, exit_door)
-    await _frames(tree, 4)
-    _visit(stage, player, door)
-    await _frames(tree, 4)
+    player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    player.global_position = door.global_position + Vector3(1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     verify.call(is_instance_valid(bat) and bat.get_parent() == stage
         and bat.equipment_owner == null
         and bat.global_position.distance_to(dropped_bat_position) < 0.01,
@@ -272,11 +284,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # Configurable policy applies only to target sector. Fresh recreates NPCs
     # and removes loose weapons dropped there, but preserves Player/Gun.
-    _visit(stage, player, exit_door)
-    await _frames(tree, 4)
-    door.set("entry_policy", 1)
-    _visit(stage, player, door)
-    await _frames(tree, 5)
+    player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    world.set("dungeon_entry_policy", 1)
+    player.global_position = door.global_position + Vector3(1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     encounter = stage.get_node("EncounterSector") as Node3D
     var fresh_enemy := encounter.get_node("Melee") as CharacterBody3D
     verify.call(fresh_enemy.get_instance_id() != enemy_id
@@ -286,15 +299,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(not is_instance_valid(bat) and player.get_instance_id() == player_id
         and equipment.inventory.size() == 1 and equipment.current_weapon == gun,
         "Fresh resets only destination loose items; player and held Gun stay alive")
-    verify.call(stage.get_node("EncounterSector/ReturnDoor") != null,
-        "Fresh sector recreates a configured return portal without scene reload")
-    verify.call((encounter.get_node("ReturnDoor/DoorMesh") as MeshInstance3D).visible
+    verify.call(encounter.get_node_or_null("ReturnDoor") == null
+        and stage.get_node("EncounterDoor").get_instance_id() == arena_door_id
         and arena_door_mesh.visible,
-        "Fresh dungeon entry also preserves visible return and arena portal markers")
-    var return_fresh := encounter.get_node("ReturnDoor") as Node3D
-    return_fresh.set("entry_policy", 1)
-    _visit(stage, player, return_fresh)
-    await _frames(tree, 5)
+        "Fresh dungeon state never recreates the shared boundary door")
+    world.set("arena_entry_policy", 1)
+    player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
+    await _physics_frames(tree, 3)
+    await _frames(tree, 2)
     verify.call(stage.has_node("BatPickupWorldState")
         and stage.has_node("GunPickupWorldState")
         and stage.get_node("BatPickupWorldState").capture_state()["available"]
