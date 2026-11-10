@@ -8,10 +8,6 @@ class_name Action5Interactor
 @export_range(0.1, 20.0, 0.1) var maximum_distance: float = 2.6
 @export var require_line_of_sight: bool = true
 @export_flags_3d_physics var obstruction_mask: int = 1
-## Start past an actor's own capsule (demo radius 0.35). Keep this
-## configurable for different rig sizes; do not rely solely on
-## query.exclude, which may still report the actor from an embedded ray.
-@export_range(0.0, 1.5, 0.05) var actor_surface_clearance: float = 0.45
 
 @onready var world: Node = get_node_or_null(world_path)
 var _last_frame: int = -1
@@ -68,24 +64,12 @@ func _clear_sight(actor: Node3D, item: Node3D) -> bool:
         excluded.append((child as CollisionObject3D).get_rid())
     var from: Vector3 = actor.global_position + Vector3(0, 1.0, 0)
     var to: Vector3 = item.global_position + Vector3(0, 1.0, 0)
-    var distance: float = from.distance_to(to)
-    if distance < 0.0316:
+    if from.distance_squared_to(to) < 0.001:
         return true
-    # Raycast begins just outside the caller's own capsule. This keeps
-    # interactions camera-independent on the F1 Z=0 lane and on the
-    # dungeon side, even when the underlying physics query reports an
-    # actor's own collider despite the RID exclusion list.
-    from += (to - from) / distance * minf(actor_surface_clearance, distance * 0.4)
     var query := PhysicsRayQueryParameters3D.create(from, to, obstruction_mask, excluded)
     query.collide_with_areas = false
     var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(query)
     if hit.is_empty():
         return true
     var collider := hit.get("collider") as Node
-    if item.name == "EncounterDoor" and collider != item and (
-            collider == null or not item.is_ancestor_of(collider)):
-        print("ACTION5_GATE_LOS_DEBUG actor=", actor.get_path(),
-            " collider=", collider.get_path() if collider != null else "null",
-            " from=", from, " to=", to,
-            " excluded=", excluded.size())
     return collider == item or (collider != null and item.is_ancestor_of(collider))
