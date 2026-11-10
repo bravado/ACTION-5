@@ -219,7 +219,7 @@ resolved wall/target point, so its real visual trajectory remains
 consistent across F1–F5 and survives shooter removal. Native F3/F4
 in-flight captures and a real WebGL2 firing/pickup test form the
 automated smoke; subjective near-camera muzzle/grip alignment still
-requires owner visual inspection. See ADR-0006.
+was manually accepted by the owner on 2026-11-10 (PR #32). See ADR-0006.
 
 
 ### Visible F4 projectile origin

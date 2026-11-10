@@ -158,7 +158,7 @@ in the Bat/Shovel PR.
 
 ## D06-02 verified extension boundary
 
-The gun implementation in PR #32 consumes the same equipment lifecycle
+The gun implementation in PR #32 (974/974 checks and owner visuals passed on 2026-11-10) consumes the same equipment lifecycle
 without modifying the accepted actor/movement/combat/animation core.
 `Action5Gun` supplies per-instance ammunition and world-muzzle
 hitscan; local-player and camera-free NPC implementations both conform

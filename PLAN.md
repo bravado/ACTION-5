@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-09):** D01–D05 merged; D05-01 (#11) and D05-02 (#12) closed by squash-merged PR #28 (`881de1c`). **D06-01 Bat/Shovel equipment is implemented and approved in PR #31**: transactional pickup/swap/drop, exclusive inventory ownership, 3 distinct world-space weapon animations, camera-local F4 grips, per-action input claims, fast-swing physics and teardown/movement regressions. The approved head passed **908 Godot assertions (0 failures)**, Linux/native captures and real WebGL2 Full E2E ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)); owner visual testing passed. Issue #13 closes when PR #31 merges. **D06-02 Gun (#14)** is implemented on PR #32 (958 latest headless assertions, owner visuals and latest full E2E pending), while **D07 AI (#15)** is next. D06 is not yet entirely complete. ADR-0005 records the accepted boundary. Remaining requirements and release gates below remain authoritative.  
+**Status update (2026-11-10):** D01–D05 merged; D05-01 (#11) and D05-02 (#12) closed by squash-merged PR #28 (`881de1c`). **D06-01 Bat/Shovel equipment is implemented and approved in PR #31**: transactional pickup/swap/drop, exclusive inventory ownership, 3 distinct world-space weapon animations, camera-local F4 grips, per-action input claims, fast-swing physics and teardown/movement regressions. The approved head passed **908 Godot assertions (0 failures)**, Linux/native captures and real WebGL2 Full E2E ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)); owner visual testing passed. Issue #13 closes when PR #31 merges. **D06-02 Gun (#14)** is implemented in PR #32: 974 pinned Godot assertions, native/WebGL2 Full E2E and owner F1–F5 visual acceptance **passed** ([CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)). Architecture review found no remaining core-coupling blockers; PR #32 remains open for squash merge, after which #14 can be closed. **D07 AI (#15)** is next. D06 is not yet merged completely. ADR-0005 records the accepted boundary. Remaining requirements and release gates below remain authoritative.  
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -390,7 +390,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 - **D05 integration:** one generic `CombatController.unregister_attack(id)` complements `register_attack()` for equipment teardown and cancels any current/buffered action before removal. It knows no specific weapon type. Weapon definitions register their attacks only when equipped; the weapon requests D05 action IDs through the single authoritative combat timeline. Test a third independently authored weapon and a camera-free NPC with an alternative mount provider.
 - **D06-01 attack input and equipped F4 visual acceptance:** Equipment attacks explicitly claim each InputMap action through their `AttackDefinition.input_action` property and the **replaceable selection provider**; missing bindings keep regular Punch/Kick, even while equipped. No positional replication of one swing onto both LMB/RMB and J/K; Bat now has distinct vertical LMB/J and horizontal RMB/K attack resources, while Shovel claims only LMB/J so RMB/K remains Kick. Any other weapon can configure only right, both with distinct actions, or neither; duplicate claims are invalid. Neither CombatInputAdapter nor the actor checks weapon types. Equipment presentation gates the resting F4 arm and only the replaced action's limb; the **unassigned Kick** still animates its normal F4 leg. The separate viewmodel has one authored gripping arm and optional per-action `action_profiles`, so Bat changes from vertical to lateral F4 sweeps without another hand or clock; weapon meshes follow the hand through chamber/contact/recovery. `AttackDefinition.visual_action_key` separates the authored F4 action from the new dedicated world `animation_key` (`bat_vertical`, `bat_horizontal`, `shovel_overhead`). The original 15-joint MIT training GLB and the renamed alternate-rig fixture generate true weapon-specific skeletal clips, preserving upper-body/locomotion layering across all five cameras. Visuals do not own damage or ticks.
 - **D06-01 hardening:** equipment registration stages all candidate attack IDs before replacing the old item; rejected second registrations roll back without altering the current selection. Distinct carried weapons must have unique attack IDs. An equipped/stowed weapon independently freed in the tree unregisters its attacks and F4 visuals; actor teardown destroys its items, and explicitly dropped items survive. VT-08 now uses D05 actor-volume substep sweeps and previous-frame hurtbox motion to detect fast crossings while preserving dedup, self/team filtering and active phases. Separate regressions test both motion directions and edge contacts, Run/Jump/Crouch with F3→F4→F5 active attacks, actor/viewmodel/socket continuity and camera-free NPC teardown. Browser E2E tests Bat and Shovel LMB/RMB/J/K across F2/F4 and rejects dark frames after pointer capture. A rejected initial pickup also leaves **no phantom pickup/equip signals**; a successful auto-equip emits **pickup then equip** once. **Acceptance passed:** latest-head CI / Checks (908 assertions, 0 failures), native screenshot matrix, Linux/WebGL2 Full E2E ([run #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)), and owner manual visuals. Close #13 upon squash merge of approved PR #31.
-- **D06-02 / #14 (PR #32: 958 Godot assertions passed after camera-free AI/effect hardening; final Full E2E + owner visuals pending):** gun ammo/reload and hitscan must reside in a dedicated per-instance weapon behavior, using the existing generic equipment slot lifecycle. A separate optional weapon-command input adapter sends reload requests without adding gun-specific logic to `CombatInputAdapter` or EquipmentController; test a second configured Gun with unchanged core. A view-specific aim provider chooses a world target, while a **separate ray from the world muzzle** controls obstruction and hit eligibility. `AttackDefinition.use_melee_hit_query = false` opts external hit actions out of the default D05 melee box query while retaining the same timeline and active-phase signal. Never route gun hits solely through D05's melee box sweep; do not add gun type branches to EquipmentController, CombatController, camera, actor, or animation core.
+- **D06-02 / #14 (PR #32: 974 Godot assertions, latest Full E2E and owner visuals PASSED; merge pending):** gun ammo/reload and hitscan must reside in a dedicated per-instance weapon behavior, using the existing generic equipment slot lifecycle. A separate optional weapon-command input adapter sends reload requests without adding gun-specific logic to `CombatInputAdapter` or EquipmentController; test a second configured Gun with unchanged core. A view-specific aim provider chooses a world target, while a **separate ray from the world muzzle** controls obstruction and hit eligibility. `AttackDefinition.use_melee_hit_query = false` opts external hit actions out of the default D05 melee box query while retaining the same timeline and active-phase signal. Never route gun hits solely through D05's melee box sweep; do not add gun type branches to EquipmentController, CombatController, camera, actor, or animation core.
 - **D07 / #15 (pending):** NPC equipment uses ordinary world meshes without private F4 registration. AI supplies movement intents and action requests independently of player input or camera state. Use the same weapon instances/controller rather than another AI-only combat engine.
 
 #### D07 — Enemy actor and basic combat AI
@@ -682,50 +682,53 @@ Next: <lowest numbered unblocked deliverable>
 ```
 
 **Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/five-view architecture.
-### D06-02 active implementation (2026-11-09; verification pending)
+### D06-02 verified handoff — PR #32 (2026-11-10)
 
-The separate `feat/d06-02-gun` branch implements the D06-01/ D05
-consumer for Gun, independent world-space muzzle tracing, view-specific
-aiming, optional reload input and a second authored fixture. The
-gun-specific live-physics test suite is registered with `make test`.
-Do **not** mark D06-02 or D06 complete until CI import/tests, full native
-and WebGL2 E2E, five-view user visual tests, cleanup/occlusion and
-documentation review are verified. See issue #14 and docs/equipment.md.
+**Status: implementation and acceptance verified; awaiting explicit squash merge.**
+The `feat/d06-02-gun` branch implements an instance-local Gun using D06-01
+inventory/mount registration and the existing D05 active-phase attack clock.
+The separate actor-local aim providers resolve a world-space target from
+player view/input or a camera-free NPC. The physical world Muzzle ray
+decides hit/obstruction; a nearby wall wins even if F4 sees the target.
+The Gun consumes a round only for a valid active shot, including blocked
+shots, and owns magazine/reserve/reload state. A second configured gun,
+independent optional reload input, world recoil, F4 visual gun, and
+world-owned noncolliding projectile tracer exercise the same interfaces.
 
-**D06-02 CI evidence (2026-11-09):** [run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885) completed Checks (941 assertions, 0 failures) and Full E2E (native screenshots including 4 exterior Gun views + F4 fire/reload/near-wall, real WebGL2 E/J/R inputs, all prior regression scenarios). This is automated acceptance only. Keep issue #14 and PR #32 open/draft until manual visual review confirms gun orientation, grip, five-view shots, physical muzzle near walls and F5 aiming; then perform final docs/readiness review before merge.
+F4 may use its own camera-local `Grip/VisualMuzzle` for the **tracer's
+visible start**, but never for hit authority. The shader fades the
+procedural trail from the bright muzzle-side tail toward the impact-side
+tip. Solid `CharacterBody3D` receivers now resolve their enabled owned
+Hurtbox/Health without passing through the first collider. A physical
+receiver integration regression confirms actual damage, team filtering,
+wall blocking and disabled Hurtbox behavior.
 
-**D06-02 optional visible projectile (draft PR #32, November 2026):**
-`GunProjectilePresenter` subscribes to `Gun.fired` and creates a
-world-space, non-colliding emissive tip/trail from physical Muzzle to the
-already-authoritative impact. This is an independent render-only adapter,
-not a ballistic movement or damage component. The standard and heavy
-pistol provide different configurable scenes. Headless tests cover ray
-endpoint, obstructed trajectory, dry/cancelled no-op and disposal;
-native F3/F4 in-flight captures and a browser spawn assertion are part
-of Full E2E. Owner manual visible-projectile acceptance remains an exit
-gate; existing D06-02 approval/merge state is unchanged.
+**Evidence:** [GitHub Actions #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312) — `CI / Checks` **974/974 assertions, 0 failures** and `CI / Full E2E` **passed**, including native five-view gun/projectile screenshots,
+first-person visual-muzzle validation, Linux/Web builds and real WebGL2
+pickup/swap/fire/reload with one projectile per actual shot. **Owner
+manual visual test passed on 2026-11-10**, as reported in the project
+conversation. The previous P1 physical-body hit finding was corrected
+and its review thread resolved. Docs and ADR-0006 are synchronized.
 
-### D06-02 final architecture / D07–D12 handoff (2026-11-09)
+**Architecture outcome:** No changes to Actor, Locomotion,
+MovementController, CombatController, EquipmentController, CameraRig or
+AnimationPresenter for D06-02. The single change to the existing shared
+EquipmentVisualAdapter is an optional render-only source/visual-origin
+port; no weapon-ID or camera-mode branches enter gameplay. Existing
+targeting, effect and command interfaces are sufficient for two guns
+and both player/NPC aim providers; no general projectile manager, new
+combat clock, generic ammo registry, or AI-specific gun is needed.
+Details and deferred simplifications are in ADR-0006.
 
-ADR-0006 supersedes prior *planned* D06-02 language where implemented.
-The Gun is an independent per-instance D06-01 weapon and D05 ranged
-active-phase listener. Optional F4/world effects do not own damage.
-Two concrete injected world-target sources now exist:
-`Action5ViewAimTargetProvider` for a local player's F4/F5 policy, and
-`Action5ActorTargetAimProvider` for camera-free NPCs/turrets. Visual
-projectiles belong to the **world scene**, not the shooter, and expire
-independently after weapon/actor destruction; a reload overlay clears
-only its own clip. 958 tests (0 failures) in
-[CI #42729829975](https://github.com/bravado/ACTION-5/actions/runs/42729829975).
-Expanded latest-head native/WebGL2 E2E and owner visual review are
-mandatory before merge.
+**D07–D12 handoff:** D07 adds a small independent target/decision/
+navigation intent producer using the shipped camera-free aim provider
+and existing actor-local movement/Combat/Equipment. Extend physical
+body/hurtbox and multi-NPC regression tests, rather than creating an
+AI-specific damage layer. D08 uses world collision masks for doors and
+obstacles. D09 keeps F5 quantization in view policy and HUD read-only.
+D10 opt-in authoring validators, D11 the existing test runner/matrix,
+and D12 demo-independent addon packaging remain separate milestones.
 
-**D07:** use target and action intent producers against the existing
-actor-local Equipment/Combat ports, not a new AI-only gun/animation
-engine. **D08:** world collision remains physical when roofs visually
-hide; interactables stay local components. **D09:** view-scoped 4-/8-way
-aim and read-only HUD, not hardcoded action IDs. **D10:** opt-in
-validators for missing muzzle/aim/collision mappings. **D11:** expand
-the existing physical and browser test matrix, not a second test runner.
-**D12:** distribute addon runtime without demo dependencies; use
-the camera-free NPC/second-gun fixture as clean-install smoke.
+**Next action:** squash-merge the reviewed PR only on explicit
+approval, then close issue #14 and proceed to D07 (#15). The approved
+manual visual result is not permission to merge automatically.

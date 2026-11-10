@@ -1,6 +1,6 @@
 # ADR-0006 — Authoritative world shots, replaceable aim and render-only projectiles
 
-Status: Accepted for D06-02 PR #32 implementation, pending owner visual sign-off and merge.
+Status: Accepted and verified for D06-02 PR #32 (owner visuals passed 2026-11-10; squash merge pending).
 
 ## Decision
 
@@ -94,17 +94,18 @@ Never import `demo/` from reusable `addons/action5/` scripts.
   scripts cannot. Include a clean-project smoke test with an NPC weapon,
   no camera and optional render effect.
 
-## Acceptance
+## Acceptance (2026-11-10)
 
-The extension is covered by the existing pinned Godot `make check` suite,
-native screenshot harness, and real WebGL2 browser smoke. D06-02's
-camera-free NPC, world-lived tracer, and reload-clip ownership regressions
-passed **958 assertions, 0 failures** in GitHub CI checks (2026-11-09
-local / 2026-11-10 UTC); [PR #32](https://github.com/bravado/ACTION-5/pull/32).
-A final **latest-head** Full E2E check and manual five-view visual approval
-remain the merge acceptance gates; do not conflate smoke captures with art
-review.
-
+[Latest-head CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)
+passed **974/974 pinned Godot assertions** and the native/WebGL2
+Full E2E pipeline. Coverage includes real body-first
+`CharacterBody3D` → owned Hurtbox resolution, walls, team and disabled
+Hurtbox, one-shot ammo/timing, camera-free NPC, independent reload
+visual ownership, F4 muzzle alignment, and the world-owned tracer
+with gradient/lifetime cleanup. The **owner confirmed F1–F5 visual
+testing passed on 2026-11-10**. No unresolved P1/P2 architectural
+finding was found in this final review. PR #32 remains open for
+explicit squash merge; close issue #14 afterwards.
 
 ## Amendment: first-person projectile appearance
 
@@ -145,3 +146,56 @@ an enabled `Action5Hurtbox` resolving to its own `Action5Health`.
 The existing damage/team/invulnerability filtering follows unchanged.
 The real-body regression lives in `tests/d06_gun_suite.gd`; no AI,
 camera, movement, animation or equipment core changes are required.
+
+
+## Final architecture / simplification review (2026-11-10)
+
+Review scope: Gun, both aim providers, optional weapon-command adapter,
+world recoil/reload view adapters, F4 gun model, physical body/Hurtbox
+mapping, world-owned projectile/trail, second configured gun, physical
+integration suite, native/WebGL2 tests and handoff to D07–D12.
+
+**Keep:** D05's single attack clock; D06-01 inventory/registration;
+per-instance Gun ammo/reload state; actor-local duck-typed aim port;
+physical muzzle with first-collider obstruction; explicit owned
+Hurtbox/Health damage receiver; optional F4 visual origin and
+world-owned tracer. Two guns and two concrete aim providers prove these
+boundaries without new core branches. Only the tiny render-only
+EquipmentVisualAdapter hook extends an existing shared addon class.
+
+**Considered, not adopted:**
+- A generic `ProjectileManager` or physical bullet framework: would
+  add a second damage authority and lifetime/clock management to a
+  hitscan-only milestone. Current projectiles are independently
+  self-expiring visuals.
+- A shared `AmmoService`/reload FSM: there is no cross-gun shared ammo
+  requirement. The Gun's existing per-instance countdown is simpler.
+- A global hit-registry/collider cache: body-first lookup occurs only
+  when a physical body is the first actual ray collider. Retain the
+  direct Hurtbox/Health association rather than new registration or
+  invalidation lifecycles. Profile against many D07 actors before
+  optimizing this path.
+- Gun IDs, `is_ranged` flags or camera/NPC conditions in core actor,
+  CombatController, MovementController, AnimationPresenter or Equipment:
+  unnecessary; the existing aim and optional visual/command ports
+  select behavior by configuration.
+- Consolidating D06-02's distinct visuals into the gameplay Gun class:
+  couples rendering and F4-specific pose to hit authority and prevents
+  headless NPC reuse.
+- Abstracting the 974-assertion physical fixtures into a new test
+  framework: the existing runner, scenarios and exported browser
+  smoke provide the needed evidence. Extract helpers only when D07's
+  *second* enemy scenario demonstrates repeated fixture setup.
+
+**D07 boundary:** add one small target/decision/navigation intent
+producer per NPC, not a new combat/gun framework; the shipped
+`Action5ActorTargetAimProvider` already supplies world points. D07
+should test target death/loss, two simultaneous enemies, body-first
+hit receivers, wall collision and camera switching. A missing target
+must fail closed without reusing the player's camera. Other milestones
+retain their distinct D08 world interactions, D09 view policy/HUD,
+D10 diagnostics, D11 full test matrix and D12 clean addon packaging.
+
+**Outcome:** no further code refactor is justified as a D06-02 merge
+prerequisite. Optional D07 profiling and test-fixture consolidation
+remain explicitly non-blocking.

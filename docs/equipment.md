@@ -1,13 +1,13 @@
 # D06 equipment authoring and implementation state
 
-**Status (2026-11-09):** D05 is merged via PR #28. **D06-01 Bat/Shovel
+**Status (2026-11-10):** D05 is merged via PR #28. **D06-01 Bat/Shovel
 and the reusable equipment contract are implemented and approved in PR #31.**
 Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
 D06-02 Gun is implemented in PR #32 (under review), while D07 AI remains
 a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
-## D06-02 development branch: hitscan gun (automated validation passed; manual visuals pending)
+## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
 
 D06-02 uses the accepted D06-01 equipment and D05 action clocks. The demo
 adds a Pistol pickup, magazine/reserve display, R reload, physical WorldRecoil
@@ -132,24 +132,26 @@ creation event, and captures F4 idle, J fire and R reload. These
 are automated rendering smoke artifacts, **not** subjective manual
 inspection of grip, aim alignment and obstruction.
 
-**Automated acceptance:** earlier gun-only [CI #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885)
-passed 941 assertions and native/WebGL2 Full E2E. Following the
-optional projectile and architectural hardening, [checks run
-#42729829975](https://github.com/bravado/ACTION-5/actions/runs/42729829975)
-passed **958 assertions, 0 failures**, including a camera-free NPC,
-reload overlay ownership and world-owned projectile teardown. An earlier
-expanded browser run [#42728334557](https://github.com/bravado/ACTION-5/actions/runs/42728334557)
-failed because its fixed-time WASD sequence selected the Bat rather
-than reaching the distant pistol; the browser scenario now uses bounded
-real-input movement/pickup attempts and requires latest-head Full E2E.
-Manual review of F1–F5 visual gun alignment, F4 grip/reload/tracer,
-near-wall obstruction and F5 directional aim remains required before merge.
+**Final D06-02 acceptance (2026-11-10):**
+[CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)
+passed the pinned Godot **974/974 assertions, zero failures**, native
+Linux screenshots across views, F3/F4 in-flight effects, F4 barrel-tip
+origin assertion and full real Chromium/WebGL2 pickup/fire/reload smoke.
+The physically simulated `CharacterBody3D` receiver regression verifies
+body-first hits through an enabled owned Hurtbox, wall obstruction,
+friendly-fire rejection and disabled Hurtbox behavior. The **owner's
+manual five-view visual test passed** on 2026-11-10, including the
+first-person weapon/tracer behavior from this PR. No automated tests
+remain pending on this head.
 
-**Testing and handoff:** tests/d06_gun_suite.gd is registered with
-tests/run_all.gd and covers shots, body exclusions, obstruction, reload
-across views, alternate gun scene and cleanup. The 958-assertion headless suite passed; the latest extended Full E2E
-and real manual visual review remain separate acceptance gates. Do not
-close issue #14 based on documentation or screenshots alone. No release approval or issue closure is implied.
+**Testing and handoff:** `tests/d06_gun_suite.gd` is registered with
+`tests/run_all.gd` and covers the per-instance shot clock, physical
+receiver, obstruction, reload across views, alternate gun, NPC,
+visual ownership, shader gradient and lifetime. The independent
+`ci/browser-smoke.mjs` and `tests/capture_scene.gd` demonstrate exported
+WebGL2/native behavior. **PR #32 is accepted for squash merge once
+explicitly requested; issue #14 remains open until the merge.** No
+merge or closure is implied solely by recording visual approval.
 
 ---
 
@@ -368,12 +370,12 @@ including narrow/wide viewport and near-wall images. **PR #31 passed**
 908 headless assertions, native/WebGL2 Full E2E and owner visual review
 on 2026-11-09. Issue #13 closes upon squash merge of that tested PR.
 
-**Projectile feature checks (draft PR #32):** the expanded
+**Projectile feature checks (validated PR #32):** the expanded
 `tests/d06_gun_suite.gd` checks the true muzzle-to-impact endpoints,
 wall-truncated rays, one spawned visual per real shot, 3D layer/collision
 isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
 Native and browser in-flight screenshots are part of the opt-in Full E2E
-pipeline. Manual visual acceptance is still required.
+pipeline. Owner manual visual acceptance passed on 2026-11-10.
 
 
 ### F4 projectile visual muzzle alignment (PR #32 correction)

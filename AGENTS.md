@@ -285,7 +285,7 @@ after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
 ## Starting task
 
 **D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) is implemented in PR #32, then D07 AI (#15) follows using those same established ports.
-## D06-02 gun extension (implementation in PR, validation pending)
+## D06-02 gun extension (validated in PR #32; merge pending)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
 D05's active attack phase is the only firing moment. The gun uses
@@ -381,3 +381,25 @@ damageable, or change camera-local projectile origin/hit authority.
 Maintain the real `CharacterBody3D` receiver integration regression
 covering body-first collision, solid wall obstruction, ally filtering
 and disabled Hurtbox before merge.
+
+
+## D06-02 post-visual review (2026-11-10)
+
+PR #32 has 974/974 pinned Godot assertions, passed native and WebGL2
+Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)),
+and owner-confirmed F1–F5 manual visuals. The P1 physical-body ray
+receiver regression is fixed; its review thread is resolved. PR remains
+open pending explicit squash-merge approval. Do not reintroduce stale
+"draft", "visual pending" or 941/958/967 latest-count statements.
+
+**Simplification verdict:** keep the existing small actor-local world
+target interface and optional visual/input adapters. A second gun and a
+camera-free NPC already demonstrate extension without core edits. Do
+not add a projectile manager, generic ammo state service, AI-specific
+Gun, camera-aware hit resolution or global per-weapon flags. Only
+refactor `Gun._resolve_hit_health()`'s on-hit descendant lookup if
+profiling demonstrates a real cost with many NPCs; introducing a cache
+or hit registry solely for D06-02 adds unnecessary lifecycle coupling.
+When building D07, implement only the AI decision/nav/target producer;
+reuse Combat, Equipment, Health/Hurtbox and the current aim port. See
+ADR-0006 for the formal architectural review.
