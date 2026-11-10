@@ -19,6 +19,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     arena.position = Vector3(500, 0, 500)
     tree.root.add_child(arena)
     var player := arena.get_node("Player") as CharacterBody3D
+    var views := arena.get_node("ViewManager")
+    arena.get_node("ActorInput").set_enabled(false)
     var melee := arena.get_node("Melee") as CharacterBody3D
     var ranged := arena.get_node("Ranged") as CharacterBody3D
     var melee_ai := melee.get_node("AIController")
@@ -57,7 +59,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Opaque central obstacle actually blocks ranged acquisition sight")
     var start_melee: Vector3 = melee.global_position
     var start_ranged: Vector3 = ranged.global_position
-    await _ticks(tree, 210)
+    var positions_before_views: Array[Vector3] = [melee.global_position, ranged.global_position]
+    for index in [0, 1, 2, 3, 4, 2, 3, 0, 4, 1]:
+        views.switch_view(index)
+        await _ticks(tree, 2)
+    verify.call(melee_ai.target == player and ranged_ai.target == player
+        and melee_health.current_health > 0 and ranged_health.current_health > 0
+        and melee.global_position != positions_before_views[0]
+        and ranged.global_position != positions_before_views[1],
+        "F1-F5 camera switches leave both AI actors navigating with persistent HP")
+    await _ticks(tree, 190)
     verify.call(melee.global_position.distance_to(start_melee) > 1.5
         and ranged.global_position.distance_to(start_ranged) > 0.5,
         "Both actors chase around the real obstacle with D03 movement physics")

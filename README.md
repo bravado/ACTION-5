@@ -119,3 +119,11 @@ The planned framework license is **MIT**. The license file and the attribution i
 **D06-02 gun tracer:** The Pistol fires an optional visible, non-colliding gold projectile trail; the Heavy Pistol fixture uses a blue trail. Their impact point comes from the authoritative physical world-muzzle hitscan. In F4 only, the visual tracer starts at the camera-local `Grip/VisualMuzzle` so it visibly exits the on-screen barrel; other views and camera-free NPCs use the physical muzzle. No visual effect controls damage. Edit the per-gun ProjectileVisual scene to customize or remove the presenter to disable; damage is still immediate.
 
 **Developer extension:** [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md) documents the world-target port, camera-free NPC target provider, optional tracer, reload visual ownership and D07–D12 boundaries. No runtime code under `addons/action5/` imports `demo/`.
+
+
+### D07 enemy encounter (in review)
+
+Run `make import && godot --path . res://demo/ai/encounter.tscn` to
+inspect a melee Bat enemy and ranged Gun enemy navigating an opaque
+center obstacle. WASD moves the player; 1–5 switch the same five camera
+profiles without restarting either enemy. See [AI authoring](docs/ai.md).

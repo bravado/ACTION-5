@@ -732,3 +732,22 @@ and D12 demo-independent addon packaging remain separate milestones.
 **Next action:** squash-merge the reviewed PR only on explicit
 approval, then close issue #14 and proceed to D07 (#15). The approved
 manual visual result is not permission to merge automatically.
+
+
+## D07-01 implementation handoff (issue #15)
+
+D07 uses independently configured actor-local `TargetSensor` (living target
+and LoS), `AINavigation` (navigation waypoint only), `AttackPolicy`
+(range, configured D05/D06 action and per-weapon reload) and
+`AIController` (intent-producing decision state). The world owns the
+navigation region; one shared Actor/Locomotion/Combat/Health/Equipment
+implementation remains authoritative in all camera modes.
+
+Reference compositions are `demo/ai/melee_enemy.tscn` and
+`demo/ai/ranged_enemy.tscn`; a separate playable arena at
+`demo/ai/encounter.tscn` contains an opaque center obstacle and a
+pre-authored navigation ring. `tests/d07_suite.gd` runs physics checks.
+Scope deliberately excludes behavior trees, path caching, networking,
+and a new attack/animation timeline. See `docs/ai.md`.
+**Verification is pending CI and owner native/WebGL2 visual review**;
+do not mark issue #15 completed or merge until the gates pass.

@@ -1,9 +1,13 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://demo/ai/encounter.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="4"]
+[ext_resource type="Script" path="res://addons/action5/camera/view_manager.gd" id="5"]
+[ext_resource type="Script" path="res://addons/action5/camera/camera_rig.gd" id="6"]
+[ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="7"]
+[ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="8"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -53,10 +57,21 @@ position = Vector3(-5, 0.15, 0)
 [node name="Ranged" parent="." instance=ExtResource("4")]
 position = Vector3(-6, 0.15, 3)
 
-[node name="ObserverCamera" type="Camera3D" parent="."]
-position = Vector3(0, 18, 18)
-rotation_degrees = Vector3(-48, 0, 0)
+[node name="ViewManager" type="Node" parent="."]
+script = ExtResource("5")
+initial_view_index = 1
+
+[node name="CameraRig" type="Node3D" parent="ViewManager"]
+script = ExtResource("6")
+
+[node name="Camera3D" type="Camera3D" parent="ViewManager/CameraRig"]
 current = true
+
+[node name="ViewInput" type="Node" parent="."]
+script = ExtResource("7")
+
+[node name="ActorInput" type="Node" parent="."]
+script = ExtResource("8")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-50, 25, 0)

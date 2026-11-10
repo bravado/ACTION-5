@@ -405,3 +405,22 @@ or hit registry solely for D06-02 adds unnecessary lifecycle coupling.
 When building D07, implement only the AI decision/nav/target producer;
 reuse Combat, Equipment, Health/Hurtbox and the current aim port. See
 ADR-0006 for the formal architectural review.
+
+
+## D07 enemy intent/decision extension
+
+D07 AI is camera-free and actor-local. Compose `Action5AIController` with
+`Action5AITargetSensor`, `Action5AINavigation` (a normal Godot
+`NavigationAgent3D`) and `Action5AIAttackPolicy`. The AI submits
+`Action5MoveIntent` to the existing Actor and attack requests to D05
+Combat/actor-local Equipment. Never add AI branches to Actor, Locomotion,
+MovementController, AnimationPresenter, Gun or the camera. An equipped Gun
+uses `Action5ActorTargetAimProvider`; a physical wall remains authoritative.
+
+Movement move IDs are queued and the latest intent is used at the next
+physics tick. Combat heading is snapshotted at request time; a second
+concurrent request is rejected. Add a third enemy by scene inheritance and
+a configured attack policy, not new core conditionals. Test real
+`demo/ai/encounter.tscn` physics with `tests/d07_suite.gd`, plus
+`make check` and native/WebGL2 Full E2E. The separate demo AI
+encounter runs with `godot --path . res://demo/ai/encounter.tscn`.
