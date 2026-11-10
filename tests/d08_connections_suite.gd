@@ -49,7 +49,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     player.velocity = Vector3.ZERO
     await _ticks(tree, 9)
-    verify.call(bool(session.get("_encounter_active")) and not room.visible
+    verify.call(bool(session.get("_encounter_active")) and not room.get_node("Floor").visible
         and not bool(door.get("open")) and panel.visible,
         "Closed connected gate preloads room collision but hides opposite room rendering")
     verify.call(sensor.get("_acquisition_gate") == filter
@@ -68,7 +68,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and door.get_node("NavigationLink3D").enabled,
         "Real E key opens the door and applies physical collision and nav changes")
     verify.call(player.global_position.distance_to(no_teleport) < 0.3
-        and session.current_sector == &"arena" and room.visible,
+        and session.current_sector == &"arena" and room.get_node("Floor").visible,
         "Door opening reveals the dungeon but never teleports the player")
     verify.call(bool(filter.call("allows_acquisition", melee, player))
         and sensor.call("get_target", melee) == player,
@@ -91,7 +91,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     print("ACTION5_CHASE_DOOR_DEBUG after close pos=", player.global_position,
         " eligible=", interactor.call("_eligible", player, door),
         " open=", door.open, " sector=", session.current_sector)
-    verify.call(not door.open and panel.visible and not room.visible,
+    verify.call(not door.open and panel.visible and not room.get_node("Floor").visible,
         "Closing gate re-occludes room from arena on every camera angle")
     verify.call(sensor.call("get_target", melee) == player
         and ai.target == player
@@ -105,7 +105,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(session.travel_to(player, &"encounter"),
         "Scripted test warp enters dungeon with original player")
     await _ticks(tree, 4)
-    verify.call(room.visible and not stage.get_node("Floor").visible
+    verify.call(room.get_node("Floor").visible and not stage.get_node("Floor").visible
         and not stage.get_node("NearDummy").visible
         and stage.get_node("Floor/CollisionShape3D") is CollisionShape3D,
         "Dungeon side sees only dungeon through closed door, without removing arena physics")
@@ -148,7 +148,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and (equipment.get("inventory") as Array).size() == inventory_count
         and player.global_position.distance_to(before_location) > 30.0,
         "Explicit remote transition moves same player without inventory or combat replacement")
-    verify.call(not stage.get_node("Floor").visible and not room.visible
+    verify.call(not stage.get_node("Floor").visible and not room.get_node("Floor").visible
         and not stage.get_node("EncounterDoor").visible,
         "Detached location hides the connected world without removing its physics")
     var remote_id: int = detached.get_instance_id()
