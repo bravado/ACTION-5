@@ -5,6 +5,7 @@ extends Node
 ## camera/movement dependencies. Warping is a separate optional script port.
 
 signal sector_changed(previous: StringName, current: StringName)
+signal encounter_activation_changed(active: bool)
 
 @export var player_path: NodePath = ^"../Player"
 @export var encounter_sector_path: NodePath = ^"../EncounterSector"
@@ -135,6 +136,7 @@ func _set_encounter_active(value: bool) -> void:
     encounter_sector.process_mode = (
         Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
     )
+    encounter_activation_changed.emit(value)
 
 
 ## Explicit scripted warp for cutscenes/CI only. The physical gateway does
