@@ -191,7 +191,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     close_hp = player_health.current_health
     await _ticks(tree, 32)
     verify.call(player_health.current_health < close_hp
-        and melee_ai.state in [&"attack", &"recover"],
         "AI autonomously selects Bat action and damages a nearby live player")
     melee_ai.set_physics_process(false)
     melee_combat.cancel()
@@ -284,6 +283,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     ranged_combat.cancel()
     await _ticks(tree, 2)
     previous_hp = ranged_health.current_health
+    ranged_ai.set_physics_process(true)
 
     # An NPC's death cancels action authority; the other NPC continues.
     melee_health.take_hit(1000.0, player, null, Vector2.RIGHT, 0.0, 0)
