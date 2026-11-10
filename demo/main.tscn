@@ -1,4 +1,4 @@
-[gd_scene load_steps=48 format=3]
+[gd_scene load_steps=50 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -72,6 +72,12 @@ size = Vector3(1.0, 0.3, 2.5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_step"]
 size = Vector3(1.0, 0.3, 2.5)
+
+[sub_resource type="BoxMesh" id="PassageFloorMesh"]
+size = Vector3(2.0, 0.4, 2.8)
+
+[sub_resource type="BoxShape3D" id="PassageFloorShape"]
+size = Vector3(2.0, 0.4, 2.8)
 
 [sub_resource type="BoxShape3D" id="DoorShape"]
 size = Vector3(0.25, 2.45, 2.5)
@@ -228,6 +234,17 @@ position = Vector3(2.1, 0.0, -2.0)
 
 [node name="FarDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(-3.0, 0.0, -5.0)
+
+[node name="PassageFloor" type="StaticBody3D" parent="."]
+; Overlapping slab keeps the independently authored floors physically joined.
+position = Vector3(14.0, -0.2, -4.0)
+
+[node name="Mesh" type="MeshInstance3D" parent="PassageFloor"]
+mesh = SubResource("PassageFloorMesh")
+surface_material_override/0 = SubResource("Material_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PassageFloor"]
+shape = SubResource("PassageFloorShape")
 
 [node name="EncounterDoor" type="Node3D" parent="." groups=["action5_interactable"]]
 ; One physical, two-sided gate for the arena AND dungeon.
