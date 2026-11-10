@@ -1,4 +1,4 @@
-[gd_scene load_steps=51 format=3]
+[gd_scene load_steps=55 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -27,6 +27,9 @@
 [ext_resource type="Script" path="res://demo/interactions/door_acquisition_filter.gd" id="24_gate_sensor"]
 [ext_resource type="Script" path="res://demo/world/room_visibility.gd" id="25_room_visibility"]
 [ext_resource type="Script" path="res://demo/world/arena_navigation.gd" id="26_arena_nav"]
+[ext_resource type="Script" path="res://demo/world/location_manager.gd" id="27_location_manager"]
+[ext_resource type="Script" path="res://demo/interactions/location_portal.gd" id="28_location_portal"]
+[ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -105,6 +108,12 @@ albedo_color = Color(0.18, 0.53, 0.67, 1.0)
 emission_enabled = true
 emission = Color(0.03, 0.20, 0.27, 1.0)
 emission_energy_multiplier = 1.4
+
+[sub_resource type="StandardMaterial3D" id="RemotePortalMaterial"]
+albedo_color = Color(0.52, 0.20, 0.72, 1)
+emission_enabled = true
+emission = Color(0.22, 0.08, 0.40, 1)
+emission_energy_multiplier = 1.1
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_main")
@@ -319,6 +328,32 @@ position = Vector3(30.5, 0.15, 0.0)
 [node name="WorldSession" type="Node" parent="."]
 script = ExtResource("18_session")
 encounter_scene = ExtResource("15_encounter")
+
+[node name="LocationManager" type="Node" parent="."]
+script = ExtResource("27_location_manager")
+
+[node name="RemoteReturnSpawn" type="Marker3D" parent="."]
+; Nonadjacent scene travel returns to a distinct arena-side marker.
+position = Vector3(-9.6, 0.15, 0)
+
+[node name="RemotePortal" type="Node3D" parent="." groups=["action5_interactable"]]
+position = Vector3(-11.5, 0, 0)
+script = ExtResource("28_location_portal")
+destination_mode = 1
+destination_scene = ExtResource("29_remote_chamber")
+
+[node name="MarkerMesh" type="MeshInstance3D" parent="RemotePortal"]
+position = Vector3(0, 1.225, 0)
+mesh = SubResource("DoorMesh")
+surface_material_override/0 = SubResource("RemotePortalMaterial")
+
+[node name="Label3D" type="Label3D" parent="RemotePortal"]
+position = Vector3(0, 2.8, 0)
+text = "DETACHED ROOM [E]"
+font_size = 43
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
 
 [node name="Interactor" type="Node" parent="."]
 script = ExtResource("19_interactor")
