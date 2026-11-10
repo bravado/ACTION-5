@@ -11,6 +11,9 @@ signal state_changed(open: bool, locked: bool)
 @export_enum("Restore previous", "Start fresh") var arena_entry_policy: int = 0
 @export var collision_path: NodePath = ^"Body/CollisionShape3D"
 @export var visual_path: NodePath = ^"DoorMesh"
+## Door panels disappear when opened, but permanent passage markers
+## should remain visible even while their collision/navigation is open.
+@export var keep_visual_when_open: bool = false
 @export var navigation_link_path: NodePath = ^"NavigationLink3D"
 
 var open: bool = false
@@ -43,7 +46,7 @@ func set_open(value: bool) -> void:
     if is_instance_valid(navigation_link):
         navigation_link.enabled = open
     if is_instance_valid(visual):
-        visual.visible = not open
+        visual.visible = keep_visual_when_open or not open
     state_changed.emit(open, locked)
 
 
