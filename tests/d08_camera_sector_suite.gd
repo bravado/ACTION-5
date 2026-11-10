@@ -47,6 +47,8 @@ func _same_movement(a: Array[Vector2], b: Array[Vector2], tolerance: float = 0.0
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var original_scene: Node = tree.current_scene
     var world := (load("res://demo/main.tscn") as PackedScene).instantiate() as Node3D
+    # Keep world-space collision and camera checks away from other suites.
+    world.position = Vector3(1200, 0, 1200)
     tree.root.add_child(world)
     tree.current_scene = world
     await _frames(tree, 8)
