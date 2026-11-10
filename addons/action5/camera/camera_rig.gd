@@ -230,6 +230,14 @@ func _update_camera(delta: float) -> void:
         # Fixed side-on projection: -Z is always into the stage. NEVER look_at()
         # the actor here; smoothing would introduce yaw/pitch and ruin the XY view.
         camera.global_basis = Basis.IDENTITY
+    elif profile.bound_camera_target:
+        # Bounded static-offset views (arcade / retro overhead) must keep a
+        # FIXED screen orientation, even when the camera is clamped or its
+        # position is still interpolating after a world-sector transition.
+        # Looking at the unclamped actor would tilt/turn F5 and rotate WASD
+        # near a map edge. Use the view's own fixed offset as the heading,
+        # independently of the actor's position and authored camera bounds.
+        camera.look_at(camera.global_position - profile.fixed_offset, up_axis)
     else:
         camera.look_at(look_target, up_axis)
 
