@@ -232,6 +232,12 @@ meshes locally culled and replaced by camera-space visuals.
 
 NPCs omit FirstPersonPresenter and can use an alternative tiny
 `get_mount()` provider. They keep regular world meshes and shadows.
+D07's `demo/ai/enemy_mount.gd` uses `AnimationPresenter.get_socket()`
+for the animated right-hand bone when available, and its original
+static `Visual/Socket` when the presenter is absent. The same Bat and
+Gun scenes retain ordinary actor-local inventory, attack registration,
+ammo and physical muzzle authority; no NPC-specific equipment branches
+are needed. See [AI authoring](ai.md) and `tests/d07_suite.gd`.
 
 ## Demo controls
 
