@@ -146,7 +146,8 @@ portal travels without recreating the player or its equipment; Q swaps
 and G drops in either area. Unlike the separate
 `demo/ai/encounter.tscn` test fixture, the dungeon has no second
 Player/ViewManager. A world-local `SectorCameraBounds` translates
-F1/F2/F5 camera limits to follow the room while preserving the same
-WASD world orientation and F3/F4 look direction. The dungeon roof is
+F1/F2/F5 camera limits to follow the room. Bounded arcade/top-down
+camera headings stay fixed at map edges, preserving WASD world
+orientation and F3/F4 look direction. The dungeon roof is
 visually omitted in all views; physical ceiling collision is separate.
 PR #34 is still a draft with acceptance/testing work in progress.
