@@ -12,7 +12,6 @@ extends Node
     ^"../Floor", ^"../NorthWall", ^"../SouthWall", ^"../WestWall",
     ^"../EastWall", ^"../PassageFloor", ^"../PillarA", ^"../PillarB",
     ^"../Ramp", ^"../LowStep", ^"../NearDummy", ^"../FarDummy",
-    ^"../BatPickup", ^"../ShovelPickup", ^"../GunPickup",
     ^"../LightSwitch"
 ]
 
@@ -54,12 +53,24 @@ func refresh() -> void:
         if not _original_visibility.has(key):
             _original_visibility[key] = piece.visible
         piece.visible = bool(_original_visibility[key]) and show_arena
-    # Previously dropped weapons are scene siblings, not authored room
-    # nodes. Their world/physical identity remains unchanged; only
-    # rendering is suppressed behind a closed gate.
-    if session.has_method("set_loose_weapon_visibility"):
-        session.call("set_loose_weapon_visibility", &"arena", show_arena)
-        session.call("set_loose_weapon_visibility", &"encounter", show_dungeon)
+    # Authored world pickups and dropped weapons can be reparented to
+    # the *same* World root by Equipment. Classify visible ground items
+    # by their CURRENT world coordinates, never their original node name;
+    # a Bat dropped inside the dungeon must stay visible there.
+    var root := get_parent() as Node3D
+    var boundary: float = float(session.get("passage_boundary_x"))
+    for entry in get_tree().get_nodes_in_group("action5_weapon_pickup"):
+        var weapon := entry as Node3D
+        if not is_instance_valid(weapon) or not root.is_ancestor_of(weapon) \
+                or weapon.get("equipment_owner") != null:
+            continue
+        var key: int = weapon.get_instance_id()
+        if not _original_visibility.has(key):
+            _original_visibility[key] = weapon.visible
+        var dungeon_side: bool = root.to_local(weapon.global_position).x > boundary
+        weapon.visible = bool(_original_visibility[key]) and (
+            show_dungeon if dungeon_side else show_arena
+        )
 
 
 func _on_sector_changed(_before: StringName, _after: StringName) -> void:
