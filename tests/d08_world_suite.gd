@@ -102,8 +102,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for child in player.find_children("*", "CollisionObject3D", true, false):
         exclude.append((child as CollisionObject3D).get_rid())
     var gate_query := PhysicsRayQueryParameters3D.create(
-        door.global_position + Vector3(-1.8, 1.2, 0),
-        door.global_position + Vector3(1.8, 1.2, 0),
+        door.global_position + Vector3(-1.8, 2.2, 0),
+        door.global_position + Vector3(1.8, 2.2, 0),
         1, exclude
     )
     var gate_space := stage.get_world_3d().direct_space_state
