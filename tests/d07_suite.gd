@@ -190,7 +190,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     close_hp = player_health.current_health
     await _ticks(tree, 32)
-    verify.call(player_health.current_health < close_hp
+    verify.call(player_health.current_health < close_hp,
         "AI autonomously selects Bat action and damages a nearby live player")
     melee_ai.set_physics_process(false)
     melee_combat.cancel()
