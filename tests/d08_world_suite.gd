@@ -176,26 +176,39 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and bat.global_position.distance_to(dropped_bat_position) < 0.01,
         "A weapon dropped in the encounter survives travel away and back")
 
-    # Camera occlusion only affects mesh/shadow. The opaque roof remains a
-    # physics obstacle (including for Gun muzzle hits) in top-down view.
+    # The low-opacity canopy is visible in the external cameras, but never
+    # darkens the room or interferes with the first-person view. Its physical
+    # ceiling still blocks authoritative world queries in every camera.
     var roof := encounter.get_node("Roof") as StaticBody3D
     var roof_mesh := roof.get_node("Mesh") as MeshInstance3D
     var roof_shape := roof.get_node("CollisionShape3D") as CollisionShape3D
+    var roof_material := roof_mesh.get_active_material(0) as StandardMaterial3D
+    verify.call(roof_material != null
+        and roof_material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+        and roof_material.albedo_color.a > 0.0
+        and roof_material.albedo_color.a <= 0.2,
+        "Dungeon roof uses a subtle real alpha material instead of an opaque panel")
     var view_manager := stage.get_node("ViewManager")
-    var roof_safe_in_all_views: bool = true
+    var roof_visibility_correct: bool = true
     for view_index in range(5):
         view_manager.switch_view(view_index)
         await _frames(tree, 2)
-        roof_safe_in_all_views = roof_safe_in_all_views             and not roof_mesh.visible and roof_mesh.cast_shadow == 0             and not roof_shape.disabled and roof.collision_layer != 0
-    verify.call(roof_safe_in_all_views,
-        "All F1-F5 views omit the dungeon roof and its shadow without disabling collision")
+        var expected_visible: bool = view_index != 3
+        roof_visibility_correct = roof_visibility_correct \
+            and roof_mesh.visible == expected_visible \
+            and roof_mesh.cast_shadow == 0 \
+            and not roof_shape.disabled and roof.collision_layer != 0
+    verify.call(roof_visibility_correct,
+        "Translucent roof displays in F1/F2/F3/F5, hides in F4, never changes collision or shadows")
     var dungeon_light_a := encounter.get_node("DungeonFillLight") as OmniLight3D
     var dungeon_light_b := encounter.get_node("DungeonCombatLight") as OmniLight3D
     verify.call(dungeon_light_a != null and dungeon_light_b != null
         and dungeon_light_a.light_energy > 0.0
+        and dungeon_light_a.light_energy <= 0.8
         and dungeon_light_b.light_energy > 0.0
+        and dungeon_light_b.light_energy <= 0.8
         and not dungeon_light_a.shadow_enabled and not dungeon_light_b.shadow_enabled,
-        "Reusable dungeon sector has shadow-free interior lights for visible player combat")
+        "Dungeon fill lights remain subdued, without brightening via roof shadow changes")
     verify.call(encounter.scene_file_path == "res://demo/world/encounter_sector.tscn"
         and tree.current_scene == stage,
         "Dungeon is an independently authored PackedScene within one live world, not a scene swap")
