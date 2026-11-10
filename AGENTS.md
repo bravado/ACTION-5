@@ -495,9 +495,10 @@ sector transition must translate the bounds with the room or movement
 appears displaced on screen. `demo/world/sector_camera_bounds.gd`
 handles this via instance-local copies of the five D02 ViewProfiles
 and a WorldSession event. Never patch shared `.tres` profiles, rotate
-a map's movement axes, or add D08 conditions to MovementPolicy,
-ActorInputAdapter or CameraRig. Preserve F3/F4 yaw and user camera
-settings. Run `tests/d08_camera_sector_suite.gd` through
+a map's movement axes, or add map-specific D08 conditions to
+MovementPolicy, ActorInputAdapter or CameraRig. The generic bounded
+F2/F5 camera heading is invariant even when its position clamps to the
+map edge; preserve F3/F4 yaw and user camera settings. Run `tests/d08_camera_sector_suite.gd` through
 `make check` for every new room, and validate WASD in all five views
 both before and after a doorway. The older standalone
 `demo/ai/encounter.tscn` is still needed for D07 tests.
