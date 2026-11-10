@@ -319,7 +319,7 @@ not `_ready()` alone. Verify no visuals for dry/cancelled shots, no
 colliders, one effect per shot, automatic cleanup, physical near-wall
 endpoint, and optional per-gun scene/color. See docs/equipment.md.
 
-## D06-02 review/merge and D07–D12 extension handoff (ADR-0006)
+## Merged D06-02 architecture and D07–D12 extension handoff (ADR-0006)
 
 Read [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md).
 A new gun needs only scene/resources and a world muzzle; no edits to Actor,
@@ -327,7 +327,7 @@ Locomotion, MovementController, AnimationPresenter, EquipmentController,
 CombatController or camera classes. Gun receives a replaceable actor-local
 `get_world_target(origin, range, exclude)` port, **not** a camera. The
 shipped `Action5ActorTargetAimProvider` demonstrates an AI world-target
-source; D07 must provide the decision/nav target producer, NOT another gun
+source; D07 provides the decision/nav target producer, NOT another gun
 or damage clock. The optional projectile presenter always attaches visual
 effects to the world scene, never the weapon, with no collider or hits.
 An independent reload adapter may clear ONLY the overlay it successfully
@@ -384,7 +384,7 @@ covering body-first collision, solid wall obstruction, ally filtering
 and disabled Hurtbox before merge.
 
 
-## D06-02 post-visual review (2026-11-10)
+## D06-02 verified/merged baseline (2026-11-10)
 
 PR #32 has 974/974 pinned Godot assertions, passed native and WebGL2
 Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)),
