@@ -80,8 +80,10 @@ func _run_tests() -> void:
         "South wall includes a physical collision shape")
     _check(level.get_node_or_null("WestWall/CollisionShape3D") is CollisionShape3D,
         "West wall includes a physical collision shape")
-    _check(level.get_node_or_null("EastWall/CollisionShape3D") is CollisionShape3D,
-        "East wall includes a physical collision shape")
+    _check(level.get_node_or_null("EastWall/Upper/CollisionShape3D") is CollisionShape3D
+        and level.get_node_or_null("EastWall/Lower/CollisionShape3D") is CollisionShape3D
+        and level.get_node_or_null("PassageFloor/CollisionShape3D") is CollisionShape3D,
+        "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
     _check(level.get_node_or_null("Hud/Help") is Label,
