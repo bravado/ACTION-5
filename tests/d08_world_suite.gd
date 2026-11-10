@@ -186,12 +186,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # HUD but above 3D. The real ceiling remains a physics-only obstacle.
     var roof := encounter.get_node("Roof") as StaticBody3D
     var roof_shape := roof.get_node("CollisionShape3D") as CollisionShape3D
-    var overlay := stage.get_node("DungeonRoofOverlay") as CanvasLayer
-    var tint := overlay.get_node("Tint") as ColorRect
+    var roof_layer := stage.get_node("DungeonRoofOverlay") as CanvasLayer
+    var tint := roof_layer.get_node("Tint") as ColorRect
     verify.call(roof.get_node_or_null("Mesh") == null
         and not roof_shape.disabled and roof.collision_layer != 0,
         "Dungeon has one physical ceiling and no half-screen 3D canopy geometry")
-    verify.call(overlay.layer == 0 and tint.mouse_filter == Control.MOUSE_FILTER_IGNORE
+    verify.call(roof_layer.layer == 0 and tint.mouse_filter == Control.MOUSE_FILTER_IGNORE
         and tint.anchor_left == 0.0 and tint.anchor_top == 0.0
         and tint.anchor_right == 1.0 and tint.anchor_bottom == 1.0
         and tint.color.a > 0.0 and tint.color.a <= 0.2,
