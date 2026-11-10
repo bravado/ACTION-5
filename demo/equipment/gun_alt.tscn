@@ -1,7 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=9 format=3]
 [ext_resource type="Script" path="res://addons/action5/equipment/gun.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/gun_alt.tres" id="2"]
 [ext_resource type="Script" path="res://addons/action5/animation/gun_world_recoil.gd" id="3"]
+[ext_resource type="Script" path="res://addons/action5/animation/gun_projectile_presenter.gd" id="4"]
+[ext_resource type="PackedScene" path="res://demo/equipment/gun_alt_projectile.tscn" id="5"]
 [sub_resource type="BoxMesh" id="body"]
 size = Vector3(0.18, 0.20, 0.64)
 [sub_resource type="BoxMesh" id="grip"]
@@ -31,3 +33,7 @@ material_override = SubResource("steel")
 position = Vector3(0, -0.14, -0.12)
 mesh = SubResource("grip")
 material_override = SubResource("steel")
+
+[node name="ProjectilePresenter" type="Node" parent="."]
+script = ExtResource("4")
+projectile_scene = ExtResource("5")
