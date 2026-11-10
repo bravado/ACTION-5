@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D06 are merged**, including Bat/Shovel and Gun (PRs #31 and #32). **D07-01 is implemented in PR #33**: independent camera-free AI, two equipped NPCs, physical navigation, player combat input in the encounter and optional animated attack/reload/death composition. The PR's latest pinned Godot/native/WebGL2 checks and owner visual acceptance are separate merge gates. **D08-01 in draft PR #34 remains incomplete**, especially mandatory same-world traversal; do not conflate its scene-loading prototype with D07. Standalone movement examples can have separate PRs without expanding combat scope.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D07 are merged**, including Bat/Shovel, Gun and the independent camera-free D07 enemy AI implementation (PRs #31, #32 and #33). D07 includes two equipped NPCs, real obstacle navigation, the player's combat input in the encounter, and optional skeletal attack/reload/death animations. **D08-01 is now the next active milestone**; draft PR #34's scene-loading prototype does not meet the mandatory same-world traversal requirement. Do not bring D08 doors, restart UI or scene persistence into D07/core combat. Standalone movement examples may continue in separate PRs without expanding combat scope.
 
 ## Product invariant
 
@@ -279,13 +279,13 @@ passed native/Linux and real WebGL2 smoke (run #42668808972), and owner
 visual acceptance passed. The release tests are
 `tests/d06_equipment_suite.gd`, `tests/d06_hardening_suite.gd`,
 `tests/d06_fast_swing_suite.gd`, `tests/d06_movement_view_suite.gd`,
-`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. Close issue #13 only
-after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
+`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. PR #31 and its D06-01 implementation are merged; D06-02 (#14) and
+D07 (#15) were completed as separate subsequent deliverables.
 
 ## Starting task
 
-**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) is implemented in PR #32, then D07 AI (#15) follows using those same established ports.
-## D06-02 gun extension (validated in PR #32; merge pending)
+**D01–D07 are merged; the current implementation focus is D08.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via PRs #32/#33 using those same established ports.
+## D06-02 gun extension (merged via PR #32)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
 D05's active attack phase is the only firing moment. The gun uses
@@ -300,8 +300,7 @@ startup/empty magazine does not. Stowing cancels reload, preserves ammo.
 Pinned Godot 4.7.2 Checks and native/WebGL2 Full E2E passed on
 [CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312):
 **974 assertions, zero failures**. Owner F1–F5 visual testing passed
-on 2026-11-10. Keep issue #14 open until explicit squash merge of
-PR #32. Consult docs/equipment.md and ADR-0006.
+on 2026-11-10. PR #32 is merged. Consult docs/equipment.md and ADR-0006.
 
 ## Add a projectile/tracer without affecting hit authority
 
@@ -390,8 +389,7 @@ and disabled Hurtbox before merge.
 PR #32 has 974/974 pinned Godot assertions, passed native and WebGL2
 Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)),
 and owner-confirmed F1–F5 manual visuals. The P1 physical-body ray
-receiver regression is fixed; its review thread is resolved. PR remains
-open pending explicit squash-merge approval. Do not reintroduce stale
+receiver regression is fixed; its review thread is resolved. PR #32 is merged. Do not reintroduce stale
 "draft", "visual pending" or 941/958/967 latest-count statements.
 
 **Simplification verdict:** keep the existing small actor-local world
@@ -464,9 +462,9 @@ speeds; do not assume the player's default threshold is correct.
 Never move attack authority into the animation layer.
 
 
-## D07 → D08 merge handoff
+## D07 merged baseline → D08 implementation handoff
 
-PR #33 is limited to D07 NPC AI/physical encounter and optional visual
+Merged PR #33 supplies D07 NPC AI/physical encounter and optional visual
 composition. Standalone player `CombatInputAdapter` is a D07 fixture bugfix;
 E interaction, scene doors, restart UI, snapshots and persistent-world
 handoff belong to D08 issue #16 and draft PR #34. D08's prototype
@@ -475,6 +473,6 @@ the mandatory one-world/same-player/same-enemies exit gate. D08 must use
 an input-independent Interactor, separate Door/Pickup/RoofVisibility nodes,
 collision/nav updates and the existing Health/Combat/Equipment/AI ports.
 Keep visual-only roofs and projectile tracers out of physics authority.
-The user must approve D07 visual acceptance and squash merge explicitly;
-then rebase/retarget #34 to the resulting master, revalidate CI and finish
-D08 without reopening the shared movement/combat/animation cores.
+D07 is merged: D08 is now the next deliverable. Rebase/retarget stacked
+PR #34 to `master`, revalidate both CI tiers and finish D08 without
+reopening the shared movement/combat/animation cores.
