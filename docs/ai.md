@@ -63,7 +63,10 @@ request. Neither contract depends on rendering or camera state.
 Run `make check`; request Full E2E with a `[full-e2e]` commit, then
 `make run` for the normal D06 game and
 `godot --path . res://demo/ai/encounter.tscn` for the separate D07 arena.
-Use WASD and number keys 1–5 in the D07 arena. Watch both enemies route
+Use WASD and number keys 1–5 in the D07 arena. Player attacks are
+connected via the same reusable `CombatInputAdapter` and
+`EquipmentAttackSelector` used in `demo/main.tscn`: LMB/J punches and
+RMB/K kicks when unarmed; equipped definitions can override these inputs. Watch both enemies route
 around the center, approach within configured range, aim and attack.
 Check death/target loss, physical wall obstruction, player focus gating,
 ammo/reload, weapon teardown and native/WebGL2 visuals against issue #15.
