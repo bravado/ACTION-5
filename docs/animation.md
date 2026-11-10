@@ -311,7 +311,7 @@ clock or hit authority. A camera-free NPC can omit all of them. See
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 
-## D07 enemy skeletal presentation
+## D07 merged enemy skeletal presentation
 
 `demo/ai/enemy.tscn` demonstrates **optional** animated enemy
 presentation by composing the same `AnimationPresenter` and
@@ -338,4 +338,6 @@ NPC can physically sprint while visually looping Walk.
 weapon attachment, action clip selection/clearing, reload/death and
 an animation-free fallback. None of the visual components may change
 AI target decisions, physical range/LoS, damage or Gun first-hit rays.
-See [AI authoring](ai.md) for the complete D07 composition.
+D07 is part of the merged project baseline (PR #33). See
+[AI authoring](ai.md) for the full composition and the next D08
+world-interaction boundary.
