@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://demo/ai/encounter.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://addons/action5/camera/camera_rig.gd" id="6"]
 [ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="7"]
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="8"]
+[ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -72,6 +73,10 @@ script = ExtResource("7")
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("8")
+
+[node name="CombatInput" type="Node" parent="."]
+script = ExtResource("9")
+action_selection_path = NodePath("../Player/EquipmentAttackSelector")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-50, 25, 0)
