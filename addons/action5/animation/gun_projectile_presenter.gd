@@ -25,7 +25,8 @@ var spawn_count: int = 0
 func _enter_tree() -> void:
     gun = get_node_or_null(gun_path)
     muzzle = get_node_or_null(muzzle_path) as Node3D
-    if is_instance_valid(gun) and gun.has_signal("fired")             and not gun.fired.is_connected(_on_fired):
+    if is_instance_valid(gun) and gun.has_signal("fired") \
+            and not gun.fired.is_connected(_on_fired):
         gun.fired.connect(_on_fired)
 
 
@@ -35,13 +36,17 @@ func _on_fired(impact: Vector3, _hit_receiver: bool) -> void:
     var projectile := projectile_scene.instantiate() as Node3D
     if projectile == null:
         return
-    if not projectile.has_method("launch")             or not bool(projectile.call("launch", muzzle.global_position, impact)):
+    if not projectile.has_method("launch") \
+            or not bool(projectile.call("launch", muzzle.global_position, impact)):
         projectile.free()
         return
-    # top_level prevents the animated hand, player motion and view switch
-    # from dragging an already-fired tracer back toward the gun.
+    # Attach to the world, never to the weapon/actor: a fired visual
+    # survives weapon disposal, enemy death, reparenting and camera changes.
+    var stage: Node = get_tree().current_scene
+    if not is_instance_valid(stage):
+        stage = get_tree().root
     projectile.top_level = true
-    add_child(projectile)
+    stage.add_child(projectile)
     spawn_count += 1
     if debug_events:
         print("ACTION5_PROJECTILE_VISUAL_SPAWN from=", projectile.get("from_world"),

@@ -11,6 +11,7 @@ class_name Action5GunReloadVisualAdapter
 @onready var presenter: Node = get_node_or_null(animation_path)
 
 var _source: Node
+var _owns_reload_visual: bool = false
 
 
 func _ready() -> void:
@@ -42,13 +43,25 @@ func _on_unequipped(_weapon: Node3D) -> void:
 
 func _on_reload_started() -> void:
     if is_instance_valid(presenter) and presenter.has_method("set_upper_body_action"):
-        presenter.call("set_upper_body_action", reload_clip)
+        _owns_reload_visual = bool(presenter.call("set_upper_body_action", reload_clip))
 
 
 func _on_reload_ended(_completed: bool) -> void:
-    if is_instance_valid(presenter) and presenter.has_method("clear_upper_body_action"):
+    if not _owns_reload_visual:
+        return
+    _owns_reload_visual = false
+    if not is_instance_valid(presenter) or not presenter.has_method("clear_upper_body_action"):
+        return
+    # Never clear an upper-body clip belonging to another action adapter.
+    var current_clip: Variant = presenter.get("upper_body_clip")
+    if current_clip == null or current_clip == reload_clip:
         presenter.call("clear_upper_body_action")
 
 
 func _exit_tree() -> void:
     _on_unequipped(_source)
+    if is_instance_valid(equipment):
+        if equipment.weapon_equipped.is_connected(_on_equipped):
+            equipment.weapon_equipped.disconnect(_on_equipped)
+        if equipment.weapon_unequipped.is_connected(_on_unequipped):
+            equipment.weapon_unequipped.disconnect(_on_unequipped)

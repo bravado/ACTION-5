@@ -3,6 +3,11 @@ extends RefCounted
 ## camera/muzzle occlusion. Does not replace physics with dummy pass flags.
 
 const GunScript = preload("res://addons/action5/equipment/gun.gd")
+const NPCHealthScript = preload("res://addons/action5/combat/health.gd")
+const NPCCombatScript = preload("res://addons/action5/combat/combat_controller.gd")
+const NPCEquipmentScript = preload("res://addons/action5/equipment/equipment_controller.gd")
+const NPCMountScript = preload("res://tests/fixtures/equipment_mount_source.gd")
+const TargetAimScript = preload("res://addons/action5/combat/actor_target_aim_provider.gd")
 const ProjectileScript = preload("res://addons/action5/animation/projectile_visual.gd")
 const ContextSourceScript = preload("res://tests/fixtures/action_input_context_source.gd")
 const ContextScript = preload("res://addons/action5/input/action_input_context.gd")
@@ -44,6 +49,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var views: Node = level.get_node("ViewManager")
     var world_visual: Node = actor.get_node("EquipmentVisualAdapter")
 
+    var reload_visual: Node = actor.get_node("GunReloadVisual")
+    var world_animator: Node = actor.get_node("AnimationPresenter")
+    verify.call(world_animator.call("set_upper_body_action", &"punch"),
+        "Regression fixture has a legitimate unrelated upper-body combat clip")
+    reload_visual.call("_on_unequipped", null)
+    verify.call(world_animator.get("upper_body_clip") == &"punch",
+        "Gun reload adapter does not clear a clip it did not start")
+    world_animator.call("clear_upper_body_action")
+
     var source := ContextSourceScript.new()
     level.add_child(source)
     source.snapshot = ContextScript.new(true, Vector2(0, -1), Vector2(0, -1),
@@ -63,12 +77,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var muzzle := gun.get_node("Muzzle") as Node3D
     var initial_muzzle: Vector3 = muzzle.global_position
     var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
+    var projectile_visuals: Array[Node3D] = []
+    projectile_presenter.projectile_spawned.connect(func(effect: Node3D) -> void:
+        projectile_visuals.append(effect)
+    )
     var impacts: Array[Vector3] = []
     gun.fired.connect(func(point: Vector3, _hit: bool) -> void:
         impacts.append(point)
     )
     verify.call(projectile_presenter != null
-        and projectile_presenter.get_child_count() == 0,
+        and projectile_presenter.get("spawn_count") == 0,
         "No projectile visual is spawned before a real fired event")
     var fps_model: Node3D = world_visual.get("_viewmodel") as Node3D
     verify.call(is_instance_valid(fps_model) and gun._combat == combat
@@ -87,14 +105,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # The already-authoritative shot creates a render-only tracer in the
     # SAME world space and along the ray's actual resolved impact endpoint.
     var first_visual: ProjectileScript = (
-        projectile_presenter.get_child(0) as ProjectileScript
-        if projectile_presenter.get_child_count() > 0 else null
+        projectile_visuals[0] as ProjectileScript
+        if projectile_visuals.size() > 0 else null
     )
     var tip_mesh: MeshInstance3D = (
         first_visual.get_node_or_null("VisibleProjectile") as MeshInstance3D
         if first_visual != null else null
     )
     verify.call(first_visual != null and first_visual.top_level
+        and first_visual.get_parent() != gun
+        and first_visual.get_parent() != projectile_presenter
         and first_visual.from_world.distance_to(initial_muzzle) < 0.15
         and impacts.size() == 1
         and first_visual.to_world.is_equal_approx(impacts[0])
@@ -110,7 +130,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(gun.shots_fired == 1 and gun.hits_landed == 1,
         "One active/recovery window cannot duplicate a Gun shot")
     await _ticks(tree, 20)
-    verify.call(projectile_presenter.get_child_count() == 0
+    verify.call(not is_instance_valid(first_visual)
         and projectile_presenter.get("spawn_count") == 1,
         "Projectile expires automatically after the shot without leaving pooled collision objects")
 
@@ -134,8 +154,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and health.get("current_health") == old_hp and gun.hits_landed == 1,
         "Physical muzzle obstruction blocks damage and still spends one round")
     verify.call(projectile_presenter.get("spawn_count") == 2
-        and projectile_presenter.get_child_count() > 0
-        and (projectile_presenter.get_child(0) as ProjectileScript).to_world.distance_to(
+        and projectile_visuals.size() == 2
+        and is_instance_valid(projectile_visuals[1])
+        and (projectile_visuals[1] as ProjectileScript).to_world.distance_to(
             wall.global_position) < 0.3,
         "Muzzle-blocked shots stop the visible tracer at the world obstacle")
     await _ticks(tree, 20)
@@ -253,6 +274,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and combat.get_attack(&"gun_fire") == null,
         "Second configured gun reuses generic equipment and D05 action registry")
     var alternate_presenter: Node = variant.get_node("ProjectilePresenter")
+    var alternate_visuals: Array[Node3D] = []
+    alternate_presenter.projectile_spawned.connect(func(effect: Node3D) -> void:
+        alternate_visuals.append(effect)
+    )
     verify.call(alternate_presenter.get("projectile_scene") != projectile_presenter.get("projectile_scene"),
         "Second gun configures its own projectile scene without changing shared rendering code")
     var variant_muzzle := variant.get_node("Muzzle") as Node3D
@@ -261,8 +286,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var initial_variant_magazine: int = variant.magazine
     requested = await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1))
     var heavy_visual: ProjectileScript = (
-        alternate_presenter.get_child(0) as ProjectileScript
-        if alternate_presenter.get_child_count() > 0 else null
+        alternate_visuals[0] as ProjectileScript
+        if alternate_visuals.size() > 0 else null
     )
     verify.call(requested and variant.magazine == initial_variant_magazine - 1
         and heavy_visual != null and heavy_visual.projectile_color.b > heavy_visual.projectile_color.r,
@@ -299,6 +324,88 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and equipment.current_weapon == null
         and not is_instance_valid(world_visual.get("_viewmodel") as Node),
         "Freeing an armed gun cleans up its D05 registration and FPS visual")
+    # Camera-free NPC consumes exactly the same gun/attack/equipment ports.
+    # No ActorInputAdapter, ViewManager, FPS presenter or AI-only hit logic.
+    var npc := CharacterBody3D.new()
+    npc.name = "CameraFreeRangedActor"
+    var npc_health := NPCHealthScript.new()
+    npc_health.name = "Health"
+    npc_health.team_id = 1
+    npc.add_child(npc_health)
+    var npc_combat := NPCCombatScript.new()
+    npc_combat.name = "CombatController"
+    npc.add_child(npc_combat)
+    var npc_mount := NPCMountScript.new()
+    npc_mount.name = "SocketSource"
+    npc.add_child(npc_mount)
+    var npc_socket := Node3D.new()
+    npc_socket.name = "Socket"
+    npc_mount.add_child(npc_socket)
+    var npc_equipment := NPCEquipmentScript.new()
+    npc_equipment.name = "Equipment"
+    npc_equipment.mount_source_path = ^"../SocketSource"
+    npc.add_child(npc_equipment)
+    var npc_aim := TargetAimScript.new()
+    npc_aim.name = "WorldTarget"
+    npc.add_child(npc_aim)
+    level.add_child(npc)
+    npc.global_position = Vector3(115.0, 0.15, 0.0)
+    npc_aim.set_target(target)
+    var npc_gun := (load("res://demo/equipment/gun.tscn") as PackedScene).instantiate() as GunScript
+    npc_gun.aim_provider_path = ^"WorldTarget"
+    level.add_child(npc_gun)
+    npc_gun.global_position = npc.global_position + Vector3(0.3, 0.4, 0.3)
+    verify.call(npc_equipment.pickup(npc_gun)
+        and npc_equipment.current_weapon == npc_gun,
+        "Camera-free NPC equips identical Gun without an input adapter or F4 viewmodel")
+    await _ticks(tree, 3)
+    var npc_muzzle := npc_gun.get_node("Muzzle") as Node3D
+    target.global_position = npc_muzzle.global_position + Vector3(0.0, -0.8, -3.0)
+    health.set("current_health", 100.0)
+    verify.call(npc_gun._aim == npc_aim and npc_aim.get_world_target(
+        npc_muzzle.global_position, 60.0, camera_excludes) != npc_muzzle.global_position,
+        "D07 target provider resolves a world point without consulting player view")
+    var npc_fired: bool = await _fire(tree, npc_combat, &"gun_fire", Vector2(0, -1))
+    verify.call(npc_fired and npc_gun.magazine == 7
+        and health.get("current_health") < 100.0 and npc_gun.hits_landed == 1,
+        "Camera-free NPC hits a physical Hurtbox through normal D05 Gun/Health contracts")
+    await _ticks(tree, 20)
+    var npc_ammo: int = npc_gun.magazine
+    views.switch_view(3)
+    views.switch_view(4)
+    verify.call(npc_gun.magazine == npc_ammo and npc_equipment.current_weapon == npc_gun,
+        "Local camera switches never modify camera-free NPC gun and ammo")
+    # Clearing the NPC target fails closed, never creates an infinite/invalid
+    # world ray or spends ammunition.
+    npc_aim.set_target(null)
+    await _ticks(tree, 20)
+    var dry_aim_shot: bool = await _fire(tree, npc_combat, &"gun_fire", Vector2(0, -1))
+    verify.call(dry_aim_shot and npc_gun.magazine == npc_ammo,
+        "Missing AI target does not consume ammo, spawn a projectile or use a camera fallback")
+    npc.queue_free()
+    await _ticks(tree, 2)
+    verify.call(not is_instance_valid(npc_gun),
+        "Camera-free actor teardown removes owned equipment without leaking a weapon")
+
+    # World-owned projectile continues independently after weapon/actor
+    # destruction, then expires without involving a global projectile FSM.
+    verify.call(equipment.pickup(gun), "Reequip earlier gun for teardown-in-flight regression")
+    await _ticks(tree, 3)
+    var visuals_before_teardown: int = projectile_visuals.size()
+    var last_shot: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
+    var in_flight: Node3D = (
+        projectile_visuals[visuals_before_teardown]
+        if projectile_visuals.size() > visuals_before_teardown else null
+    )
+    gun.queue_free()
+    await _ticks(tree, 2)
+    verify.call(last_shot and is_instance_valid(in_flight)
+        and in_flight.get_parent() != gun,
+        "Existing projectile survives disposal of its equipped gun")
+    await _ticks(tree, 25)
+    verify.call(not is_instance_valid(in_flight),
+        "Orphan-free world projectile expires on its own after gun destruction")
+
     source.queue_free()
     level.queue_free()
     await tree.process_frame

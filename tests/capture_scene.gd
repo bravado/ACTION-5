@@ -708,16 +708,19 @@ func _capture() -> void:
     manager.switch_view(2)
     for settle in range(12):
         await process_frame
+    var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
+    var captured_projectiles: Array[Node3D] = []
+    projectile_presenter.projectile_spawned.connect(func(effect: Node3D) -> void:
+        captured_projectiles.append(effect)
+    )
     if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
         push_error("D06-02: cannot fire Gun for visible exterior tracer")
         quit(1)
         return
     for tick in range(4):
         await physics_frame
-    var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
     var world_projectile: Node3D = (
-        projectile_presenter.get_child(0) as Node3D
-        if projectile_presenter.get_child_count() > 0 else null
+        captured_projectiles[0] if captured_projectiles.size() > 0 else null
     )
     if world_projectile == null or world_projectile.get_node_or_null("VisibleProjectile") == null:
         push_error("D06-02: fired world projectile was not rendered")
@@ -749,8 +752,7 @@ func _capture() -> void:
         await physics_frame
     equipment_visual.call("refresh_presentation")
     var f4_projectile: Node3D = (
-        projectile_presenter.get_child(0) as Node3D
-        if projectile_presenter.get_child_count() > 0 else null
+        captured_projectiles[1] if captured_projectiles.size() > 1 else null
     )
     if not is_instance_valid(gun_viewmodel) or gun.get("shots_fired") != 2             or f4_projectile == null             or f4_projectile.get_node_or_null("VisibleProjectile") == null:
         push_error("D06-02: Gun F4 did not show a visible active-phase projectile")

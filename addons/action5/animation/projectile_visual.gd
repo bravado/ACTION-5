@@ -24,6 +24,7 @@ var _trail: MeshInstance3D
 
 ## Configure before adding to the tree. The endpoints remain fixed even if
 ## the shooter switches views, turns, runs, drops or frees the weapon.
+## The emitting gun does not own this temporary visual after launch.
 func launch(start: Vector3, impact: Vector3) -> bool:
     if not start.is_finite() or not impact.is_finite()             or start.distance_squared_to(impact) < 0.0001:
         return false
