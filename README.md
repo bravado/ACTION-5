@@ -121,33 +121,35 @@ The planned framework license is **MIT**. The license file and the attribution i
 **Developer extension:** [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md) documents the world-target port, camera-free NPC target provider, optional tracer, reload visual ownership and D07–D12 boundaries. No runtime code under `addons/action5/` imports `demo/`.
 
 
-### D07 enemy encounter
+### D07 enemy AI in the shared dungeon
 
-Run `make import && godot --path . res://demo/ai/encounter.tscn` to
-inspect a melee Bat enemy and ranged Gun enemy navigating an opaque
-center obstacle. WASD moves the player, LMB/J and RMB/K
-punch and kick, and 1–5 switch the same five camera profiles without
-restarting either enemy. Both enemies now reuse the skeletal training rig:
-the Bat swings in its upper-body attack channel, the Gun has a
-configurable firing pose, and hit/death/reload animations are driven by
-existing optional presentation adapters. Weapons attach to animated
-right-hand bones, with a fixed-socket fallback for headless actors.
-See [AI authoring](docs/ai.md) for configuring additional enemy archetypes,
-clip mapping, automated regression evidence and the separation from D08.
-D07 does **not** implement door interaction, restart UI or cross-room
-persistence; those belong to the separate D08 world/session work.
+Run `make import && godot --path . res://demo/main.tscn`, then use the
+**dungeon door at the east side of the arena** (E). The dungeon is an
+instance of `demo/world/encounter_sector.tscn`, not a second game scene.
+It hosts the D07 Bat melee and Gun ranged enemies navigating an opaque
+obstacle. LMB/J and RMB/K issue normal combat actions, 1–5 switch the
+camera, Q swaps inventory weapons and G drops one. The same player and
+equipment persist on the return trip. Both NPCs retain their shared
+skeletal presentation adapters and animated weapon sockets.
 
+`tests/d07_suite.gd` runs the actual embedded dungeon inside
+`demo/main.tscn` for camera-free AI, weapons, attack animations, real
+navigation and combat input regressions. The obsolete standalone
+`demo/ai/encounter.tscn` and its duplicate player/camera, old
+scene-reload handoff, and superseded transition tests have been removed.
+New NPC regression scenarios must extend the **same dungeon scene**
+without authoring a second encounter map. See
+[AI authoring](docs/ai.md).
 
 ### D08 persistent-world prototype (PR #34, under development)
 
-`demo/main.tscn` now embeds `demo/world/encounter_sector.tscn` as
-an independent dungeon room within the **same live world**. E on a
-portal travels without recreating the player or its equipment; Q swaps
-and G drops in either area. Unlike the separate
-`demo/ai/encounter.tscn` test fixture, the dungeon has no second
-Player/ViewManager. A world-local `SectorCameraBounds` translates
-F1/F2/F5 camera limits to follow the room. Bounded arcade/top-down
-camera headings stay fixed at map edges, preserving WASD world
-orientation and F3/F4 look direction. The dungeon roof is
-visually omitted in all views; physical ceiling collision is separate.
-PR #34 is still a draft with acceptance/testing work in progress.
+`demo/main.tscn` hosts one live world with the separately authored
+`demo/world/encounter_sector.tscn` dungeon. E moves the original player
+between arena and dungeon; Health, Combat, Equipment and enemy nodes
+retain their live instances on normal visits. A world-local
+`SectorCameraBounds` translates F1/F2/F5 camera limits into the active
+room, preserving common WASD world direction and F3/F4 look direction.
+The dungeon roof mesh and its shadow are hidden in all views; ceiling
+collision remains authoritative. D08 CI, fresh-entry lifecycle and
+manual native/WebGL2 acceptance remain separate review gates; PR #34
+has not been merged.
