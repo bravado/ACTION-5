@@ -28,27 +28,55 @@ func _fire(tree: SceneTree, combat: Node, id: StringName, heading: Vector2) -> b
     return requested
 
 
-## Real physical-actor receiver: the solid capsule MUST win the ray before
-## its inset Hurtbox Area, unlike the training dummy's Area-only collider.
-## A separate arena avoids perturbing the existing 967 assertion fixture.
+## Standalone real-physics D07-style fixture: one stationary CharacterBody
+## shooter and one solid CharacterBody receiver. No demo actor input or
+## locomotion can push them into each other during the ray assertions.
 func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -> void:
-    var scene := load("res://demo/main.tscn") as PackedScene
-    var level := scene.instantiate() as Node3D
-    level.position = Vector3(260, 0, 0)
-    tree.root.add_child(level)
-    await _ticks(tree, 3)
-    var shooter := level.get_node("Player") as CharacterBody3D
-    shooter.global_position = Vector3(260, 0.15, 0)
-    var equipment: Node = shooter.get_node("Equipment")
-    var combat: Node = shooter.get_node("CombatController")
-    var gun := level.get_node("GunPickup") as GunScript
-    gun.global_position = shooter.global_position + Vector3(0.3, 0.4, 0.3)
-    var source := ContextSourceScript.new()
-    level.add_child(source)
-    source.snapshot = ContextScript.new(true, Vector2(0, -1),
-        Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
-    shooter.get_node("AimTargetProvider").context_source = source
-    verify.call(equipment.pickup(gun), "Physical receiver fixture equips the real gun")
+    var arena := Node3D.new()
+    arena.name = "PhysicalReceiverArena"
+    tree.root.add_child(arena)
+
+    var shooter := CharacterBody3D.new()
+    shooter.name = "CameraFreeShooter"
+    shooter.collision_layer = 1
+    shooter.collision_mask = 0
+    var shooter_shape := CollisionShape3D.new()
+    shooter_shape.position = Vector3(0, 0.85, 0)
+    var shooter_capsule := CapsuleShape3D.new()
+    shooter_capsule.radius = 0.35
+    shooter_capsule.height = 1.7
+    shooter_shape.shape = shooter_capsule
+    shooter.add_child(shooter_shape)
+    var source_health := NPCHealthScript.new()
+    source_health.name = "Health"
+    source_health.team_id = 1
+    shooter.add_child(source_health)
+    var combat := NPCCombatScript.new()
+    combat.name = "CombatController"
+    shooter.add_child(combat)
+    var mount := NPCMountScript.new()
+    mount.name = "SocketSource"
+    shooter.add_child(mount)
+    var socket := Node3D.new()
+    socket.name = "Socket"
+    socket.position = Vector3(0, 1.0, 0)
+    mount.add_child(socket)
+    var equipment := NPCEquipmentScript.new()
+    equipment.name = "Equipment"
+    equipment.mount_source_path = ^"../SocketSource"
+    shooter.add_child(equipment)
+    var aim := TargetAimScript.new()
+    aim.name = "WorldTarget"
+    aim.target_offset = Vector3(0, 0.85, 0)
+    shooter.add_child(aim)
+    arena.add_child(shooter)
+    shooter.global_position = Vector3(320, 0, 0)
+
+    var gun := (load("res://demo/equipment/gun.tscn") as PackedScene).instantiate() as GunScript
+    gun.aim_provider_path = ^"WorldTarget"
+    arena.add_child(gun)
+    gun.global_position = shooter.global_position + Vector3(0.3, 0.4, 0)
+    verify.call(equipment.pickup(gun), "Physical receiver fixture equips the real D06 Gun")
     await _ticks(tree, 3)
     var muzzle := gun.get_node("Muzzle") as Node3D
 
@@ -56,8 +84,6 @@ func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -
     receiver.name = "PhysicalActorWithHurtbox"
     receiver.collision_layer = 1
     receiver.collision_mask = 0
-    level.add_child(receiver)
-    receiver.global_position = muzzle.global_position + Vector3(0, -0.85, -4.0)
     var solid := CollisionShape3D.new()
     solid.position = Vector3(0, 0.85, 0)
     var solid_capsule := CapsuleShape3D.new()
@@ -80,6 +106,9 @@ func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -
     receiver_capsule.height = 1.0
     receiver_shape.shape = receiver_capsule
     hurtbox.add_child(receiver_shape)
+    arena.add_child(receiver)
+    receiver.global_position = muzzle.global_position + Vector3(0, -0.85, -4.0)
+    aim.set_target(receiver)
     await _ticks(tree, 3)
 
     var exclude: Array[RID] = [shooter.get_rid()]
@@ -90,73 +119,56 @@ func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -
     probe.collide_with_areas = true
     probe.collide_with_bodies = true
     var first_hit: Dictionary = shooter.get_world_3d().direct_space_state.intersect_ray(probe)
-    if first_hit.get("collider") != receiver:
-        print("ACTION5_BODY_RAY_DIAG first=", first_hit.get("collider"),
-            " first_position=", first_hit.get("position"),
-            " muzzle=", muzzle.global_position,
-            " shooter=", shooter.global_position,
-            " body=", receiver.global_position,
-            " solid=", solid.global_position,
-            " hurtbox=", hurtbox.global_position,
-            " range_end=", probe.to)
     verify.call(first_hit.get("collider") == receiver,
-        "The nearest ray hit is the physical CharacterBody, not its inset Hurtbox")
+        "Layer-1 body physically blocks the ray ahead of its inset layer-2 Hurtbox")
     var ammo_before: int = gun.magazine
     var hp_before: float = health.current_health
     var accepted: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
-    if health.current_health >= hp_before:
-        print("ACTION5_BODY_HIT_DIAG gun_fired=", gun.shots_fired,
-            " hits=", gun.hits_landed, " ammo=", gun.magazine,
-            " hp=", health.current_health, " receiver=", receiver.global_position,
-            " muzzle=", muzzle.global_position)
     verify.call(accepted and gun.magazine == ammo_before - 1
         and gun.shots_fired == 1 and gun.hits_landed == 1
         and health.current_health < hp_before,
-        "Layer-1 physical actor resolves its owned layer-2 Hurtbox and takes one hit")
+        "Body-first collision resolves only its own active Hurtbox and applies one hit")
 
-    # An ordinary solid wall must NOT resolve a receiver behind it; the
-    # bullet still costs a round, and the impact stops at the wall.
+    # Unrelated solid geometry is still an absolute blocker: no second
+    # query may pass through the wall to discover a downstream target.
     await _ticks(tree, 24)
     var wall := StaticBody3D.new()
     wall.name = "UnrelatedSolidWall"
     wall.collision_layer = 1
     wall.collision_mask = 0
-    level.add_child(wall)
     var wall_shape := CollisionShape3D.new()
     var wall_box := BoxShape3D.new()
     wall_box.size = Vector3(1.8, 2.0, 0.28)
     wall_shape.shape = wall_box
     wall.add_child(wall_shape)
+    arena.add_child(wall)
     wall.global_position = muzzle.global_position + Vector3(0, 0, -1.4)
     await _ticks(tree, 2)
     first_hit = shooter.get_world_3d().direct_space_state.intersect_ray(probe)
     verify.call(first_hit.get("collider") == wall,
-        "Wall remains the first physical hit, never skipped for a downstream actor")
+        "Opaque wall is first hit, rather than a damageable physical actor behind it")
     ammo_before = gun.magazine
     hp_before = health.current_health
     var landed_before: int = gun.hits_landed
     accepted = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(accepted and gun.magazine == ammo_before - 1
-        and health.current_health == hp_before
-        and gun.hits_landed == landed_before,
-        "Wall blocks physical actor damage without piercing geometry or refunding ammo")
+        and health.current_health == hp_before and gun.hits_landed == landed_before,
+        "Wall still consumes an active round but never damages the actor behind it")
     wall.queue_free()
     await _ticks(tree, 25)
 
-    # Team filtering remains Health/AttackDefinition's policy even when
-    # the body, rather than the Area, was the collision returned.
-    health.team_id = (shooter.get_node("Health") as NPCHealthScript).team_id
+    # Exactly the same physical receiver path must preserve team filtering.
+    health.team_id = source_health.team_id
     hp_before = health.current_health
     ammo_before = gun.magazine
     accepted = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(accepted and gun.magazine == ammo_before - 1
-        and health.current_health == hp_before
-        and gun.hits_landed == landed_before,
-        "Friendly physical actor hit consumes a round but respects team rejection")
+        and health.current_health == hp_before and gun.hits_landed == landed_before,
+        "Friendly physical body obeys the existing Health/AttackDefinition team policy")
     await _ticks(tree, 24)
 
-    # Disabling the sole Hurtbox makes the underlying solid body an opaque
-    # non-damageable object. Do not infer hits merely from a Health child.
+    # A disabled Hurtbox cannot make its owner body damageable merely
+    # because that body still has a Health child.
     health.team_id = 2
     receiver_shape.set_deferred("disabled", true)
     await _ticks(tree, 3)
@@ -164,10 +176,9 @@ func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -
     ammo_before = gun.magazine
     accepted = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
     verify.call(accepted and gun.magazine == ammo_before - 1
-        and health.current_health == hp_before
-        and gun.hits_landed == landed_before,
-        "Disabled Hurtbox cannot receive damage through its still-solid body")
-    level.queue_free()
+        and health.current_health == hp_before and gun.hits_landed == landed_before,
+        "Disabled Hurtbox leaves the actor solid but not damageable")
+    arena.queue_free()
     await tree.process_frame
 
 
