@@ -215,9 +215,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and authored_origin.distance_to(world_origin_before_f4) > 0.2,
         "F4 visual projectile origin uses the gripped barrel tip, not third-person body socket")
     var snapshot_at_shot: Array[Vector3] = []
-    gun.fired.connect(func(_impact: Vector3, _did_hit: bool) -> void:
-        snapshot_at_shot.append(f4_tip.global_position)
-    )
+    var capture_f4_start: Callable = func(_impact: Vector3, _did_hit: bool) -> void:
+        if is_instance_valid(f4_tip):
+            snapshot_at_shot.append(f4_tip.global_position)
+    gun.fired.connect(capture_f4_start)
     source.snapshot = ContextScript.new(true, Vector2.ZERO, Vector2(0, -1),
         ProfileScript.Mode.FIRST_PERSON, views.get_active_camera())
     var f4_visual_count: int = projectile_visuals.size()
@@ -232,10 +233,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and f4_visual.from_world.distance_to(snapshot_at_shot[0]) < 0.002
         and f4_visual.to_world.is_equal_approx(impacts[impacts.size() - 1]),
         "F4 active shot uses camera-local visual muzzle but preserves world-physics impact and ammo")
+    # This listener only applies to the F4 fixture. Do not keep a Callable
+    # capturing a short-lived viewmodel attached to the persistent Gun.
+    gun.fired.disconnect(capture_f4_start)
     var eye: Camera3D = views.get_active_camera()
     verify.call(f4_visual != null and not eye.is_position_behind(f4_visual.from_world),
         "F4 projectile originates visibly in front of the active first-person camera")
     await _ticks(tree, 20)
+    # This additional F4 shot is a real shot and spends another round; use
+    # the actual magazine state for the subsequent reload assertions.
+    baseline_magazine = gun.magazine
     views.switch_view(2)
     source.snapshot = ContextScript.new(true, Vector2(0, -1),
         Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
