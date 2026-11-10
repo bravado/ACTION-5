@@ -52,6 +52,30 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and melee_combat != ranged_combat and bat.equipment_owner == melee_equipment
         and gun.equipment_owner == ranged_equipment,
         "Two NPCs have separate HP, combat clocks and exclusive weapon instances")
+    var melee_presenter = melee.get_node("AnimationPresenter")
+    var ranged_presenter = ranged.get_node("AnimationPresenter")
+    verify.call(bool(melee_presenter.validation.get("valid", false))
+        and bool(ranged_presenter.validation.get("valid", false))
+        and melee_presenter.animation_tree != null and melee_presenter.animation_tree.active
+        and ranged_presenter.animation_tree != null and ranged_presenter.animation_tree.active
+        and melee_presenter != ranged_presenter,
+        "Both D07 NPCs independently validate and initialize animated skeletal models")
+    verify.call(bat.get_parent() == melee_presenter.get_socket(&"right_hand")
+        and gun.get_parent() == ranged_presenter.get_socket(&"right_hand")
+        and bat.get_parent() is BoneAttachment3D and gun.get_parent() is BoneAttachment3D,
+        "Equipped Bat and Gun follow separate animated right-hand bone sockets")
+    var melee_model_meshes: Array[Node] = melee.get_node("Visual/Model").find_children(
+        "*", "MeshInstance3D", true, false
+    )
+    var ranged_model_meshes: Array[Node] = ranged.get_node("Visual/Model").find_children(
+        "*", "MeshInstance3D", true, false
+    )
+    verify.call(not melee_model_meshes.is_empty() and not ranged_model_meshes.is_empty()
+        and (melee_model_meshes[0] as MeshInstance3D).material_overlay != null
+        and (ranged_model_meshes[0] as MeshInstance3D).material_overlay != null
+        and (melee_model_meshes[0] as MeshInstance3D).material_overlay.albedo_color
+            != (ranged_model_meshes[0] as MeshInstance3D).material_overlay.albedo_color,
+        "Demo-only model palettes differentiate two NPCs without mutating shared GLB")
     # Player combat input must be wired in this standalone encounter too.
     # Exercise the *real* input adapter, not Combat.request_attack directly.
     var combat_input := arena.get_node_or_null("CombatInput") as Node
@@ -181,18 +205,30 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 4)
     var close_hp: float = player_health.current_health
     var requested_melee: bool = melee_combat.request_attack(&"bat_swing", Vector2.LEFT)
-    await _ticks(tree, 8)
+    await _ticks(tree, 1)
+    verify.call(requested_melee and melee_presenter.upper_body_clip == &"bat_vertical"
+        and melee.get_node("CombatAnimationAdapter").get("_active_channel") == 0,
+        "Bat attack_started selects the real rig's authored upper-body swing clip")
+    await _ticks(tree, 7)
     verify.call(requested_melee and player_health.current_health < close_hp,
         "Melee actor's actual Bat attack applies D05 physics damage within authored range")
     melee_combat.cancel()
+    verify.call(melee_presenter.upper_body_clip == &"",
+        "Bat attack cancellation clears its upper-body animation without changing damage")
     close_hp = player_health.current_health
     attack_before = gun.shots_fired
     var requested_gun: bool = ranged_combat.request_attack(&"gun_fire", Vector2(0, -1))
-    await _ticks(tree, 6)
+    await _ticks(tree, 1)
+    verify.call(requested_gun and ranged_presenter.upper_body_clip == &"gun_fire"
+        and ranged.get_node("CombatAnimationAdapter").get("_active_channel") == 0,
+        "Gun attack_started resolves its NPC-only firing pose through the shared adapter")
+    await _ticks(tree, 5)
     verify.call(requested_gun and gun.shots_fired == attack_before + 1
         and player_health.current_health < close_hp,
         "Ranged actor's real world muzzle and owned Gun inflict ranged damage")
     ranged_combat.cancel()
+    verify.call(ranged_presenter.upper_body_clip == &"",
+        "Gun attack cancellation clears the firing pose after the physical action")
     await _ticks(tree, 14)
     # Obstacle blocks the FIRST physical muzzle ray even when an explicit
     # attack request is submitted. AI also rejects a blocked line of sight.
@@ -335,6 +371,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and ranged_health.current_health == previous_hp
         and is_instance_valid(gun),
         "Melee death disables only its actor; ranged equipment remains independent")
+    verify.call(melee_presenter.action_clip == &"death"
+        and melee_presenter.upper_body_clip == &"",
+        "Melee death replaces swing visuals with the skeletal full-body death clip")
     # Dead player targets cannot receive new attacks. Aim target is cleared
     # before the next decision tick, including during gun reload.
     player_health.take_hit(20000.0, ranged, null, Vector2.RIGHT, 0.0, 0)
@@ -364,11 +403,35 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     verify.call(began_reload and gun.reload_left > 0,
         "Ranged enemy starts ordinary per-instance Gun reload")
+    verify.call(ranged_presenter.upper_body_clip == &"reload",
+        "Ranged Gun reload drives optional skeletal upper-body animation")
     ranged_health.take_hit(1000.0, replacement, null, Vector2.RIGHT, 0.0, 0)
     await _ticks(tree, 3)
     verify.call(ranged_ai.state == &"dead" and not ranged.alive
         and gun.reload_left == 0 and ranged_combat.current_attack == null,
         "Death during Gun reload stops damage and cancels the weapon clock")
+    verify.call(ranged_presenter.action_clip == &"death"
+        and ranged_presenter.upper_body_clip == &"",
+        "Ranged death interrupts Gun reload presentation with the death animation")
+    # Optional-presentation regression: an actor composed without a rig or
+    # AnimationPresenter still acquires/equips a weapon on its fallback
+    # socket and retains real D05 attack registration.
+    var fallback_enemy := (load("res://demo/ai/melee_enemy.tscn") as PackedScene).instantiate()
+    fallback_enemy.name = "UnanimatedEnemy"
+    fallback_enemy.get_node("AnimationPresenter").free()
+    fallback_enemy.get_node("Visual/Model").free()
+    fallback_enemy.get_node("Visual/BodyMesh").visible = true
+    arena.add_child(fallback_enemy)
+    fallback_enemy.global_position = arena.global_position + Vector3(0, 0.15, 6)
+    fallback_enemy.get_node("AIController").set_physics_process(false)
+    await _ticks(tree, 6)
+    var fallback_weapon: Node3D = fallback_enemy.get_node("Equipment").current_weapon
+    verify.call(is_instance_valid(fallback_weapon)
+        and fallback_weapon.get_parent() == fallback_enemy.get_node("Visual/Socket")
+        and fallback_enemy.get_node("CombatController").get_attack(&"bat_swing") != null,
+        "Render-optional enemy still equips and registers Bat without animation nodes")
+    fallback_enemy.queue_free()
+    await _ticks(tree, 2)
     var captured_gun: WeakRef = weakref(gun)
     var captured_bat: WeakRef = weakref(bat)
     arena.queue_free()
