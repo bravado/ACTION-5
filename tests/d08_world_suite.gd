@@ -52,6 +52,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and encounter.process_mode == Node.PROCESS_MODE_DISABLED
         and stage.get_node("Interactor") != null,
         "World boots with an inactive CPU-paused encounter and independent Interactor")
+    verify.call(not (stage.get_node("DungeonRoofOverlay/Tint") as ColorRect).visible,
+        "Full-screen dungeon tint is hidden in the main arena")
 
     # Default doors remain hide-on-open; only explicitly configured
     # travel portals keep a recognizable visible destination marker.
@@ -127,6 +129,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(world.current_sector == &"arena" and not encounter.visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
         "Return to arena pauses encounter without unloading or replacing any actor")
+    verify.call(not (stage.get_node("DungeonRoofOverlay/Tint") as ColorRect).visible,
+        "Dungeon tint is removed immediately when returning to the arena")
     verify.call(door.get_instance_id() == arena_door_id
         and arena_door_mesh.visible and door.open,
         "Arena door remains visible and is the SAME interactable after returning")
@@ -176,30 +180,35 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and bat.global_position.distance_to(dropped_bat_position) < 0.01,
         "A weapon dropped in the encounter survives travel away and back")
 
-    # The low-opacity canopy is visible in the external cameras, but never
-    # darkens the room or interferes with the first-person view. Its physical
-    # ceiling still blocks authoritative world queries in every camera.
+    # A physically elevated translucent mesh projected into only the
+    # upper half of side/arcade cameras. The new full-screen CanvasLayer
+    # is scene-local, independent of camera transforms, and draws behind
+    # HUD but above 3D. The real ceiling remains a physics-only obstacle.
     var roof := encounter.get_node("Roof") as StaticBody3D
-    var roof_mesh := roof.get_node("Mesh") as MeshInstance3D
     var roof_shape := roof.get_node("CollisionShape3D") as CollisionShape3D
-    var roof_material := roof_mesh.get_active_material(0) as StandardMaterial3D
-    verify.call(roof_material != null
-        and roof_material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
-        and roof_material.albedo_color.a > 0.0
-        and roof_material.albedo_color.a <= 0.2,
-        "Dungeon roof uses a subtle real alpha material instead of an opaque panel")
+    var overlay := stage.get_node("DungeonRoofOverlay") as CanvasLayer
+    var tint := overlay.get_node("Tint") as ColorRect
+    verify.call(roof.get_node_or_null("Mesh") == null
+        and not roof_shape.disabled and roof.collision_layer != 0,
+        "Dungeon has one physical ceiling and no half-screen 3D canopy geometry")
+    verify.call(overlay.layer == 0 and tint.mouse_filter == Control.MOUSE_FILTER_IGNORE
+        and tint.anchor_left == 0.0 and tint.anchor_top == 0.0
+        and tint.anchor_right == 1.0 and tint.anchor_bottom == 1.0
+        and tint.color.a > 0.0 and tint.color.a <= 0.2,
+        "Dungeon tint fills the viewport behind HUD without intercepting game input")
     var view_manager := stage.get_node("ViewManager")
-    var roof_visibility_correct: bool = true
+    var tint_visible_per_view: bool = true
     for view_index in range(5):
         view_manager.switch_view(view_index)
         await _frames(tree, 2)
         var expected_visible: bool = view_index != 3
-        roof_visibility_correct = roof_visibility_correct \
-            and roof_mesh.visible == expected_visible \
-            and roof_mesh.cast_shadow == 0 \
+        tint_visible_per_view = tint_visible_per_view \
+            and tint.visible == expected_visible \
             and not roof_shape.disabled and roof.collision_layer != 0
-    verify.call(roof_visibility_correct,
-        "Translucent roof displays in F1/F2/F3/F5, hides in F4, never changes collision or shadows")
+    verify.call(tint_visible_per_view,
+        "Uniform dungeon tint covers F1/F2/F3/F5 and clears entirely for first person")
+    verify.call(tint.size.distance_to(stage.get_viewport().get_visible_rect().size) < 1.0,
+        "Dungeon tint covers full viewport dimensions rather than only the upper screen")
     var dungeon_light_a := encounter.get_node("DungeonFillLight") as OmniLight3D
     var dungeon_light_b := encounter.get_node("DungeonCombatLight") as OmniLight3D
     verify.call(dungeon_light_a != null and dungeon_light_b != null
