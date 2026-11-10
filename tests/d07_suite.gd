@@ -60,6 +60,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and ranged_presenter.animation_tree != null and ranged_presenter.animation_tree.active
         and melee_presenter != ranged_presenter,
         "Both D07 NPCs independently validate and initialize animated skeletal models")
+    var melee_locomotion := melee.get_node("Locomotion")
+    var ranged_locomotion := ranged.get_node("Locomotion")
+    verify.call(melee_locomotion.walk_speed < melee_presenter.run_speed_threshold
+        and melee_presenter.run_speed_threshold < melee_locomotion.run_speed
+        and ranged_locomotion.walk_speed < ranged_presenter.run_speed_threshold
+        and ranged_presenter.run_speed_threshold < ranged_locomotion.run_speed,
+        "NPC animation run thresholds lie between authored walk and run speeds")
     verify.call(bat.get_parent() == melee_presenter.get_socket(&"right_hand")
         and gun.get_parent() == ranged_presenter.get_socket(&"right_hand")
         and bat.get_parent() is BoneAttachment3D and gun.get_parent() is BoneAttachment3D,
@@ -139,7 +146,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and melee.global_position != positions_before_views[0]
         and ranged.global_position != positions_before_views[1],
         "F1-F5 camera switches leave both AI actors navigating with persistent HP")
-    await _ticks(tree, 190)
+    var melee_run_seen: bool = false
+    var ranged_run_seen: bool = false
+    for tick in range(190):
+        await tree.physics_frame
+        melee_run_seen = melee_run_seen or melee_presenter.base_clip == &"run"
+        ranged_run_seen = ranged_run_seen or ranged_presenter.base_clip == &"run"
+    verify.call(melee_run_seen and ranged_run_seen,
+        "Both independently configured NPCs play the run clip during physical pursuit")
     verify.call(melee.global_position.distance_to(start_melee) > 1.5
         and ranged.global_position.distance_to(start_ranged) > 0.5,
         "Both actors chase around the real obstacle with D03 movement physics")
