@@ -102,6 +102,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(camera.global_basis.x.distance_to(initial_camera_heading.x) < 0.001
             and camera.global_basis.z.distance_to(initial_camera_heading.z) < 0.001,
             "F%d return leaves camera yaw and pitch unchanged" % (index + 1))
+        if index == 1:
+            var arcade_heading: Vector3 = Vector3(0.0, 4.5, 10.0).normalized()
+            verify.call(camera.global_basis.z.distance_to(arcade_heading) < 0.001,
+                "F2 beat-em-up camera maintains its authored fixed pitch at a room boundary")
+        elif index == 4:
+            verify.call(camera.global_basis.y.distance_to(Vector3.FORWARD) < 0.001
+                and camera.global_basis.z.distance_to(Vector3.UP) < 0.001,
+                "F5 retro camera remains world-vertical and screen-up stays global -Z")
 
     tree.current_scene = original_scene
     world.queue_free()
