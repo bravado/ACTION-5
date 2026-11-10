@@ -62,6 +62,40 @@ disabled in first person. The roof's collision still obstructs
 navigation and projectile/weapon raycasts. Neither this overlay nor
 the doorway appearance defines collision authority.
 
+## Explicitly different connection types
+
+**Connected physical gate — `WorldDoor`:** Adjacent arena/dungeon floors
+meet at the same boundary. E toggles an opaque physical panel,
+collision and the shared NavigationLink3D; neither the player nor
+the camera is teleported. `RoomVisibility` hides the opposite
+room's render nodes while the gate is closed, even when its floor/AI
+is preloaded for physics. The scene-level
+`DoorAcquisitionFilter` implements the optional
+`allows_acquisition(observer, candidate)` protocol of
+`Action5AITargetSensor`: first discovery is denied across a closed
+gate, but an already-acquired target is retained if the door closes.
+This does not bypass the existing world-space combat LoS or collision.
+The generic Interactor may query a near-side door handle through
+`get_interaction_point(actor)`; no door-specific input branch exists.
+
+**Nonadjacent travel — `LocationPortal`:** For a marker elsewhere,
+explicit E moves the same actor to a Marker3D. For a separate
+PackedScene, `LocationManager` loads its *environment only* as a
+detached child scene and moves the original actor to its entry marker.
+The scene is cached, hidden and CPU-paused when inactive; another
+Marker3D portal returns the actor to the arena. The example
+`demo/world/remote_chamber.tscn` is **not** another connected room
+and does not contain a duplicate Player, Combat, Equipment, camera or
+input adapter. `WorldSession` suspends its physical room-threshold
+observer only while that detached location is active. A
+`SectorCameraBounds` adapter reframes only on such deliberate
+nonadjacent jumps, never on normal adjacent doorway crossing.
+
+These are separate components because they solve different movement
+semantics and lifecycle problems. A `SceneTree.change_scene`
+replacement that recreated the player would require an explicit
+save/restore protocol and is not part of normal D08 traversal.
+
 ## One dungeon for gameplay **and** D07 tests
 
 The old `demo/ai/encounter.tscn` and its script, scene-travel handoff
