@@ -187,10 +187,7 @@ func _try_damage(collider: CollisionObject3D, actor: CharacterBody3D,
         from: Vector3, impact: Vector3) -> bool:
     if collider == null:
         return false
-    var hurtbox := collider as HurtboxScript
-    if hurtbox == null:
-        return false
-    var target := hurtbox.get_health()
+    var target: HealthScript = _resolve_hit_health(collider)
     var source := actor.get_node_or_null("Health") as HealthScript
     if target == null or target == source:
         return false
@@ -210,6 +207,32 @@ func _try_damage(collider: CollisionObject3D, actor: CharacterBody3D,
         hits_landed += 1
         _combat.attack_hit.emit(fire_attack_id, target.get_parent())
     return accepted
+
+
+## The first physical ray hit may be an actor's layer-1 solid body rather
+## than its overlapping layer-2 Hurtbox Area. Both are part of the same
+## damageable actor; a wall or unrelated solid object remains a hard stop.
+## Never cast another ray past the first hit or infer damage from a Health
+## node alone: only an explicitly attached, active Hurtbox enables damage.
+func _resolve_hit_health(collider: CollisionObject3D) -> HealthScript:
+    if collider == null:
+        return null
+    var direct := collider as HurtboxScript
+    if direct != null:
+        return direct.get_health()
+    # Resolve only a body that OWNS a matching Hurtbox and Health. This
+    # works for the player and D07 physical NPCs without an AI-specific
+    # hit branch or hardcoded "Hurtbox" child name.
+    if not collider is PhysicsBody3D:
+        return null
+    for node in collider.find_children("*", "Area3D", true, false):
+        var receiver := node as HurtboxScript
+        if receiver == null or not receiver.has_active_shape():
+            continue
+        var health: HealthScript = receiver.get_health()
+        if health != null and collider.is_ancestor_of(health):
+            return health
+    return null
 
 
 func _exit_tree() -> void:

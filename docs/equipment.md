@@ -411,3 +411,21 @@ from their independent scene's `projectile_color`; authors can adjust
 This is a material-only visual effect: no changes to ammo, physics
 muzzle/camera muzzle selection, walls, damage, action timing or projectile
 lifetime/cleanup.
+
+
+### D06-02 physical actor receiver regression (P1 fix)
+
+The authoritative world-muzzle ray retains layers 1 (solid geometry)
+and 2 (Hurtbox Areas), and stops at its **first** collision. A solid
+`PhysicsBody3D` may be returned before the damageable actor's overlapping
+Hurtbox Area. `Action5Gun._resolve_hit_health()` now treats the hit body
+as a receiver only if the **same body owns an enabled Action5Hurtbox and
+the corresponding Action5Health**, using the existing explicit
+`Hurtbox.get_health()` association. It does not infer a damage receiver
+from a Health node alone, skip through a wall, or run another ray. The
+original team, invulnerability, self-exclusion and ammo rules are
+unchanged. The integration fixture constructs a real layer-1
+`CharacterBody3D` and inset layer-2 Hurtbox (ensuring the body wins
+the ray), then checks enemy damage, wall blocking, friendly rejection
+and a disabled Hurtbox. This remains an actor-neutral component
+contract suitable for D07 AI.

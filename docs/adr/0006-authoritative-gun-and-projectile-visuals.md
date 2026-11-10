@@ -132,3 +132,16 @@ Opacity and emission also decay over the effect lifetime. Gun ammo,
 raycasts, hit point and independent F4 visual-origin policy are
 unchanged. Both pistol variants reuse this component with their own
 color/size parameters; no new gameplay or camera coupling.
+
+
+## Amendment: physical body/Hurtbox collision precedence
+
+A ray that collides with layers 1 and 2 may return a target actor's
+solid `PhysicsBody3D` before its overlapping Hurtbox Area. The first
+collision is still **authoritative for obstruction**: a wall must never
+be skipped in pursuit of a downstream Hurtbox. If that first collider
+is a physical body, it counts as a damage receiver only when it owns
+an enabled `Action5Hurtbox` resolving to its own `Action5Health`.
+The existing damage/team/invulnerability filtering follows unchanged.
+The real-body regression lives in `tests/d06_gun_suite.gd`; no AI,
+camera, movement, animation or equipment core changes are required.

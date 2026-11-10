@@ -367,3 +367,17 @@ camera-local visual origin, all other view/AI world origin fallbacks and
 unchanged authoritative hitscan. For another gun, configure exported
 trail brightness/opacity and `projectile_color` on its scene. Do not
 modify Gun, Combat, equipment or camera logic for visual styling.
+
+
+## D06-02 physical ray receiver
+
+A hit from the physical world Muzzle always stops at the first collider.
+With ray layers 1+2 the collider may be the actor's solid
+`PhysicsBody3D` rather than its own Hurtbox Area. Resolve this as an
+authorized receiver only through an active `Action5Hurtbox` descendant
+that explicitly maps to the same body's `Action5Health`. Never retry
+the ray past unrelated wall geometry, accept any bare Health child as
+damageable, or change camera-local projectile origin/hit authority.
+Maintain the real `CharacterBody3D` receiver integration regression
+covering body-first collision, solid wall obstruction, ally filtering
+and disabled Hurtbox before merge.
