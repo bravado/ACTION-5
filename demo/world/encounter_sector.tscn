@@ -78,6 +78,7 @@ position = Vector3(9.4, 0, 5.2)
 script = ExtResource("4")
 session_path = NodePath("../../WorldSession")
 destination_sector = "arena"
+keep_visual_when_open = true
 
 [node name="Body" type="StaticBody3D" parent="ReturnDoor"]
 
