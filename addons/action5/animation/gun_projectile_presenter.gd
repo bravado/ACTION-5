@@ -14,13 +14,18 @@ signal projectile_spawned(projectile: Node3D)
     "res://addons/action5/animation/projectile_visual.tscn"
 )
 
-@onready var gun: Node = get_node_or_null(gun_path)
-@onready var muzzle: Node3D = get_node_or_null(muzzle_path) as Node3D
+var gun: Node
+var muzzle: Node3D
 var spawn_count: int = 0
 
 
-func _ready() -> void:
-    if is_instance_valid(gun) and gun.has_signal("fired"):
+## EquipmentController reparents the very same weapon from world to inventory
+## and then to a hand socket. _ready() runs only once, but _enter_tree() runs
+## on EACH reparent. Always restore the listener after the tree transition.
+func _enter_tree() -> void:
+    gun = get_node_or_null(gun_path)
+    muzzle = get_node_or_null(muzzle_path) as Node3D
+    if is_instance_valid(gun) and gun.has_signal("fired")             and not gun.fired.is_connected(_on_fired):
         gun.fired.connect(_on_fired)
 
 
@@ -47,3 +52,5 @@ func _on_fired(impact: Vector3, _hit_receiver: bool) -> void:
 func _exit_tree() -> void:
     if is_instance_valid(gun) and gun.has_signal("fired")             and gun.fired.is_connected(_on_fired):
         gun.fired.disconnect(_on_fired)
+    gun = null
+    muzzle = null
