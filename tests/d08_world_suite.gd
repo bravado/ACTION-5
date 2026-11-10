@@ -61,6 +61,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var normal_mesh := MeshInstance3D.new()
     normal_mesh.name = "DoorMesh"
     normal_door.add_child(normal_mesh)
+    normal_door.position = Vector3(1000, 0, 1000)
     stage.add_child(normal_door)
     normal_door.call("set_open", true)
     verify.call(not normal_mesh.visible
