@@ -3,6 +3,7 @@ extends RefCounted
 ## camera/muzzle occlusion. Does not replace physics with dummy pass flags.
 
 const GunScript = preload("res://addons/action5/equipment/gun.gd")
+const ProjectileScript = preload("res://addons/action5/animation/projectile_visual.gd")
 const ContextSourceScript = preload("res://tests/fixtures/action_input_context_source.gd")
 const ContextScript = preload("res://addons/action5/input/action_input_context.gd")
 const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
@@ -61,6 +62,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     var muzzle := gun.get_node("Muzzle") as Node3D
     var initial_muzzle: Vector3 = muzzle.global_position
+    var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
+    var impacts: Array[Vector3] = []
+    gun.fired.connect(func(point: Vector3, _hit: bool) -> void:
+        impacts.append(point)
+    )
+    verify.call(projectile_presenter != null
+        and projectile_presenter.get_child_count() == 0,
+        "No projectile visual is spawned before a real fired event")
     var fps_model: Node3D = world_visual.get("_viewmodel") as Node3D
     verify.call(is_instance_valid(fps_model) and gun._combat == combat
         and gun._aim == aim and combat.get_attack(&"gun_fire") != null,
@@ -75,11 +84,35 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and health.get("current_health") < old_hp and gun.hits_landed == 1,
         "One active phase must fire, spend one round and damage the physical Hurtbox")
 
+    # The already-authoritative shot creates a render-only tracer in the
+    # SAME world space and along the ray's actual resolved impact endpoint.
+    var first_visual: ProjectileScript = (
+        projectile_presenter.get_child(0) as ProjectileScript
+        if projectile_presenter.get_child_count() > 0 else null
+    )
+    var tip_mesh: MeshInstance3D = (
+        first_visual.get_node_or_null("VisibleProjectile") as MeshInstance3D
+        if first_visual != null else null
+    )
+    verify.call(first_visual != null and first_visual.top_level
+        and first_visual.from_world.distance_to(initial_muzzle) < 0.15
+        and impacts.size() == 1
+        and first_visual.to_world.is_equal_approx(impacts[0])
+        and tip_mesh != null and tip_mesh.layers == 1
+        and tip_mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+        "In-flight tracer uses the true world muzzle and hit point on ordinary camera layers")
+    verify.call(first_visual != null
+        and first_visual.find_children("*", "CollisionObject3D", true, false).is_empty(),
+        "Projectile visuals cannot apply collision, health or additional damage")
+
     # The same request never fires twice during one active/recovery window.
     await _ticks(tree, 2)
     verify.call(gun.shots_fired == 1 and gun.hits_landed == 1,
         "One active/recovery window cannot duplicate a Gun shot")
     await _ticks(tree, 20)
+    verify.call(projectile_presenter.get_child_count() == 0
+        and projectile_presenter.get("spawn_count") == 1,
+        "Projectile expires automatically after the shot without leaving pooled collision objects")
 
     # An opaque layer-1 obstacle must win over a layer-2 target, regardless
     # of clear camera line of sight. Camera sits above the near muzzle wall.
@@ -100,6 +133,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(requested and gun.magazine == ammo_before - 1
         and health.get("current_health") == old_hp and gun.hits_landed == 1,
         "Physical muzzle obstruction blocks damage and still spends one round")
+    verify.call(projectile_presenter.get("spawn_count") == 2
+        and projectile_presenter.get_child_count() > 0
+        and (projectile_presenter.get_child(0) as ProjectileScript).to_world.distance_to(
+            wall.global_position) < 0.3,
+        "Muzzle-blocked shots stop the visible tracer at the world obstacle")
     await _ticks(tree, 20)
 
     # Actual F4 view-specific camera ray sees the target above the short
@@ -117,8 +155,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "F4 resolves the camera-visible target independently of weapon muzzle")
     old_hp = health.get("current_health")
     requested = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
-    verify.call(requested and health.get("current_health") == old_hp,
-        "F4 crosshair visibility does not bypass opaque muzzle-to-target geometry")
+    verify.call(requested and health.get("current_health") == old_hp
+        and projectile_presenter.get("spawn_count") == 3,
+        "F4 crosshair visibility does not bypass muzzle obstruction but still shows projectile")
     await _ticks(tree, 20)
     wall.queue_free()
     await _ticks(tree, 2)
@@ -184,8 +223,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     requested = combat.request_attack(&"gun_fire", Vector2(0, -1))
     combat.cancel()
     await _ticks(tree, 4)
-    verify.call(requested and gun.magazine == ammo_before,
-        "Cancelled startup/buffered gun attack cannot consume ammunition")
+    verify.call(requested and gun.magazine == ammo_before
+        and projectile_presenter.get("spawn_count") == 3,
+        "Cancelled startup/buffered gun attack cannot consume ammo or spawn a phantom tracer")
 
     # Stowing cancels reload and active fire, but retains all stored rounds.
     await _ticks(tree, 20)
@@ -212,13 +252,21 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(combat.get_attack(&"gun_alt_fire") != null
         and combat.get_attack(&"gun_fire") == null,
         "Second configured gun reuses generic equipment and D05 action registry")
+    var alternate_presenter: Node = variant.get_node("ProjectilePresenter")
+    verify.call(alternate_presenter.get("projectile_scene") != projectile_presenter.get("projectile_scene"),
+        "Second gun configures its own projectile scene without changing shared rendering code")
     var variant_muzzle := variant.get_node("Muzzle") as Node3D
     verify.call(not variant_muzzle.position.is_equal_approx(muzzle.position),
         "Second gun authors a different physical muzzle socket")
     var initial_variant_magazine: int = variant.magazine
     requested = await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1))
-    verify.call(requested and variant.magazine == initial_variant_magazine - 1,
-        "Alternate cadence attack fires from the alternate gun without core conditionals")
+    var heavy_visual: ProjectileScript = (
+        alternate_presenter.get_child(0) as ProjectileScript
+        if alternate_presenter.get_child_count() > 0 else null
+    )
+    verify.call(requested and variant.magazine == initial_variant_magazine - 1
+        and heavy_visual != null and heavy_visual.projectile_color.b > heavy_visual.projectile_color.r,
+        "Alternate gun fires its configured blue projectile without core conditionals")
     await _ticks(tree, 30)
     # Empty magazine must never create a phantom hit or negative ammo.
     for shot in range(variant.magazine):
@@ -228,9 +276,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 30)
     var fired_before_dry: int = variant.shots_fired
     requested = await _fire(tree, combat, &"gun_alt_fire", Vector2(0, -1))
+    var visuals_before_dry: int = int(alternate_presenter.get("spawn_count"))
     verify.call(requested and variant.magazine == 0
-        and variant.shots_fired == fired_before_dry,
-        "Dry active attack cannot fire, damage or consume negative ammunition")
+        and variant.shots_fired == fired_before_dry
+        and visuals_before_dry == initial_variant_magazine,
+        "Dry active attack cannot fire, damage or spawn a fake projectile")
     await _ticks(tree, 30)
     verify.call(variant.request_weapon_command(&"weapon_alt_reload"),
         "Alternate gun accepts its own configured reload command")
