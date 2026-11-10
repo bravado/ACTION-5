@@ -82,7 +82,8 @@ func _capture_initial() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-    if not _initial_ready or not is_instance_valid(player):
+    if not _initial_ready or not is_instance_valid(player) \
+            or current_sector == &"remote":
         return
     var x: float = _player_world_x()
     var desired: StringName = current_sector
@@ -123,7 +124,8 @@ func _enter_sector(destination: StringName, start_fresh: bool) -> bool:
 func _update_encounter_activation() -> void:
     if not is_instance_valid(player):
         return
-    var near: bool = _player_world_x() >= passage_boundary_x - preload_distance
+    var near: bool = current_sector != &"remote" \
+        and _player_world_x() >= passage_boundary_x - preload_distance
     _set_encounter_active(near or current_sector == &"encounter")
 
 
@@ -137,6 +139,40 @@ func _set_encounter_active(value: bool) -> void:
         Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
     )
     encounter_activation_changed.emit(value)
+
+
+## Detached location entry is deliberate: never confused with simply
+## crossing a wall. Only the explicit LocationPortal/LocationManager may
+## place the actor there; other sectors keep their original live state.
+func enter_detached() -> void:
+    if current_sector == &"remote":
+        return
+    var previous: StringName = current_sector
+    current_sector = &"remote"
+    _update_encounter_activation()
+    sector_changed.emit(previous, current_sector)
+
+
+func leave_detached() -> void:
+    if current_sector != &"remote":
+        return
+    var previous: StringName = current_sector
+    current_sector = (
+        &"encounter" if _player_world_x() > passage_boundary_x else &"arena"
+    )
+    _update_encounter_activation()
+    sector_changed.emit(previous, current_sector)
+
+
+func reconcile_actor_sector() -> void:
+    if current_sector == &"remote":
+        return
+    var desired: StringName = (
+        &"encounter" if _player_world_x() > passage_boundary_x else &"arena"
+    )
+    if desired != current_sector:
+        _enter_sector(desired, false)
+    _update_encounter_activation()
 
 
 ## Explicit scripted warp for cutscenes/CI only. The physical gateway does
