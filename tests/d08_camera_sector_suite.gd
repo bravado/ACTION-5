@@ -92,7 +92,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             "F%d has one continuous arena+dungeon camera rectangle" % (index + 1))
 
         # Position at the arena side of the actual physical doorway.
-        player.global_position = world.to_global(Vector3(12.25, 0.15, -4))
+        player.global_position = world.to_global(Vector3(12.25, 0.15, 0))
         await _physics_frames(tree, 4)
         views.switch_view(index)
         await _frames(tree, 12)
@@ -104,7 +104,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
         # Cross only 3.5 meters in WORLD space; opening the gate never
         # invokes a teleport or reinitializes camera/profile resources.
-        player.global_position = world.to_global(Vector3(15.75, 0.15, -4))
+        player.global_position = world.to_global(Vector3(15.75, 0.15, 0))
         await _physics_frames(tree, 4)
         await _frames(tree, 12)
         verify.call(session.current_sector == &"encounter"
@@ -119,7 +119,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(absf(camera.global_position.x - frame_before.x) < 6.0,
             "F%d camera follows near doorway without a 26m teleport snap" % (index + 1))
 
-        player.global_position = world.to_global(Vector3(12.25, 0.15, -4))
+        player.global_position = world.to_global(Vector3(12.25, 0.15, 0))
         await _physics_frames(tree, 4)
         await _frames(tree, 12)
         verify.call(session.current_sector == &"arena" and
