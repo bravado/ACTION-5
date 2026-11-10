@@ -1,10 +1,9 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="3"]
 [ext_resource type="Script" path="res://demo/interactions/world_portal_door.gd" id="4"]
-[ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="5"]
 [ext_resource type="Script" path="res://demo/world/traversal_fixture.gd" id="6"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
@@ -36,14 +35,6 @@ emission_energy_multiplier = 1.4
 
 [sub_resource type="BoxShape3D" id="roof_shape"]
 size = Vector3(23.5, 0.25, 15.5)
-
-[sub_resource type="BoxMesh" id="roof_mesh"]
-size = Vector3(23.5, 0.25, 15.5)
-
-[sub_resource type="StandardMaterial3D" id="roof_color"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0.12, 0.18, 0.26, 0.18)
 
 [node name="EncounterSector" type="Node3D"]
 script = ExtResource("1")
@@ -112,11 +103,6 @@ position = Vector3(0, 4.0, 0)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Roof"]
 shape = SubResource("roof_shape")
 
-[node name="Mesh" type="MeshInstance3D" parent="Roof"]
-cast_shadow = 0
-mesh = SubResource("roof_mesh")
-surface_material_override/0 = SubResource("roof_color")
-
 [node name="DungeonFillLight" type="OmniLight3D" parent="."]
 position = Vector3(-4.5, 2.9, 0)
 light_color = Color(1, 0.88, 0.70, 1)
@@ -130,11 +116,6 @@ light_color = Color(0.77, 0.87, 1, 1)
 light_energy = 0.5
 omni_range = 12.0
 shadow_enabled = false
-
-[node name="RoofVisibility" type="Node" parent="."]
-script = ExtResource("5")
-view_manager_path = NodePath("../../ViewManager")
-hidden_view_indices = PackedInt32Array(3)
 
 [node name="TraversalFixture" type="Node3D" parent="."]
 script = ExtResource("6")
