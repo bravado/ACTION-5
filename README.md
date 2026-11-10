@@ -149,7 +149,9 @@ between arena and dungeon; Health, Combat, Equipment and enemy nodes
 retain their live instances on normal visits. A world-local
 `SectorCameraBounds` translates F1/F2/F5 camera limits into the active
 room, preserving common WASD world direction and F3/F4 look direction.
-The dungeon roof mesh and its shadow are hidden in all views; ceiling
-collision remains authoritative. D08 CI, fresh-entry lifecycle and
+The dungeon roof uses a subtle 18%-opaque translucent canopy in external
+views (1/2/3/5), with no roof shadow; first person (4) hides it entirely.
+The ceiling remains an authoritative collider. Two subdued interior lights
+complement the existing world sun without washing out the combat floor. D08 CI, fresh-entry lifecycle and
 manual native/WebGL2 acceptance remain separate review gates; PR #34
 has not been merged.
