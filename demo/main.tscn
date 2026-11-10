@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=3]
+[gd_scene load_steps=42 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="20_pickup"]
 [ext_resource type="Script" path="res://demo/interactions/world_switch.gd" id="21_switch"]
 [ext_resource type="Script" path="res://demo/world/sector_camera_bounds.gd" id="22_bounds"]
+[ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="23_roof_overlay"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -295,6 +296,20 @@ script = ExtResource("16_interaction")
 rotation_degrees = Vector3(-52, 24, 0)
 light_energy = 1.3
 shadow_enabled = true
+
+[node name="DungeonRoofOverlay" type="CanvasLayer" parent="."]
+layer = 0
+script = ExtResource("23_roof_overlay")
+
+[node name="Tint" type="ColorRect" parent="DungeonRoofOverlay"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.18, 0.26, 0.18)
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
