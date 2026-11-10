@@ -35,9 +35,13 @@ D07 NPCs, physical portal and presentation-only roof.
   portal markers explicitly opt into `keep_visual_when_open=true` so
   their appearance is independent from the gate's collision state and
   they remain identifiable after returning to either sector. Both door
-  scenes must use the same setting. RoofVisibility hides only
-  meshes/shadows and cannot change physics, navigation or Gun muzzle
-  ray authority.
+  scenes must use the same setting. RoofVisibility now owns a
+  viewport-wide ColorRect tint (CanvasLayer 0 below HUD 1) rather than
+  an elevated transparent 3D plane. The geometric ceiling is a
+  StaticBody3D with no visual mesh, so the side/arcade frustum cannot
+  cover only part of the screen. The overlay is dungeon-only in
+  views 1/2/3/5 and hidden in first person; it does not change
+  physics, navigation or Gun muzzle ray authority.
 - The single `demo/world/dungeon_navigation.gd` builds a static
   navigation ring for the dungeon. AI/Combat/Equipment do not depend on
   demo-specific room or scene-transition classes.
