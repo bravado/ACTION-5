@@ -8,6 +8,10 @@ class_name Action5Interactor
 @export_range(0.1, 20.0, 0.1) var maximum_distance: float = 2.6
 @export var require_line_of_sight: bool = true
 @export_flags_3d_physics var obstruction_mask: int = 1
+## World prop interactions should not fail merely because another moving
+## character stands between the player and a nearby door handle.
+## Static walls/closed door colliders continue to block the ray.
+@export var ignore_character_occlusion: bool = true
 
 @onready var world: Node = get_node_or_null(world_path)
 var _last_frame: int = -1
@@ -80,8 +84,20 @@ func _clear_sight(actor: Node3D, item: Node3D) -> bool:
         return true
     var query := PhysicsRayQueryParameters3D.create(from, to, obstruction_mask, excluded)
     query.collide_with_areas = false
-    var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(query)
-    if hit.is_empty():
-        return true
-    var collider := hit.get("collider") as Node
-    return collider == item or (collider != null and item.is_ancestor_of(collider))
+    var space: PhysicsDirectSpaceState3D = actor.get_world_3d().direct_space_state
+    # Query repeatedly, excluding only intervening CharacterBody3D actors;
+    # never skip StaticBody3D doors, walls, RigidBody obstacles or terrain.
+    # This remains an optional generic interaction policy, not a door
+    # special case. Cap retries to avoid pathological overlapping actors.
+    for attempt in range(10):
+        var hit: Dictionary = space.intersect_ray(query)
+        if hit.is_empty():
+            return true
+        var collider := hit.get("collider") as Node
+        if collider == item or (collider != null and item.is_ancestor_of(collider)):
+            return true
+        if ignore_character_occlusion and collider is CharacterBody3D:
+            query.exclude.append((collider as CollisionObject3D).get_rid())
+            continue
+        return false
+    return false
