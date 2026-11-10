@@ -136,3 +136,17 @@ See [AI authoring](docs/ai.md) for configuring additional enemy archetypes,
 clip mapping, automated regression evidence and the separation from D08.
 D07 does **not** implement door interaction, restart UI or cross-room
 persistence; those belong to the separate D08 world/session work.
+
+
+### D08 persistent-world prototype (PR #34, under development)
+
+`demo/main.tscn` now embeds `demo/world/encounter_sector.tscn` as
+an independent dungeon room within the **same live world**. E on a
+portal travels without recreating the player or its equipment; Q swaps
+and G drops in either area. Unlike the separate
+`demo/ai/encounter.tscn` test fixture, the dungeon has no second
+Player/ViewManager. A world-local `SectorCameraBounds` translates
+F1/F2/F5 camera limits to follow the room while preserving the same
+WASD world orientation and F3/F4 look direction. The dungeon roof is
+visually omitted in all views; physical ceiling collision is separate.
+PR #34 is still a draft with acceptance/testing work in progress.
