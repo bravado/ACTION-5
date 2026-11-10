@@ -124,9 +124,32 @@ func _enter_sector(destination: StringName, start_fresh: bool) -> bool:
 func _update_encounter_activation() -> void:
     if not is_instance_valid(player):
         return
-    var near: bool = current_sector != &"remote" \
-        and _player_world_x() >= passage_boundary_x - preload_distance
-    _set_encounter_active(near or current_sector == &"encounter")
+    if current_sector == &"remote":
+        _set_encounter_active(false)
+        return
+    var near: bool = _player_world_x() >= passage_boundary_x - preload_distance
+    _set_encounter_active(near or current_sector == &"encounter"
+        or _alerted_enemy_needs_processing())
+
+
+func _alerted_enemy_needs_processing() -> bool:
+    # A live enemy that entered the arena before the door closed is
+    # still part of the active world. Do not suspend it just because
+    # the original dungeon floor is now outside the preload radius.
+    # Keep a behind-door pursuer awake while it still owns a target.
+    if not is_instance_valid(encounter_sector):
+        return false
+    var root := get_parent() as Node3D
+    for child in encounter_sector.get_children():
+        var npc := child as CharacterBody3D
+        if npc == null or not bool(npc.get("alive")):
+            continue
+        if root.to_local(npc.global_position).x < passage_boundary_x:
+            return true
+        var ai: Node = npc.get_node_or_null("AIController")
+        if ai != null and ai.get("target") == player:
+            return true
+    return false
 
 
 func _set_encounter_active(value: bool) -> void:
