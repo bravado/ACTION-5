@@ -838,3 +838,37 @@ generic combat/movement layers.
 single dungeon scene's D07 AI coverage, and keep PR #34 draft and
 issue #16 open until all live-world, inventory, fresh-entry and visual
 acceptance checks pass.
+
+### D08 connected and nonconnected connections — PR #34 (draft)
+
+Two **independent** scene-composed interaction contracts now exist:
+
+- `WorldDoor` joins two floors physically. The player presses E to
+  open or close a real opaque panel at X=14, Z=0; walking across the
+  gap alone changes the active arena/dungeon sector. The shared
+  NavigationLink3D connects independently authored arena and dungeon
+  nav regions only while open. Both-sided handles solve closed-panel
+  interaction without bypassing the generic Interactor LoS contract.
+- `RoomVisibility` owns *presentation only*: the opposing room's meshes
+  and ground pickups are hidden behind a closed gate in every view,
+  while its physical floor and AI instances can remain loaded.
+  `DoorAcquisitionFilter` is an optional sensor discovery port. It
+  blocks acquiring players across the **closed** boundary; once a
+  target has been acquired while open, the AI retains it even after
+  closing. Nav, physics and line-of-sight still prevent walking or
+  attacking through an opaque panel.
+- `LocationPortal` requests explicit nonadjacent travel to a Marker3D
+  or a separately authored PackedScene. `LocationManager` loads and
+  caches remote environment instances, pauses inactive ones, and moves
+  the existing Player/Equipment/Combat to the new arrival marker.
+  The demo remote chamber has its own return portal. Only these
+  explicit transitions change camera bounds for a distant location;
+  ordinary room walking never teleports or resets orientation.
+
+**Exit gates:** Godot `tests/d08_connections_suite.gd` must verify
+real E keyboard dispatch, opaque room rendering, no initial closed
+door aggro, post-opening aggro persistence, physical/nav barriers,
+movement toward the player and cached remote-scene return with
+inventory preserved. Rerun full D07/D08 integration, native/WebGL2
+smoke and a manual F1–F5 walk/remote portal visual test before PR #34
+is marked ready to merge. No core Movement/Combat/Animation coupling.
