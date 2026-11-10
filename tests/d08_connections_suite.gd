@@ -59,6 +59,23 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(not door.get_node("NavigationLink3D").enabled,
         "Closed gate disables its cross-room navigation link")
 
+    var views: Node = stage.get_node("ViewManager")
+    var closed_in_every_view: bool = true
+    for camera_index in range(5):
+        views.switch_view(camera_index)
+        await _frames(tree, 2)
+        closed_in_every_view = (
+            closed_in_every_view
+            and not room.get_node("Floor").visible
+            and not room.get_node("Obstacle").visible
+            and not melee.visible
+            and panel.visible
+        )
+    verify.call(closed_in_every_view,
+        "The opaque gate hides dungeon geometry and undiscovered enemies in all five views")
+    views.switch_view(1)
+    await _frames(tree, 2)
+
     var no_teleport: Vector3 = player.global_position
     # Dispatch a real key through the viewport, not main._unhandled_input.
     _press_e()
