@@ -202,9 +202,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         view_manager.switch_view(view_index)
         await _frames(tree, 2)
         var expected_visible: bool = view_index != 3
-        tint_visible_per_view = tint_visible_per_view \
-            and tint.visible == expected_visible \
-            and not roof_shape.disabled and roof.collision_layer != 0
+        tint_visible_per_view = (
+            tint_visible_per_view
+            and tint.visible == expected_visible
+            and not roof_shape.disabled
+            and roof.collision_layer != 0
+        )
     verify.call(tint_visible_per_view,
         "Uniform dungeon tint covers F1/F2/F3/F5 and clears entirely for first person")
     verify.call(tint.size.distance_to(stage.get_viewport().get_visible_rect().size) < 1.0,
