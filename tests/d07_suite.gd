@@ -120,6 +120,64 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     ranged_combat.cancel()
     ranged_ai.set_physics_process(true)
 
+    # Explicit engagement in an unobstructed section of the same physical
+    # arena. Use ordinary D05/D06 ports; AI policies never apply damage.
+    melee_ai.set_physics_process(false)
+    ranged_ai.set_physics_process(false)
+    melee.apply_move_intent(IntentScript.new())
+    ranged.apply_move_intent(IntentScript.new())
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-6.9, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -2)
+    ranged.get_node("AimTargetProvider").set_target(player)
+    (ranged.get_node("Visual") as Node3D).rotation.y = 0.0
+    ranged.get_node("Visual").set_facing(Vector2(0, -1))
+    melee_combat.cancel()
+    ranged_combat.cancel()
+    gun.magazine = 8
+    gun.reload_left = 0
+    await _ticks(tree, 4)
+    var close_hp: float = player_health.current_health
+    var requested_melee: bool = melee_combat.request_attack(&"bat_swing", Vector2.LEFT)
+    await _ticks(tree, 8)
+    verify.call(requested_melee and player_health.current_health < close_hp,
+        "Melee actor's actual Bat attack applies D05 physics damage within authored range")
+    melee_combat.cancel()
+    close_hp = player_health.current_health
+    attack_before = gun.shots_fired
+    var requested_gun: bool = ranged_combat.request_attack(&"gun_fire", Vector2(0, -1))
+    await _ticks(tree, 6)
+    verify.call(requested_gun and gun.shots_fired == attack_before + 1
+        and player_health.current_health < close_hp,
+        "Ranged actor's real world muzzle and owned Gun inflict ranged damage")
+    ranged_combat.cancel()
+    await _ticks(tree, 14)
+    # Obstacle blocks the FIRST physical muzzle ray even when an explicit
+    # attack request is submitted. AI also rejects a blocked line of sight.
+    var wall := StaticBody3D.new()
+    wall.name = "OpaqueShotBlocker"
+    var wall_collision := CollisionShape3D.new()
+    var wall_shape := BoxShape3D.new()
+    wall_shape.size = Vector3(2.0, 2.2, 0.4)
+    wall_collision.shape = wall_shape
+    wall.add_child(wall_collision)
+    arena.add_child(wall)
+    wall.global_position = arena.global_position + Vector3(-8, 1.0, -3.5)
+    await _ticks(tree, 3)
+    close_hp = player_health.current_health
+    attack_before = gun.shots_fired
+    requested_gun = ranged_combat.request_attack(&"gun_fire", Vector2(0, -1))
+    await _ticks(tree, 6)
+    verify.call(requested_gun and gun.shots_fired == attack_before + 1
+        and player_health.current_health == close_hp
+        and not sensor.has_line_of_sight(ranged, player),
+        "Opaque wall prevents D07 attack decisions and D06 Gun impact through geometry")
+    wall.queue_free()
+    ranged_combat.cancel()
+    await _ticks(tree, 3)
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(true)
+
     # An NPC's death cancels action authority; the other NPC continues.
     melee_health.take_hit(1000.0, player, null, Vector2.RIGHT, 0.0, 0)
     await _ticks(tree, 2)
@@ -139,5 +197,28 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 3)
     verify.call(ranged_ai.target == null and ranged_ai.state == &"idle",
         "Freed target cannot leave a stale AI or gun aim reference")
+    # A newly spawned player is selected without rebuilding either NPC or
+    # carrying a stale gun world-target pointer.
+    var replacement := (load("res://demo/player.tscn") as PackedScene).instantiate() as CharacterBody3D
+    replacement.name = "ReplacementPlayer"
+    arena.add_child(replacement)
+    replacement.global_position = arena.global_position + Vector3(-7, 0.15, -5)
+    await _ticks(tree, 4)
+    verify.call(ranged_ai.target == replacement
+        and ranged.get_node("AimTargetProvider").target == replacement,
+        "Target reacquisition rebinds existing AI and world aim to replacement actor")
+    # Death in the middle of a weapon reload cancels its per-instance clock.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.magazine = 1
+    var began_reload: bool = gun.request_weapon_command(&"weapon_reload")
+    await _ticks(tree, 2)
+    verify.call(began_reload and gun.reload_left > 0,
+        "Ranged enemy starts ordinary per-instance Gun reload")
+    ranged_health.take_hit(1000.0, replacement, null, Vector2.RIGHT, 0.0, 0)
+    await _ticks(tree, 3)
+    verify.call(ranged_ai.state == &"dead" and not ranged.alive
+        and gun.reload_left == 0 and ranged_combat.current_attack == null,
+        "Death during Gun reload stops damage and cancels the weapon clock")
     arena.queue_free()
     await tree.process_frame
