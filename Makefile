@@ -49,6 +49,7 @@ import:
 	@$(PYTHON) tools/check_godot_log.py build/logs/import.log
 
 test: import
+	@$(GODOT) --headless --path . --script res://tests/d08_world_suite.gd 2>&1 || true # temporary parser diagnostic
 	@set -o pipefail; $(GODOT) --headless --path . --script res://tests/run_all.gd 2>&1 | tee build/logs/test.log
 	@$(PYTHON) tools/check_godot_log.py build/logs/test.log
 
