@@ -91,9 +91,14 @@ func _unhandled_input(event: InputEvent) -> void:
             var consumed: bool = false
             match event.keycode:
                 KEY_E:
-                    consumed = _pickup_closest_weapon()
+                    # First honor the nearest visible world interaction
+                    # (door, authored pickup or switch). This avoids picking
+                    # up a previously dropped item behind an intended door
+                    # before a portal transition. Dynamically spawned
+                    # legacy world weapons remain pickup-compatible.
+                    consumed = bool($InteractionInput.try_interact())
                     if not consumed:
-                        consumed = bool($InteractionInput.try_interact())
+                        consumed = _pickup_closest_weapon()
                 KEY_Q:
                     consumed = bool(_equipment.call("swap_next"))
                 KEY_G:
