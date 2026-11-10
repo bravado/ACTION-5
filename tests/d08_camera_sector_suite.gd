@@ -5,7 +5,7 @@ extends RefCounted
 
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
 
-const INPUTS: Array[Vector2] = [
+const INPUTS = [
     Vector2(0, -1),  # W
     Vector2(-1, 0),  # A
     Vector2(0, 1),   # S
