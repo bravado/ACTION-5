@@ -221,7 +221,14 @@ independent of map geometry.
 
 `tests/d08_world_suite.gd` separately covers persistent inventory,
 dropped weapons, NPC state, physically authoritative doors, roof
-presentation, fresh/restore entry and Restart. Portal doors use the
+presentation, fresh/restore entry and Restart. The dungeon roof
+is a semi-transparent unshaded canopy (alpha 0.18) for side, arcade,
+isometric and overhead cameras, hidden only in first person. It casts
+no shadows; its CollisionShape3D remains authoritative in every mode.
+The dungeon's two fill lights use modest energy (0.65 and 0.5), while
+the world sun is shared with the arena. This avoids the earlier
+all-black ceiling and overbright floor without inventing another scene.
+Portal doors use the
 shared `WorldDoor.keep_visual_when_open = true` option: opening disables
 physical collision and enables the navigation link, but keeps the
 glowing destination marker visible for return and repeat visits.
