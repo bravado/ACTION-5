@@ -70,11 +70,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var ranged_model_meshes: Array[Node] = ranged.get_node("Visual/Model").find_children(
         "*", "MeshInstance3D", true, false
     )
-    verify.call(not melee_model_meshes.is_empty() and not ranged_model_meshes.is_empty()
-        and (melee_model_meshes[0] as MeshInstance3D).material_overlay != null
-        and (ranged_model_meshes[0] as MeshInstance3D).material_overlay != null
-        and (melee_model_meshes[0] as MeshInstance3D).material_overlay.albedo_color
-            != (ranged_model_meshes[0] as MeshInstance3D).material_overlay.albedo_color,
+    var melee_tint: StandardMaterial3D = (
+        (melee_model_meshes[0] as MeshInstance3D).material_overlay as StandardMaterial3D
+        if not melee_model_meshes.is_empty() else null
+    )
+    var ranged_tint: StandardMaterial3D = (
+        (ranged_model_meshes[0] as MeshInstance3D).material_overlay as StandardMaterial3D
+        if not ranged_model_meshes.is_empty() else null
+    )
+    verify.call(melee_tint != null and ranged_tint != null
+        and melee_tint.albedo_color != ranged_tint.albedo_color,
         "Demo-only model palettes differentiate two NPCs without mutating shared GLB")
     # Player combat input must be wired in this standalone encounter too.
     # Exercise the *real* input adapter, not Combat.request_attack directly.
