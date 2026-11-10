@@ -52,6 +52,46 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and melee_combat != ranged_combat and bat.equipment_owner == melee_equipment
         and gun.equipment_owner == ranged_equipment,
         "Two NPCs have separate HP, combat clocks and exclusive weapon instances")
+    # Player combat input must be wired in this standalone encounter too.
+    # Exercise the *real* input adapter, not Combat.request_attack directly.
+    var combat_input := arena.get_node_or_null("CombatInput") as Node
+    verify.call(combat_input != null and combat_input.is_physics_processing()
+        and combat_input.get("combat") == player.get_node("CombatController")
+        and combat_input.get("action_selection_source") == player.get_node("EquipmentAttackSelector"),
+        "D07 encounter wires player combat and equipment attack selection")
+    melee_ai.set_physics_process(false)
+    ranged_ai.set_physics_process(false)
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-8, 0.15, -6)
+    player.velocity = Vector3.ZERO
+    melee.velocity = Vector3.ZERO
+    arena.get_node("ActorInput").set_enabled(true)
+    await _ticks(tree, 4)
+    var melee_hp_before_input: float = melee_health.current_health
+    Input.action_press(&"actor_punch")
+    await _ticks(tree, 1)
+    Input.action_release(&"actor_punch")
+    await _ticks(tree, 28)
+    verify.call(melee_health.current_health < melee_hp_before_input,
+        "Player punch uses CombatInput in the D07 encounter")
+    melee_hp_before_input = melee_health.current_health
+    Input.action_press(&"actor_kick")
+    await _ticks(tree, 1)
+    Input.action_release(&"actor_kick")
+    await _ticks(tree, 30)
+    verify.call(melee_health.current_health < melee_hp_before_input,
+        "Player kick uses CombatInput in the D07 encounter")
+    arena.get_node("ActorInput").set_enabled(false)
+    player.get_node("CombatController").cancel()
+    melee_combat.cancel()
+    player.global_position = arena.global_position + Vector3(5, 0.15, 0)
+    melee.global_position = arena.global_position + Vector3(-5, 0.15, 0)
+    player.velocity = Vector3.ZERO
+    melee.velocity = Vector3.ZERO
+    melee_health.current_health = melee_health.max_health
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 4)
     verify.call(melee_ai.target == player and ranged_ai.target == player,
         "Both NPCs acquire the real living world-space player target")
     var sensor := ranged.get_node("TargetSensor")
