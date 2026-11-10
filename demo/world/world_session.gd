@@ -1,7 +1,8 @@
 extends Node
-## A live-world demo coordinator: no change_scene, reloaded player, copied
-## inventory or global scene metadata. The inactive sector is only paused;
-## its NPCs, weapons, health and transforms remain the same instances.
+## Sector visibility and optional fresh/restore entry for ONE connected world.
+## Actual gameplay walks through the physical two-sided gateway at X=14.
+## No door-triggered teleport, cloned Player, serialized inventory or
+## camera/movement dependencies. Warping is a separate optional script port.
 
 signal sector_changed(previous: StringName, current: StringName)
 
@@ -12,6 +13,16 @@ signal sector_changed(previous: StringName, current: StringName)
 @export var encounter_scene: PackedScene
 @export var participant_group: StringName = &"action5_scene_persistable"
 
+## Shared wall threshold, expressed in parent-world local coordinates.
+@export var passage_boundary_x: float = 14.0
+@export_range(0.0, 2.0, 0.05) var crossing_hysteresis: float = 0.3
+## Activate dungeon physics before reaching the open gateway. This keeps
+## floor, nav and actors available for continuous walking in both directions.
+@export_range(1.0, 20.0, 0.5) var preload_distance: float = 6.0
+
+@export_enum("Restore previous", "Start fresh") var dungeon_entry_policy: int = 0
+@export_enum("Restore previous", "Start fresh") var arena_entry_policy: int = 0
+
 @onready var player: Node3D = get_node_or_null(player_path) as Node3D
 @onready var encounter_sector: Node3D = get_node_or_null(encounter_sector_path) as Node3D
 @onready var arena_spawn: Node3D = get_node_or_null(arena_spawn_path) as Node3D
@@ -20,6 +31,8 @@ signal sector_changed(previous: StringName, current: StringName)
 var current_sector: StringName = &"arena"
 var _arena_initial: Dictionary = {}
 var _loose_by_id: Dictionary = {}
+var _initial_ready: bool = false
+var _encounter_active: bool = true
 
 
 func _ready() -> void:
@@ -39,48 +52,93 @@ func _capture_initial() -> void:
     var root: Node = get_parent()
     for member in get_tree().get_nodes_in_group(participant_group):
         var participant := member as Node
-        if participant == null or not root.is_ancestor_of(participant)                 or participant == player or player.is_ancestor_of(participant)                 or (is_instance_valid(encounter_sector)                     and encounter_sector.is_ancestor_of(participant))                 or not participant.has_method("capture_state"):
+        if participant == null or not root.is_ancestor_of(participant) \
+                or participant == player or player.is_ancestor_of(participant) \
+                or (is_instance_valid(encounter_sector) \
+                    and encounter_sector.is_ancestor_of(participant)) \
+                or not participant.has_method("capture_state"):
             continue
         _arena_initial[str(root.get_path_to(participant))] = participant.call("capture_state")
-    _set_encounter_active(false)
+    _initial_ready = true
+    _update_encounter_activation()
 
 
+func _physics_process(_delta: float) -> void:
+    if not _initial_ready or not is_instance_valid(player):
+        return
+    var x: float = _player_world_x()
+    var desired: StringName = current_sector
+    if current_sector == &"arena" and x >= passage_boundary_x + crossing_hysteresis:
+        desired = &"encounter"
+    elif current_sector == &"encounter" and x <= passage_boundary_x - crossing_hysteresis:
+        desired = &"arena"
+    if desired != current_sector:
+        _enter_sector(desired, _entry_starts_fresh(desired))
+    _update_encounter_activation()
+
+
+func _player_world_x() -> float:
+    var root := get_parent() as Node3D
+    return root.to_local(player.global_position).x
+
+
+func _entry_starts_fresh(destination: StringName) -> bool:
+    return (dungeon_entry_policy == 1 if destination == &"encounter"
+        else arena_entry_policy == 1)
+
+
+func _enter_sector(destination: StringName, start_fresh: bool) -> bool:
+    if start_fresh:
+        if destination == &"encounter":
+            if not _reset_encounter():
+                return false
+        else:
+            _reset_arena()
+    if destination == &"encounter":
+        _set_encounter_active(true)
+    var previous: StringName = current_sector
+    current_sector = destination
+    sector_changed.emit(previous, destination)
+    return true
+
+
+func _update_encounter_activation() -> void:
+    if not is_instance_valid(player):
+        return
+    var near: bool = _player_world_x() >= passage_boundary_x - preload_distance
+    _set_encounter_active(near or current_sector == &"encounter")
+
+
+func _set_encounter_active(value: bool) -> void:
+    if not is_instance_valid(encounter_sector) or value == _encounter_active:
+        return
+    _encounter_active = value
+    encounter_sector.visible = value
+    encounter_sector.process_mode = (
+        Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
+    )
+
+
+## Explicit scripted warp for cutscenes/CI only. The physical gateway does
+## NOT call it: player walking, world coordinates and motion remain continuous.
 func travel_to(actor: Node3D, destination: StringName, start_fresh: bool = false) -> bool:
-    if not is_inside_tree() or actor != player or not bool(actor.get("alive"))             or destination == current_sector             or (destination != &"arena" and destination != &"encounter"):
+    if not is_inside_tree() or actor != player or not bool(actor.get("alive")) \
+            or destination == current_sector \
+            or (destination != &"arena" and destination != &"encounter"):
         return false
-    if destination == &"encounter" and start_fresh:
-        if not _reset_encounter():
-            return false
-    elif destination == &"arena" and start_fresh:
-        _reset_arena()
     var spawn: Node3D = encounter_spawn if destination == &"encounter" else arena_spawn
     if not is_instance_valid(spawn):
         return false
-    # Enable the receiving sector before teleporting. The same Player,
-    # Health, Equipment, Combat and ViewManager continue running.
-    if destination == &"encounter":
-        _set_encounter_active(true)
+    if not _enter_sector(destination, start_fresh or _entry_starts_fresh(destination)):
+        return false
     var locomotion := actor.get_node_or_null("Locomotion")
     if locomotion != null and locomotion.has_method("stop"):
         locomotion.call("stop")
     actor.global_position = spawn.global_position
     if actor is CharacterBody3D:
         (actor as CharacterBody3D).velocity = Vector3.ZERO
-    var previous: StringName = current_sector
-    current_sector = destination
-    if destination == &"arena":
-        _set_encounter_active(false)
-    sector_changed.emit(previous, current_sector)
+    _update_encounter_activation()
     return true
-
-
-func _set_encounter_active(value: bool) -> void:
-    if not is_instance_valid(encounter_sector):
-        return
-    encounter_sector.visible = value
-    encounter_sector.process_mode = (
-        Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
-    )
 
 
 func _reset_encounter() -> bool:
@@ -100,6 +158,7 @@ func _reset_encounter() -> bool:
     parent.add_child(replacement)
     parent.move_child(replacement, index)
     encounter_sector = replacement
+    _encounter_active = true
     return true
 
 
