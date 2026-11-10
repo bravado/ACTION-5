@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=3]
+[gd_scene load_steps=48 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -14,7 +14,7 @@
 
 [ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
-[ext_resource type="Script" path="res://demo/interactions/world_portal_door.gd" id="14_door"]
+[ext_resource type="Script" path="res://demo/interactions/world_door.gd" id="14_door"]
 [ext_resource type="PackedScene" path="res://demo/world/encounter_sector.tscn" id="15_encounter"]
 [ext_resource type="Script" path="res://demo/interactions/interact_input.gd" id="16_interaction"]
 [ext_resource type="PackedScene" path="res://demo/ui/death_overlay.tscn" id="17_death"]
@@ -74,10 +74,28 @@ size = Vector3(1.0, 0.3, 2.5)
 size = Vector3(1.0, 0.3, 2.5)
 
 [sub_resource type="BoxShape3D" id="DoorShape"]
-size = Vector3(0.24, 2.45, 2.1)
+size = Vector3(0.25, 2.45, 2.5)
 
 [sub_resource type="BoxMesh" id="DoorMesh"]
-size = Vector3(0.24, 2.45, 2.1)
+size = Vector3(0.25, 2.45, 2.5)
+
+[sub_resource type="BoxMesh" id="DoorPostMesh"]
+size = Vector3(0.6, 2.9, 0.34)
+
+[sub_resource type="BoxMesh" id="DoorLintelMesh"]
+size = Vector3(0.6, 0.40, 3.05)
+
+[sub_resource type="BoxMesh" id="EastWallUpperMesh"]
+size = Vector3(0.6, 3.0, 3.75)
+
+[sub_resource type="BoxShape3D" id="EastWallUpperShape"]
+size = Vector3(0.6, 3.0, 3.75)
+
+[sub_resource type="BoxMesh" id="EastWallLowerMesh"]
+size = Vector3(0.6, 3.0, 11.75)
+
+[sub_resource type="BoxShape3D" id="EastWallLowerShape"]
+size = Vector3(0.6, 3.0, 11.75)
 
 [sub_resource type="StandardMaterial3D" id="DoorMaterial"]
 albedo_color = Color(0.18, 0.53, 0.67, 1.0)
@@ -128,15 +146,29 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WestWall"]
 shape = SubResource("BoxShape3D_wallZ")
 
-[node name="EastWall" type="StaticBody3D" parent="."]
-position = Vector3(14, 1.5, 0)
+[node name="EastWall" type="Node3D" parent="."]
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="EastWall"]
-mesh = SubResource("BoxMesh_wallZ")
+# Shared east wall, split around a real 2.5m opening centered at Z=-4.
+# The dungeon's western floor edge touches the arena at world X=14.
+[node name="Upper" type="StaticBody3D" parent="EastWall"]
+position = Vector3(14, 1.5, -7.125)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="EastWall/Upper"]
+mesh = SubResource("EastWallUpperMesh")
 surface_material_override/0 = SubResource("Material_wall")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
-shape = SubResource("BoxShape3D_wallZ")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall/Upper"]
+shape = SubResource("EastWallUpperShape")
+
+[node name="Lower" type="StaticBody3D" parent="EastWall"]
+position = Vector3(14, 1.5, 3.125)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="EastWall/Lower"]
+mesh = SubResource("EastWallLowerMesh")
+surface_material_override/0 = SubResource("Material_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall/Lower"]
+shape = SubResource("EastWallLowerShape")
 
 [node name="PillarA" type="StaticBody3D" parent="."]
 position = Vector3(-5, 0.9, -2)
@@ -198,10 +230,11 @@ position = Vector3(2.1, 0.0, -2.0)
 position = Vector3(-3.0, 0.0, -5.0)
 
 [node name="EncounterDoor" type="Node3D" parent="." groups=["action5_interactable"]]
-position = Vector3(12.4, 0, -4)
+# One physical, two-sided gate for the arena AND dungeon.
+position = Vector3(14, 0, -4)
 script = ExtResource("14_door")
-destination_sector = "encounter"
 keep_visual_when_open = true
+barrier_visual_path = NodePath("BarrierMesh")
 
 [node name="Body" type="StaticBody3D" parent="EncounterDoor"]
 
@@ -214,27 +247,53 @@ enabled = false
 start_position = Vector3(-1.0, 0, 0)
 end_position = Vector3(1.0, 0, 0)
 
-[node name="DoorMesh" type="MeshInstance3D" parent="EncounterDoor"]
+[node name="DoorMesh" type="Node3D" parent="EncounterDoor"]
+
+[node name="PostNorth" type="MeshInstance3D" parent="EncounterDoor/DoorMesh"]
+position = Vector3(0, 1.45, -1.40)
+mesh = SubResource("DoorPostMesh")
+surface_material_override/0 = SubResource("DoorMaterial")
+
+[node name="PostSouth" type="MeshInstance3D" parent="EncounterDoor/DoorMesh"]
+position = Vector3(0, 1.45, 1.40)
+mesh = SubResource("DoorPostMesh")
+surface_material_override/0 = SubResource("DoorMaterial")
+
+[node name="Lintel" type="MeshInstance3D" parent="EncounterDoor/DoorMesh"]
+position = Vector3(0, 2.70, 0)
+mesh = SubResource("DoorLintelMesh")
+surface_material_override/0 = SubResource("DoorMaterial")
+
+[node name="BarrierMesh" type="MeshInstance3D" parent="EncounterDoor"]
 position = Vector3(0, 1.225, 0)
 mesh = SubResource("DoorMesh")
 surface_material_override/0 = SubResource("DoorMaterial")
 
 [node name="DoorLabel" type="Label3D" parent="EncounterDoor"]
-position = Vector3(-0.28, 2.75, 0)
-text = "DUNGEON  [E]"
-font_size = 44
+position = Vector3(-0.55, 3.10, 0)
+text = "ARENA <-> DUNGEON [E]"
+font_size = 42
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
+
+[node name="ReturnLabel" type="Label3D" parent="EncounterDoor"]
+position = Vector3(0.55, 3.10, 0)
+text = "DUNGEON <-> ARENA [E]"
+font_size = 42
 pixel_size = 0.007
 billboard = 1
 no_depth_test = true
 
 [node name="EncounterSector" parent="." instance=ExtResource("15_encounter")]
-position = Vector3(36.0, 0, 0)
+# Dungeon west edge (26-12=14) joins the arena's east edge (+14).
+position = Vector3(26.0, 0, 0)
 
 [node name="ArenaSpawn" type="Marker3D" parent="."]
-position = Vector3(10.0, 0.15, -4.0)
+position = Vector3(11.7, 0.15, -4.0)
 
 [node name="EncounterSpawn" type="Marker3D" parent="."]
-position = Vector3(40.5, 0.15, 0.0)
+position = Vector3(16.3, 0.15, -4.0)
 
 [node name="WorldSession" type="Node" parent="."]
 script = ExtResource("18_session")
