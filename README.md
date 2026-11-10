@@ -125,5 +125,11 @@ The planned framework license is **MIT**. The license file and the attribution i
 
 Run `make import && godot --path . res://demo/ai/encounter.tscn` to
 inspect a melee Bat enemy and ranged Gun enemy navigating an opaque
-center obstacle. WASD moves the player; 1–5 switch the same five camera
-profiles without restarting either enemy. See [AI authoring](docs/ai.md).
+center obstacle. WASD moves the player, LMB/J and RMB/K
+punch and kick, and 1–5 switch the same five camera profiles without
+restarting either enemy. Both enemies now reuse the skeletal training rig:
+the Bat swings in its upper-body attack channel, the Gun has a
+configurable firing pose, and hit/death/reload animations are driven by
+existing optional presentation adapters. Weapons attach to animated
+right-hand bones, with a fixed-socket fallback for headless actors.
+See [AI authoring](docs/ai.md) for clip mapping and test coverage.
