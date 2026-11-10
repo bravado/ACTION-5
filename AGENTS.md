@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun is under review in PR #32; D07 AI remains next.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -284,4 +284,124 @@ after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
 
 ## Starting task
 
-**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. The next feature is D06-02 Gun (#14), then D07 AI (#15), both using those established ports.
+**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) is implemented in PR #32, then D07 AI (#15) follows using those same established ports.
+## D06-02 gun extension (validated in PR #32; merge pending)
+
+A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
+D05's active attack phase is the only firing moment. The gun uses
+ViewAimTargetProvider.get_world_target(), then traces from its world Muzzle,
+never the F4 viewmodel; a camera-visible target must not bypass a wall.
+Optional WeaponCommandInputAdapter routes per-instance reload input without
+touching CombatInputAdapter or movement. The Gun first-person model uses
+a generic set_visual_source() handoff from EquipmentVisualAdapter for its
+render-only reload pose. A second gun config must need no shared core edits.
+An equipped shot blocked by geometry still spends one round; cancelled
+startup/empty magazine does not. Stowing cancels reload, preserves ammo.
+Pinned Godot 4.7.2 Checks and native/WebGL2 Full E2E passed on
+[CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312):
+**974 assertions, zero failures**. Owner F1–F5 visual testing passed
+on 2026-11-10. Keep issue #14 open until explicit squash merge of
+PR #32. Consult docs/equipment.md and ADR-0006.
+
+## Add a projectile/tracer without affecting hit authority
+
+Use the optional `Action5GunProjectilePresenter` child and a
+`ProjectileVisual` PackedScene, configured per gun. The ONLY source is
+`Gun.fired(impact, hit_receiver)`, which happens AFTER D05 has resolved
+the real world-muzzle hit. Trace the visual from the actual world Muzzle
+to the returned impact; no extra physics ray, hurtbox, HP, damage, ammo,
+combat clock or view-mode branch belongs in presentation. An animated
+bright tip/trail is intentionally not a ballistic gameplay projectile.
+Never parent a tracer to the F4 viewmodel: all five views observe one
+world-shot trajectory. Its top-level world scene parent must not follow or die with the gun
+after firing. The gun may be reparented multiple times in its lifetime:
+subscribe to `fired` in `_enter_tree()`, disconnect in `_exit_tree()`,
+not `_ready()` alone. Verify no visuals for dry/cancelled shots, no
+colliders, one effect per shot, automatic cleanup, physical near-wall
+endpoint, and optional per-gun scene/color. See docs/equipment.md.
+
+## D06-02 review/merge and D07–D12 extension handoff (ADR-0006)
+
+Read [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md).
+A new gun needs only scene/resources and a world muzzle; no edits to Actor,
+Locomotion, MovementController, AnimationPresenter, EquipmentController,
+CombatController or camera classes. Gun receives a replaceable actor-local
+`get_world_target(origin, range, exclude)` port, **not** a camera. The
+shipped `Action5ActorTargetAimProvider` demonstrates an AI world-target
+source; D07 must provide the decision/nav target producer, NOT another gun
+or damage clock. The optional projectile presenter always attaches visual
+effects to the world scene, never the weapon, with no collider or hits.
+An independent reload adapter may clear ONLY the overlay it successfully
+set. D08 world props use existing physics masks, D09's F5-only 4-/8-way aim
+remains a view policy, D10 validations are optional, D11 reuses the existing
+runner, and D12 requires addon-only runtime installation.
+
+**Review gates:** latest-head Godot headless checks, Linux native rendered
+captures and real WebGL2 smoke must all pass (the extended in-flight
+projectile scenario is required), followed by owner F1–F5 visual sign-off
+and final PR review. Merely having a passing earlier-head test or a
+successful screenshot capture does not constitute merge approval.
+
+
+## F4 gun tracer origin contract
+
+When a gun fires in first person, do not visually launch the tracer from
+the animated full-body socket: F4 displays a distinct camera-local gun.
+The optional GunProjectilePresenter obtains the start point through
+an actor-local, duck-typed `get_projectile_visual_origin(weapon, fallback)`
+port. It uses the local F4 `Grip/VisualMuzzle` marker only if the
+matching viewmodel is active. All other modes/actors fall back to
+the world Muzzle. **Never** change Gun._on_attack_phase_changed,
+the world physics Muzzle or Health/hit resolution to align the visual
+tracer; it must still terminate at the original world hit point. Test
+both normal and alternative gun F4 markers, NPC fallback, world F1–F3/F5
+fallback and native F4 emitted `from_world` equality at firing time.
+
+
+## D06-02 projectile gradient authoring
+
+The shared `Action5ProjectileVisual` uses an independent
+`projectile_trail.gdshader` for the visible CylinderMesh only. Local
+-Y (muzzle-side tail) has higher emission/opacity; local +Y (toward the
+impact) fades; lifetime transparency is a separate presentation
+uniform. Preserve the existing noncolliding world-owned visual, F4
+camera-local visual origin, all other view/AI world origin fallbacks and
+unchanged authoritative hitscan. For another gun, configure exported
+trail brightness/opacity and `projectile_color` on its scene. Do not
+modify Gun, Combat, equipment or camera logic for visual styling.
+
+
+## D06-02 physical ray receiver
+
+A hit from the physical world Muzzle always stops at the first collider.
+With ray layers 1+2 the collider may be the actor's solid
+`PhysicsBody3D` rather than its own Hurtbox Area. Resolve this as an
+authorized receiver only through an active `Action5Hurtbox` descendant
+that explicitly maps to the same body's `Action5Health`. Never retry
+the ray past unrelated wall geometry, accept any bare Health child as
+damageable, or change camera-local projectile origin/hit authority.
+Maintain the real `CharacterBody3D` receiver integration regression
+covering body-first collision, solid wall obstruction, ally filtering
+and disabled Hurtbox before merge.
+
+
+## D06-02 post-visual review (2026-11-10)
+
+PR #32 has 974/974 pinned Godot assertions, passed native and WebGL2
+Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)),
+and owner-confirmed F1–F5 manual visuals. The P1 physical-body ray
+receiver regression is fixed; its review thread is resolved. PR remains
+open pending explicit squash-merge approval. Do not reintroduce stale
+"draft", "visual pending" or 941/958/967 latest-count statements.
+
+**Simplification verdict:** keep the existing small actor-local world
+target interface and optional visual/input adapters. A second gun and a
+camera-free NPC already demonstrate extension without core edits. Do
+not add a projectile manager, generic ammo state service, AI-specific
+Gun, camera-aware hit resolution or global per-weapon flags. Only
+refactor `Gun._resolve_hit_health()`'s on-hit descendant lookup if
+profiling demonstrates a real cost with many NPCs; introducing a cache
+or hit registry solely for D06-02 adds unnecessary lifecycle coupling.
+When building D07, implement only the AI decision/nav/target producer;
+reuse Combat, Equipment, Health/Hurtbox and the current aim port. See
+ADR-0006 for the formal architectural review.

@@ -192,6 +192,14 @@ jobs:
           grep -q 'ACTION5_D06_WORLD_POSE_NATIVE_OK view=5 attack=shovel_overhead' build/evidence/native-screenshot.log
           test -s build/evidence/native-d06-dropped-f4.png
           grep -q 'ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1' build/evidence/native-screenshot.log
+          for view in 1 2 3 5; do
+            test -s "build/evidence/native-d06-gun-view-$view.png"
+          done
+          for shot in idle fire reload near-wall; do
+            test -s "build/evidence/native-d06-gun-f4-$shot.png"
+          done
+          test -s build/evidence/native-d06-gun-f3-projectile.png
+          grep -q 'ACTION5_D06_GUN_NATIVE_OK world=4 f4=1 muzzle=1 reload=1 projectile=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_PLAYER_SHADOW_NATIVE_OK' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FPS_NEAR_WALL_NATIVE_OK wall=1 body_culled=1' build/evidence/native-screenshot.log
           grep -q 'ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5' build/evidence/native-screenshot.log

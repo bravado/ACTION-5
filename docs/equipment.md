@@ -1,10 +1,159 @@
 # D06 equipment authoring and implementation state
 
-**Status (2026-11-09):** D05 is merged via PR #28. **D06-01 Bat/Shovel
+**Status (2026-11-10):** D05 is merged via PR #28. **D06-01 Bat/Shovel
 and the reusable equipment contract are implemented and approved in PR #31.**
 Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
-D06-02 Gun and D07 AI remain separate future deliverables.
+D06-02 Gun is verified in PR #32 (owner visuals passed; squash merge
+pending), while D07 AI remains a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
+
+## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
+
+D06-02 uses the accepted D06-01 equipment and D05 action clocks. The demo
+adds a Pistol pickup, magazine/reserve display, R reload, physical WorldRecoil
+mesh effect, and camera-local firing/reload grip poses. A Heavy Pistol fixture
+demonstrates different 3-round capacity, T reload command, 135-tick reload,
+fire recovery, muzzle placement, appearance and separate attack ID.
+
+**Authoritative ownership:** Action5Gun derives from the existing
+Action5Weapon instance. Per-instance magazine, reserve, reload ticks and
+firing counters live on the instance only. The D05 active phase emits
+one hitscan ray. Neither gun nor equipment touches movement intent, player
+view mode, camera transforms, render layers or raw input. World Muzzle is
+the physical origin; the F4 camera-anchored GunF4 is presentation only.
+
+**Aim contract:** The optional ViewAimTargetProvider translates a D05
+ActionInputContext into a world-space destination. F4 traces through the
+center of Camera3D; the independent physical trace ALWAYS runs from the
+world Muzzle to this target, excluding the owner body's collision objects.
+Other views use world aim/facing, with retro F5 optionally quantized to
+8 sectors by the aim policy alone. No gun-specific camera checks and no
+retro quantization in its AttackDefinition. A nearer layer-1 wall takes
+precedence over a layer-2 Hurtbox. A valid active shot consumes one bullet
+even when a wall blocks its target; a dry/invalid/cancelled request does not.
+Hurtbox/Health handle friendly-team rejection, damage and stagger; no mesh
+has authority to hit.
+
+**Visible projectile (optional, render-only):** Each gun scene can mount
+an independent `Action5GunProjectilePresenter` child with
+`gun_path = ..`, `muzzle_path = ../Muzzle` and a replaceable
+`projectile_scene` (`Action5ProjectileVisual` script). The presenter listens
+to the existing `Gun.fired(impact, hit_receiver)` event **after** the
+authoritative D05 active-phase hitscan has resolved its collision and damage.
+It snapshots the world muzzle position and the returned **actual impact
+point** (wall, target, or maximum range), launches a non-colliding emissive
+projectile tip with a short cylinder trail, and frees the effect at the
+end of its render-only travel. Neither damage, ammo nor fire cadence waits
+for this animation. Empty magazines, buffered/cancelled attacks and reloads
+produce no projectile because they never emit `fired`.
+
+The projectile's `top_level` world transform fixes its trajectory even if
+the shooter runs, turns, drops, destroys the weapon or switches cameras during flight. Meshes
+are created only when firing, **after** equipment registered world-weapon
+meshes, and remain on normal world layer 1 so F4 sees them without a
+second visual-only weapon or camera-type checks. The presenter reconnects
+its event listener in `_enter_tree()` after any weapon reparent (world,
+stowed, socket), because Godot does not invoke `_ready()` again on
+reparent. Its `_exit_tree()` disconnects. Each spawned projectile is
+attached to the **world scene**, not to the gun: an in-flight effect
+survives weapon destruction, view switching or actor teardown and frees
+itself after a bounded duration. No global effect manager is required.
+
+To customize for another gun, author a separate PackedScene using the
+`Action5ProjectileVisual` script, then assign it to that gun's
+`ProjectilePresenter.projectile_scene`. Configure `projectile_color`,
+`travel_speed`, `minimum_duration`, `maximum_duration`, `tip_radius`,
+`trail_length`, and `trail_radius`; no shared weapon/combat/equipment/
+camera logic changes are necessary. To disable the visible projectile,
+remove the optional presenter node. The demo Pistol uses a warm gold
+streak; the Heavy Pistol fixture uses a wider blue streak. These are
+visible travel effects, **not simulated physical bullets**: instant
+hitscan remains gameplay authority. A true ballistic projectile is a
+separate future collision/attack behavior, not something inferred from
+the visual effect.
+
+**Reload:** A separate optional WeaponCommandInputAdapter reads the existing
+action-permission snapshot and forwards the equipped weapon's configured
+command. Gun owns its tick countdown, moves rounds on successful completion,
+and cancels an incomplete reload when stowed, dropped or destroyed. Already
+consumed rounds remain consumed. A view change, run or jump does not reset
+the timer. A full magazine, empty reserve, active reload or busy attack
+rejects a new reload request. Weapon switching does not construct a second
+gun or a second gameplay clock. The GunReloadVisual adapter listens to
+reload events for the world skinned reload clip (if authored). F4 selects a
+camera-space reload grip; its visual pose cannot finish the reload.
+The world reload adapter only clears an upper-body clip when it actually
+owns that clip, preventing unintended cancellation of another action.
+
+**Extension:** Copy the Gun scene/resource pair, author a new unique
+AttackDefinition (use_melee_hit_query=false, facing_sectors=Free, own
+visual_action_key), a separate world Muzzle Marker3D and separate optional
+F4 render-only viewmodel. Set magazine_size, starting_reserve,
+reload_ticks, fire_attack_id, reload_action, reload_key, maximum_range and
+ray_mask on that **instance**. The external aim provider is a replaceable
+actor-local Node implementing get_world_target(origin, range, exclude).
+Choose clip profiles via authored F4 resources and an optional world
+animation adapter. No actor/locomotion/movement/animation/combat/equipment
+core branches are needed for another gun.
+
+**Camera-free NPC example:** `Action5ActorTargetAimProvider` is a second
+concrete implementation of that same aim port. An AI decision component
+sets its target using `set_target(Node3D)`; assign the NPC gun's
+`aim_provider_path = ^"WorldTarget"` to the actor-local node. Missing
+or freed targets return the current muzzle origin (invalid shot), so no
+ammo or effect is produced. The target provider does not reference the
+player, camera, InputMap or navigation; the AI issues an ordinary D05
+attack request and the physical muzzle enforces occlusion. Tested in
+`tests/d06_gun_suite.gd` on a real camera-free CharacterBody3D with its
+own Health, CombatController, Equipment and mount source.
+
+**Shared visual adapter exception:** A tiny optional
+set_visual_source(weapon) call was added to EquipmentVisualAdapter when
+registering an F4 scene. This only supplies the existing world instance to
+an independently authored render-only Gun viewmodel so its reload pose
+can follow that instance. Existing melee models are unchanged and all
+physical muzzle/damage/ammo logic remains world-authoritative. It does
+not add a gun-type condition, and an alternative F4 model can omit the port.
+
+**Demo compatibility:** the Pistol pickup is at (3.0, 0.45, 3.0),
+outside the spawn E-key radius of Bat/Shovel. This preserves D06-01
+browser regression's two-item pickup sequence. Walk southeast and press E
+to pick up the Pistol; use LMB/J to fire and R to reload. Ammo appears
+in the HUD. The Heavy Pistol is a separate packed scene fixture, not an
+additional default arena pickup.
+
+**E2E visual capture:** tests/capture_scene.gd must generate
+native-d06-gun-view-{1,2,3,5}.png, native-d06-gun-f3-projectile.png,
+native-d06-gun-f4-idle/fire/reload/near-wall.png, and
+ACTION5_D06_GUN_NATIVE_OK with projectile=1. The WebGL2 browser smoke
+restarts its arena after legacy equipment tests, approaches the Pistol
+using real WASD/E (and Q to switch from a held Bat), checks that J fire emitted **exactly one** projectile
+creation event, and captures F4 idle, J fire and R reload. These
+are automated rendering smoke artifacts, **not** subjective manual
+inspection of grip, aim alignment and obstruction.
+
+**Final D06-02 acceptance (2026-11-10):**
+[CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)
+passed the pinned Godot **974/974 assertions, zero failures**, native
+Linux screenshots across views, F3/F4 in-flight effects, F4 barrel-tip
+origin assertion and full real Chromium/WebGL2 pickup/fire/reload smoke.
+The physically simulated `CharacterBody3D` receiver regression verifies
+body-first hits through an enabled owned Hurtbox, wall obstruction,
+friendly-fire rejection and disabled Hurtbox behavior. The **owner's
+manual five-view visual test passed** on 2026-11-10, including the
+first-person weapon/tracer behavior from this PR. No automated tests
+remain pending on this head.
+
+**Testing and handoff:** `tests/d06_gun_suite.gd` is registered with
+`tests/run_all.gd` and covers the per-instance shot clock, physical
+receiver, obstruction, reload across views, alternate gun, NPC,
+visual ownership, shader gradient and lifetime. The independent
+`ci/browser-smoke.mjs` and `tests/capture_scene.gd` demonstrate exported
+WebGL2/native behavior. **PR #32 is accepted for squash merge once
+explicitly requested; issue #14 remains open until the merge.** No
+merge or closure is implied solely by recording visual approval.
+
+---
 
 ## Component responsibilities
 
@@ -220,3 +369,65 @@ commit to run it. Review native and WebGL2 screenshot/log artifacts,
 including narrow/wide viewport and near-wall images. **PR #31 passed**
 908 headless assertions, native/WebGL2 Full E2E and owner visual review
 on 2026-11-09. Issue #13 closes upon squash merge of that tested PR.
+
+**Projectile feature checks (validated PR #32):** the expanded
+`tests/d06_gun_suite.gd` checks the true muzzle-to-impact endpoints,
+wall-truncated rays, one spawned visual per real shot, 3D layer/collision
+isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
+Native and browser in-flight screenshots are part of the opt-in Full E2E
+pipeline. Owner manual visual acceptance passed on 2026-11-10.
+
+
+### F4 projectile visual muzzle alignment (PR #32 correction)
+
+The real world `Gun/Muzzle` remains authoritative for raycasts, health
+damage, ammunition and wall blocking in **all** views. In F4 the weapon
+model is camera-local, so using that skeleton-mounted world muzzle for
+the visible tracer appeared to fire from behind the player. Each F4 gun
+scene now authors a `Grip/VisualMuzzle` Marker3D at the rendered barrel tip,
+moving with the articulated Grip. The optional
+`EquipmentVisualAdapter.get_projectile_visual_origin(weapon, fallback)`
+returns that point **only** while the matching local viewmodel is active
+in first person. The optional `GunProjectilePresenter` gets the
+actor-local provider through its configured
+`visual_origin_provider_path`; every other view, camera-free NPC,
+unequipped weapon or absent viewmodel uses the **physical** world muzzle.
+The destination remains the real world-muzzle hit position. There is no
+F4 aiming/collision/damage rewrite and no second gameplay gun. Both
+Pistol and Heavy Pistol scenes include independently authored markers;
+the reusable addon does not import either demo scene. See ADR-0006.
+
+### D06-02 trail gradient
+
+The optional `Action5ProjectileVisual` now uses the shared
+`projectile_trail.gdshader` for its CylinderMesh trail. The **muzzle-side
+tail** (local CylinderMesh -Y) starts brighter and more opaque; the moving
+**impact-side tip** (local +Y) smoothly fades toward the end. Shader
+coordinates are based on local mesh Y, not UV direction or camera/world
+heading, so the gradient behaves identically in F1–F5. A `life_fade`
+parameter dims the whole trail as the transient effect completes; the
+small visible projectile tip fades too. Both pistol colors still come
+from their independent scene's `projectile_color`; authors can adjust
+`trail_start_brightness`, `trail_end_brightness`,
+`trail_start_opacity` and `trail_end_opacity` without core changes.
+This is a material-only visual effect: no changes to ammo, physics
+muzzle/camera muzzle selection, walls, damage, action timing or projectile
+lifetime/cleanup.
+
+
+### D06-02 physical actor receiver regression (P1 fix)
+
+The authoritative world-muzzle ray retains layers 1 (solid geometry)
+and 2 (Hurtbox Areas), and stops at its **first** collision. A solid
+`PhysicsBody3D` may be returned before the damageable actor's overlapping
+Hurtbox Area. `Action5Gun._resolve_hit_health()` now treats the hit body
+as a receiver only if the **same body owns an enabled Action5Hurtbox and
+the corresponding Action5Health**, using the existing explicit
+`Hurtbox.get_health()` association. It does not infer a damage receiver
+from a Health node alone, skip through a wall, or run another ray. The
+original team, invulnerability, self-exclusion and ammo rules are
+unchanged. The integration fixture constructs a real layer-1
+`CharacterBody3D` and inset layer-2 Hurtbox (ensuring the body wins
+the ray), then checks enemy damage, wall blocking, friendly rejection
+and a disabled Hurtbox. This remains an actor-neutral component
+contract suitable for D07 AI.

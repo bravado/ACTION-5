@@ -11,6 +11,7 @@ const settingsVisibility = [];
 const rigViews = [];
 const combatStarts = [];
 const weaponEvents = [];
+const projectileEvents = [];
 const limbVisibility = [];
 const browser = await chromium.launch({
   headless: true,
@@ -27,6 +28,7 @@ try {
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
     if (line.includes('ACTION5_WEAPON_')) weaponEvents.push(line);
+    if (line.includes('ACTION5_PROJECTILE_VISUAL_SPAWN')) projectileEvents.push(line);
     if (line.includes('ACTION5_POINTER_DIAG')) console.log(line);
     if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
@@ -792,6 +794,78 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_FPS_NEAR_WALL_OK z=' + finalZ.toFixed(2)
     + ' body_culled=1 wall=1 screenshots=2');
+  // D06-02 separate browser run. This reloads the arena to avoid changing
+  // the existing D05/D06-01 two-pickup flow or carrying earlier equipment.
+  await page.reload({ waitUntil: 'load', timeout: 90_000 });
+  await page.waitForTimeout(7000);
+  await page.keyboard.press('2');
+  // Render-heavy WebGL2 machines do not simulate an exact travel distance
+  // per wall-clock millisecond. Progress toward the actual gun pickup using
+  // successive real WASD edges; do not assume one fixed sleep reaches it.
+  const beforeGun = weaponEvents.length;
+  for (let attempt = 0; attempt < 9; attempt++) {
+    await page.keyboard.down('d');
+    await page.keyboard.down('s');
+    await page.waitForTimeout(450);
+    await page.keyboard.up('d');
+    await page.keyboard.up('s');
+    await page.waitForTimeout(180);
+    await page.keyboard.press('e', { delay: 110 });
+    await page.waitForTimeout(220);
+    if (weaponEvents.slice(beforeGun).some(line =>
+        line.includes('ACTION5_WEAPON_PICKUP id=gun'))) break;
+    // Preserve the first Bat pickup in inventory while approaching the
+    // Gun. Dropping Bat here would move it in front of the actor and
+    // repeatedly make it the closest item again.
+  }
+  if (weaponEvents.slice(beforeGun).some(line =>
+      line.includes('ACTION5_WEAPON_PICKUP id=gun')) &&
+      !weaponEvents.slice(beforeGun).some(line =>
+        line.includes('ACTION5_WEAPON_EQUIPPED id=gun'))) {
+    // EquipmentController retains the first weapon; Q selects the
+    // second equipped item using the exact public gameplay input.
+    await page.keyboard.press('q');
+    await page.waitForTimeout(450);
+  }
+  const equippedGun = weaponEvents.slice(beforeGun).find(line =>
+    line.includes('ACTION5_WEAPON_EQUIPPED id=gun'));
+  if (!equippedGun || !equippedGun.includes('f4_visual=1')) {
+    errors.push('D06-02 browser E-key did not pick up the independent Gun: ' +
+      weaponEvents.slice(beforeGun).join(' | '));
+  }
+  await page.keyboard.press('4');
+  await page.waitForTimeout(500);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-gun-f4-idle.png', fullPage: true,
+  });
+  const beforeGunFire = combatStarts.length;
+  const beforeGunProjectile = projectileEvents.length;
+  await page.keyboard.down('j');
+  await page.waitForTimeout(160);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-gun-f4-fire.png', fullPage: true,
+  });
+  await page.keyboard.up('j');
+  await page.waitForTimeout(750);
+  if (!combatStarts.slice(beforeGunFire).some(line =>
+      line.includes('ACTION5_ATTACK_STARTED id=gun_fire'))) {
+    errors.push('D06-02 F4 J did not select the configured Gun active-phase attack');
+  }
+  if (projectileEvents.length !== beforeGunProjectile + 1) {
+    errors.push('D06-02 F4 gun fire did not create exactly one visual projectile: ' +
+      projectileEvents.slice(beforeGunProjectile).join(' | '));
+  }
+  await page.keyboard.press('r', { delay: 110 });
+  await page.waitForTimeout(380);
+  await page.screenshot({
+    path: 'build/evidence/web-d06-gun-f4-reload.png', fullPage: true,
+  });
+  console.log('ACTION5_BROWSER_D06_GUN_OK equipped=' + Number(!!equippedGun) +
+    ' attack=' + Number(combatStarts.slice(beforeGunFire).some(line =>
+      line.includes('id=gun_fire'))) + ' f4=1 projectile=' +
+    Number(projectileEvents.length === beforeGunProjectile + 1));
+  if (errors.length) throw Error(errors.join('\\n'));
+
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
 } finally {
   await browser.close();

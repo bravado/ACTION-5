@@ -58,6 +58,10 @@ func _on_equipped(weapon: Node3D) -> void:
     if not bool(first_person.call("register_first_person_visual", candidate)):
         candidate.queue_free()
         return
+    # Optional, visual-only owner port. Gameplay and muzzle authority never
+    # move to the F4 model. Existing melee viewmodels need no changes.
+    if candidate.has_method("set_visual_source"):
+        candidate.call("set_visual_source", weapon)
     _viewmodel = candidate
     for world_mesh in weapon.call("get_world_meshes"):
         var mesh := world_mesh as MeshInstance3D
@@ -67,6 +71,18 @@ func _on_equipped(weapon: Node3D) -> void:
             return
         _registered_meshes.append(mesh)
     set_process(true)
+
+
+## Generic render-only origin port. The viewmodel owns its authored marker;
+## this adapter owns whether it is currently the visible local F4 model.
+func get_projectile_visual_origin(weapon: Node3D, fallback: Vector3) -> Vector3:
+    if weapon != _active_weapon or not is_instance_valid(_viewmodel) \
+            or not is_instance_valid(first_person) \
+            or not bool(first_person.get("first_person")) \
+            or not _viewmodel.has_method("get_projectile_visual_origin"):
+        return fallback
+    var result: Variant = _viewmodel.call("get_projectile_visual_origin")
+    return result if result is Vector3 and result.is_finite() else fallback
 
 
 func _on_unequipped(_weapon: Node3D) -> void:

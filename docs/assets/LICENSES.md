@@ -18,3 +18,22 @@ procedural two-mesh third-weapon fixture.
 All scene, script and configuration sources are part of ACTION-5 and licensed under the repository MIT LICENSE.
 
 When adding third-party material in later deliverables, record its exact filename, author, source URL, license (including any attribution requirements), and whether redistribution is permitted **before** committing it.
+
+
+## D06-02 procedural gun models (2026-11-09)
+
+The two gun fixtures and their first-person versions are Godot procedural
+BoxMesh geometry, custom animation pose resources and project-authored
+GDScript. They contain no third-party mesh, texture, audio or reference
+asset; they are distributed under ACTION-5's repository license.
+
+
+## D06-02 visible projectile/tracer assets
+
+The golden pistol and blue heavy-pistol projectiles are created entirely
+from Godot built-in SphereMesh/CylinderMesh primitives, procedural
+StandardMaterial3D emission and original project-authored GDScript.
+No imported texture, shader library, reference image, external model or
+third-party audio is used. The original procedural visual scenes/scripts
+are MIT-licensed under the repository LICENSE. These visuals have no
+colliders and own no physical bullet simulation.

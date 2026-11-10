@@ -154,3 +154,16 @@ must be based on **the latest PR head**: both headless Checks and Full E2E
 
 These are constraints for **future issues**, not scope to be implemented
 in the Bat/Shovel PR.
+
+
+## D06-02 verified extension boundary
+
+The gun implementation in PR #32 (974/974 checks and owner visuals passed on 2026-11-10) consumes the same equipment lifecycle
+without modifying the accepted actor/movement/combat/animation core.
+`Action5Gun` supplies per-instance ammunition and world-muzzle
+hitscan; local-player and camera-free NPC implementations both conform
+to a replaceable world-target port. A visible projectile is an optional
+world-owned event subscriber and is not freed when equipment disappears.
+An optional reload adapter clears only its owned animation. For the
+accepted design decision and D07–D12 handoffs see
+[ADR-0006](0006-authoritative-gun-and-projectile-visuals.md).

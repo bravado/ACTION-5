@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/animation/projectile_visual.gd" id="1"]
+
+[node name="HeavyProjectile" type="Node3D"]
+script = ExtResource("1")
+travel_speed = 95.0
+trail_length = 1.55
+trail_radius = 0.06
+tip_radius = 0.1
+projectile_color = Color(0.42, 0.82, 1.0, 1.0)
