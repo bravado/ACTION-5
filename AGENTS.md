@@ -563,6 +563,18 @@ WorldSession. This is an optional `allows_acquisition(actor, target)`
 port applied **only on first discovery**; never clear an acquired
 target on closure. The existing Health, Combat, Navigation, Movement
 and line-of-sight systems continue to enforce attacks and walls.
+A key nuance: a D07 enemy may WALK across the open doorway,
+and the player can close it behind the enemy. Never hide the whole
+`EncounterSector` root for a closed door: that would hide or suspend
+an already crossed enemy. `RoomVisibility` toggles the static dungeon
+visual subtrees separately and evaluates each moving NPC and dropped
+weapon by its **current** world X side. `WorldSession` keeps alerted
+or crossed enemies processing even beyond the ordinary dungeon preload
+range. This must not revive dead actors or bypass an actual closed
+door's physical collision. E sight rays may skip intervening moving
+`CharacterBody3D` actors (with the query exclusion assigned back each
+retry); rays must NEVER skip StaticBody3D walls, gates or props.
+
 The arena and dungeon now have separate NavigationRegion3D meshes
 linked solely when the shared gate opens; D08's simple arena quad is
 an example, not a replacement for baked obstacle-aware navigation.
