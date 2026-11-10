@@ -766,3 +766,14 @@ fold D08 features into this D07 AI fix.
 not just `ActorInputAdapter`. Both punch and kick are tested by feeding
 normal InputMap actions and observing real enemy Health damage. This belongs
 to D07; D08 scene transitions remain in PR #34.
+
+
+**D07 animated enemy follow-up (PR #33):** Both NPCs now compose the
+existing D04 skeletal model and animation presenter, D05 combat animation
+adapter and D06 reload presenter. Bat swing, NPC-local Gun firing pose,
+hit/death/reload and animated weapon sockets use existing event contracts.
+A fallback marker keeps the behavior usable without presentation; optional
+demo-only color overlays distinguish melee and ranged instances. The
+`tests/d07_suite.gd` visual-port regressions are required alongside
+native/WebGL2 encounter visual acceptance. No shared AI/Actor/Combat/
+Equipment/Camera code changed for this composition.
