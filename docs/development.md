@@ -133,7 +133,7 @@ Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch
 Do **not** require the workflow display name (`ACTION-5 CI`), deployment job (`CI / Deploy Pages`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
 
 
-## Implemented combat/AI baseline and next milestone
+## Merged D01–D07 baseline and active D08 milestone
 
 D02 supplies five cameras; D03 supplies data-driven movement; D04 supplies
 imported skeletal clips, bone sockets and local first-person visibility.
@@ -145,7 +145,7 @@ Use [adding moves](adding-moves.md), [animation](animation.md),
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md)
 rather than introducing new actor or attack clocks.
 
-D07-01 (PR #33) adds four actor-local AI components, equipped melee/ranged
+D07-01 (merged PR #33) adds four actor-local AI components, equipped melee/ranged
 NPCs and an independent `demo/ai/encounter.tscn` with real navigation,
 physical obstruction, player punch/kick input and optional shared
 skeletal animations. See [AI authoring](ai.md) for extensions and the
@@ -173,8 +173,11 @@ browser scripts target `demo/main.tscn` by default: they validate
 shared rendering/export and main demo gameplay, **not** the D07
 encounter itself. The owner's F1–F5 visual review of the two NPCs,
 weapon positions, animated firing/swinging and obstruction must be
-recorded separately. The most recent commit-specific checks and
-manual-review gate are linked on [PR #33](https://github.com/bravado/ACTION-5/pull/33).
+recorded separately. D07 final verification passed **1,018 Godot assertions (0 failures)**,
+Linux/Web builds, native startup/rendering and real WebGL2 Full E2E in
+[CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034).
+Future NPC visual changes still need a direct encounter review; the
+main-demo captures do not prove encounter-specific animation quality.
 
 ### D08 handoff
 
@@ -182,7 +185,6 @@ D08 issue #16 and stacked draft PR #34 own the Interactor, world Door,
 WorldPickup, RoofVisibility, restart/session UI and arena/dungeon
 traversal. Draft PR #34's scene-loading door/restoration is preliminary
 and **fails** the mandatory same-persistent-world acceptance criterion.
-After D07 squash merge, rebase #34 onto the resulting `master`, retarget
-the PR, resolve overlapping scene/animation/input changes and rerun the
-full CI matrix. D08 must not duplicate Health/Combat/Equipment/AI or
+D07 is merged; rebase #34 onto `master`, retarget the PR, resolve
+overlapping scene/animation/input changes and rerun the full CI matrix. D08 must not duplicate Health/Combat/Equipment/AI or
 make camera-based roof hiding alter real collision/nav/muzzle authority.
