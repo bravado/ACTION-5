@@ -24,7 +24,7 @@ its western floor edge (local X=-12) **meets** the arena eastern edge
 The dungeon owns its obstacles, navigation ring, two D07 equipped NPCs,
 three outer walls and a physically authoritative ceiling.
 
-One **two-sided physical passage** at **X=14, Z=-4** joins both spaces:
+One **two-sided physical passage** at **X=14, Z=0** joins both spaces:
 the arena's east wall consists of two collidable segments around a
 2.5-meter opening, plus a short overlapping PassageFloor slab. There
 is only one `EncounterDoor`, parented to the shared main world.
