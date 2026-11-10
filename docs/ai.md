@@ -15,7 +15,7 @@ The independent pieces are:
   Missing/unsynchronized maps do **not** turn into straight-line wall
   penetration.
 - `Action5AIAttackPolicy`: configured action, min/max range, weapon
-  action index and optional gun reload command. D05 alone owns attack
+  action ID and explicit optional gun reload command. D05 alone owns attack
   startup/active/recovery and D06 Gun owns ammunition.
 - `Action5AIController`: small Idle/Pursue/Attack/Recover/Dead **decision**
   states, not another locomotion FSM or combat clock. It connects the
@@ -28,15 +28,26 @@ Instantiate `demo/ai/enemy.tscn` (or compose the same addon nodes in your
 own scene). Set `TargetSensor.target_group`, navigation-agent geometry,
 the action resource registered with this actor's Combat/Equipment, and
 `AttackPolicy.attack_id`, `maximum_range`, `minimum_range`,
-`requires_equipment` and `equipment_action_index` as appropriate.
+`requires_equipment` and optional `reload_command` as appropriate.
 Equip an ordinary weapon instance through EquipmentController; a demo-only
 `InitialWeapon` node demonstrates pickup. The Gun must use the actor-local
 `AimTargetProvider`, never a camera ray. A third policy can subclass
 `Action5AIAttackPolicy` without editing any shared actor, movement, combat,
 equipment, presentation or camera class.
 
-For a Gun, `AttackPolicy` requests its configured D05 attack only inside
-range and with direct sensor LoS. Damage is independently checked by the
+For a Gun, `AttackPolicy` resolves the equipped action by `attack_id`,
+not by a fragile authored array index, and invokes the explicitly configured
+`reload_command` when the magazine runs dry (if reserve ammunition exists).
+An unarmed policy requests the D05 action directly.
+
+`AIController` accepts attack requests only within the configured range and
+with direct physical sensor line of sight. It monitors range/LoS on every
+physics frame, including startup and active frames, cancelling **only its own
+accepted** attack if its target changes, moves out of range or enters cover.
+D05 still controls all startup/active/recovery and hit authority. Missing
+weapons, rejected attacks and reload do not produce false `attack` states.
+On death, AI processing stops; a restored actor with living Health and
+`alive=true` may explicitly invoke `AIController.reactivate()`. Damage is independently checked by the
 gun's **first world-muzzle ray**. An opaque collider always blocks that ray;
 a solid actor can receive damage only through its own live Hurtbox and
 Health. An AI attack is not a separate damage path.
@@ -56,5 +67,6 @@ Use WASD and number keys 1–5 in the D07 arena. Watch both enemies route
 around the center, approach within configured range, aim and attack.
 Check death/target loss, physical wall obstruction, player focus gating,
 ammo/reload, weapon teardown and native/WebGL2 visuals against issue #15.
-This implementation is **unverified locally** until CI and visual review
-have been completed. No new third-party assets are used.
+Previous isolated head passed 995 Godot assertions and native/WebGL2 Full E2E.
+The additional P1/P2 regression commit requires fresh CI verification and
+owner native/WebGL2 visual acceptance before merge. No new third-party assets are used.
