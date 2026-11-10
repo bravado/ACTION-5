@@ -476,6 +476,13 @@ the mandatory one-world/same-player/same-enemies exit gate. D08 must use
 an input-independent Interactor, separate Door/Pickup/RoofVisibility nodes,
 collision/nav updates and the existing Health/Combat/Equipment/AI ports.
 Keep visual-only roofs and projectile tracers out of physics authority.
+In the D08 dungeon, the roof has a translucent alpha material and is
+visible in external views 1/2/3/5, hidden in first person (view 4).
+Never disable its physical ceiling collider when hiding/translucifying
+the roof; never restore roof shadows. Keep dungeon fill lights subtle,
+so the main world's sun and local lamps do not wash out characters.
+Regress material alpha, per-view visibility, shadows and physical
+collision in `tests/d08_world_suite.gd`.
 D07 is merged: D08 is now the next deliverable. Rebase/retarget stacked
 PR #34 to `master`, revalidate both CI tiers and finish D08 without
 reopening the shared movement/combat/animation cores.
