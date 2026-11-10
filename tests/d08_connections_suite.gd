@@ -76,29 +76,46 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 5)
     verify.call(ai.target == player,
         "Enemy AI pursues its detected target once the physical gate opens")
+    # First close while NPCs are still on the OTHER side of the
+    # doorway: they must remember the target but LOS/combat and the
+    # conditional navigation link must be physically blocked.
+    _press_e()
+    await _ticks(tree, 5)
+    verify.call(not door.open and panel.visible
+        and not room.get_node("Floor").visible,
+        "Closing before an enemy crosses re-occludes the dungeon")
+    verify.call(sensor.call("get_target", melee) == player
+        and ai.target == player
+        and not sensor.call("has_line_of_sight", melee, player),
+        "Already detected target remains acquired, while closed gate blocks attack sight")
+    verify.call(not door.get_node("NavigationLink3D").enabled,
+        "Closed physical gate disables cross-room navigation without erasing aggro")
+
+    # Reopen, then give the enemy long enough to actually walk across
+    # the boundary. A door closing BEHIND an enemy that has crossed
+    # must not make that enemy invisible or stop its AI.
+    _press_e()
+    await _ticks(tree, 5)
+    verify.call(door.open and room.get_node("Floor").visible,
+        "Reopening the same gate restores dungeon visuals and navigation")
     var chase_start_x: float = melee.global_position.x
     await _ticks(tree, 100)
     verify.call(melee.global_position.x < chase_start_x - 1.0,
         "Alerted enemy physically moves along navigation toward the player through an open gate")
-    print("ACTION5_CHASE_DOOR_DEBUG before close pos=", player.global_position,
-        " handle=", door.call("get_interaction_point", player),
-        " eligible=", interactor.call("_eligible", player, door),
-        " can=", door.call("can_interact", player),
-        " open=", door.open, " sector=", session.current_sector,
-        " alive=", player.get("alive"))
     _press_e()
     await _ticks(tree, 5)
-    print("ACTION5_CHASE_DOOR_DEBUG after close pos=", player.global_position,
-        " eligible=", interactor.call("_eligible", player, door),
-        " open=", door.open, " sector=", session.current_sector)
-    verify.call(not door.open and panel.visible and not room.get_node("Floor").visible,
-        "Closing gate re-occludes room from arena on every camera angle")
-    verify.call(sensor.call("get_target", melee) == player
-        and ai.target == player
-        and not sensor.call("has_line_of_sight", melee, player),
-        "Aggro persists after closing, but the solid door blocks attack sight")
-    verify.call(not door.get_node("NavigationLink3D").enabled,
-        "Closing the gate disables cross-room pathing without forgetting aggro")
+    verify.call(not door.open and panel.visible
+        and not room.get_node("Floor").visible
+        and not door.get_node("NavigationLink3D").enabled,
+        "Door remains operable after pursuit and hides dungeon geometry when closed")
+    verify.call(sensor.call("get_target", melee) == player and ai.target == player,
+        "Closing after the chase never forgets an already acquired target")
+    var crossed_to_arena: bool = melee.global_position.x < door.global_position.x - 0.3
+    verify.call(
+        (melee.visible and melee.is_visible_in_tree()) if crossed_to_arena
+        else not sensor.call("has_line_of_sight", melee, player),
+        "A crossed enemy stays visible beside player; a behind-door enemy has no attack sight"
+    )
 
     # Opposite-side rendering: on a closed door in the dungeon, no arena
     # meshes/ground items may appear, but all physical colliders stay.
