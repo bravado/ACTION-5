@@ -96,6 +96,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # opens the barrier, but MUST NOT teleport the actor or change sector.
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 2)
+    # Real collision before/after opening, through the center of the
+    # shared wall gap. Exclude only the player's own body.
+    var gate_query := PhysicsRayQueryParameters3D.create(
+        door.global_position + Vector3(-1.8, 1.2, 0),
+        door.global_position + Vector3(1.8, 1.2, 0),
+        1, [player.get_rid()]
+    )
+    var gate_space := stage.get_world_3d().direct_space_state
+    var closed_hit: Dictionary = gate_space.intersect_ray(gate_query)
+    verify.call(closed_hit.get("collider") == door.get_node("Body"),
+        "Closed gate physically blocks the shared opening, not just its visual panel")
     var before_open: Vector3 = player.global_position
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
@@ -104,6 +115,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "E opens the shared gate without teleporting or switching sectors")
     verify.call(not barrier_mesh.visible and arena_door_mesh.visible,
         "Opening removes the barrier only; the two-sided physical door frame remains")
+    verify.call(gate_space.intersect_ray(gate_query).is_empty(),
+        "Opened doorway allows unobstructed physical rays between arena and dungeon")
     # Cross the same doorway in world space with the original player node;
     # WorldSession observes the crossing after normal physics ticks.
     player.global_position = door.global_position + Vector3(1.5, 0.15, 0)
@@ -135,6 +148,20 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and door.get_instance_id() == arena_door_id
         and door.global_position.distance_to(Vector3(14, 0, -4)) < 0.01,
         "The same gateway is seen from both areas; no duplicate far-side return door")
+    # E works from the opposite physical side, too. The panel closes and
+    # opens again while the Player's position stays unchanged.
+    var dungeon_side: Vector3 = player.global_position
+    _press(stage, KEY_E)
+    await _physics_frames(tree, 2)
+    verify.call(not door.open and barrier_mesh.visible
+        and not door.get_node("NavigationLink3D").enabled
+        and player.global_position.distance_to(dungeon_side) < 0.20,
+        "E from the dungeon side closes the one real gate without teleporting")
+    _press(stage, KEY_E)
+    await _physics_frames(tree, 2)
+    verify.call(door.open and not barrier_mesh.visible
+        and door.get_node("NavigationLink3D").enabled,
+        "Dungeon-side E reopens the shared passage for walking back")
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 3)
     await _frames(tree, 2)
