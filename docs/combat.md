@@ -272,7 +272,7 @@ runs native and Web exports and WebGL2 view smoke. See PR #28 for
 run-specific results and limitations.
 
 
-## D07 AI requests versus D08 world interactions
+## Merged D07 AI request interface and D08 world interactions
 
 D07 `Action5AIController` is a camera-independent producer of the
 **existing** D05 combat requests; `Action5AIAttackPolicy` resolves
@@ -287,7 +287,8 @@ and Health events; they never control damage.
 `tests/d07_suite.gd` covers autonomous melee/Gun damage, startup
 range/cover cancellation, independent NPC clocks, player punch/kick
 input in the encounter, animations and death. See [AI authoring](ai.md).
-The next D08 world interaction layer may invoke Health, Combat or
-Equipment through their existing public ports but must **not** add
-door/restart/pickup branches to CombatController or create a second
-combat timeline for scene changes.
+D07 is merged as the existing camera-independent AI consumer of D05
+Combat (PR #33). The next D08 world interaction layer may invoke
+Health, Combat or Equipment through their existing public ports but
+must **not** add door/restart/pickup branches to CombatController or
+create a second combat timeline for scene changes.
