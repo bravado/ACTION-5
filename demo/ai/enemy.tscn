@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/actor/action_actor.gd" id="1"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2"]
