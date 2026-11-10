@@ -300,3 +300,20 @@ startup/empty magazine does not. Stowing cancels reload, preserves ammo.
 Pinned Godot 4.7.2 checks and native/WebGL2 Full E2E passed on
 2026-11-09 ([run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885), 941 assertions, 0 failures).
 Keep issue #14 open until the owner's five-view visual acceptance passes. Consult docs/equipment.md for authoring and boundaries.
+
+## Add a projectile/tracer without affecting hit authority
+
+Use the optional `Action5GunProjectilePresenter` child and a
+`ProjectileVisual` PackedScene, configured per gun. The ONLY source is
+`Gun.fired(impact, hit_receiver)`, which happens AFTER D05 has resolved
+the real world-muzzle hit. Trace the visual from the actual world Muzzle
+to the returned impact; no extra physics ray, hurtbox, HP, damage, ammo,
+combat clock or view-mode branch belongs in presentation. An animated
+bright tip/trail is intentionally not a ballistic gameplay projectile.
+Never parent a tracer to the F4 viewmodel: all five views observe one
+world-shot trajectory. Its top-level transform must not follow the gun
+after firing. The gun may be reparented multiple times in its lifetime:
+subscribe to `fired` in `_enter_tree()`, disconnect in `_exit_tree()`,
+not `_ready()` alone. Verify no visuals for dry/cancelled shots, no
+colliders, one effect per shot, automatic cleanup, physical near-wall
+endpoint, and optional per-gun scene/color. See docs/equipment.md.

@@ -693,3 +693,14 @@ and WebGL2 E2E, five-view user visual tests, cleanup/occlusion and
 documentation review are verified. See issue #14 and docs/equipment.md.
 
 **D06-02 CI evidence (2026-11-09):** [run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885) completed Checks (941 assertions, 0 failures) and Full E2E (native screenshots including 4 exterior Gun views + F4 fire/reload/near-wall, real WebGL2 E/J/R inputs, all prior regression scenarios). This is automated acceptance only. Keep issue #14 and PR #32 open/draft until manual visual review confirms gun orientation, grip, five-view shots, physical muzzle near walls and F5 aiming; then perform final docs/readiness review before merge.
+
+**D06-02 optional visible projectile (draft PR #32, November 2026):**
+`GunProjectilePresenter` subscribes to `Gun.fired` and creates a
+world-space, non-colliding emissive tip/trail from physical Muzzle to the
+already-authoritative impact. This is an independent render-only adapter,
+not a ballistic movement or damage component. The standard and heavy
+pistol provide different configurable scenes. Headless tests cover ray
+endpoint, obstructed trajectory, dry/cancelled no-op and disposal;
+native F3/F4 in-flight captures and a browser spawn assertion are part
+of Full E2E. Owner manual visible-projectile acceptance remains an exit
+gate; existing D06-02 approval/merge state is unchanged.

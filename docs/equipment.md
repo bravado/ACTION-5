@@ -33,6 +33,42 @@ even when a wall blocks its target; a dry/invalid/cancelled request does not.
 Hurtbox/Health handle friendly-team rejection, damage and stagger; no mesh
 has authority to hit.
 
+**Visible projectile (optional, render-only):** Each gun scene can mount
+an independent `Action5GunProjectilePresenter` child with
+`gun_path = ..`, `muzzle_path = ../Muzzle` and a replaceable
+`projectile_scene` (`Action5ProjectileVisual` script). The presenter listens
+to the existing `Gun.fired(impact, hit_receiver)` event **after** the
+authoritative D05 active-phase hitscan has resolved its collision and damage.
+It snapshots the world muzzle position and the returned **actual impact
+point** (wall, target, or maximum range), launches a non-colliding emissive
+projectile tip with a short cylinder trail, and frees the effect at the
+end of its render-only travel. Neither damage, ammo nor fire cadence waits
+for this animation. Empty magazines, buffered/cancelled attacks and reloads
+produce no projectile because they never emit `fired`.
+
+The projectile's `top_level` world transform fixes its trajectory even if
+the shooter runs, turns, drops or switches cameras during flight. Meshes
+are created only when firing, **after** equipment registered world-weapon
+meshes, and remain on normal world layer 1 so F4 sees them without a
+second visual-only weapon or camera-type checks. The presenter reconnects
+its event listener in `_enter_tree()` after any weapon reparent (world,
+stowed, socket), because Godot does not invoke `_ready()` again on
+reparent. Its `_exit_tree()` disconnects and children are automatically
+freed on weapon destruction.
+
+To customize for another gun, author a separate PackedScene using the
+`Action5ProjectileVisual` script, then assign it to that gun's
+`ProjectilePresenter.projectile_scene`. Configure `projectile_color`,
+`travel_speed`, `minimum_duration`, `maximum_duration`, `tip_radius`,
+`trail_length`, and `trail_radius`; no shared weapon/combat/equipment/
+camera logic changes are necessary. To disable the visible projectile,
+remove the optional presenter node. The demo Pistol uses a warm gold
+streak; the Heavy Pistol fixture uses a wider blue streak. These are
+visible travel effects, **not simulated physical bullets**: instant
+hitscan remains gameplay authority. A true ballistic projectile is a
+separate future collision/attack behavior, not something inferred from
+the visual effect.
+
 **Reload:** A separate optional WeaponCommandInputAdapter reads the existing
 action-permission snapshot and forwards the equipped weapon's configured
 command. Gun owns its tick countdown, moves rounds on successful completion,
@@ -71,10 +107,12 @@ in the HUD. The Heavy Pistol is a separate packed scene fixture, not an
 additional default arena pickup.
 
 **E2E visual capture:** tests/capture_scene.gd must generate
-native-d06-gun-view-{1,2,3,5}.png, native-d06-gun-f4-idle/fire/reload/
-near-wall.png, and ACTION5_D06_GUN_NATIVE_OK. The WebGL2 browser smoke
+native-d06-gun-view-{1,2,3,5}.png, native-d06-gun-f3-projectile.png,
+native-d06-gun-f4-idle/fire/reload/near-wall.png, and
+ACTION5_D06_GUN_NATIVE_OK with projectile=1. The WebGL2 browser smoke
 restarts its arena after legacy equipment tests, approaches the Pistol
-using real WASD/E, and captures its F4 idle, J fire and R reload. These
+using real WASD/E, checks that J fire emitted **exactly one** projectile
+creation event, and captures F4 idle, J fire and R reload. These
 are automated rendering smoke artifacts, **not** subjective manual
 inspection of grip, aim alignment and obstruction.
 
@@ -300,3 +338,10 @@ commit to run it. Review native and WebGL2 screenshot/log artifacts,
 including narrow/wide viewport and near-wall images. **PR #31 passed**
 908 headless assertions, native/WebGL2 Full E2E and owner visual review
 on 2026-11-09. Issue #13 closes upon squash merge of that tested PR.
+
+**Projectile feature checks (draft PR #32):** the expanded
+`tests/d06_gun_suite.gd` checks the true muzzle-to-impact endpoints,
+wall-truncated rays, one spawned visual per real shot, 3D layer/collision
+isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
+Native and browser in-flight screenshots are part of the opt-in Full E2E
+pipeline. Manual visual acceptance is still required.

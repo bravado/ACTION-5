@@ -115,3 +115,5 @@ Normal PR updates run `CI / Checks` (the same suite as `make check`), while push
 ## License and assets
 
 The planned framework license is **MIT**. The license file and the attribution inventory are D01 deliverables. All third-party 3D models, animations, textures and audio must carry compatible licenses and verifiable provenance. References to existing games describe gameplay styles; ACTION-5 does not distribute their characters, artwork or proprietary assets.
+
+**D06-02 gun tracer:** The Pistol fires an optional visible, non-colliding gold projectile trail; the Heavy Pistol fixture uses a blue trail. Both travel from the physical muzzle to the already-resolved hitscan impact, independently of all camera views. Edit the per-gun ProjectileVisual scene to customize or remove the presenter to disable; damage is still immediate.
