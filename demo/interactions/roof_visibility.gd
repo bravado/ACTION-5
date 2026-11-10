@@ -32,9 +32,12 @@ func _ready() -> void:
 func refresh() -> void:
     if not is_instance_valid(tint):
         return
-    tint.visible = is_instance_valid(session) and is_instance_valid(views) \
-        and session.get("current_sector") == tinted_sector \
+    tint.visible = (
+        is_instance_valid(session)
+        and is_instance_valid(views)
+        and session.get("current_sector") == tinted_sector
         and tinted_view_indices.has(int(views.get("active_index")))
+    )
 
 
 func _on_sector_changed(_previous: StringName, _current: StringName) -> void:
