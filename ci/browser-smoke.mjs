@@ -799,15 +799,30 @@ try {
   await page.reload({ waitUntil: 'load', timeout: 90_000 });
   await page.waitForTimeout(7000);
   await page.keyboard.press('2');
-  await page.keyboard.down('d');
-  await page.waitForTimeout(900);
-  await page.keyboard.up('d');
-  await page.keyboard.down('s');
-  await page.waitForTimeout(700);
-  await page.keyboard.up('s');
+  // Render-heavy WebGL2 machines do not simulate an exact travel distance
+  // per wall-clock millisecond. Progress toward the actual gun pickup using
+  // successive real WASD edges; do not assume one fixed sleep reaches it.
   const beforeGun = weaponEvents.length;
-  await page.keyboard.press('e', { delay: 110 });
-  await page.waitForTimeout(450);
+  for (let attempt = 0; attempt < 9; attempt++) {
+    await page.keyboard.down('d');
+    await page.keyboard.down('s');
+    await page.waitForTimeout(450);
+    await page.keyboard.up('d');
+    await page.keyboard.up('s');
+    await page.waitForTimeout(180);
+    await page.keyboard.press('e', { delay: 110 });
+    await page.waitForTimeout(220);
+    if (weaponEvents.slice(beforeGun).some(line =>
+        line.includes('ACTION5_WEAPON_EQUIPPED id=gun'))) break;
+    // Bat/Shovel at spawn can be closer on the first attempts. Release the
+    // accidentally selected item and continue walking; no script teleport.
+    if (weaponEvents.slice(beforeGun).some(line =>
+        line.includes('ACTION5_WEAPON_EQUIPPED id=bat') ||
+        line.includes('ACTION5_WEAPON_EQUIPPED id=shovel'))) {
+      await page.keyboard.press('g');
+      await page.waitForTimeout(170);
+    }
+  }
   const equippedGun = weaponEvents.slice(beforeGun).find(line =>
     line.includes('ACTION5_WEAPON_EQUIPPED id=gun'));
   if (!equippedGun || !equippedGun.includes('f4_visual=1')) {
