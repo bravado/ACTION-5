@@ -1,6 +1,6 @@
 [gd_scene load_steps=18 format=3]
 
-[ext_resource type="Script" path="res://demo/ai/encounter.gd" id="1"]
+[ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="3"]
 [ext_resource type="Script" path="res://demo/interactions/world_portal_door.gd" id="4"]
