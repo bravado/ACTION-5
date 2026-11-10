@@ -293,7 +293,8 @@ position = Vector3(26.0, 0, 0)
 position = Vector3(11.7, 0.15, -4.0)
 
 [node name="EncounterSpawn" type="Marker3D" parent="."]
-position = Vector3(16.3, 0.15, -4.0)
+; Scripted warp/CI marker only. Ordinary door traversal NEVER teleports.
+position = Vector3(30.5, 0.15, 0.0)
 
 [node name="WorldSession" type="Node" parent="."]
 script = ExtResource("18_session")
