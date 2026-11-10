@@ -757,13 +757,17 @@ baseline without changing the shared actor, movement or combat cores.
   has been restored.
 
 **Reference scenes:** `demo/ai/melee_enemy.tscn`,
-`demo/ai/ranged_enemy.tscn` and `demo/ai/encounter.tscn`. Both NPCs own
+`demo/ai/ranged_enemy.tscn` and their only authored shared-world room
+`demo/world/encounter_sector.tscn`, instanced in `demo/main.tscn`.
+The former standalone `demo/ai/encounter.tscn` was removed in D08.
+Both NPCs own
 independent Health, Combat, Equipment, world aim, navigation and action
 decisions. They reuse the existing imported training rig and the optional
 D04/D05/D06 presentation adapters for Bat swing, Gun firing/reload,
 reaction/death and animated bone-socket equipment. The fallback static
-socket keeps presentation optional. The encounter also installs the
-normal player CombatInputAdapter, so Punch/Kick work in all five views.
+socket keeps presentation optional. The **single shared Player** under
+`demo/main.tscn` installs the normal CombatInputAdapter, so Punch/Kick
+work in all five views and both world sectors.
 
 **Verification contract:** `tests/d07_suite.gd` covers navigation around
 opaque geometry, camera switches, concurrent NPC ownership, real
@@ -787,17 +791,21 @@ See `docs/ai.md`, AGENTS and the D07 PR for recipes and evidence.
 
 ## D08-01 successor handoff — issue #16 / draft PR #34
 
-**Do not move D08 work back into D07.** The required D08 result is an
-arena-to-dungeon passage in **one persistent world**, retaining the
-same live player and NPC state with no mandatory reload. D07's separate
-encounter is a playable AI fixture, **not** an implementation of that
-world-transition requirement.
+**Do not move D08 work back into D07.** D08 builds arena-to-dungeon
+travel in **one persistent world**, retaining the same live player and
+NPC state on normal revisits. The D07 AI regression fixture now loads the
+same `demo/world/encounter_sector.tscn` as the playable D08 dungeon,
+not an independent scene containing a duplicate Player.
 
-The D08 preparation in PR #34 includes E/door scene-loading portals,
-death/restart UI, inventory and HP handoff, consumed pickup history and
-optional fresh/restore scene snapshots. Those are **prototypes**, not
-completion of D08: `change_scene_to_packed()` replaces live actors and
-does not satisfy shared-world traversal or state continuity.
+The original D08 scene-reloading door, one-shot inventory/HP handoff,
+collected-pickup history and snapshot experiments were removed after
+transitioning to the persistent-world implementation. PR #34 now uses
+`demo/world/world_session.gd` with the live dungeon PackedScene, a shared
+Player/Health/Combat/Equipment, actor-local interactions and optional
+**fresh/restore** room entry. The former standalone scene-transition
+regressions are replaced by `tests/d08_world_suite.gd` and
+`tests/d08_camera_sector_suite.gd`. Native/WebGL2 and fresh-entry
+lifecycle acceptance are still required before D08 merge.
 
 D08 must still deliver an actor-local Interactor and an input-independent
 `interact(actor)` path, separate Door/WorldPickup/RoofVisibility components,
@@ -810,8 +818,8 @@ native/WebGL2 results; compare against VT-13 and VT-22.
 Never force restart or scene serialization into D07 AI, Health or the
 generic combat/movement layers.
 
-**Sequencing:** D07 is the merged predecessor. Rebase the stacked D08
-PR #34 onto `master`, retarget it to `master`, resolve integration
-conflicts from D07 player-input/animation changes, and rerun both CI
-tiers. Keep #34 draft and #16 open until the actual same-world D08
-exit criteria pass.
+**Sequencing:** D07 is merged and PR #34 is rebased and retargeted to
+`master`. Re-run both CI tiers on the latest D08 head, including the
+single dungeon scene's D07 AI coverage, and keep PR #34 draft and
+issue #16 open until all live-world, inventory, fresh-entry and visual
+acceptance checks pass.
