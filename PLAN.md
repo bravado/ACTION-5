@@ -806,7 +806,7 @@ Player/Health/Combat/Equipment, actor-local interactions and optional
 
 The playable layout joins the arena (east edge X=14) to the dungeon
 (west edge at world X=14, scene origin X=26), at equal floor elevation.
-The split east wall leaves an opening at **X=14, Z=-4**. A physical
+The split east wall leaves an opening at **X=14, Z=0**. A physical
 PassageFloor bridges both authored floor colliders and a **single
 two-sided WorldDoor** opens its BarrierMesh/collision while retaining a
 visible frame and navigation link. There is no duplicate ReturnDoor.
