@@ -179,12 +179,39 @@ Linux/Web builds, native startup/rendering and real WebGL2 Full E2E in
 Future NPC visual changes still need a direct encounter review; the
 main-demo captures do not prove encounter-specific animation quality.
 
-### D08 handoff
+### D08 persistent-world demo and orientation
 
-D08 issue #16 and stacked draft PR #34 own the Interactor, world Door,
-WorldPickup, RoofVisibility, restart/session UI and arena/dungeon
-traversal. Draft PR #34's scene-loading door/restoration is preliminary
-and **fails** the mandatory same-persistent-world acceptance criterion.
-D07 is merged; rebase #34 onto `master`, retarget the PR, resolve
-overlapping scene/animation/input changes and rerun the full CI matrix. D08 must not duplicate Health/Combat/Equipment/AI or
-make camera-based roof hiding alter real collision/nav/muzzle authority.
+PR #34 is rebased on merged D07 `master` and currently remains a D08
+draft. `demo/main.tscn` hosts one live Player, one Equipment/Health/Combat
+owner, one ViewManager and a separately authored
+`demo/world/encounter_sector.tscn` instance. The dungeon is translated
+along global +X; it is **not rotated**. Room transitions preserve the
+actor and camera instead of calling `change_scene_to_packed()`.
+Unused sectors can suspend their AI/physics processing. The legacy
+`demo/ai/encounter.tscn` remains the independent D07 regression fixture.
+
+**World-space camera bounds:** D02's F1/F2/F5 profiles each clamp their
+camera target to a small centered rectangle suitable for the arena.
+Without a sector offset that clamp keeps the camera near world X = 0
+when the player enters the dungeon near X = 36, making WASD appear
+misaligned. `demo/world/sector_camera_bounds.gd` is a purely scene-local
+camera adapter: it duplicates all five profile Resources per game
+instance, stores each original rectangle, translates the rectangle by the
+dungeon's actual global X/Z offset on `WorldSession.sector_changed`,
+and snaps the camera framing after the actor is moved. It **never**
+rotates the world, overrides input axes, resets F3/F4 orbit yaw or alters
+`Action5MovementPolicy` / `ActorInputAdapter`.
+
+`tests/d08_camera_sector_suite.gd` verifies in all five modes that
+W/A/S/D resolves to the same world-plane vectors before/after each
+round trip, the same player and scene remain alive, arena camera bounds
+are restored on return, and clamped cameras follow the dungeon player.
+When authoring another sector, preserve shared global X/Z axes and
+adjust only its per-sector camera rectangle; new movement modes stay
+independent of map geometry.
+
+`tests/d08_world_suite.gd` separately covers persistent inventory,
+dropped weapons, NPC state, physically authoritative doors, roof
+presentation, fresh/restore entry and Restart. D08 release readiness
+still requires passing fresh head-specific CI, native/WebGL2 traversal
+and manual visual checks; these docs do **not** imply PR #34 is merged.
