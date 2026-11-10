@@ -394,3 +394,20 @@ The destination remains the real world-muzzle hit position. There is no
 F4 aiming/collision/damage rewrite and no second gameplay gun. Both
 Pistol and Heavy Pistol scenes include independently authored markers;
 the reusable addon does not import either demo scene. See ADR-0006.
+
+### D06-02 trail gradient
+
+The optional `Action5ProjectileVisual` now uses the shared
+`projectile_trail.gdshader` for its CylinderMesh trail. The **muzzle-side
+tail** (local CylinderMesh -Y) starts brighter and more opaque; the moving
+**impact-side tip** (local +Y) smoothly fades toward the end. Shader
+coordinates are based on local mesh Y, not UV direction or camera/world
+heading, so the gradient behaves identically in F1–F5. A `life_fade`
+parameter dims the whole trail as the transient effect completes; the
+small visible projectile tip fades too. Both pistol colors still come
+from their independent scene's `projectile_color`; authors can adjust
+`trail_start_brightness`, `trail_end_brightness`,
+`trail_start_opacity` and `trail_end_opacity` without core changes.
+This is a material-only visual effect: no changes to ammo, physics
+muzzle/camera muzzle selection, walls, damage, action timing or projectile
+lifetime/cleanup.

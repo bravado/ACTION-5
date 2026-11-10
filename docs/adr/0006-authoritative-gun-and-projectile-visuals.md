@@ -120,3 +120,15 @@ the original impact. The visual effect uses only a different origin,
 not a different target/damage/range/physics query. The second Gun
 configures its own visual marker. No weapon-ID branches or second
 weapon actor were introduced.
+
+
+## Amendment: adjustable tracer gradient
+
+Only the temporary world-owned `Action5ProjectileVisual` material
+controls the brightness and opacity gradient. Its shader derives the
+tail-to-tip fraction from the canonical 1-unit CylinderMesh local Y
+axis: muzzle-side -Y is brighter/more opaque, impact-side +Y fades.
+Opacity and emission also decay over the effect lifetime. Gun ammo,
+raycasts, hit point and independent F4 visual-origin policy are
+unchanged. Both pistol variants reuse this component with their own
+color/size parameters; no new gameplay or camera coupling.

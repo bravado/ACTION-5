@@ -354,3 +354,16 @@ the world physics Muzzle or Health/hit resolution to align the visual
 tracer; it must still terminate at the original world hit point. Test
 both normal and alternative gun F4 markers, NPC fallback, world F1–F3/F5
 fallback and native F4 emitted `from_world` equality at firing time.
+
+
+## D06-02 projectile gradient authoring
+
+The shared `Action5ProjectileVisual` uses an independent
+`projectile_trail.gdshader` for the visible CylinderMesh only. Local
+-Y (muzzle-side tail) has higher emission/opacity; local +Y (toward the
+impact) fades; lifetime transparency is a separate presentation
+uniform. Preserve the existing noncolliding world-owned visual, F4
+camera-local visual origin, all other view/AI world origin fallbacks and
+unchanged authoritative hitscan. For another gun, configure exported
+trail brightness/opacity and `projectile_color` on its scene. Do not
+modify Gun, Combat, equipment or camera logic for visual styling.

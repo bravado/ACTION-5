@@ -124,6 +124,28 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(first_visual != null
         and first_visual.find_children("*", "CollisionObject3D", true, false).is_empty(),
         "Projectile visuals cannot apply collision, health or additional damage")
+    var trail_mesh: MeshInstance3D = (
+        first_visual.get_node_or_null("VisibleTrail") as MeshInstance3D
+        if first_visual != null else null
+    )
+    var gradient: ShaderMaterial = (
+        trail_mesh.material_override as ShaderMaterial if trail_mesh != null else null
+    )
+    verify.call(gradient != null and gradient.shader != null
+        and float(gradient.get_shader_parameter("start_brightness"))
+            > float(gradient.get_shader_parameter("end_brightness"))
+        and float(gradient.get_shader_parameter("start_opacity"))
+            > float(gradient.get_shader_parameter("end_opacity")),
+        "Projectile trail uses a stronger, more opaque start and fades toward the impact")
+    verify.call(gradient != null
+        and gradient.shader.code.contains("VERTEX.y + 0.5")
+        and gradient.shader.code.contains("mix(start_brightness, end_brightness"),
+        "Trail shader gradient follows local tail-to-tip geometry, not camera or world axes")
+    var initial_fade: float = float(gradient.get_shader_parameter("life_fade"))
+    await _ticks(tree, 2)
+    verify.call(float(gradient.get_shader_parameter("life_fade")) < initial_fade,
+        "Projectile trail fades over its remaining visual lifetime without altering hitscan")
+
 
     # The same request never fires twice during one active/recovery window.
     await _ticks(tree, 2)
