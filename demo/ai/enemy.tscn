@@ -16,7 +16,7 @@
 [ext_resource type="Script" path="res://addons/action5/ai/navigation.gd" id="14"]
 [ext_resource type="Script" path="res://addons/action5/ai/attack_policy.gd" id="15"]
 [ext_resource type="Script" path="res://addons/action5/ai/ai_controller.gd" id="16"]
-[ext_resource type="Script" path="res://tests/fixtures/equipment_mount_source.gd" id="17"]
+[ext_resource type="Script" path="res://demo/ai/enemy_mount.gd" id="17"]
 
 [sub_resource type="CapsuleShape3D" id="actor_capsule"]
 radius = 0.35
@@ -83,7 +83,7 @@ surface_material_override/0 = SubResource("enemy_material")
 [node name="SocketSource" type="Node" parent="."]
 script = ExtResource("17")
 
-[node name="Socket" type="Marker3D" parent="SocketSource"]
+[node name="Socket" type="Marker3D" parent="Visual"]
 position = Vector3(0.35, 1.05, 0)
 
 [node name="Equipment" type="Node3D" parent="."]

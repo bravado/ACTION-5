@@ -53,6 +53,11 @@ position = Vector3(-5, 0.15, 0)
 [node name="Ranged" parent="." instance=ExtResource("4")]
 position = Vector3(-6, 0.15, 3)
 
+[node name="ObserverCamera" type="Camera3D" parent="."]
+position = Vector3(0, 18, 18)
+rotation_degrees = Vector3(-48, 0, 0)
+current = true
+
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-50, 25, 0)
 shadow_enabled = true

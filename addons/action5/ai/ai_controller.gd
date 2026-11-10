@@ -89,7 +89,7 @@ func _physics_process(_delta: float) -> void:
         # their ordinary move intent, never writing CharacterBody velocity.
         direction = -heading
     else:
-        direction = navigation.direction_to(actor, target.global_position, policy.maximum_range * 0.8)
+        direction = navigation.direction_to(actor, target.global_position, 0.45)
     _send_intent(direction, heading)
     _set_state(&"pursue")
 
