@@ -180,6 +180,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and bat.global_position.distance_to(dropped_bat_position) < 0.01,
         "A weapon dropped in the encounter survives travel away and back")
 
+    # The roof/lighting acceptance block requires an active dungeon.
+    # Portal E interaction is separately asserted above; a prior failed
+    # portal must not make the independent rendering test a false negative.
+    if world.current_sector != &"encounter":
+        verify.call(world.travel_to(player, &"encounter"),
+            "Roof presentation fixture can directly enter the live dungeon")
+        await _frames(tree, 3)
     # A physically elevated translucent mesh projected into only the
     # upper half of side/arcade cameras. The new full-screen CanvasLayer
     # is scene-local, independent of camera transforms, and draws behind
