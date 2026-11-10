@@ -14,6 +14,22 @@ const HealthScript = preload("res://addons/action5/combat/health.gd")
 
 var current_target: Node3D
 var _preferred_target: Node3D
+## Optional scene-composed discovery rule. The filter only affects NEW
+## acquisitions; a target already observed remains tracked through temporary
+## occlusion, until the normal forget-range/Health lifecycle says otherwise.
+## Implement allows_acquisition(actor, candidate) -> bool on any Node.
+var _acquisition_gate: Node
+
+
+func set_acquisition_gate(filter: Node) -> void:
+    _acquisition_gate = filter
+
+
+func _may_acquire(actor: Node3D, candidate: Node3D) -> bool:
+    return not is_instance_valid(_acquisition_gate) \
+        or not _acquisition_gate.has_method("allows_acquisition") \
+        or bool(_acquisition_gate.call("allows_acquisition", actor, candidate))
+
 
 
 func set_target(candidate: Node3D) -> void:
@@ -33,13 +49,15 @@ func get_target(actor: Node3D) -> Node3D:
     if _is_viable(current_target) and _distance(actor, current_target) <= forget_range:
         return current_target
     current_target = null
-    if _is_viable(_preferred_target) and _distance(actor, _preferred_target) <= acquisition_range:
+    if _is_viable(_preferred_target) \
+            and _distance(actor, _preferred_target) <= acquisition_range \
+            and _may_acquire(actor, _preferred_target):
         current_target = _preferred_target
         return current_target
     var best: float = acquisition_range
     for candidate in get_tree().get_nodes_in_group(target_group):
         var target := candidate as Node3D
-        if not _is_viable(target) or target == actor:
+        if not _is_viable(target) or target == actor or not _may_acquire(actor, target):
             continue
         var distance: float = _distance(actor, target)
         if distance < best:
