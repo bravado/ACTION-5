@@ -424,3 +424,19 @@ a configured attack policy, not new core conditionals. Test real
 `demo/ai/encounter.tscn` physics with `tests/d07_suite.gd`, plus
 `make check` and native/WebGL2 Full E2E. The separate demo AI
 encounter runs with `godot --path . res://demo/ai/encounter.tscn`.
+
+
+## D07 AI hardening contract (PR #33)
+
+The four D07 AI components are only an actor-local decision/intent layer.
+AI selects equipped actions by `attack_id`, uses explicit optional
+`reload_command`, and tracks the target of each accepted AI-owned attack.
+Guard that same target's configured range and physical LoS every physics tick
+(including startup/active); cancel only AI-owned action requests when invalid.
+Never teach shared Combat, Actor, Equipment or MovementController about AI
+or weapon names. Rejected actions and reload are not successful attacks.
+Death stops AI physics processing; use `reactivate()` only after restoring
+Health and the actor's alive state. Regression coverage must include real
+AI-driven damage without direct Combat requests, startup target loss/cover,
+autoreload, weapon cleanup and F1–F5 switching. D08 transitions and scene
+persistence belong in PR #34, not this D07 component milestone.
