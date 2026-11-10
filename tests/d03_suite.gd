@@ -432,9 +432,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(not actor.locomotion.side_lane_locked and absf(actor.global_position.z - lane) < 0.005,
         "Leaving F1 releases lane constraint without a position snap")
 
-    # Z=0 is solid east-wall geometry; the doorway is at Z=-4.
+    # Z=4 is solid east-wall geometry; the F1-compatible doorway is at Z=0.
     # Preserve the D03 collision regression away from the D08 opening.
-    actor.global_position = Vector3(12.3, 0.2, 0.0)
+    actor.global_position = Vector3(12.3, 0.2, 4.0)
     actor.set_move_intent(Vector2.RIGHT)
     for i in range(100):
         await tree.physics_frame
