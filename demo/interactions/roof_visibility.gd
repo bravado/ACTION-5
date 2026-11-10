@@ -22,7 +22,11 @@ func _ready() -> void:
 func refresh() -> void:
     if not is_instance_valid(views) or not is_instance_valid(roof_mesh):
         return
-    var hide: bool = hidden_view_indices.has(int(views.get("active_index")))
+    # The ViewManager may not be initialized yet because the sector is
+    # instanced before it in the parent scene. Treat that brief interval
+    # as hidden instead of displaying an opaque ceiling for one frame.
+    var active_index: int = int(views.get("active_index"))
+    var hide: bool = active_index < 0 or hidden_view_indices.has(active_index)
     roof_mesh.visible = not hide
     roof_mesh.cast_shadow = (
         GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if hide else _original_shadow_mode
