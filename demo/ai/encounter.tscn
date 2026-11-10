@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://demo/ai/encounter.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://demo/interactions/scene_handoff_receiver.gd" id="14"]
 [ext_resource type="Script" path="res://demo/interactions/world_pickup_state.gd" id="15"]
 [ext_resource type="Script" path="res://demo/interactions/scene_visit_state.gd" id="16"]
+[ext_resource type="Script" path="res://demo/interactions/equipment_input.gd" id="17"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -107,7 +108,7 @@ offset_top = 18.0
 offset_right = 1160.0
 offset_bottom = 86.0
 theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // ENCOUNTER\\nWASD: move | 1-5: camera | LMB/J: punch | RMB/K: kick | Survive the enemies | E: return door"
+text = "ACTION-5 // ENCOUNTER\\nWASD: move | 1-5: camera | LMB/J: punch | RMB/K: kick | Survive the enemies | E: pickup/door | Q: swap | G: drop"
 
 [node name="ReturnDoor" type="Node3D" parent="." groups=["action5_interactable"]]
 position = Vector3(9.4, 0, 5.2)
@@ -129,7 +130,10 @@ no_depth_test = true
 
 [node name="InteractionInput" type="Node" parent="."]
 script = ExtResource("13")
-handle_input = true
+handle_input = false
+
+[node name="EquipmentInput" type="Node" parent="."]
+script = ExtResource("17")
 
 [node name="SceneHandoffReceiver" type="Node" parent="."]
 script = ExtResource("14")
