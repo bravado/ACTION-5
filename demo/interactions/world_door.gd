@@ -28,6 +28,20 @@ func _ready() -> void:
     set_open(initially_open and not locked)
 
 
+## A symmetric near-side handle fixes oblique physics sight rays
+## terminating inside an opaque closed panel. Interactor accepts this
+## optional generic get_interaction_point(actor) port on any interactable.
+@export_range(0.2, 2.0, 0.1) var handle_offset: float = 0.8
+
+
+func get_interaction_point(actor: Node3D) -> Vector3:
+    var normal: Vector3 = global_basis.x.normalized()
+    var side: float = signf((actor.global_position - global_position).dot(normal))
+    if absf(side) < 0.01:
+        side = -1.0
+    return global_position + normal * side * handle_offset + Vector3.UP * 1.05
+
+
 func can_interact(actor: Node3D) -> bool:
     return is_instance_valid(actor) and not locked and (
         required_actor_group == &"" or actor.is_in_group(required_actor_group)
