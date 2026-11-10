@@ -178,10 +178,117 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     melee_ai.set_physics_process(true)
     ranged_ai.set_physics_process(true)
 
+    # P1 integration: leave AI enabled. Attack requests MUST come from the
+    # actual actor-local decision/policy path, not from direct D05 test calls.
+    melee_combat.cancel()
+    ranged_combat.cancel()
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(false)
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-6.9, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, 5)
+    await _ticks(tree, 2)
+    close_hp = player_health.current_health
+    await _ticks(tree, 32)
+    verify.call(player_health.current_health < close_hp
+        and melee_ai.state in [&"attack", &"recover"],
+        "AI autonomously selects Bat action and damages a nearby live player")
+    melee_ai.set_physics_process(false)
+    melee_combat.cancel()
+    melee.global_position = arena.global_position + Vector3(-10, 0.15, -6)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    gun.magazine = 8
+    gun.reload_left = 0
+    await _ticks(tree, 3)
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 32)
+    verify.call(gun.shots_fired > attack_before and player_health.current_health < close_hp,
+        "AI autonomously chooses equipped Gun action and deals physical damage")
+
+    # P2: an out-of-ammo policy is not a successful attack, and a configured
+    # command (not the first arbitrary binding) initiates auto-reload.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.magazine = 0
+    gun.reserve = 0
+    gun.reload_left = 0
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 2)
+    verify.call(ranged_ai.state == &"recover" and ranged_combat.current_attack == null,
+        "Rejected dry-weapon request cannot publish an AI attack state")
+    gun.reserve = 8
+    await _ticks(tree, 2)
+    verify.call(gun.reload_left > 0 and ranged_ai.state == &"recover",
+        "Configured reload command starts the ordinary Gun reload clock")
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.reload_left = 0
+    gun.magazine = 8
+
+    # P1: verify a real AI request has started, then move its target outside
+    # attack policy range BEFORE active frames. The shared D05 controller
+    # must receive cancellation without making a long-range Gun hit.
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    await _ticks(tree, 3)
+    ranged_ai.set_physics_process(true)
+    var startup_seen: bool = false
+    for tick in range(30):
+        await _ticks(tree, 1)
+        if ranged_combat.current_attack != null and ranged_combat.phase == &"startup":
+            startup_seen = true
+            break
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -18)
+    await _ticks(tree, 6)
+    verify.call(startup_seen and gun.shots_fired == attack_before
+        and player_health.current_health == close_hp
+        and ranged_combat.current_attack == null,
+        "Leaving AI Gun range during startup cancels its owned action before damage")
+
+    # Cover introduced after a legal AI attack request must cancel before
+    # startup finishes, without changing Gun's first-hit physical authority.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    await _ticks(tree, 3)
+    ranged_ai.set_physics_process(true)
+    var sight_startup: bool = false
+    for tick in range(30):
+        await _ticks(tree, 1)
+        if ranged_combat.current_attack != null and ranged_combat.phase == &"startup":
+            sight_startup = true
+            break
+    var cover := StaticBody3D.new()
+    var cover_collision := CollisionShape3D.new()
+    var cover_shape := BoxShape3D.new()
+    cover_shape.size = Vector3(2, 2.2, 0.3)
+    cover_collision.shape = cover_shape
+    cover.add_child(cover_collision)
+    arena.add_child(cover)
+    cover.global_position = arena.global_position + Vector3(-8, 1.0, -3)
+    await _ticks(tree, 2)
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    await _ticks(tree, 5)
+    verify.call(sight_startup and not sensor.has_line_of_sight(ranged, player)
+        and gun.shots_fired == attack_before and player_health.current_health == close_hp
+        and ranged_combat.current_attack == null,
+        "New opaque cover during startup cancels AI-owned Gun attack")
+    cover.queue_free()
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    await _ticks(tree, 2)
+    previous_hp = ranged_health.current_health
+
     # An NPC's death cancels action authority; the other NPC continues.
     melee_health.take_hit(1000.0, player, null, Vector2.RIGHT, 0.0, 0)
     await _ticks(tree, 2)
-    verify.call(melee_ai.state == &"dead" and not melee.alive
+    verify.call(melee_ai.state == &"dead" and not melee_ai.is_physics_processing() and not melee.alive
         and melee_combat.current_attack == null
         and ranged_health.current_health == previous_hp
         and is_instance_valid(gun),
@@ -220,5 +327,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(ranged_ai.state == &"dead" and not ranged.alive
         and gun.reload_left == 0 and ranged_combat.current_attack == null,
         "Death during Gun reload stops damage and cancels the weapon clock")
+    var captured_gun: WeakRef = weakref(gun)
+    var captured_bat: WeakRef = weakref(bat)
     arena.queue_free()
     await tree.process_frame
+    await tree.process_frame
+    verify.call(captured_gun.get_ref() == null and captured_bat.get_ref() == null,
+        "Full NPC teardown releases both exclusively owned equipment instances")
