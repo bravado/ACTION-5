@@ -90,11 +90,25 @@ func _run_physical_body_receiver_regression(tree: SceneTree, verify: Callable) -
     probe.collide_with_areas = true
     probe.collide_with_bodies = true
     var first_hit: Dictionary = shooter.get_world_3d().direct_space_state.intersect_ray(probe)
+    if first_hit.get("collider") != receiver:
+        print("ACTION5_BODY_RAY_DIAG first=", first_hit.get("collider"),
+            " first_position=", first_hit.get("position"),
+            " muzzle=", muzzle.global_position,
+            " shooter=", shooter.global_position,
+            " body=", receiver.global_position,
+            " solid=", solid.global_position,
+            " hurtbox=", hurtbox.global_position,
+            " range_end=", probe.to)
     verify.call(first_hit.get("collider") == receiver,
         "The nearest ray hit is the physical CharacterBody, not its inset Hurtbox")
     var ammo_before: int = gun.magazine
     var hp_before: float = health.current_health
     var accepted: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
+    if health.current_health >= hp_before:
+        print("ACTION5_BODY_HIT_DIAG gun_fired=", gun.shots_fired,
+            " hits=", gun.hits_landed, " ammo=", gun.magazine,
+            " hp=", health.current_health, " receiver=", receiver.global_position,
+            " muzzle=", muzzle.global_position)
     verify.call(accepted and gun.magazine == ammo_before - 1
         and gun.shots_fired == 1 and gun.hits_landed == 1
         and health.current_health < hp_before,
