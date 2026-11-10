@@ -543,3 +543,44 @@ hide-on-open visual behavior. Do not duplicate a return portal in the
 dungeon. Verify entry from both sides, closed/open collision, continuous
 player movement and persistent inventory in `tests/d08_world_suite.gd`.
 Neither door rendering nor entrance state is a camera/actor concern.
+
+### D08 connection contract: physical gate versus remote portal
+
+The reusable `WorldDoor` is **only** for adjacent geometry. E toggles
+`BarrierMesh`, the real CollisionShape3D and NavigationLink3D;
+the frame remains visible. `get_interaction_point(actor)` returns
+a near-side handle on either face. `Action5Interactor` uses this
+optional port without knowing it is a door. Do not make an adjacent
+door call `WorldSession.travel_to()`.
+
+Closed physical doors must be **opaque** to players and enemy discovery.
+The scene-local `RoomVisibility` component separately hides the
+other room's visuals in every camera while keeping floor collision
+and NPC state; proximity-driven physics preloading is NOT permission
+to render the other room or acquire targets. `DoorAcquisitionFilter`
+is composed into the two enemies' `Action5AITargetSensor` by
+WorldSession. This is an optional `allows_acquisition(actor, target)`
+port applied **only on first discovery**; never clear an acquired
+target on closure. The existing Health, Combat, Navigation, Movement
+and line-of-sight systems continue to enforce attacks and walls.
+The arena and dungeon now have separate NavigationRegion3D meshes
+linked solely when the shared gate opens; D08's simple arena quad is
+an example, not a replacement for baked obstacle-aware navigation.
+
+`LocationPortal` is a **different component** for deliberate
+nonadjacent travel: marker mode repositions the actor within a world;
+PackedScene mode asks `LocationManager` to instantiate/cache a
+detached environment and reuse the SAME Player/Equipment/Combat/
+ViewManager. The remote chamber lives in
+`demo/world/remote_chamber.tscn` with a separate marker-return
+portal. `WorldSession` suspends automatic room crossing only while
+remote; room rendering and camera reframe are separate adapters.
+A remote location cannot introduce a duplicate Player or call
+`SceneTree.change_scene_to_packed()` behind a normal door.
+
+Tests: extend `tests/d08_connections_suite.gd` for actual viewport
+E input, opaque rendering both ways, initial acquisition denial,
+post-opening latched aggro, door/navlink physics and remote cached
+scene/marker returns. Keep D07 enemy tests and D08 world/camera tests
+passing. Do not disable strict LoS or add conditionals to movement,
+combat, camera core or animation code for any of these connections.
