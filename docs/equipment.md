@@ -1,11 +1,13 @@
 # D06 equipment authoring and implementation state
 
-**Status (2026-11-10):** D05 is merged via PR #28. **D06-01 Bat/Shovel
-and the reusable equipment contract are implemented and approved in PR #31.**
-Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
-Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
-D06-02 Gun is verified in PR #32 (owner visuals passed; squash merge
-pending), while D07 AI remains a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
+**Status (November 2026): D05, D06-01, D06-02 and D07 are merged.**
+PR #31 established Bat/Shovel and the reusable Equipment lifecycle;
+PR #32 added Gun, authoritative world-muzzle hits, reload and visual
+tracers; PR #33 added two camera-independent NPCs using those same
+equipment and combat ports, with optional animated hand sockets.
+D08 is the next milestone and owns world interactions and scene
+persistence. See [AI authoring](ai.md) and
+[ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
 
@@ -149,9 +151,8 @@ remain pending on this head.
 receiver, obstruction, reload across views, alternate gun, NPC,
 visual ownership, shader gradient and lifetime. The independent
 `ci/browser-smoke.mjs` and `tests/capture_scene.gd` demonstrate exported
-WebGL2/native behavior. **PR #32 is accepted for squash merge once
-explicitly requested; issue #14 remains open until the merge.** No
-merge or closure is implied solely by recording visual approval.
+WebGL2/native behavior. **PR #32 is merged**, and these D06 components are part of the
+baseline consumed by D07 and D08.
 
 ---
 
@@ -374,9 +375,9 @@ Playwright WebGL2 browser input) is implemented by
 commit to run it. Review native and WebGL2 screenshot/log artifacts,
 including narrow/wide viewport and near-wall images. **PR #31 passed**
 908 headless assertions, native/WebGL2 Full E2E and owner visual review
-on 2026-11-09. Issue #13 closes upon squash merge of that tested PR.
+on 2026-11-09. PR #31 is merged.
 
-**Projectile feature checks (validated PR #32):** the expanded
+**Projectile feature checks (merged PR #32):** the expanded
 `tests/d06_gun_suite.gd` checks the true muzzle-to-impact endpoints,
 wall-truncated rays, one spawned visual per real shot, 3D layer/collision
 isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
