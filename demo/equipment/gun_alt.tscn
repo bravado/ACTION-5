@@ -36,5 +36,5 @@ material_override = SubResource("steel")
 
 [node name="ProjectilePresenter" type="Node" parent="."]
 script = ExtResource("4")
-visual_origin_provider_path = ^"EquipmentVisualAdapter"
+visual_origin_provider_path = NodePath("EquipmentVisualAdapter")
 projectile_scene = ExtResource("5")

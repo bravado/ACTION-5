@@ -764,10 +764,9 @@ func _capture() -> void:
         push_error("D06-02: Gun F4 did not show a visible active-phase projectile")
         quit(1)
         return
+    var visible_shot_start: Vector3 = f4_projectile.get("from_world")
     if captured_f4_muzzles.size() != 1 \
-            or not (f4_projectile.get("from_world") as Vector3).is_equal_approx(
-                captured_f4_muzzles[0]
-            ) \
+            or not visible_shot_start.is_equal_approx(captured_f4_muzzles[0]) \
             or captured_f4_muzzles[0].distance_to(gun_muzzle.global_position) < 0.2:
         push_error("D06-02: F4 tracer did not start from the actual on-screen weapon barrel")
         quit(1)
