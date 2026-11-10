@@ -1,90 +1,84 @@
-# ADR-0007: Scene handoff prototype vs. persistent-world traversal
+# ADR-0007: One persistent world with a reusable dungeon scene
 
-- **Status:** Proposed / interim D08 design; **not** acceptance of D08-01
+- **Status:** Adopted in D08 PR #34 (pending full D08 acceptance)
 - **Date:** 2026-11-10
-- **Context:** D07 implements camera-independent AI; D08 requires doors, pickups,
-  roof occlusion, obstacle-aware navigation and arena-to-dungeon movement in
-  **one persistent world without mandatory scene reload**.
+- **Related:** merged D07 PR #33, D08 issue #16, D08 PR #34
+
+## Context
+
+D07 introduced independent equipped melee/ranged enemies and their
+standalone `demo/ai/encounter.tscn` test stage, with a duplicate Player
+and ViewManager. Early D08 experiments also implemented E portals via
+`SceneTree.change_scene_to_packed()`, one-shot weapon/HP serialization
+and reload-based enemy/pickup snapshots. This duplicated the battle
+layout, split inventory and actor lifecycles, and could not meet D08's
+**same live player and world** acceptance requirement.
 
 ## Decision
 
-Separate D07 AI from D08 interaction infrastructure. PR #33 retains only
-the independent two-enemy AI demo and tests. D08 PR #34 is an **explicitly
-temporary scene-loading integration prototype** built on top of D07.
+Keep **one** gameplay world at `demo/main.tscn` and **one** separately
+authored dungeon sector at `demo/world/encounter_sector.tscn`. The
+sector is instanced into the main world at a translated but unrotated
+position; it owns the floor, obstacle/navigation ring, two equipped
+D07 NPCs, physical portal and presentation-only roof.
 
-The current Door uses `SceneTree.change_scene_to_packed()`. A
-destination-scoped, one-shot `SceneHandoff` transports player inventory,
-ammunition/HP, collected original map pickups and scene visit snapshots.
-The per-door `entry_policy` selects restore or fresh. The old scene is
-freed. Source and destination never share the same live Actor instance.
+- The original player, camera, input, Health, Combat, Equipment and
+  weapon instances remain alive on regular round trips. Normal E-door
+  travel calls `WorldSession.travel_to`, **not** scene replacement.
+- Inactive dungeon processing can be disabled without discarding NPC
+  Health, gun ammo, aim/decision state, or world weapon instances.
+- Optional **Start fresh** is a separately configured room-entry policy,
+  not the default; any necessary reinitialization must be scoped to the
+  destination sector, never silently reset the player's inventory.
+- Physical door collision and NavigationLink3D are tied to open/locked
+  state. RoofVisibility hides only meshes/shadows and cannot change
+  physics, navigation or Gun muzzle ray authority.
+- The single `demo/world/dungeon_navigation.gd` builds a static
+  navigation ring for the dungeon. AI/Combat/Equipment do not depend on
+  demo-specific room or scene-transition classes.
+- `SectorCameraBounds` adjusts F1/F2/F5 camera target clamps to the
+  sector's global offset. Neither map nor WASD world axes are rotated;
+  F2/F5 headings stay fixed at the boundary while F3/F4 keep orbit/aim
+  behavior.
 
-This is **not** the D08 exit criterion. A future D08 revision must compose
-an arena and dungeon in a single authoritative `World3D` with the same
-player and enemy instances traversing the connection, while leaving
-D03/D05/D06/AI/Camera core unchanged.
+## One dungeon for gameplay **and** D07 tests
 
-## Why keep the prototype for now?
+The old `demo/ai/encounter.tscn` and its script, scene-travel handoff
+implementation, superseded `tests/d07_transition_suite.gd` and
+`tests/d07_scene_visit_suite.gd`, and their unused one-shot snapshot
+adapters have been removed.
 
-We can verify ownership, replay-free pickups and local interaction
-boundaries before building full traversal. It exposes public ports and
-testable behavior, but is intentionally demo-scoped. Its inventory
-restoration and one-use snapshots must not be mistaken for continuous
-scene/actor identity.
+`tests/d07_suite.gd` now instantiates `demo/main.tscn`, positions the
+world away from other test fixtures, enters the existing dungeon via
+WorldSession and exercises real NPC decisions, navigation, physical
+damage, model/weapon sockets, reloads, deaths and player combat input
+on the **same scene** that the user plays. The suite has no second
+player, camera or test-only enemy map.
 
-## Performance and alternative strategies
+`tests/d08_world_suite.gd` covers normal world travel and optional
+entry state; `tests/d08_camera_sector_suite.gd` covers identical WASD
+directions and bounded-camera orientation across all five views.
+Do not create a standalone encounter scene for new AI tests: author
+more NPC configurations in the existing dungeon or inject temporary
+test actors into that scene.
 
-| Technique | Retained memory | Inactive CPU | Transition work | Contract |
-| --- | --- | --- | --- | --- |
-| Keep inactive scenes in the tree | High | Potential physics/AI cost | Low | Reuses old actors but risks concurrent worlds |
-| Detach and cache entire scenes | High | Usually none | Reattach scene | Old node references and lifecycle stay complex |
-| Serialize compact values, recreate scene | Scales with snapshot | None | Reload + restore | Current interim prototype, **not** seamless |
-| **One world with connected arena/dungeon** | Loaded geometry/actors in world | Live active-world systems | No scene reload | **D08 requirement**; use authoring and streaming optimizations as needed |
+## Performance tradeoffs
 
-There are no measured memory or frame-time figures yet. The scene
-snapshot solution is a reasonable short-term browser-friendly alternative
-to caching inactive whole Node trees, but real D08 persistent-world
-navigation still needs profiling on native and WebGL2.
+| Strategy | Memory | Idle CPU | Player/equipment identity | Result |
+|---|---|---|---|---|
+| Reload each room and hand off inventory | Low | Low | Recreated | Rejected for normal D08 travel |
+| Keep independent complete game scenes | High | Potential double player/camera/input | Duplicated | Rejected |
+| **One world, instanced sectors, pause inactive NPCs** | Retains sector nodes | Pausable | **Same live actors** | Chosen |
+| Compact explicit fresh-entry reset | Transient reinitialization | Infrequent | Same player | Optional, requires testing |
 
-## Extension and authority boundaries
+No measured frame-time/memory/native/WebGL2 comparison has been
+completed; do not claim performance superiority without profiling.
 
-- `SceneDoor` and the demo InteractInput resolve scene actions only.
-  No raw keyboard input belongs in Actor, Combat or Equipment.
-- `SceneVisitState` consumes opt-in `capture_state()/restore_state()`
-  adapters only at transition boundaries. This is **session state**, not
-  serialized disk saves, network sync, global inventory or replay.
-- Mutable Gun state is per instance; reconstitution uses ordinary
-  Equipment pickup/equip ports, not direct registry access.
-- The health adapters retain HP/death and stable poses. Current combat
-  phases, AI target/node references, navigation paths and projectiles
-  are intentionally not serialized.
-- D08's future Door/WorldPickup/Interactor must use the same
-  `interact(actor)` port with world-range, line-of-sight, permissions,
-  collider/nav authority, camera-only roof visibility and a camera-free
-  script/NPC caller. This prototype does **not** satisfy those gates.
+## Remaining release gates
 
-## Required D08 follow-up before merge
-
-1. Add a shared-world arena/dungeon passage and retain original player
-   actor, equipped weapon, HP, reload timing, nearby enemies and effects
-   while crossing.
-2. Replace scene-changing demo door with physically authoritative Door
-   and actor-local Interactor with view-independent selection, LOS and
-   script/NPC callers; collision/nav transition tracks locked/open state.
-3. Author a separate WorldPickup component; integrate RoofVisibility as
-   view-local *render-only* change. Prove muzzle obstruction and
-   navigation do not change when roofs hide.
-4. Add steps, gaps, ledges, overhangs and two-area navigation tests,
-   native/WebGL2 traversal and projectile cleanup regressions.
-5. Decide whether to retain the snapshot module as an **optional**
-   scene-reset/checkpoint adapter, or remove it once same-world level
-   integration makes that complexity unnecessary. Do not retain both
-   systems without a concrete use-case and comparative profile.
-
-## Verification
-
-- D07 independent branch PR #33: 995 assertions; native/WebGL2 E2E
-  green on original head `cf59acc` (run #42825194678).
-- Full scene-handoff prototype source tree previously passed 1,045
-  Godot assertions at `0c6e290` (run #42840710655). New stacked PR
-  #34 must run its own CI before claiming release readiness.
-- D08-01 remains open: [issue #16](https://github.com/bravado/ACTION-5/issues/16).
+D08's architecture now satisfies the structural same-world requirement,
+but PR #34 remains **draft** until head-specific Godot tests (including
+the independent D07 suite), fresh-entry item/NPC lifetime regressions,
+native/WebGL2 tests and owner camera/interaction visual review all pass.
+The original scene-loading prototype is historical context, not a
+supported alternative at runtime.
