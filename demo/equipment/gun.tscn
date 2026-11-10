@@ -35,3 +35,4 @@ material_override = SubResource("steel")
 
 [node name="ProjectilePresenter" type="Node" parent="."]
 script = ExtResource("4")
+debug_events = true

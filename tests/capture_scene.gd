@@ -703,6 +703,37 @@ func _capture() -> void:
         if not _save_image(output_dir.path_join("native-d06-gun-view-%d.png" % (gun_view_index + 1))):
             quit(1)
             return
+    # Capture a true in-flight world projectile in F3, not merely a
+    # static held-gun screenshot. The shot's physics hit already resolved.
+    manager.switch_view(2)
+    for settle in range(12):
+        await process_frame
+    if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
+        push_error("D06-02: cannot fire Gun for visible exterior tracer")
+        quit(1)
+        return
+    for tick in range(4):
+        await physics_frame
+    var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
+    var world_projectile: Node3D = (
+        projectile_presenter.get_child(0) as Node3D
+        if projectile_presenter.get_child_count() > 0 else null
+    )
+    if world_projectile == null or world_projectile.get_node_or_null("VisibleProjectile") == null:
+        push_error("D06-02: fired world projectile was not rendered")
+        quit(1)
+        return
+    paused = true
+    await RenderingServer.frame_post_draw
+    if not _save_image(output_dir.path_join("native-d06-gun-f3-projectile.png")):
+        paused = false
+        quit(1)
+        return
+    paused = false
+    combat.call("cancel")
+    for tick in range(20):
+        await physics_frame
+
     manager.switch_view(3)
     for settle in range(15):
         await process_frame
@@ -717,8 +748,12 @@ func _capture() -> void:
     for tick in range(4):
         await physics_frame
     equipment_visual.call("refresh_presentation")
-    if not is_instance_valid(gun_viewmodel) or gun.get("shots_fired") != 1:
-        push_error("D06-02: Gun F4 camera visual lost its world active-phase source")
+    var f4_projectile: Node3D = (
+        projectile_presenter.get_child(0) as Node3D
+        if projectile_presenter.get_child_count() > 0 else null
+    )
+    if not is_instance_valid(gun_viewmodel) or gun.get("shots_fired") != 2             or f4_projectile == null             or f4_projectile.get_node_or_null("VisibleProjectile") == null:
+        push_error("D06-02: Gun F4 did not show a visible active-phase projectile")
         quit(1)
         return
     paused = true
@@ -757,7 +792,7 @@ func _capture() -> void:
         push_error("D06-02: near-wall view disowned the physical world Gun")
         quit(1)
         return
-    print("ACTION5_D06_GUN_NATIVE_OK world=4 f4=1 muzzle=1 reload=1")
+    print("ACTION5_D06_GUN_NATIVE_OK world=4 f4=1 muzzle=1 reload=1 projectile=1")
     equipment.call("drop_current")
 
     print("ACTION5_FIVE_VIEW_SCREENSHOTS_OK 5")

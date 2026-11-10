@@ -8,6 +8,8 @@ signal projectile_spawned(projectile: Node3D)
 
 @export var gun_path: NodePath = ^".."
 @export var muzzle_path: NodePath = ^"../Muzzle"
+## Demo/diagnostic only; game visuals work with logging disabled.
+@export var debug_events: bool = false
 @export var projectile_scene: PackedScene = preload(
     "res://addons/action5/animation/projectile_visual.tscn"
 )
@@ -36,6 +38,9 @@ func _on_fired(impact: Vector3, _hit_receiver: bool) -> void:
     projectile.top_level = true
     add_child(projectile)
     spawn_count += 1
+    if debug_events:
+        print("ACTION5_PROJECTILE_VISUAL_SPAWN from=", projectile.get("from_world"),
+            " to=", projectile.get("to_world"))
     projectile_spawned.emit(projectile)
 
 

@@ -11,6 +11,7 @@ const settingsVisibility = [];
 const rigViews = [];
 const combatStarts = [];
 const weaponEvents = [];
+const projectileEvents = [];
 const limbVisibility = [];
 const browser = await chromium.launch({
   headless: true,
@@ -27,6 +28,7 @@ try {
     if (line.includes('ACTION5_D04_PRESENTATION')) rigViews.push(line);
     if (line.includes('ACTION5_ATTACK_STARTED')) combatStarts.push(line);
     if (line.includes('ACTION5_WEAPON_')) weaponEvents.push(line);
+    if (line.includes('ACTION5_PROJECTILE_VISUAL_SPAWN')) projectileEvents.push(line);
     if (line.includes('ACTION5_POINTER_DIAG')) console.log(line);
     if (line.includes('ACTION5_F4_LIMB_VISIBLE')) limbVisibility.push(line);
     if (line.includes('ACTION5_CAMERA_SETTINGS_VISIBLE')) settingsVisibility.push(line);
@@ -818,6 +820,7 @@ try {
     path: 'build/evidence/web-d06-gun-f4-idle.png', fullPage: true,
   });
   const beforeGunFire = combatStarts.length;
+  const beforeGunProjectile = projectileEvents.length;
   await page.keyboard.down('j');
   await page.waitForTimeout(160);
   await page.screenshot({
@@ -829,6 +832,10 @@ try {
       line.includes('ACTION5_ATTACK_STARTED id=gun_fire'))) {
     errors.push('D06-02 F4 J did not select the configured Gun active-phase attack');
   }
+  if (projectileEvents.length !== beforeGunProjectile + 1) {
+    errors.push('D06-02 F4 gun fire did not create exactly one visual projectile: ' +
+      projectileEvents.slice(beforeGunProjectile).join(' | '));
+  }
   await page.keyboard.press('r', { delay: 110 });
   await page.waitForTimeout(380);
   await page.screenshot({
@@ -836,7 +843,8 @@ try {
   });
   console.log('ACTION5_BROWSER_D06_GUN_OK equipped=' + Number(!!equippedGun) +
     ' attack=' + Number(combatStarts.slice(beforeGunFire).some(line =>
-      line.includes('id=gun_fire'))) + ' f4=1');
+      line.includes('id=gun_fire'))) + ' f4=1 projectile=' +
+    Number(projectileEvents.length === beforeGunProjectile + 1));
   if (errors.length) throw Error(errors.join('\\n'));
 
   console.log('ACTION5_BROWSER_SMOKE_OK ' + url);
