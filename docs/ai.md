@@ -58,6 +58,43 @@ priority/ID arbitration. D05 attack requests snapshot an explicit world
 heading at request time; an already pending attack rejects a competing
 request. Neither contract depends on rendering or camera state.
 
+## D07 enemy animation composition
+
+Both NPC archetypes now instantiate the same imported skeletal training character
+that the player uses. They compose the **existing optional**
+`AnimationPresenter`, `CombatAnimationAdapter` and
+`GunReloadVisualAdapter`. AI emits only normal combat requests: the
+shared combat timeline emits attack signals; presentation independently
+chooses the animation. No attack, reload, damage or locomotion timing
+is driven by the visual tree.
+
+- Bat: the configured `bat_swing` attack supplies `bat_vertical`;
+  the shared combat presentation adapter plays it on the upper-body channel
+  and clears it when the action ends or is cancelled.
+- Gun: the `gun_fire` resource supplies an optional `gun_fire`
+  animation key. The **NPC-only** `enemy_skeleton_profile.tres` currently
+  maps that key to the training rig's existing forward-arm `punch` clip
+  as a temporary firing pose. This does **not** change the F4 weapon
+  viewmodel or force a punch animation on the player, whose profile
+  does not map that key. A future rig can replace the clip mapping.
+- Reload and death: the existing gun reload visual adapter selects the
+  `reload` upper-body clip. The combat adapter plays `hit` and `death`
+  when the Health component emits those events.
+- Equipment: `SocketSource.get_mount(socket_id)` prefers the
+  `AnimationPresenter`'s animated bone sockets, so the Bat moves with
+  the character's arm. If that presenter is absent, it returns the
+  existing static marker. This preserves optional presentation with
+  unchanged Equipment and Combat behavior.
+- The demo-only `EnemyAppearance` applies distinct translucent red/blue
+  overlays on each **instance** of the imported model, without editing
+  or sharing mutated GLB materials. It has no gameplay authority.
+
+The regression suite validates actual animation-tree setup, independent
+model instances, animated hand attachment, attack selection/clearing,
+reload and death overlays, and a fully functional enemy with its
+`AnimationPresenter` and animated model removed before entering the tree.
+This scene remains F1–F5 camera-independent.
+
 ## Manual acceptance
 
 Run `make check`; request Full E2E with a `[full-e2e]` commit, then
@@ -69,7 +106,8 @@ connected via the same reusable `CombatInputAdapter` and
 RMB/K kicks when unarmed; equipped definitions can override these inputs. Watch both enemies route
 around the center, approach within configured range, aim and attack.
 Check death/target loss, physical wall obstruction, player focus gating,
-ammo/reload, weapon teardown and native/WebGL2 visuals against issue #15.
+ammo/reload, animated Bat swing, Gun firing pose, character death,
+weapon attachment, weapon teardown and native/WebGL2 visuals against issue #15.
 Previous isolated head passed 995 Godot assertions and native/WebGL2 Full E2E.
 The additional P1/P2 regression commit requires fresh CI verification and
 owner native/WebGL2 visual acceptance before merge. No new third-party assets are used.
