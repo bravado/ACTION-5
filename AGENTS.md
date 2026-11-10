@@ -508,3 +508,11 @@ both before and after a doorway. There is no standalone D07 encounter scene; `te
 activates the dungeon inside `demo/main.tscn`. The obsolete scene-reload
 transition suites and one-use handoff adapters were retired with the
 duplicate scene. New scenarios must use the shared-world fixture.
+
+D08 door visualization contract: physical open state must still disable
+its CollisionShape3D and enable NavigationLink3D. Normal door panels use
+`WorldDoor.keep_visual_when_open = false` and hide on opening; persistent
+E-portal markers in both main and dungeon scenes opt into `true` so
+their visible DoorMesh persists on exit and revisits. Never infer
+interactability or physics authority from visual visibility. Extend
+`tests/d08_world_suite.gd` for both directions and repeated visits.
