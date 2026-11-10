@@ -47,7 +47,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var enemy := encounter.get_node("Melee") as CharacterBody3D
     var enemy_id: int = enemy.get_instance_id()
     verify.call(world.current_sector == &"arena"
-        and not encounter.visible
+        and not encounter.get_node("Floor").visible
         and encounter.process_mode == Node.PROCESS_MODE_DISABLED
         and stage.get_node("Interactor") != null,
         "World boots with an inactive CPU-paused encounter and independent Interactor")
@@ -135,7 +135,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _frames(tree, 2)
     verify.call(tree.current_scene == stage and stage.get_instance_id() == stage_id
         and player.get_instance_id() == player_id and world.current_sector == &"encounter"
-        and encounter.visible and encounter.process_mode != Node.PROCESS_MODE_DISABLED,
+        and encounter.get_node("Floor").visible and encounter.process_mode != Node.PROCESS_MODE_DISABLED,
         "Walking across the shared east opening enters the live dungeon without replacing player")
     verify.call(gun.get_instance_id() == loose_id and gun.get_parent() == stage
         and gun.global_position.distance_to(dropped_position) < 0.01
@@ -176,13 +176,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 3)
     await _frames(tree, 2)
-    verify.call(world.current_sector == &"arena" and encounter.visible
+    verify.call(world.current_sector == &"arena" and encounter.get_node("Floor").visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
         "Return detects arena while keeping the dungeon loaded near the real shared doorway")
     player.global_position = stage.to_global(Vector3(5, 0.15, 0))
     await _physics_frames(tree, 3)
-    verify.call(not encounter.visible and encounter.process_mode == Node.PROCESS_MODE_DISABLED,
-        "Dungeon AI and physics pause when player moves beyond the gateway preload range")
+    var ranged_alert: bool = (encounter.get_node("Ranged/AIController").get("target") == player)
+    verify.call((encounter.process_mode != Node.PROCESS_MODE_DISABLED) == ranged_alert,
+        "Beyond preload distance, only an actively alerted enemy keeps its dungeon processing awake")
     verify.call(not (stage.get_node("DungeonRoofOverlay/Tint") as ColorRect).visible,
         "Dungeon tint is removed immediately when returning to the arena")
     verify.call(door.get_instance_id() == arena_door_id
@@ -207,7 +208,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(stage.get_node("EncounterSector/Melee").get_instance_id() == enemy_id
         and enemy_health.current_health == 0.0 and not enemy.alive,
         "Restore entry preserves the exact dead enemy instance without resurrection")
-    verify.call(encounter.visible and arena_door_mesh.visible
+    verify.call(encounter.get_node("Floor").visible and arena_door_mesh.visible
         and door.get_instance_id() == arena_door_id and not barrier_mesh.visible,
         "Second visit reuses one visible open two-sided doorway; no duplicated portal")
     verify.call(equipment.inventory.size() == 2 and player.get_instance_id() == player_id,
