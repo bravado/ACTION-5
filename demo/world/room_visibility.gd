@@ -12,7 +12,7 @@ extends Node
     ^"../Floor", ^"../NorthWall", ^"../SouthWall", ^"../WestWall",
     ^"../EastWall", ^"../PassageFloor", ^"../PillarA", ^"../PillarB",
     ^"../Ramp", ^"../LowStep", ^"../NearDummy", ^"../FarDummy",
-    ^"../LightSwitch"
+    ^"../LightSwitch", ^"../RemotePortal"
 ]
 
 @onready var session: Node = get_node_or_null(session_path)
@@ -35,6 +35,11 @@ func _ready() -> void:
 func refresh() -> void:
     if not is_instance_valid(session) or not is_instance_valid(door):
         return
+    # A Start-fresh policy may replace the dungeon PackedScene instance.
+    # Rebind only the scene-local presentation reference; no actor state is
+    # copied or reset by this component.
+    if not is_instance_valid(dungeon):
+        dungeon = get_node_or_null(dungeon_path) as Node3D
     var sector: StringName = session.get("current_sector")
     var opened: bool = bool(door.get("open"))
     var in_arena: bool = sector == &"arena"
