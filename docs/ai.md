@@ -1,113 +1,149 @@
 # D07 — Actor-local enemy AI
 
-The D07 NPCs use the **same** `Action5Actor`, Locomotion, MovementController,
-Health, Hurtbox, CombatController and EquipmentController as the player.
-Nothing in the reusable addon depends on `demo/`.
+D07 composes the **same** `Action5Actor`, Locomotion, MovementController,
+Health, Hurtbox, CombatController and EquipmentController used by the
+player. The only new reusable classes are actor-local AI decisions, target
+sensing, navigation and attack selection. Nothing in `addons/action5/`
+imports `demo/`, and no camera mode controls AI authority.
 
-The independent pieces are:
+## Architecture and extension points
 
-- `Action5AITargetSensor`: nearest living member of a configured group,
-  explicit test/scripted target override and physical opaque line of sight.
-  Dead/freed targets are rejected; no view manager is referenced.
-- `Action5AINavigation`: feeds waypoints from a Godot
-  `NavigationAgent3D` to ordinary world X/Z move intents. The
-  `NavigationRegion3D` and traversable polygons belong to the world.
-  Missing/unsynchronized maps do **not** turn into straight-line wall
-  penetration.
-- `Action5AIAttackPolicy`: configured action, min/max range, weapon
-  action ID and explicit optional gun reload command. D05 alone owns attack
-  startup/active/recovery and D06 Gun owns ammunition.
-- `Action5AIController`: small Idle/Pursue/Attack/Recover/Dead **decision**
-  states, not another locomotion FSM or combat clock. It connects the
-  other components to `Actor.apply_move_intent()` and
-  `CombatController.request_attack()` / Equipment's action port.
+| Component | Responsibility | Does not own |
+|---|---|---|
+| `Action5AITargetSensor` | Acquire/forget living targets in a group, optional explicit target, physical LoS | Damage or camera aiming |
+| `Action5AINavigation` | Query a world-authored `NavigationAgent3D` for an X/Z waypoint | Locomotion, door/navmesh world policy |
+| `Action5AIAttackPolicy` | Select an authored `attack_id`, min/max range, optional `reload_command` | D05 attack timeline or D06 ammo state |
+| `Action5AIController` | Decide Idle/Pursue/Attack/Recover/Dead and submit existing move and attack ports | A second movement/animation FSM |
 
-## Author an enemy archetype
+The world owns the `NavigationRegion3D` polygons and all opaque collision
+geometry. A missing or unsynchronized navigation map must not cause direct
+steering through walls. The AI uses `Action5Actor.apply_move_intent()`,
+actor-owned Equipment actions, `CombatController.request_attack()` and
+the replaceable `Action5ActorTargetAimProvider` for ranged targets.
+No global AI registry, duplicate equipment owner or view-specific aim logic.
 
-Instantiate `demo/ai/enemy.tscn` (or compose the same addon nodes in your
-own scene). Set `TargetSensor.target_group`, navigation-agent geometry,
-the action resource registered with this actor's Combat/Equipment, and
-`AttackPolicy.attack_id`, `maximum_range`, `minimum_range`,
-`requires_equipment` and optional `reload_command` as appropriate.
-Equip an ordinary weapon instance through EquipmentController; a demo-only
-`InitialWeapon` node demonstrates pickup. The Gun must use the actor-local
-`AimTargetProvider`, never a camera ray. A third policy can subclass
-`Action5AIAttackPolicy` without editing any shared actor, movement, combat,
-equipment, presentation or camera class.
+**Attack ownership:** On every physics tick, including startup and active
+phases, the controller rechecks the same target's life, configured range and
+physical line of sight. If invalid, it cancels **only an accepted
+AI-owned** attack request; independent combat logic continues to own
+startup/active/recovery, actual Hitbox/Hurtbox filtering, muzzle hits,
+knockback and damage. Dry, reloading or rejected attacks are not
+reported as attacks. Death clears the AI target/aim, stops its physics
+processing and disables the ordinary actor movement. A restored actor
+may call `AIController.reactivate()` **only after** restoring
+`Health.current_health > 0` and `actor.alive = true`.
 
-For a Gun, `AttackPolicy` resolves the equipped action by `attack_id`,
-not by a fragile authored array index, and invokes the explicitly configured
-`reload_command` when the magazine runs dry (if reserve ammunition exists).
-An unarmed policy requests the D05 action directly.
+**Timing contract:** D03 queued movement IDs resolve against the *latest*
+submitted intent at physics time; D05 attack requests snapshot their
+world-plane heading on submission. Two attack requests in the same
+physics tick cannot override one another. These semantics are
+independent of skeleton/camera state.
 
-`AIController` accepts attack requests only within the configured range and
-with direct physical sensor line of sight. It monitors range/LoS on every
-physics frame, including startup and active frames, cancelling **only its own
-accepted** attack if its target changes, moves out of range or enters cover.
-D05 still controls all startup/active/recovery and hit authority. Missing
-weapons, rejected attacks and reload do not produce false `attack` states.
-On death, AI processing stops; a restored actor with living Health and
-`alive=true` may explicitly invoke `AIController.reactivate()`. Damage is independently checked by the
-gun's **first world-muzzle ray**. An opaque collider always blocks that ray;
-a solid actor can receive damage only through its own live Hurtbox and
-Health. An AI attack is not a separate damage path.
+## Adding an enemy archetype
 
-D03 move requests queue **IDs**, while the final actor move intent is read
-at physics time. Multiple move requests are resolved by the existing
-priority/ID arbitration. D05 attack requests snapshot an explicit world
-heading at request time; an already pending attack rejects a competing
-request. Neither contract depends on rendering or camera state.
+1. Instantiate `demo/ai/enemy.tscn` or compose the four AI components
+   beside an ordinary Actor, Health, Hurtbox, Combat, Locomotion and
+   EquipmentController in your own scene. Give each actor its own
+   component instances.
+2. Configure `TargetSensor.target_group` and target ranges, a world
+   `NavigationRegion3D` with an actor-local `NavigationAgent3D`, and
+   `AttackPolicy.attack_id`, `minimum_range`, `maximum_range` and
+   `requires_equipment`. Set `reload_command` explicitly when the
+   weapon supports reloading; do not assume the first command binding
+   means reload.
+3. Register an existing D05 attack resource or equip an ordinary
+   D06 weapon carrying the configured ID. A new attack is selected by
+   **ID**, not by attack-array position or a weapon-name conditional.
+   If `requires_equipment=false`, the policy requests the D05 action
+   directly. The demo's `InitialWeapon` shows pickup before equipping.
+4. Optionally install a skeletal model, `SkeletonProfile`,
+   `AnimationPresenter`, `CombatAnimationAdapter` and
+   `GunReloadVisualAdapter`. Neither Combat nor AI needs these nodes.
+   Use a replaceable mount provider that returns an animated socket or
+   a static fallback. Test a second attack/weapon setup without editing
+   Actor, MovementController, CombatController, AnimationPresenter or
+   EquipmentController.
 
-## D07 enemy animation composition
+The existing `melee_enemy.tscn` holds a Bat and requests `bat_swing`;
+`ranged_enemy.tscn` holds a Gun and requests `gun_fire` with an
+authored minimum standoff range and `weapon_reload`.
 
-Both NPC archetypes now instantiate the same imported skeletal training character
-that the player uses. They compose the **existing optional**
-`AnimationPresenter`, `CombatAnimationAdapter` and
-`GunReloadVisualAdapter`. AI emits only normal combat requests: the
-shared combat timeline emits attack signals; presentation independently
-chooses the animation. No attack, reload, damage or locomotion timing
-is driven by the visual tree.
+## Animated NPC composition
 
-- Bat: the configured `bat_swing` attack supplies `bat_vertical`;
-  the shared combat presentation adapter plays it on the upper-body channel
-  and clears it when the action ends or is cancelled.
-- Gun: the `gun_fire` resource supplies an optional `gun_fire`
-  animation key. The **NPC-only** `enemy_skeleton_profile.tres` currently
-  maps that key to the training rig's existing forward-arm `punch` clip
-  as a temporary firing pose. This does **not** change the F4 weapon
-  viewmodel or force a punch animation on the player, whose profile
-  does not map that key. A future rig can replace the clip mapping.
-- Reload and death: the existing gun reload visual adapter selects the
-  `reload` upper-body clip. The combat adapter plays `hit` and `death`
-  when the Health component emits those events.
-- Equipment: `SocketSource.get_mount(socket_id)` prefers the
-  `AnimationPresenter`'s animated bone sockets, so the Bat moves with
-  the character's arm. If that presenter is absent, it returns the
-  existing static marker. This preserves optional presentation with
-  unchanged Equipment and Combat behavior.
-- The demo-only `EnemyAppearance` applies distinct translucent red/blue
-  overlays on each **instance** of the imported model, without editing
-  or sharing mutated GLB materials. It has no gameplay authority.
+Both demo NPCs reuse `action5_training_character.glb` with the
+`demo/assets/enemy_skeleton_profile.tres` clip mapping and shared
+D04/D05/D06 presentation adapters:
 
-The regression suite validates actual animation-tree setup, independent
-model instances, animated hand attachment, attack selection/clearing,
-reload and death overlays, and a fully functional enemy with its
-`AnimationPresenter` and animated model removed before entering the tree.
-This scene remains F1–F5 camera-independent.
+- Bat attack `bat_swing` → `bat_vertical` upper-body clip;
+  physical damage still follows the authored D05 attack window.
+- Gun attack `gun_fire` → NPC-only `gun_fire` mapping to the
+  training rig's **forward-arm `punch` clip**. This is a placeholder
+  visual pose, not a second physical punch or a player animation change.
+  A more specific shooting clip can replace this mapping in another rig.
+- `GunReloadVisualAdapter` observes equipped Gun reload signals.
+  `CombatAnimationAdapter` observes attack/hit/death signals.
+  Each adapter clears only the visual channel it owns.
+- `SocketSource.get_mount(socket_id)` returns the presenter's animated
+  hand-bone socket when available; its original static `Visual/Socket`
+  remains the fallback for actors without animation presentation.
+- Configure `AnimationPresenter.run_speed_threshold` **between** each
+  NPC's `Locomotion.walk_speed` and `run_speed` (melee 3.7,
+  ranged 3.2). The default player threshold is too high for either
+  slower enemy's running cycle.
+- Demo-only `EnemyAppearance` gives independent NPC instances
+  translucent red/blue tints; it never changes shared imported GLB
+  materials or determines collision/Health.
 
-## Manual acceptance
+Visual attachment does not modify Gun's physical first-hit ray:
+opaque world geometry blocks shots even if the animated muzzle or
+F4 camera sees another target. A live solid actor receives damage
+only through its enabled owned Hurtbox/Health. The world-owned
+projectile tracer cannot cause damage.
 
-Run `make check`; request Full E2E with a `[full-e2e]` commit, then
-`make run` for the normal D06 game and
-`godot --path . res://demo/ai/encounter.tscn` for the separate D07 arena.
-Use WASD and number keys 1–5 in the D07 arena. Player attacks are
-connected via the same reusable `CombatInputAdapter` and
-`EquipmentAttackSelector` used in `demo/main.tscn`: LMB/J punches and
-RMB/K kicks when unarmed; equipped definitions can override these inputs. Watch both enemies route
-around the center, approach within configured range, aim and attack.
-Check death/target loss, physical wall obstruction, player focus gating,
-ammo/reload, animated Bat swing, Gun firing pose, character death,
-weapon attachment, weapon teardown and native/WebGL2 visuals against issue #15.
-Previous isolated head passed 995 Godot assertions and native/WebGL2 Full E2E.
-The additional P1/P2 regression commit requires fresh CI verification and
-owner native/WebGL2 visual acceptance before merge. No new third-party assets are used.
+## Regression and visual acceptance
+
+`tests/d07_suite.gd` is exercised by `make check`. It validates
+two live independent NPCs, correct ownership of Bat/Gun and hit clocks,
+real navigation around an opaque obstacle, F1–F5 switches, gated
+player input, autonomous melee/ranged damage, range and cover changes
+during startup, rejected attack/reload behavior, target
+death/free/reacquisition, NPC death and teardown. It also verifies
+real `CombatInputAdapter` punch/kick damage in the standalone encounter,
+valid individual animation trees, animated sockets, swing/fire/reload/
+death clip activation and clearing, locomotion run clips and the
+unanimated equipment fallback.
+
+```bash
+make check
+make import
+godot --path . res://demo/ai/encounter.tscn
+```
+
+In the encounter, use WASD to move, **LMB/J** to punch,
+**RMB/K** to kick and **1–5** to change view. Verify the red Bat
+pursuer visibly swings and holds its weapon during the animation,
+and the blue Gun pursuer shows fire/reload/death poses without
+firing through the center obstacle. Inspect F1–F5, weapon alignment,
+physical muzzle obstruction, character hit/death response, player
+attack input and persistence of the enemy's HP/decision state while
+switching views.
+
+The D07 PR's latest green CI verifies pinned Godot assertions,
+native/Linux and Web exports, native startup and real WebGL2 **main
+demo** startup. The native screenshots/browser harness target
+`demo/main.tscn`, not the two-NPC `encounter.tscn`; they are
+**not** substitute evidence for the owner's encounter visual review.
+The issue #15/PR #33 merge gates remain owner visual acceptance and
+explicit merge authorization.
+
+## D08 successor boundary
+
+D07's separate AI encounter is a fixture; it is **not** the D08
+arena/dungeon same-world transition. D08 issue #16 and draft PR #34
+own actor-local `Interactor`, doors, pickups, roof visibility,
+restart UI, shared-world traversal and optional persistence policies.
+The current stacked scene-loading prototype replaces actors via
+`change_scene_to_packed()` and does **not** satisfy the mandatory
+same-live-player/retained-enemies world-state requirement. Once D07
+is squash-merged, rebase/retarget D08 to the new master and validate
+its interactions without extending D07 AI or combat cores.
