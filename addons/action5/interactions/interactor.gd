@@ -97,7 +97,17 @@ func _clear_sight(actor: Node3D, item: Node3D) -> bool:
         if collider == item or (collider != null and item.is_ancestor_of(collider)):
             return true
         if ignore_character_occlusion and collider is CharacterBody3D:
-            query.exclude.append((collider as CollisionObject3D).get_rid())
+            var next_excluded: Array[RID] = query.exclude
+            next_excluded.append((collider as CollisionObject3D).get_rid())
+            query.exclude = next_excluded
             continue
+        if item.name == "EncounterDoor":
+            print("ACTION5_INTERACT_LOS_FAIL collider=",
+                collider.get_path() if collider != null else hit,
+                " pos=", hit.get("position"), " from=", from, " to=", to,
+                " attempt=", attempt, " excluded=", query.exclude.size())
         return false
+    if item.name == "EncounterDoor":
+        print("ACTION5_INTERACT_LOS_RETRY_EXHAUSTED from=", from,
+            " to=", to, " exclude=", query.exclude.size())
     return false
