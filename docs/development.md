@@ -145,10 +145,12 @@ Use [adding moves](adding-moves.md), [animation](animation.md),
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md)
 rather than introducing new actor or attack clocks.
 
-D07-01 (merged PR #33) adds four actor-local AI components, equipped melee/ranged
-NPCs and an independent `demo/ai/encounter.tscn` with real navigation,
-physical obstruction, player punch/kick input and optional shared
-skeletal animations. See [AI authoring](ai.md) for extensions and the
+D07-01 (merged PR #33) adds four actor-local AI components and two
+equipped melee/ranged NPCs. Their only authored battle environment is now
+`demo/world/encounter_sector.tscn`, embedded by `demo/main.tscn` with
+real navigation, physical obstruction, shared player punch/kick input
+and optional skeletal animations. No duplicate Player/ViewManager scene
+exists for tests. See [AI authoring](ai.md) for extensions and the
 D07-to-D08 handoff.
 
 ### D07 verification recipe
@@ -156,7 +158,7 @@ D07-to-D08 handoff.
 ```bash
 make check
 make import
-godot --path . res://demo/ai/encounter.tscn
+godot --path . res://demo/main.tscn # E at east-side door enters the dungeon
 ```
 
 `tests/d07_suite.gd`, automatically included in `make check`, verifies
@@ -170,14 +172,14 @@ and Web export checks, the exported native smoke and the real WebGL2
 browser test before approval. Superseded PR runs are cancelled and do
 not count as final-head evidence. The existing native screenshot and
 browser scripts target `demo/main.tscn` by default: they validate
-shared rendering/export and main demo gameplay, **not** the D07
-encounter itself. The owner's F1–F5 visual review of the two NPCs,
+shared rendering/export and the main arena, but **not necessarily an
+actual dungeon visit**. The owner's F1–F5 visual review of the two NPCs,
 weapon positions, animated firing/swinging and obstruction must be
 recorded separately. D07 final verification passed **1,018 Godot assertions (0 failures)**,
 Linux/Web builds, native startup/rendering and real WebGL2 Full E2E in
 [CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034).
-Future NPC visual changes still need a direct encounter review; the
-main-demo captures do not prove encounter-specific animation quality.
+Future NPC visual changes still need an actual E-door dungeon review;
+main-arena captures do not prove encounter-specific animation quality.
 
 ### D08 persistent-world demo and orientation
 
@@ -187,8 +189,11 @@ owner, one ViewManager and a separately authored
 `demo/world/encounter_sector.tscn` instance. The dungeon is translated
 along global +X; it is **not rotated**. Room transitions preserve the
 actor and camera instead of calling `change_scene_to_packed()`.
-Unused sectors can suspend their AI/physics processing. The legacy
-`demo/ai/encounter.tscn` remains the independent D07 regression fixture.
+Unused sectors can suspend their AI/physics processing. The obsolete
+standalone `demo/ai/encounter.tscn` was removed. `tests/d07_suite.gd`
+loads the main world and activates the **same embedded dungeon** used
+by players, while the obsolete scene-reloading D07 transition suites
+and one-shot handoff scripts were retired.
 
 **World-space camera bounds:** D02's F1/F2/F5 profiles each clamp their
 camera target to a small centered rectangle suitable for the arena.
