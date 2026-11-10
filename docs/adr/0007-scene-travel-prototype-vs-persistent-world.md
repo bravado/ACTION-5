@@ -31,8 +31,13 @@ D07 NPCs, physical portal and presentation-only roof.
   not the default; any necessary reinitialization must be scoped to the
   destination sector, never silently reset the player's inventory.
 - Physical door collision and NavigationLink3D are tied to open/locked
-  state. RoofVisibility hides only meshes/shadows and cannot change
-  physics, navigation or Gun muzzle ray authority.
+  state. Ordinary door panels disappear when open. Persistent glowing
+  portal markers explicitly opt into `keep_visual_when_open=true` so
+  their appearance is independent from the gate's collision state and
+  they remain identifiable after returning to either sector. Both door
+  scenes must use the same setting. RoofVisibility hides only
+  meshes/shadows and cannot change physics, navigation or Gun muzzle
+  ray authority.
 - The single `demo/world/dungeon_navigation.gd` builds a static
   navigation ring for the dungeon. AI/Combat/Equipment do not depend on
   demo-specific room or scene-transition classes.
