@@ -15,6 +15,7 @@ run_speed = 3.7
 
 [node name="AttackPolicy" parent="." index="13"]
 attack_id = &"gun_fire"
+reload_command = &"weapon_reload"
 maximum_range = 10.0
 minimum_range = 3.0
 
