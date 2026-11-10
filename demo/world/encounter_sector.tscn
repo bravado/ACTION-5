@@ -110,13 +110,29 @@ position = Vector3(0, 4.0, 0)
 shape = SubResource("roof_shape")
 
 [node name="Mesh" type="MeshInstance3D" parent="Roof"]
+visible = false
+cast_shadow = 0
 mesh = SubResource("roof_mesh")
 surface_material_override/0 = SubResource("roof_color")
+
+[node name="DungeonFillLight" type="OmniLight3D" parent="."]
+position = Vector3(-4.5, 2.9, 0)
+light_color = Color(1, 0.88, 0.70, 1)
+light_energy = 1.8
+omni_range = 15.0
+shadow_enabled = false
+
+[node name="DungeonCombatLight" type="OmniLight3D" parent="."]
+position = Vector3(4.5, 2.9, 0)
+light_color = Color(0.77, 0.87, 1, 1)
+light_energy = 1.5
+omni_range = 15.0
+shadow_enabled = false
 
 [node name="RoofVisibility" type="Node" parent="."]
 script = ExtResource("5")
 view_manager_path = NodePath("../../ViewManager")
-hidden_view_indices = PackedInt32Array(2, 3, 4)
+hidden_view_indices = PackedInt32Array(0, 1, 2, 3, 4)
 
 [node name="TraversalFixture" type="Node3D" parent="."]
 script = ExtResource("6")
