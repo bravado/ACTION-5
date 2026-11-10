@@ -111,6 +111,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(closed_hit.get("collider") == door.get_node("Body"),
         "Closed gate physically blocks the shared opening, not just its visual panel")
     var before_open: Vector3 = player.global_position
+    print("ACTION5_GATE_INPUT_DEBUG actor_pos=", player.global_position,
+        " door_pos=", door.global_position,
+        " can=", door.call("can_interact", player),
+        " eligible=", stage.get_node("Interactor").call("_eligible", player, door),
+        " alive=", player.get("alive"))
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
     verify.call(door.open and world.current_sector == &"arena"
