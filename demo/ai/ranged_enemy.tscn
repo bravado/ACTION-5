@@ -13,11 +13,11 @@ max_health = 50.0
 walk_speed = 2.8
 run_speed = 3.7
 
-[node name="AttackPolicy" parent="." index="15"]
+[node name="AttackPolicy" parent="." index="13"]
 attack_id = &"gun_fire"
 maximum_range = 10.0
 minimum_range = 3.0
 
-[node name="InitialWeapon" type="Node" parent="." index="17"]
+[node name="InitialWeapon" type="Node" parent="." index="15"]
 script = ExtResource("2")
 weapon_scene = ExtResource("3")
