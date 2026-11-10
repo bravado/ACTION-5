@@ -114,11 +114,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(closed_hit.get("collider") == door.get_node("Body"),
         "Closed gate physically blocks the shared opening, not just its visual panel")
     var before_open: Vector3 = player.global_position
-    print("ACTION5_GATE_INPUT_DEBUG actor_pos=", player.global_position,
-        " door_pos=", door.global_position,
-        " can=", door.call("can_interact", player),
-        " eligible=", stage.get_node("Interactor").call("_eligible", player, door),
-        " alive=", player.get("alive"))
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
     verify.call(door.open and world.current_sector == &"arena"
@@ -131,9 +126,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _physics_frames(tree, 5)
     await _frames(tree, 2)
     var open_hit: Dictionary = gate_space.intersect_ray(gate_query)
-    if not open_hit.is_empty():
-        var blocker := open_hit.get("collider") as Node
-        print("ACTION5_GATE_OPEN_RAY_BLOCKER ", blocker.get_path() if blocker != null else open_hit)
     verify.call(open_hit.is_empty(),
         "Opened doorway allows unobstructed physical rays between arena and dungeon")
     # Cross the same doorway in world space with the original player node;
