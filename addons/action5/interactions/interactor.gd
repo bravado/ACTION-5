@@ -23,7 +23,7 @@ func try_interact(actor: Node3D) -> bool:
         var item := member as Node3D
         if item == null or not _eligible(actor, item):
             continue
-        var squared: float = actor.global_position.distance_squared_to(item.global_position)
+        var squared: float = actor.global_position.distance_squared_to(_interaction_point(actor, item))
         if squared <= best:
             closest = item
             best = squared
@@ -50,8 +50,16 @@ func _valid_actor(actor: Node3D) -> bool:
     return is_instance_valid(actor) and actor.is_inside_tree()         and is_instance_valid(world) and world.is_ancestor_of(actor)         and (not actor.has_method("set_alive") or bool(actor.get("alive")))
 
 
+func _interaction_point(actor: Node3D, item: Node3D) -> Vector3:
+    if item.has_method("get_interaction_point"):
+        var result: Variant = item.call("get_interaction_point", actor)
+        if result is Vector3 and (result as Vector3).is_finite():
+            return result
+    return item.global_position
+
+
 func _eligible(actor: Node3D, item: Node3D) -> bool:
-    if not _valid_actor(actor) or not is_instance_valid(item) or not item.is_inside_tree()             or not world.is_ancestor_of(item) or item == actor             or not item.is_in_group(candidate_group)             or actor.global_position.distance_squared_to(item.global_position)                 > maximum_distance * maximum_distance             or not item.has_method("can_interact")             or not bool(item.call("can_interact", actor)):
+    if not _valid_actor(actor) or not is_instance_valid(item) or not item.is_inside_tree()             or not world.is_ancestor_of(item) or item == actor             or not item.is_in_group(candidate_group)             or actor.global_position.distance_squared_to(_interaction_point(actor, item))                 > maximum_distance * maximum_distance             or not item.has_method("can_interact")             or not bool(item.call("can_interact", actor)):
         return false
     return not require_line_of_sight or _clear_sight(actor, item)
 
@@ -63,7 +71,11 @@ func _clear_sight(actor: Node3D, item: Node3D) -> bool:
     for child in actor.find_children("*", "CollisionObject3D", true, false):
         excluded.append((child as CollisionObject3D).get_rid())
     var from: Vector3 = actor.global_position + Vector3(0, 1.0, 0)
-    var to: Vector3 = item.global_position + Vector3(0, 1.0, 0)
+    var to: Vector3 = (
+        _interaction_point(actor, item)
+        if item.has_method("get_interaction_point")
+        else item.global_position + Vector3(0, 1.0, 0)
+    )
     if from.distance_squared_to(to) < 0.001:
         return true
     var query := PhysicsRayQueryParameters3D.create(from, to, obstruction_mask, excluded)
