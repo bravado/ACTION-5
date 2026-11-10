@@ -76,6 +76,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 5)
     verify.call(ai.target == player,
         "Enemy AI pursues its detected target once the physical gate opens")
+    var chase_start_x: float = melee.global_position.x
+    await _ticks(tree, 100)
+    verify.call(melee.global_position.x < chase_start_x - 1.0,
+        "Alerted enemy physically moves along navigation toward the player through an open gate")
 
     _press_e()
     await _ticks(tree, 5)
