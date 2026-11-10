@@ -197,6 +197,52 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and gun.shots_fired == 3,
         "F1–F5 switches preserve the gun instance, physical muzzle and ammunition")
 
+    # The actual F4 local viewmodel has a separate, visible muzzle on its
+    # animated Grip. Only the transient projectile may start there.
+    views.switch_view(3)
+    await _ticks(tree, 3)
+    var f4_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var f4_tip: Node3D = (
+        f4_model.get_node_or_null("Grip/VisualMuzzle") as Node3D
+        if is_instance_valid(f4_model) else null
+    )
+    var world_origin_before_f4: Vector3 = muzzle.global_position
+    var authored_origin: Vector3 = world_visual.call(
+        "get_projectile_visual_origin", gun, world_origin_before_f4
+    )
+    verify.call(f4_tip != null
+        and authored_origin.distance_to(f4_tip.global_position) < 0.002
+        and authored_origin.distance_to(world_origin_before_f4) > 0.2,
+        "F4 visual projectile origin uses the gripped barrel tip, not third-person body socket")
+    var snapshot_at_shot: Array[Vector3] = []
+    gun.fired.connect(func(_impact: Vector3, _did_hit: bool) -> void:
+        snapshot_at_shot.append(f4_tip.global_position)
+    )
+    source.snapshot = ContextScript.new(true, Vector2.ZERO, Vector2(0, -1),
+        ProfileScript.Mode.FIRST_PERSON, views.get_active_camera())
+    var f4_visual_count: int = projectile_visuals.size()
+    var f4_ammo_before: int = gun.magazine
+    var f4_requested: bool = await _fire(tree, combat, &"gun_fire", Vector2(0, -1))
+    var f4_visual: ProjectileScript = (
+        projectile_visuals[f4_visual_count] as ProjectileScript
+        if projectile_visuals.size() > f4_visual_count else null
+    )
+    verify.call(f4_requested and gun.magazine == f4_ammo_before - 1
+        and snapshot_at_shot.size() == 1 and f4_visual != null
+        and f4_visual.from_world.distance_to(snapshot_at_shot[0]) < 0.002
+        and f4_visual.to_world.is_equal_approx(impacts[impacts.size() - 1]),
+        "F4 active shot uses camera-local visual muzzle but preserves world-physics impact and ammo")
+    var eye: Camera3D = views.get_active_camera()
+    verify.call(f4_visual != null and not eye.is_position_behind(f4_visual.from_world),
+        "F4 projectile originates visibly in front of the active first-person camera")
+    await _ticks(tree, 20)
+    views.switch_view(2)
+    source.snapshot = ContextScript.new(true, Vector2(0, -1),
+        Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
+    verify.call(world_visual.call("get_projectile_visual_origin",
+        gun, muzzle.global_position).is_equal_approx(muzzle.global_position),
+        "F1–F3 and F5 never use the local F4 visual muzzle for projectile position")
+
     # Independent F5 right-stick aiming uses the view-specific policy, not
     # movement or gun branches; F1–F3 retain continuous directions.
     source.snapshot = ContextScript.new(true, Vector2(0.98, 0.18),
@@ -245,7 +291,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     combat.cancel()
     await _ticks(tree, 4)
     verify.call(requested and gun.magazine == ammo_before
-        and projectile_presenter.get("spawn_count") == 3,
+        and projectile_presenter.get("spawn_count") == 4,
         "Cancelled startup/buffered gun attack cannot consume ammo or spawn a phantom tracer")
 
     # Stowing cancels reload and active fire, but retains all stored rounds.
@@ -281,6 +327,21 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(alternate_presenter.get("projectile_scene") != projectile_presenter.get("projectile_scene"),
         "Second gun configures its own projectile scene without changing shared rendering code")
     var variant_muzzle := variant.get_node("Muzzle") as Node3D
+    views.switch_view(3)
+    await _ticks(tree, 2)
+    var heavy_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var heavy_tip: Node3D = (
+        heavy_model.get_node_or_null("Grip/VisualMuzzle") as Node3D
+        if is_instance_valid(heavy_model) else null
+    )
+    var heavy_start: Vector3 = world_visual.call(
+        "get_projectile_visual_origin", variant, variant_muzzle.global_position
+    )
+    verify.call(heavy_tip != null
+        and heavy_start.distance_to(heavy_tip.global_position) < 0.002,
+        "Alternate gun supplies its own authored F4 muzzle without changes to shared logic")
+    views.switch_view(1)
+
     verify.call(not variant_muzzle.position.is_equal_approx(muzzle.position),
         "Second gun authors a different physical muzzle socket")
     var initial_variant_magazine: int = variant.magazine
@@ -365,10 +426,19 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(npc_gun._aim == npc_aim and npc_aim.get_world_target(
         npc_muzzle.global_position, 60.0, camera_excludes) != npc_muzzle.global_position,
         "D07 target provider resolves a world point without consulting player view")
+    var npc_projectiles: Array[Node3D] = []
+    var npc_presenter: Node = npc_gun.get_node("ProjectilePresenter")
+    npc_presenter.projectile_spawned.connect(func(effect: Node3D) -> void:
+        npc_projectiles.append(effect)
+    )
+    var npc_muzzle_origin: Vector3 = npc_muzzle.global_position
     var npc_fired: bool = await _fire(tree, npc_combat, &"gun_fire", Vector2(0, -1))
     verify.call(npc_fired and npc_gun.magazine == 7
         and health.get("current_health") < 100.0 and npc_gun.hits_landed == 1,
         "Camera-free NPC hits a physical Hurtbox through normal D05 Gun/Health contracts")
+    verify.call(npc_projectiles.size() == 1
+        and (npc_projectiles[0] as ProjectileScript).from_world.distance_to(npc_muzzle_origin) < 0.15,
+        "Camera-free NPC tracer starts from its own physical muzzle without an F4 provider")
     await _ticks(tree, 20)
     var npc_ammo: int = npc_gun.magazine
     views.switch_view(3)

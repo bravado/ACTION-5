@@ -4,6 +4,7 @@ class_name Action5GunFirstPersonViewmodel
 ## commandeering CombatController's independent attack action clock.
 
 @export var reload_profile: Resource
+@export var visual_muzzle_path: NodePath = ^"Grip/VisualMuzzle"
 var visual_source: Node
 
 
@@ -18,3 +19,10 @@ func apply_action_pose(action_key: StringName, progress: float) -> void:
             _apply_profile(reload_profile, float(state.get("progress", 0.0)))
             return
     super.apply_action_pose(action_key, progress)
+
+
+## Camera-local muzzle position sampled at the instant Gun.fired is emitted.
+## This visual origin is never consulted for the physical hitscan.
+func get_projectile_visual_origin() -> Variant:
+    var marker := get_node_or_null(visual_muzzle_path) as Node3D
+    return marker.global_position if is_instance_valid(marker) else null

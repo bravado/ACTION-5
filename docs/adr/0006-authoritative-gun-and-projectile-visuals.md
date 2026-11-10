@@ -104,3 +104,19 @@ local / 2026-11-10 UTC); [PR #32](https://github.com/bravado/ACTION-5/pull/32).
 A final **latest-head** Full E2E check and manual five-view visual approval
 remain the merge acceptance gates; do not conflate smoke captures with art
 review.
+
+
+## Amendment: first-person projectile appearance
+
+F4 intentionally renders a camera-local weapon rather than moving the
+physical world Gun to the player's eyes. A purely visual tracer cannot
+unconditionally start from the physical muzzle or it may appear to leave
+the body behind the viewport. An optional actor-local, duck-typed
+visual-origin provider resolves the active F4 `Grip/VisualMuzzle` marker;
+exterior views and camera-free AI fall back to the world Muzzle.
+The *actual hitscan ray* is still fired by the Gun from the physical
+Muzzle and still blocks against world collision and applies damage at
+the original impact. The visual effect uses only a different origin,
+not a different target/damage/range/physics query. The second Gun
+configures its own visual marker. No weapon-ID branches or second
+weapon actor were introduced.

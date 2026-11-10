@@ -220,3 +220,16 @@ consistent across F1–F5 and survives shooter removal. Native F3/F4
 in-flight captures and a real WebGL2 firing/pickup test form the
 automated smoke; subjective near-camera muzzle/grip alignment still
 requires owner visual inspection. See ADR-0006.
+
+
+### Visible F4 projectile origin
+
+The physical world gun Muzzle may be behind the F4 camera because its
+socket is attached to the full-body rig. Projectiles therefore resolve
+**two separate concerns**: the physical world muzzle continues to
+determine whether/where a hitscan strikes, while the optional visual
+tracer starts at the camera-local `Grip/VisualMuzzle` marker on the
+actually displayed first-person gun. `EquipmentVisualAdapter` exposes
+a duck-typed visual-origin method only for the active local F4 model.
+A world view, absent model or NPC returns the world origin. This keeps
+both gun muzzle masks and D05 damage deterministic across view changes.

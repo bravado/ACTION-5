@@ -744,6 +744,12 @@ func _capture() -> void:
     if not _save_image(output_dir.path_join("native-d06-gun-f4-idle.png")):
         quit(1)
         return
+    var captured_f4_muzzles: Array[Vector3] = []
+    gun.fired.connect(func(_impact: Vector3, _did_hit: bool) -> void:
+        captured_f4_muzzles.append(
+            (gun_viewmodel.get_node("Grip/VisualMuzzle") as Node3D).global_position
+        )
+    )
     if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
         push_error("D06-02: cannot start F4 Gun fire through equipment")
         quit(1)
@@ -758,6 +764,15 @@ func _capture() -> void:
         push_error("D06-02: Gun F4 did not show a visible active-phase projectile")
         quit(1)
         return
+    if captured_f4_muzzles.size() != 1 \
+            or not (f4_projectile.get("from_world") as Vector3).is_equal_approx(
+                captured_f4_muzzles[0]
+            ) \
+            or captured_f4_muzzles[0].distance_to(gun_muzzle.global_position) < 0.2:
+        push_error("D06-02: F4 tracer did not start from the actual on-screen weapon barrel")
+        quit(1)
+        return
+    print("ACTION5_D06_F4_VISUAL_MUZZLE_OK aligned=1 world_physics_unchanged=1")
     paused = true
     await RenderingServer.frame_post_draw
     if not _save_image(output_dir.path_join("native-d06-gun-f4-fire.png")):

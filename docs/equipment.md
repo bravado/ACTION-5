@@ -374,3 +374,23 @@ wall-truncated rays, one spawned visual per real shot, 3D layer/collision
 isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
 Native and browser in-flight screenshots are part of the opt-in Full E2E
 pipeline. Manual visual acceptance is still required.
+
+
+### F4 projectile visual muzzle alignment (PR #32 correction)
+
+The real world `Gun/Muzzle` remains authoritative for raycasts, health
+damage, ammunition and wall blocking in **all** views. In F4 the weapon
+model is camera-local, so using that skeleton-mounted world muzzle for
+the visible tracer appeared to fire from behind the player. Each F4 gun
+scene now authors a `Grip/VisualMuzzle` Marker3D at the rendered barrel tip,
+moving with the articulated Grip. The optional
+`EquipmentVisualAdapter.get_projectile_visual_origin(weapon, fallback)`
+returns that point **only** while the matching local viewmodel is active
+in first person. The optional `GunProjectilePresenter` gets the
+actor-local provider through its configured
+`visual_origin_provider_path`; every other view, camera-free NPC,
+unequipped weapon or absent viewmodel uses the **physical** world muzzle.
+The destination remains the real world-muzzle hit position. There is no
+F4 aiming/collision/damage rewrite and no second gameplay gun. Both
+Pistol and Heavy Pistol scenes include independently authored markers;
+the reusable addon does not import either demo scene. See ADR-0006.

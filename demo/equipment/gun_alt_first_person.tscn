@@ -23,3 +23,6 @@ material_override = SubResource("steel")
 position = Vector3(0, -0.13, -0.09)
 mesh = SubResource("handle")
 material_override = SubResource("steel")
+
+[node name="VisualMuzzle" type="Marker3D" parent="Grip"]
+position = Vector3(0, 0.05, -0.59)

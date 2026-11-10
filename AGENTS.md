@@ -339,3 +339,18 @@ captures and real WebGL2 smoke must all pass (the extended in-flight
 projectile scenario is required), followed by owner F1–F5 visual sign-off
 and final PR review. Merely having a passing earlier-head test or a
 successful screenshot capture does not constitute merge approval.
+
+
+## F4 gun tracer origin contract
+
+When a gun fires in first person, do not visually launch the tracer from
+the animated full-body socket: F4 displays a distinct camera-local gun.
+The optional GunProjectilePresenter obtains the start point through
+an actor-local, duck-typed `get_projectile_visual_origin(weapon, fallback)`
+port. It uses the local F4 `Grip/VisualMuzzle` marker only if the
+matching viewmodel is active. All other modes/actors fall back to
+the world Muzzle. **Never** change Gun._on_attack_phase_changed,
+the world physics Muzzle or Health/hit resolution to align the visual
+tracer; it must still terminate at the original world hit point. Test
+both normal and alternative gun F4 markers, NPC fallback, world F1–F3/F5
+fallback and native F4 emitted `from_world` equality at firing time.
