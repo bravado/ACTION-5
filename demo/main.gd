@@ -165,6 +165,13 @@ func _on_weapon_dropped(weapon: Node3D) -> void:
 ## Avoid laying out the HUD 60 times/sec while idle: software WebGL2
 ## rendering is CPU-bound and should not slow actual physics/movement.
 func _physics_process(_delta: float) -> void:
+    # A world can lose its player in scripted death/teardown scenarios.
+    # HUD instrumentation is optional and must not dereference a freed
+    # actor or one of its deleted Health/Combat/Equipment children.
+    if not is_instance_valid(_player) or not is_instance_valid(_combat) \
+            or not is_instance_valid(_equipment):
+        set_physics_process(false)
+        return
     var active: bool = _combat.get("current_attack") != null
     if (active or _combat_was_active) and _views.current_profile != null:
         _refresh_status(_views.current_profile)
