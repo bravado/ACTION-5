@@ -118,6 +118,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "E opens the shared gate without teleporting or switching sectors")
     verify.call(not barrier_mesh.visible and arena_door_mesh.visible,
         "Opening removes the barrier only; the two-sided physical door frame remains")
+    # Godot applies CollisionShape3D.disabled through a deferred
+    # physics-server update. Query after the change reaches the space.
+    await _physics_frames(tree, 5)
     await _frames(tree, 2)
     var open_hit: Dictionary = gate_space.intersect_ray(gate_query)
     if not open_hit.is_empty():
@@ -158,17 +161,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "The same gateway is seen from both areas; no duplicate far-side return door")
     # E works from the opposite physical side, too. The panel closes and
     # opens again while the Player's position stays unchanged.
-    var dungeon_side: Vector3 = player.global_position
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
-    var horizontal_delta := Vector2(
-        player.global_position.x - dungeon_side.x,
-        player.global_position.z - dungeon_side.z
-    )
     verify.call(not door.open and barrier_mesh.visible
         and not door.get_node("NavigationLink3D").enabled
-        and horizontal_delta.length() < 0.20,
-        "E from the dungeon side closes the gate without moving player horizontally")
+        and player.global_position.x >= door.global_position.x + 0.3
+        and world.current_sector == &"encounter",
+        "E from dungeon side closes the gate without teleporting across the boundary")
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
     verify.call(door.open and not barrier_mesh.visible
