@@ -41,6 +41,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var world := stage.get_node("WorldSession")
     var encounter := stage.get_node("EncounterSector") as Node3D
     var door := stage.get_node("EncounterDoor") as Node3D
+    var arena_door_mesh := door.get_node("DoorMesh") as MeshInstance3D
+    var arena_door_id: int = door.get_instance_id()
     var player_id: int = player.get_instance_id()
     var stage_id: int = stage.get_instance_id()
     var enemy := encounter.get_node("Melee") as CharacterBody3D
@@ -85,6 +87,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "A Gun dropped in the arena remains at its exact world position during travel")
     verify.call(door.open and door.get_node("NavigationLink3D").enabled,
         "Opening the portal changes authoritative navigation-link state")
+    verify.call(arena_door_mesh.visible and bool(door.get("keep_visual_when_open")),
+        "Arena portal remains visually present after entering dungeon despite open collision")
     await _physics_frames(tree, 2)
     verify.call(door.get_node("Body/CollisionShape3D").disabled,
         "An opened door disables its real physical collision, not just its mesh")
@@ -95,11 +99,21 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Actual Health death disables the encountered NPC")
 
     var exit_door := encounter.get_node("ReturnDoor") as Node3D
+    var dungeon_door_mesh := exit_door.get_node("DoorMesh") as MeshInstance3D
+    var dungeon_door_id: int = exit_door.get_instance_id()
+    verify.call(dungeon_door_mesh.visible and bool(exit_door.get("keep_visual_when_open")),
+        "Dungeon return portal is initially visible before the first return trip")
     _visit(stage, player, exit_door)
     await _frames(tree, 5)
     verify.call(world.current_sector == &"arena" and not encounter.visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
         "Return to arena pauses encounter without unloading or replacing any actor")
+    verify.call(door.get_instance_id() == arena_door_id
+        and arena_door_mesh.visible and door.open,
+        "Arena door remains visible and is the SAME interactable after returning")
+    verify.call(exit_door.open and dungeon_door_mesh.visible
+        and exit_door.get_instance_id() == dungeon_door_id,
+        "Opened dungeon portal keeps its visible marker while the sector is suspended")
     verify.call(is_instance_valid(gun) and gun.get_parent() == stage
         and gun.get_instance_id() == loose_id
         and gun.global_position.distance_to(dropped_position) < 0.01,
@@ -116,6 +130,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(stage.get_node("EncounterSector/Melee").get_instance_id() == enemy_id
         and enemy_health.current_health == 0.0 and not enemy.alive,
         "Restore entry preserves the exact dead enemy instance without resurrection")
+    verify.call(encounter.visible and dungeon_door_mesh.visible
+        and exit_door.get_instance_id() == dungeon_door_id
+        and arena_door_mesh.visible and door.get_instance_id() == arena_door_id,
+        "Both portal visuals remain present on the second visit; no reloaded doors")
     verify.call(equipment.inventory.size() == 2 and player.get_instance_id() == player_id,
         "Repeated travel never duplicates equipped items or the authoritative player")
 
@@ -219,6 +237,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Fresh resets only destination loose items; player and held Gun stay alive")
     verify.call(stage.get_node("EncounterSector/ReturnDoor") != null,
         "Fresh sector recreates a configured return portal without scene reload")
+    verify.call((encounter.get_node("ReturnDoor/DoorMesh") as MeshInstance3D).visible
+        and arena_door_mesh.visible,
+        "Fresh dungeon entry also preserves visible return and arena portal markers")
     var return_fresh := encounter.get_node("ReturnDoor") as Node3D
     return_fresh.set("entry_policy", 1)
     _visit(stage, player, return_fresh)
