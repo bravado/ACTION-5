@@ -11,6 +11,7 @@ class_name Action5Interactor
 
 @onready var world: Node = get_node_or_null(world_path)
 var _last_frame: int = -1
+var _last_target_id: int = 0
 
 
 func try_interact(actor: Node3D) -> bool:
@@ -31,13 +32,17 @@ func try_interact(actor: Node3D) -> bool:
 
 ## The explicit target path is usable by an NPC/script without InputMap.
 func interact(actor: Node3D, target: Node3D) -> bool:
-    if not _eligible(actor, target) or _last_frame == Engine.get_physics_frames():
+    if not _eligible(actor, target):
+        return false
+    var frame: int = Engine.get_physics_frames()
+    if _last_frame == frame and _last_target_id == target.get_instance_id():
         return false
     if not target.has_method("interact"):
         return false
     if not bool(target.call("interact", actor)):
         return false
-    _last_frame = Engine.get_physics_frames()
+    _last_frame = frame
+    _last_target_id = target.get_instance_id()
     return true
 
 
