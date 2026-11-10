@@ -479,7 +479,7 @@ collision/nav updates and the existing Health/Combat/Equipment/AI ports.
 Keep visual-only roofs and projectile tracers out of physics authority.
 The arena floor ends at world X=14 and the instanced dungeon begins at
 X=14 (dungeon origin X=26); both use the same world X/Z orientation.
-The shared gateway is at X=14, Z=-4, between two collidable east-wall
+The shared gateway is at X=14, Z=0 (the default side-view lane), between two collidable east-wall
 segments and across an overlapping PassageFloor slab. Only one
 `EncounterDoor` exists in the world, parented to `demo/main.tscn`,
 with a permanent two-sided frame and a separately hidden opening panel.
