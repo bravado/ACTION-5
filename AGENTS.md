@@ -484,3 +484,20 @@ demo, not the D07 encounter: when changing NPC animation/weapon geometry,
 run `demo/ai/encounter.tscn` directly and inspect all five camera modes.
 For D08, keep its session/restart state separate from AI and combat
 and add independent persistent-world traversal acceptance tests.
+
+
+### D08 camera orientation across persistent sectors
+
+`demo/world/encounter_sector.tscn` is an instanced room in the same
+world as `demo/main.tscn`, translated on global +X **without rotation**.
+F1, F2 and F5 camera profiles have world-space target clamps, so a
+sector transition must translate the bounds with the room or movement
+appears displaced on screen. `demo/world/sector_camera_bounds.gd`
+handles this via instance-local copies of the five D02 ViewProfiles
+and a WorldSession event. Never patch shared `.tres` profiles, rotate
+a map's movement axes, or add D08 conditions to MovementPolicy,
+ActorInputAdapter or CameraRig. Preserve F3/F4 yaw and user camera
+settings. Run `tests/d08_camera_sector_suite.gd` through
+`make check` for every new room, and validate WASD in all five views
+both before and after a doorway. The older standalone
+`demo/ai/encounter.tscn` is still needed for D07 tests.
