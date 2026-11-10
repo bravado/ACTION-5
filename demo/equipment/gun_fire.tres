@@ -9,6 +9,7 @@ active_ticks = 1
 recovery_ticks = 11
 damage = 18
 use_melee_hit_query = false
+animation_key = &"gun_fire"
 visual_action_key = &"gun_fire"
 animation_channel = 0
 facing_sectors = 0
