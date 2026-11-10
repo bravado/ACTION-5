@@ -82,4 +82,10 @@ func _clear_sight(actor: Node3D, item: Node3D) -> bool:
     if hit.is_empty():
         return true
     var collider := hit.get("collider") as Node
+    if item.name == "EncounterDoor" and collider != item and (
+            collider == null or not item.is_ancestor_of(collider)):
+        print("ACTION5_GATE_LOS_DEBUG actor=", actor.get_path(),
+            " collider=", collider.get_path() if collider != null else "null",
+            " from=", from, " to=", to,
+            " excluded=", excluded.size())
     return collider == item or (collider != null and item.is_ancestor_of(collider))
