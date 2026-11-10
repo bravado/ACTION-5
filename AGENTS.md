@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D07 are merged**, including Bat/Shovel, Gun and the independent camera-free D07 enemy AI implementation (PRs #31, #32 and #33). D07 includes two equipped NPCs, real obstacle navigation, the player's combat input in the encounter, and optional skeletal attack/reload/death animations. **D08-01 is now the next active milestone**; draft PR #34's scene-loading prototype does not meet the mandatory same-world traversal requirement. Do not bring D08 doors, restart UI or scene persistence into D07/core combat. Standalone movement examples may continue in separate PRs without expanding combat scope.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D07 are merged**, including Bat/Shovel, Gun and the independent camera-free D07 enemy AI implementation (PRs #31, #32 and #33). D07 includes two equipped NPCs, real obstacle navigation, the player's combat input in the encounter, and optional skeletal attack/reload/death animations. **D08-01 is now the active milestone**; draft PR #34 contains the continuous same-world dungeon/gateway, while D08 state and native/WebGL2 acceptance remain open. Do not bring D08 doors, restart UI or scene persistence into D07/core combat. Standalone movement examples may continue in separate PRs without expanding combat scope.
 
 ## Product invariant
 
@@ -470,12 +470,25 @@ Never move attack authority into the animation layer.
 Merged PR #33 supplies D07 NPC AI/physical encounter and optional visual
 composition. Player `CombatInputAdapter` is shared by all room instances;
 E interaction, scene doors, restart UI, snapshots and persistent-world
-handoff belong to D08 issue #16 and draft PR #34. D08's prototype
-`change_scene_to_packed()` travels by replacing scenes and cannot satisfy
-the mandatory one-world/same-player/same-enemies exit gate. D08 must use
+handoff belong to D08 issue #16 and draft PR #34. The retired D08 prototype
+`change_scene_to_packed()` was removed; the current single-world demo
+opens one physical two-sided gate and changes active sectors only when the
+player actually walks across its threshold. D08 must use
 an input-independent Interactor, separate Door/Pickup/RoofVisibility nodes,
 collision/nav updates and the existing Health/Combat/Equipment/AI ports.
 Keep visual-only roofs and projectile tracers out of physics authority.
+The arena floor ends at world X=14 and the instanced dungeon begins at
+X=14 (dungeon origin X=26); both use the same world X/Z orientation.
+The shared gateway is at X=14, Z=-4, between two collidable east-wall
+segments and across an overlapping PassageFloor slab. Only one
+`EncounterDoor` exists in the world, parented to `demo/main.tscn`,
+with a permanent two-sided frame and a separately hidden opening panel.
+The dungeon has NO second `ReturnDoor` instance. E toggles its physical
+gate and navigation link; player movement across the boundary calls
+`WorldSession`'s passive sector detection, **never a door teleport**.
+Preload nearby dungeon physics before crossing and only pause it once
+the player is well back inside the arena. Continue using the same
+Actor/Equipment/Combat/Health and AI ports.
 In the D08 dungeon, keep the Roof as a **physics-only collider**:
 a world-space transparent box at Y=4 intersects the side/arcade camera
 frustum and produces a distracting tint over only the upper half of
@@ -506,11 +519,11 @@ and add independent persistent-world traversal acceptance tests.
 
 `demo/world/encounter_sector.tscn` is an instanced room in the same
 world as `demo/main.tscn`, translated on global +X **without rotation**.
-F1, F2 and F5 camera profiles have world-space target clamps, so a
-sector transition must translate the bounds with the room or movement
-appears displaced on screen. `demo/world/sector_camera_bounds.gd`
-handles this via instance-local copies of the five D02 ViewProfiles
-and a WorldSession event. Never patch shared `.tres` profiles, rotate
+F1, F2 and F5 camera profiles have world-space target clamps.
+`demo/world/sector_camera_bounds.gd` now creates one continuous
+arena+dungeon bounds rectangle from instance-local copies of the D02
+profiles. Do **not** shift camera clamps or snap the camera at each
+sector crossing: both rooms are on the same plane and camera space. Never patch shared `.tres` profiles, rotate
 a map's movement axes, or add map-specific D08 conditions to
 MovementPolicy, ActorInputAdapter or CameraRig. The generic bounded
 F2/F5 camera heading is invariant even when its position clamps to the
@@ -521,10 +534,12 @@ activates the dungeon inside `demo/main.tscn`. The obsolete scene-reload
 transition suites and one-use handoff adapters were retired with the
 duplicate scene. New scenarios must use the shared-world fixture.
 
-D08 door visualization contract: physical open state must still disable
-its CollisionShape3D and enable NavigationLink3D. Normal door panels use
-`WorldDoor.keep_visual_when_open = false` and hide on opening; persistent
-E-portal markers in both main and dungeon scenes opt into `true` so
-their visible DoorMesh persists on exit and revisits. Never infer
-interactability or physics authority from visual visibility. Extend
-`tests/d08_world_suite.gd` for both directions and repeated visits.
+D08 door visualization contract: physical open state disables the
+CollisionShape3D and enables NavigationLink3D. The **one** shared door
+uses `WorldDoor.keep_visual_when_open = true` to preserve its
+two-sided DoorMesh frame, and `barrier_visual_path` to hide the solid
+BarrierMesh when opened. Normal independent doors keep the default
+hide-on-open visual behavior. Do not duplicate a return portal in the
+dungeon. Verify entry from both sides, closed/open collision, continuous
+player movement and persistent inventory in `tests/d08_world_suite.gd`.
+Neither door rendering nor entrance state is a camera/actor concern.
