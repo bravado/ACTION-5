@@ -111,7 +111,6 @@ script = ExtResource("15")
 attack_id = &"bat_swing"
 maximum_range = 1.65
 requires_equipment = true
-equipment_action_index = 0
 
 [node name="AIController" type="Node" parent="."]
 script = ExtResource("16")
