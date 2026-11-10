@@ -149,9 +149,12 @@ between arena and dungeon; Health, Combat, Equipment and enemy nodes
 retain their live instances on normal visits. A world-local
 `SectorCameraBounds` translates F1/F2/F5 camera limits into the active
 room, preserving common WASD world direction and F3/F4 look direction.
-The dungeon roof uses a subtle 18%-opaque translucent canopy in external
-views (1/2/3/5), with no roof shadow; first person (4) hides it entirely.
-The ceiling remains an authoritative collider. Two subdued interior lights
-complement the existing world sun without washing out the combat floor. D08 CI, fresh-entry lifecycle and
+The dungeon now uses a **full-screen 18%-opacity blue ceiling tint**
+in external views (1/2/3/5), removed in first person (4). Its
+CanvasLayer covers the entire viewport below the HUD instead of drawing
+a horizontal 3D roof, which previously tinted only the top half of
+side/arcade cameras. The overhead roof still has its **physical
+ceiling collider**, but no visual mesh/shadows; two subdued interior
+lights complement the shared world sun. D08 CI, fresh-entry lifecycle and
 manual native/WebGL2 acceptance remain separate review gates; PR #34
 has not been merged.
