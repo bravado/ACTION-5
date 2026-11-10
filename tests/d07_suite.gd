@@ -33,7 +33,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for frame in range(4):
         await tree.process_frame
     verify.call(stage.get_node("WorldSession").travel_to(player, &"encounter")
-        and arena.visible and arena.is_physics_processing(),
+        and arena.visible and arena.process_mode == Node.PROCESS_MODE_INHERIT,
         "D07 physics fixture activates the existing dungeon with one player")
     var melee := arena.get_node("Melee") as CharacterBody3D
     var ranged := arena.get_node("Ranged") as CharacterBody3D
