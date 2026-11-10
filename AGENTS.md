@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun is under review in PR #32; D07 AI remains next.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D06 are merged**, including Bat/Shovel and Gun (PRs #31 and #32). **D07-01 is implemented in PR #33**: independent camera-free AI, two equipped NPCs, physical navigation, player combat input in the encounter and optional animated attack/reload/death composition. The PR's latest pinned Godot/native/WebGL2 checks and owner visual acceptance are separate merge gates. **D08-01 in draft PR #34 remains incomplete**, especially mandatory same-world traversal; do not conflate its scene-loading prototype with D07. Standalone movement examples can have separate PRs without expanding combat scope.
 
 ## Product invariant
 
@@ -402,9 +402,10 @@ Gun, camera-aware hit resolution or global per-weapon flags. Only
 refactor `Gun._resolve_hit_health()`'s on-hit descendant lookup if
 profiling demonstrates a real cost with many NPCs; introducing a cache
 or hit registry solely for D06-02 adds unnecessary lifecycle coupling.
-When building D07, implement only the AI decision/nav/target producer;
-reuse Combat, Equipment, Health/Hurtbox and the current aim port. See
-ADR-0006 for the formal architectural review.
+D07 implements only the AI decision/nav/target producer and reuses
+Combat, Equipment, Health/Hurtbox and the current aim port. D08 must
+preserve these ports without moving interaction logic into the actor core.
+See ADR-0006 for the original gun architecture review.
 
 
 ## D07 enemy intent/decision extension
@@ -457,4 +458,23 @@ profiles are not altered. Equipped meshes should follow the animated
 `right_hand` socket when present, with the static socket fallback
 retained for unanimated actors. Preserve regressions for Bat and Gun
 clip begin/end, reload/death, independent model instances and no-render
-combat. Never move attack authority into the animation layer.
+combat. For any new NPC locomotion speeds, configure its
+`AnimationPresenter.run_speed_threshold` between authored walk and run
+speeds; do not assume the player's default threshold is correct.
+Never move attack authority into the animation layer.
+
+
+## D07 → D08 merge handoff
+
+PR #33 is limited to D07 NPC AI/physical encounter and optional visual
+composition. Standalone player `CombatInputAdapter` is a D07 fixture bugfix;
+E interaction, scene doors, restart UI, snapshots and persistent-world
+handoff belong to D08 issue #16 and draft PR #34. D08's prototype
+`change_scene_to_packed()` travels by replacing scenes and cannot satisfy
+the mandatory one-world/same-player/same-enemies exit gate. D08 must use
+an input-independent Interactor, separate Door/Pickup/RoofVisibility nodes,
+collision/nav updates and the existing Health/Combat/Equipment/AI ports.
+Keep visual-only roofs and projectile tracers out of physics authority.
+The user must approve D07 visual acceptance and squash merge explicitly;
+then rebase/retarget #34 to the resulting master, revalidate CI and finish
+D08 without reopening the shared movement/combat/animation cores.
