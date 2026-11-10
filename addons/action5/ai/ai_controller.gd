@@ -119,9 +119,10 @@ func _physics_process(_delta: float) -> void:
 
 
 func _combat_busy() -> bool:
-    return is_instance_valid(combat) and (
-        combat.get("current_attack") != null or combat.get("_pending_id") != &""
-    )
+    # D05's active-attack state is observable; its buffered _pending_id is
+    # private. A queued request is rejected through the existing public
+    # request_action/request_attack return value, not by reading internals.
+    return is_instance_valid(combat) and combat.get("current_attack") != null
 
 
 func _cancel_owned_attack() -> void:
