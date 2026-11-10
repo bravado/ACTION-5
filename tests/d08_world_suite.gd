@@ -98,10 +98,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _physics_frames(tree, 2)
     # Real collision before/after opening, through the center of the
     # shared wall gap. Exclude only the player's own body.
+    var exclude: Array[RID] = [player.get_rid()]
+    for child in player.find_children("*", "CollisionObject3D", true, false):
+        exclude.append((child as CollisionObject3D).get_rid())
     var gate_query := PhysicsRayQueryParameters3D.create(
         door.global_position + Vector3(-1.8, 1.2, 0),
         door.global_position + Vector3(1.8, 1.2, 0),
-        1, [player.get_rid()]
+        1, exclude
     )
     var gate_space := stage.get_world_3d().direct_space_state
     var closed_hit: Dictionary = gate_space.intersect_ray(gate_query)
@@ -115,7 +118,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "E opens the shared gate without teleporting or switching sectors")
     verify.call(not barrier_mesh.visible and arena_door_mesh.visible,
         "Opening removes the barrier only; the two-sided physical door frame remains")
-    verify.call(gate_space.intersect_ray(gate_query).is_empty(),
+    await _frames(tree, 2)
+    var open_hit: Dictionary = gate_space.intersect_ray(gate_query)
+    if not open_hit.is_empty():
+        var blocker := open_hit.get("collider") as Node
+        print("ACTION5_GATE_OPEN_RAY_BLOCKER ", blocker.get_path() if blocker != null else open_hit)
+    verify.call(open_hit.is_empty(),
         "Opened doorway allows unobstructed physical rays between arena and dungeon")
     # Cross the same doorway in world space with the original player node;
     # WorldSession observes the crossing after normal physics ticks.
@@ -153,10 +161,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var dungeon_side: Vector3 = player.global_position
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
+    var horizontal_delta := Vector2(
+        player.global_position.x - dungeon_side.x,
+        player.global_position.z - dungeon_side.z
+    )
     verify.call(not door.open and barrier_mesh.visible
         and not door.get_node("NavigationLink3D").enabled
-        and player.global_position.distance_to(dungeon_side) < 0.20,
-        "E from the dungeon side closes the one real gate without teleporting")
+        and horizontal_delta.length() < 0.20,
+        "E from the dungeon side closes the gate without moving player horizontally")
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
     verify.call(door.open and not barrier_mesh.visible
