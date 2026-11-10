@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is next**: draft PR #34 is an early scene-loading interaction prototype, **not** the required persistent-world solution. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is in progress**: draft PR #34 now uses a physically continuous arena/dungeon, one live player, one shared gate and optional room-state policies; acceptance tests/native-WebGL2 review are still pending. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
@@ -123,8 +123,10 @@ The planned framework license is **MIT**. The license file and the attribution i
 
 ### D07 enemy AI in the shared dungeon
 
-Run `make import && godot --path . res://demo/main.tscn`, then use the
-**dungeon door at the east side of the arena** (E). The dungeon is an
+Run `make import && godot --path . res://demo/main.tscn`, then press
+**E at the east-side gate** to open its panel and **walk right** into the
+adjoining dungeon. To return, walk left through that **same doorway**.
+No teleport or second scene is involved. The dungeon is an
 instance of `demo/world/encounter_sector.tscn`, not a second game scene.
 It hosts the D07 Bat melee and Gun ranged enemies navigating an opaque
 obstacle. LMB/J and RMB/K issue normal combat actions, 1–5 switch the
@@ -141,14 +143,22 @@ New NPC regression scenarios must extend the **same dungeon scene**
 without authoring a second encounter map. See
 [AI authoring](docs/ai.md).
 
-### D08 persistent-world prototype (PR #34, under development)
+### D08 connected persistent world (PR #34, under development)
 
-`demo/main.tscn` hosts one live world with the separately authored
-`demo/world/encounter_sector.tscn` dungeon. E moves the original player
-between arena and dungeon; Health, Combat, Equipment and enemy nodes
-retain their live instances on normal visits. A world-local
-`SectorCameraBounds` translates F1/F2/F5 camera limits into the active
-room, preserving common WASD world direction and F3/F4 look direction.
+`demo/main.tscn` contains the arena (X=-14..14) and the instanced
+`demo/world/encounter_sector.tscn` dungeon (X=14..38), on the
+**same floor elevation and global axes**. The former ten-unit void and
+dungeon's far-side return door are removed. A single physical gate at
+**X=14, Z=-4** joins both floors; its split flanking wall segments
+and overlapping floor slab form a real passable doorway. **E opens or
+closes the gate; walking across switches the active sector**, without
+replacing/teleporting the original player. The frame and two-sided
+signage remain visible from both rooms.
+
+Health, Combat, Equipment and enemy nodes retain their live instances
+on normal visits. A world-local `SectorCameraBounds` now configures
+one **continuous** F1/F2/F5 camera clamp spanning both areas, so there
+is no camera snap or WASD orientation change when crossing the wall.
 The dungeon now uses a **full-screen 18%-opacity blue ceiling tint**
 in external views (1/2/3/5), removed in first person (4). Its
 CanvasLayer covers the entire viewport below the HUD instead of drawing
