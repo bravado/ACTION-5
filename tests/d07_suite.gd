@@ -1,0 +1,460 @@
+extends RefCounted
+## D07-01: real CharacterBody3D navigation, AI decisions, equipment and gun
+## physical ray authority. No mock hit results or placeholder assertions.
+
+const IntentScript = preload("res://addons/action5/actor/move_intent.gd")
+
+
+func _ticks(tree: SceneTree, count: int) -> void:
+    for i in range(count):
+        await tree.physics_frame
+
+
+func run_tests(tree: SceneTree, verify: Callable) -> void:
+    var scene := load("res://demo/ai/encounter.tscn") as PackedScene
+    verify.call(scene != null, "D07 physical enemy encounter scene loads")
+    if scene == null:
+        return
+    var arena := scene.instantiate() as Node3D
+    arena.position = Vector3(500, 0, 500)
+    tree.root.add_child(arena)
+    var player := arena.get_node("Player") as CharacterBody3D
+    var views := arena.get_node("ViewManager")
+    arena.get_node("ActorInput").set_enabled(false)
+    var melee := arena.get_node("Melee") as CharacterBody3D
+    var ranged := arena.get_node("Ranged") as CharacterBody3D
+    var melee_ai := melee.get_node("AIController")
+    var ranged_ai := ranged.get_node("AIController")
+    var melee_combat := melee.get_node("CombatController")
+    var ranged_combat := ranged.get_node("CombatController")
+    var melee_equipment := melee.get_node("Equipment")
+    var ranged_equipment := ranged.get_node("Equipment")
+    var melee_health := melee.get_node("Health")
+    var ranged_health := ranged.get_node("Health")
+    var player_health := player.get_node("Health")
+    # The arena targets a living player over many physics ticks. A high HP
+    # allows navigation/combat evidence without depending on player survival.
+    player_health.max_health = 10000.0
+    player_health.current_health = 10000.0
+    await _ticks(tree, 8)
+    var bat := melee_equipment.current_weapon as Node3D
+    var gun := ranged_equipment.current_weapon as Node3D
+    verify.call(is_instance_valid(bat) and is_instance_valid(gun)
+        and melee_combat.get_attack(&"bat_swing") != null
+        and ranged_combat.get_attack(&"gun_fire") != null,
+        "Independent NPC inventories register different configured combat actions")
+    if not is_instance_valid(gun) or not is_instance_valid(bat):
+        arena.queue_free()
+        await tree.process_frame
+        return
+    verify.call(melee_health.team_id == ranged_health.team_id
+        and melee_health != ranged_health
+        and melee_combat != ranged_combat and bat.equipment_owner == melee_equipment
+        and gun.equipment_owner == ranged_equipment,
+        "Two NPCs have separate HP, combat clocks and exclusive weapon instances")
+    var melee_presenter = melee.get_node("AnimationPresenter")
+    var ranged_presenter = ranged.get_node("AnimationPresenter")
+    verify.call(bool(melee_presenter.validation.get("valid", false))
+        and bool(ranged_presenter.validation.get("valid", false))
+        and melee_presenter.animation_tree != null and melee_presenter.animation_tree.active
+        and ranged_presenter.animation_tree != null and ranged_presenter.animation_tree.active
+        and melee_presenter != ranged_presenter,
+        "Both D07 NPCs independently validate and initialize animated skeletal models")
+    var melee_locomotion := melee.get_node("Locomotion")
+    var ranged_locomotion := ranged.get_node("Locomotion")
+    verify.call(melee_locomotion.walk_speed < melee_presenter.run_speed_threshold
+        and melee_presenter.run_speed_threshold < melee_locomotion.run_speed
+        and ranged_locomotion.walk_speed < ranged_presenter.run_speed_threshold
+        and ranged_presenter.run_speed_threshold < ranged_locomotion.run_speed,
+        "NPC animation run thresholds lie between authored walk and run speeds")
+    verify.call(bat.get_parent() == melee_presenter.get_socket(&"right_hand")
+        and gun.get_parent() == ranged_presenter.get_socket(&"right_hand")
+        and bat.get_parent() is BoneAttachment3D and gun.get_parent() is BoneAttachment3D,
+        "Equipped Bat and Gun follow separate animated right-hand bone sockets")
+    var melee_model_meshes: Array[Node] = melee.get_node("Visual/Model").find_children(
+        "*", "MeshInstance3D", true, false
+    )
+    var ranged_model_meshes: Array[Node] = ranged.get_node("Visual/Model").find_children(
+        "*", "MeshInstance3D", true, false
+    )
+    var melee_tint: StandardMaterial3D = (
+        (melee_model_meshes[0] as MeshInstance3D).material_overlay as StandardMaterial3D
+        if not melee_model_meshes.is_empty() else null
+    )
+    var ranged_tint: StandardMaterial3D = (
+        (ranged_model_meshes[0] as MeshInstance3D).material_overlay as StandardMaterial3D
+        if not ranged_model_meshes.is_empty() else null
+    )
+    verify.call(melee_tint != null and ranged_tint != null
+        and melee_tint.albedo_color != ranged_tint.albedo_color,
+        "Demo-only model palettes differentiate two NPCs without mutating shared GLB")
+    # Player combat input must be wired in this standalone encounter too.
+    # Exercise the *real* input adapter, not Combat.request_attack directly.
+    var combat_input := arena.get_node_or_null("CombatInput") as Node
+    verify.call(combat_input != null and combat_input.is_physics_processing()
+        and combat_input.get("combat") == player.get_node("CombatController")
+        and combat_input.get("action_selection_source") == player.get_node("EquipmentAttackSelector"),
+        "D07 encounter wires player combat and equipment attack selection")
+    melee_ai.set_physics_process(false)
+    ranged_ai.set_physics_process(false)
+    melee.apply_move_intent(IntentScript.new())
+    ranged.apply_move_intent(IntentScript.new())
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-8, 0.15, -6)
+    player.velocity = Vector3.ZERO
+    melee.velocity = Vector3.ZERO
+    arena.get_node("ActorInput").set_enabled(true)
+    await _ticks(tree, 4)
+    var melee_hp_before_input: float = melee_health.current_health
+    Input.action_press(&"actor_punch")
+    await _ticks(tree, 1)
+    Input.action_release(&"actor_punch")
+    await _ticks(tree, 28)
+    verify.call(melee_health.current_health < melee_hp_before_input,
+        "Player punch uses CombatInput in the D07 encounter")
+    melee_hp_before_input = melee_health.current_health
+    Input.action_press(&"actor_kick")
+    await _ticks(tree, 1)
+    Input.action_release(&"actor_kick")
+    await _ticks(tree, 30)
+    verify.call(melee_health.current_health < melee_hp_before_input,
+        "Player kick uses CombatInput in the D07 encounter")
+    arena.get_node("ActorInput").set_enabled(false)
+    player.get_node("CombatController").cancel()
+    melee_combat.cancel()
+    player.global_position = arena.global_position + Vector3(5, 0.15, 0)
+    melee.global_position = arena.global_position + Vector3(-5, 0.15, 0)
+    player.velocity = Vector3.ZERO
+    melee.velocity = Vector3.ZERO
+    melee_health.current_health = melee_health.max_health
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 4)
+    verify.call(melee_ai.target == player and ranged_ai.target == player,
+        "Both NPCs acquire the real living world-space player target")
+    var sensor := ranged.get_node("TargetSensor")
+    verify.call(not sensor.has_line_of_sight(ranged, player),
+        "Opaque central obstacle actually blocks ranged acquisition sight")
+    var start_melee: Vector3 = melee.global_position
+    var start_ranged: Vector3 = ranged.global_position
+    var positions_before_views: Array[Vector3] = [melee.global_position, ranged.global_position]
+    for index in [0, 1, 2, 3, 4, 2, 3, 0, 4, 1]:
+        views.switch_view(index)
+        await _ticks(tree, 2)
+    verify.call(melee_ai.target == player and ranged_ai.target == player
+        and melee_health.current_health > 0 and ranged_health.current_health > 0
+        and melee.global_position != positions_before_views[0]
+        and ranged.global_position != positions_before_views[1],
+        "F1-F5 camera switches leave both AI actors navigating with persistent HP")
+    var melee_run_seen: bool = false
+    var ranged_run_seen: bool = false
+    for tick in range(190):
+        await tree.physics_frame
+        melee_run_seen = melee_run_seen or melee_presenter.base_clip == &"run"
+        ranged_run_seen = ranged_run_seen or ranged_presenter.base_clip == &"run"
+    verify.call(melee_run_seen and ranged_run_seen,
+        "Both independently configured NPCs play the run clip during physical pursuit")
+    verify.call(melee.global_position.distance_to(start_melee) > 1.5
+        and ranged.global_position.distance_to(start_ranged) > 0.5,
+        "Both actors chase around the real obstacle with D03 movement physics")
+    verify.call(melee_ai.target == player and ranged_ai.target == player
+        and melee_health.current_health > 0 and ranged_health.current_health > 0,
+        "Camera-free AI and independent health persist during pursuit")
+    # Player input is not required for either AI intent producer. The player
+    # adapter can be absent/unfocused while NPC movement still runs.
+    var previous_position: Vector3 = melee.global_position
+    player.set_controls_enabled(false)
+    player.global_position = arena.global_position + Vector3(-7, 0.15, -5)
+    await _ticks(tree, 55)
+    verify.call(melee_ai.target == player and ranged_ai.target == player
+        and melee.global_position.distance_to(previous_position) > 0.15,
+        "Gating player controls does not stop enemy target decisions or movement")
+    player.set_controls_enabled(true)
+    var previous_hp: float = ranged_health.current_health
+    var attack_before: int = gun.shots_fired
+    # The real Gun must use its owning NPC's target provider, not a camera
+    # direction or player input adapter.
+    verify.call(gun._aim == ranged.get_node("AimTargetProvider")
+        and ranged.get_node("AimTargetProvider").target == player,
+        "Ranged target provider is local to its NPC, without view dependency")
+
+    # D03 move IDs are arbitrated during physics; two pre-tick intents
+    # carry only move IDs, and the final submitted direction wins.
+    var move_controller := melee.get_node("Locomotion/MovementController")
+    var first := IntentScript.new(Vector2.LEFT)
+    first.request_move(&"grounded")
+    var last := IntentScript.new(Vector2.RIGHT)
+    last.request_move(&"grounded")
+    melee_ai.set_physics_process(false)
+    melee.apply_move_intent(first)
+    melee.apply_move_intent(last)
+    await tree.physics_frame
+    verify.call(melee.get_node("Locomotion").desired.world_move == Vector2.RIGHT
+        and move_controller.get("_pending_requests").is_empty(),
+        "Two same-tick AI move intents resolve with the latest world direction")
+    melee_ai.set_physics_process(true)
+    # D05 requests snapshot a world heading. A second request in the same
+    # tick is rejected rather than reversing the first queued attack.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    var accepted: bool = ranged_combat.request_attack(&"gun_fire", Vector2.RIGHT)
+    var rejected: bool = ranged_combat.request_attack(&"gun_fire", Vector2.LEFT)
+    await _ticks(tree, 1)
+    verify.call(accepted and not rejected and ranged_combat.get("_active_direction") == Vector2.RIGHT,
+        "Queued D05 heading is snapshotted; same-tick conflicting attack is rejected")
+    ranged_combat.cancel()
+    ranged_ai.set_physics_process(true)
+
+    # Explicit engagement in an unobstructed section of the same physical
+    # arena. Use ordinary D05/D06 ports; AI policies never apply damage.
+    melee_ai.set_physics_process(false)
+    ranged_ai.set_physics_process(false)
+    melee.apply_move_intent(IntentScript.new())
+    ranged.apply_move_intent(IntentScript.new())
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-6.9, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -2)
+    ranged.get_node("AimTargetProvider").set_target(player)
+    (ranged.get_node("Visual") as Node3D).rotation.y = 0.0
+    ranged.get_node("Visual").set_facing(Vector2(0, -1))
+    melee_combat.cancel()
+    ranged_combat.cancel()
+    gun.magazine = 8
+    gun.reload_left = 0
+    await _ticks(tree, 4)
+    var close_hp: float = player_health.current_health
+    var requested_melee: bool = melee_combat.request_attack(&"bat_swing", Vector2.LEFT)
+    await _ticks(tree, 1)
+    verify.call(requested_melee and melee_presenter.upper_body_clip == &"bat_vertical"
+        and melee.get_node("CombatAnimationAdapter").get("_active_channel") == 0,
+        "Bat attack_started selects the real rig's authored upper-body swing clip")
+    await _ticks(tree, 7)
+    verify.call(requested_melee and player_health.current_health < close_hp,
+        "Melee actor's actual Bat attack applies D05 physics damage within authored range")
+    melee_combat.cancel()
+    verify.call(melee_presenter.upper_body_clip == &"",
+        "Bat attack cancellation clears its upper-body animation without changing damage")
+    close_hp = player_health.current_health
+    attack_before = gun.shots_fired
+    var requested_gun: bool = ranged_combat.request_attack(&"gun_fire", Vector2(0, -1))
+    await _ticks(tree, 1)
+    verify.call(requested_gun and ranged_presenter.upper_body_clip == &"gun_fire"
+        and ranged.get_node("CombatAnimationAdapter").get("_active_channel") == 0,
+        "Gun attack_started resolves its NPC-only firing pose through the shared adapter")
+    await _ticks(tree, 5)
+    verify.call(requested_gun and gun.shots_fired == attack_before + 1
+        and player_health.current_health < close_hp,
+        "Ranged actor's real world muzzle and owned Gun inflict ranged damage")
+    ranged_combat.cancel()
+    verify.call(ranged_presenter.upper_body_clip == &"",
+        "Gun attack cancellation clears the firing pose after the physical action")
+    await _ticks(tree, 14)
+    # Obstacle blocks the FIRST physical muzzle ray even when an explicit
+    # attack request is submitted. AI also rejects a blocked line of sight.
+    var wall := StaticBody3D.new()
+    wall.name = "OpaqueShotBlocker"
+    var wall_collision := CollisionShape3D.new()
+    var wall_shape := BoxShape3D.new()
+    wall_shape.size = Vector3(2.0, 2.2, 0.4)
+    wall_collision.shape = wall_shape
+    wall.add_child(wall_collision)
+    arena.add_child(wall)
+    wall.global_position = arena.global_position + Vector3(-8, 1.0, -3.5)
+    await _ticks(tree, 3)
+    close_hp = player_health.current_health
+    attack_before = gun.shots_fired
+    requested_gun = ranged_combat.request_attack(&"gun_fire", Vector2(0, -1))
+    await _ticks(tree, 6)
+    verify.call(requested_gun and gun.shots_fired == attack_before + 1
+        and player_health.current_health == close_hp
+        and not sensor.has_line_of_sight(ranged, player),
+        "Opaque wall prevents D07 attack decisions and D06 Gun impact through geometry")
+    wall.queue_free()
+    ranged_combat.cancel()
+    await _ticks(tree, 3)
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(true)
+
+    # P1 integration: leave AI enabled. Attack requests MUST come from the
+    # actual actor-local decision/policy path, not from direct D05 test calls.
+    melee_combat.cancel()
+    ranged_combat.cancel()
+    melee_ai.set_physics_process(true)
+    ranged_ai.set_physics_process(false)
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    melee.global_position = arena.global_position + Vector3(-6.9, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, 5)
+    await _ticks(tree, 2)
+    close_hp = player_health.current_health
+    await _ticks(tree, 32)
+    verify.call(player_health.current_health < close_hp,
+        "AI autonomously selects Bat action and damages a nearby live player")
+    melee_ai.set_physics_process(false)
+    melee_combat.cancel()
+    melee.global_position = arena.global_position + Vector3(-10, 0.15, -6)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    gun.magazine = 8
+    gun.reload_left = 0
+    await _ticks(tree, 3)
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 32)
+    verify.call(gun.shots_fired > attack_before and player_health.current_health < close_hp,
+        "AI autonomously chooses equipped Gun action and deals physical damage")
+
+    # P2: an out-of-ammo policy is not a successful attack, and a configured
+    # command (not the first arbitrary binding) initiates auto-reload.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.magazine = 0
+    gun.reserve = 0
+    gun.reload_left = 0
+    ranged_ai.set_physics_process(true)
+    await _ticks(tree, 2)
+    verify.call(ranged_ai.state == &"recover" and ranged_combat.current_attack == null,
+        "Rejected dry-weapon request cannot publish an AI attack state")
+    gun.reserve = 8
+    await _ticks(tree, 2)
+    verify.call(gun.reload_left > 0 and ranged_ai.state == &"recover",
+        "Configured reload command starts the ordinary Gun reload clock")
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.reload_left = 0
+    gun.magazine = 8
+
+    # P1: verify a real AI request has started, then move its target outside
+    # attack policy range BEFORE active frames. The shared D05 controller
+    # must receive cancellation without making a long-range Gun hit.
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    await _ticks(tree, 3)
+    ranged_ai.set_physics_process(true)
+    var startup_seen: bool = false
+    for tick in range(30):
+        await _ticks(tree, 1)
+        if ranged_combat.current_attack != null and ranged_combat.phase == &"startup":
+            startup_seen = true
+            break
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -18)
+    await _ticks(tree, 6)
+    verify.call(startup_seen and gun.shots_fired == attack_before
+        and player_health.current_health == close_hp
+        and ranged_combat.current_attack == null,
+        "Leaving AI Gun range during startup cancels its owned action before damage")
+
+    # Cover introduced after a legal AI attack request must cancel before
+    # startup finishes, without changing Gun's first-hit physical authority.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    ranged.global_position = arena.global_position + Vector3(-8, 0.15, -1)
+    player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
+    await _ticks(tree, 3)
+    ranged_ai.set_physics_process(true)
+    var sight_startup: bool = false
+    for tick in range(30):
+        await _ticks(tree, 1)
+        if ranged_combat.current_attack != null and ranged_combat.phase == &"startup":
+            sight_startup = true
+            break
+    var cover := StaticBody3D.new()
+    var cover_collision := CollisionShape3D.new()
+    var cover_shape := BoxShape3D.new()
+    cover_shape.size = Vector3(2, 2.2, 0.3)
+    cover_collision.shape = cover_shape
+    cover.add_child(cover_collision)
+    arena.add_child(cover)
+    cover.global_position = arena.global_position + Vector3(-8, 1.0, -3)
+    await _ticks(tree, 2)
+    attack_before = gun.shots_fired
+    close_hp = player_health.current_health
+    await _ticks(tree, 5)
+    verify.call(sight_startup and not sensor.has_line_of_sight(ranged, player)
+        and gun.shots_fired == attack_before and player_health.current_health == close_hp
+        and ranged_combat.current_attack == null,
+        "New opaque cover during startup cancels AI-owned Gun attack")
+    cover.queue_free()
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    await _ticks(tree, 2)
+    previous_hp = ranged_health.current_health
+    ranged_ai.set_physics_process(true)
+
+    # An NPC's death cancels action authority; the other NPC continues.
+    melee_health.take_hit(1000.0, player, null, Vector2.RIGHT, 0.0, 0)
+    await _ticks(tree, 2)
+    verify.call(melee_ai.state == &"dead" and not melee_ai.is_physics_processing() and not melee.alive
+        and melee_combat.current_attack == null
+        and ranged_health.current_health == previous_hp
+        and is_instance_valid(gun),
+        "Melee death disables only its actor; ranged equipment remains independent")
+    verify.call(melee_presenter.action_clip == &"death"
+        and melee_presenter.upper_body_clip == &"",
+        "Melee death replaces swing visuals with the skeletal full-body death clip")
+    # Dead player targets cannot receive new attacks. Aim target is cleared
+    # before the next decision tick, including during gun reload.
+    player_health.take_hit(20000.0, ranged, null, Vector2.RIGHT, 0.0, 0)
+    await _ticks(tree, 3)
+    verify.call(ranged_ai.target == null and ranged_ai.state == &"idle"
+        and ranged.get_node("AimTargetProvider").target == null,
+        "Target death immediately releases AI decision and world aim ownership")
+    player.queue_free()
+    await _ticks(tree, 3)
+    verify.call(ranged_ai.target == null and ranged_ai.state == &"idle",
+        "Freed target cannot leave a stale AI or gun aim reference")
+    # A newly spawned player is selected without rebuilding either NPC or
+    # carrying a stale gun world-target pointer.
+    var replacement := (load("res://demo/player.tscn") as PackedScene).instantiate() as CharacterBody3D
+    replacement.name = "ReplacementPlayer"
+    arena.add_child(replacement)
+    replacement.global_position = arena.global_position + Vector3(-7, 0.15, -5)
+    await _ticks(tree, 4)
+    verify.call(ranged_ai.target == replacement
+        and ranged.get_node("AimTargetProvider").target == replacement,
+        "Target reacquisition rebinds existing AI and world aim to replacement actor")
+    # Death in the middle of a weapon reload cancels its per-instance clock.
+    ranged_ai.set_physics_process(false)
+    ranged_combat.cancel()
+    gun.magazine = 1
+    var began_reload: bool = gun.request_weapon_command(&"weapon_reload")
+    await _ticks(tree, 2)
+    verify.call(began_reload and gun.reload_left > 0,
+        "Ranged enemy starts ordinary per-instance Gun reload")
+    verify.call(ranged_presenter.upper_body_clip == &"reload",
+        "Ranged Gun reload drives optional skeletal upper-body animation")
+    ranged_health.take_hit(1000.0, replacement, null, Vector2.RIGHT, 0.0, 0)
+    await _ticks(tree, 3)
+    verify.call(ranged_ai.state == &"dead" and not ranged.alive
+        and gun.reload_left == 0 and ranged_combat.current_attack == null,
+        "Death during Gun reload stops damage and cancels the weapon clock")
+    verify.call(ranged_presenter.action_clip == &"death"
+        and ranged_presenter.upper_body_clip == &"",
+        "Ranged death interrupts Gun reload presentation with the death animation")
+    # Optional-presentation regression: an actor composed without a rig or
+    # AnimationPresenter still acquires/equips a weapon on its fallback
+    # socket and retains real D05 attack registration.
+    var fallback_enemy := (load("res://demo/ai/melee_enemy.tscn") as PackedScene).instantiate()
+    fallback_enemy.name = "UnanimatedEnemy"
+    fallback_enemy.get_node("AnimationPresenter").free()
+    fallback_enemy.get_node("Visual/Model").free()
+    fallback_enemy.get_node("Visual/BodyMesh").visible = true
+    arena.add_child(fallback_enemy)
+    fallback_enemy.global_position = arena.global_position + Vector3(0, 0.15, 6)
+    fallback_enemy.get_node("AIController").set_physics_process(false)
+    await _ticks(tree, 6)
+    var fallback_weapon: Node3D = fallback_enemy.get_node("Equipment").current_weapon
+    verify.call(is_instance_valid(fallback_weapon)
+        and fallback_weapon.get_parent() == fallback_enemy.get_node("Visual/Socket")
+        and fallback_enemy.get_node("CombatController").get_attack(&"bat_swing") != null,
+        "Render-optional enemy still equips and registers Bat without animation nodes")
+    fallback_enemy.queue_free()
+    await _ticks(tree, 2)
+    var captured_gun: WeakRef = weakref(gun)
+    var captured_bat: WeakRef = weakref(bat)
+    arena.queue_free()
+    await tree.process_frame
+    await tree.process_frame
+    verify.call(captured_gun.get_ref() == null and captured_bat.get_ref() == null,
+        "Full NPC teardown releases both exclusively owned equipment instances")

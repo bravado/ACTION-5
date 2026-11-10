@@ -133,22 +133,58 @@ Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch
 Do **not** require the workflow display name (`ACTION-5 CI`), deployment job (`CI / Deploy Pages`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
 
 
-D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. D05 combat and D06-01 Bat/Shovel equipment are complete. For the accepted D06-01 extension ports see [equipment authoring](equipment.md) and [ADR-0005](adr/0005-equipment-lifecycle.md); D06-02 Gun is verified in PR #32 (974 assertions, latest Full E2E and owner visuals passed; merge pending), and D07 AI is next; both stay independent of core movement/animation classes. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md) for camera-free ranged AI, muzzle ray and tracer ownership.
+## Merged D01–D07 baseline and active D08 milestone
 
+D02 supplies five cameras; D03 supplies data-driven movement; D04 supplies
+imported skeletal clips, bone sockets and local first-person visibility.
+D05 implements authored combat and D06 Bat/Shovel/Gun, muzzle-first physical
+hits and optional projectile/reload visuals; D06-01 and D06-02 merged as
+PRs #31 and #32. The crouch movement example also uses the same ports.
+Use [adding moves](adding-moves.md), [animation](animation.md),
+[combat](combat.md), [equipment](equipment.md) and
+[ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md)
+rather than introducing new actor or attack clocks.
 
-### D06-02 review matrix
+D07-01 (merged PR #33) adds four actor-local AI components, equipped melee/ranged
+NPCs and an independent `demo/ai/encounter.tscn` with real navigation,
+physical obstruction, player punch/kick input and optional shared
+skeletal animations. See [AI authoring](ai.md) for extensions and the
+D07-to-D08 handoff.
 
-Use `make check` (pinned Godot 4.7.2; latest test log prints
-`ACTION5_TEST_RESULT assertions=974 failures=0`), and opt into the
-existing PR Full E2E by including `[full-e2e]` in the final commit
-message. Full E2E checks real native F1–F5 Gun scenes, F3/F4 in-flight
-tracer screenshots, rendered reload/near-wall frames and actual
-WebGL2 E pickup/J attack/R reload input. On software-rendered CI,
-browser walking distance is not proportional to wall-clock sleeps;
-use bounded real-input pickup attempts instead of a fixed movement
-delay, and never add a test-only teleport or a separate game clock.
-For PR #32, latest-head automated checks passed in
-[CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)
-(**974 assertions and Full E2E**), and the owner confirmed manual
-F1–F5 visual acceptance on 2026-11-10. Keep PR #32 open for explicit
-squash-merge approval; close issue #14 only after merge.
+### D07 verification recipe
+
+```bash
+make check
+make import
+godot --path . res://demo/ai/encounter.tscn
+```
+
+`tests/d07_suite.gd`, automatically included in `make check`, verifies
+real AI-driven damage, physical range/LoS and nav, target lifecycle,
+gun ammo/reload, player input attacks, two independent animation trees,
+Bat/Gun clip playback, animated hand sockets, NPC running clips and
+equipment cleanup with animation disabled.
+
+Set `[full-e2e]` in the **latest** PR commit message to run native Linux
+and Web export checks, the exported native smoke and the real WebGL2
+browser test before approval. Superseded PR runs are cancelled and do
+not count as final-head evidence. The existing native screenshot and
+browser scripts target `demo/main.tscn` by default: they validate
+shared rendering/export and main demo gameplay, **not** the D07
+encounter itself. The owner's F1–F5 visual review of the two NPCs,
+weapon positions, animated firing/swinging and obstruction must be
+recorded separately. D07 final verification passed **1,018 Godot assertions (0 failures)**,
+Linux/Web builds, native startup/rendering and real WebGL2 Full E2E in
+[CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034).
+Future NPC visual changes still need a direct encounter review; the
+main-demo captures do not prove encounter-specific animation quality.
+
+### D08 handoff
+
+D08 issue #16 and stacked draft PR #34 own the Interactor, world Door,
+WorldPickup, RoofVisibility, restart/session UI and arena/dungeon
+traversal. Draft PR #34's scene-loading door/restoration is preliminary
+and **fails** the mandatory same-persistent-world acceptance criterion.
+D07 is merged; rebase #34 onto `master`, retarget the PR, resolve
+overlapping scene/animation/input changes and rerun the full CI matrix. D08 must not duplicate Health/Combat/Equipment/AI or
+make camera-based roof hiding alter real collision/nav/muzzle authority.

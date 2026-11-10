@@ -15,6 +15,7 @@ const D06HardeningSuiteScript = preload("res://tests/d06_hardening_suite.gd")
 const D06FastSwingSuiteScript = preload("res://tests/d06_fast_swing_suite.gd")
 const D06MovementViewSuiteScript = preload("res://tests/d06_movement_view_suite.gd")
 const D06GunSuiteScript = preload("res://tests/d06_gun_suite.gd")
+const D07SuiteScript = preload("res://tests/d07_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -649,6 +650,9 @@ func _run_tests() -> void:
     # physical world, so destructive older melee tests cannot mask failures.
     var d06_gun_suite := D06GunSuiteScript.new()
     await d06_gun_suite.run_tests(self, Callable(self, "_check"))
+
+    var d07_suite := D07SuiteScript.new()
+    await d07_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

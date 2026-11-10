@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun is under review in PR #32; D07 AI remains next.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D07 are merged**, including Bat/Shovel, Gun and the independent camera-free D07 enemy AI implementation (PRs #31, #32 and #33). D07 includes two equipped NPCs, real obstacle navigation, the player's combat input in the encounter, and optional skeletal attack/reload/death animations. **D08-01 is now the next active milestone**; draft PR #34's scene-loading prototype does not meet the mandatory same-world traversal requirement. Do not bring D08 doors, restart UI or scene persistence into D07/core combat. Standalone movement examples may continue in separate PRs without expanding combat scope.
 
 ## Product invariant
 
@@ -279,13 +279,13 @@ passed native/Linux and real WebGL2 smoke (run #42668808972), and owner
 visual acceptance passed. The release tests are
 `tests/d06_equipment_suite.gd`, `tests/d06_hardening_suite.gd`,
 `tests/d06_fast_swing_suite.gd`, `tests/d06_movement_view_suite.gd`,
-`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. Close issue #13 only
-after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
+`tests/capture_scene.gd` and `ci/browser-smoke.mjs`. PR #31 and its D06-01 implementation are merged; D06-02 (#14) and
+D07 (#15) were completed as separate subsequent deliverables.
 
 ## Starting task
 
-**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) is implemented in PR #32, then D07 AI (#15) follows using those same established ports.
-## D06-02 gun extension (validated in PR #32; merge pending)
+**D01–D07 are merged; the current implementation focus is D08.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via PRs #32/#33 using those same established ports.
+## D06-02 gun extension (merged via PR #32)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
 D05's active attack phase is the only firing moment. The gun uses
@@ -300,8 +300,7 @@ startup/empty magazine does not. Stowing cancels reload, preserves ammo.
 Pinned Godot 4.7.2 Checks and native/WebGL2 Full E2E passed on
 [CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312):
 **974 assertions, zero failures**. Owner F1–F5 visual testing passed
-on 2026-11-10. Keep issue #14 open until explicit squash merge of
-PR #32. Consult docs/equipment.md and ADR-0006.
+on 2026-11-10. PR #32 is merged. Consult docs/equipment.md and ADR-0006.
 
 ## Add a projectile/tracer without affecting hit authority
 
@@ -320,7 +319,7 @@ not `_ready()` alone. Verify no visuals for dry/cancelled shots, no
 colliders, one effect per shot, automatic cleanup, physical near-wall
 endpoint, and optional per-gun scene/color. See docs/equipment.md.
 
-## D06-02 review/merge and D07–D12 extension handoff (ADR-0006)
+## Merged D06-02 architecture and D07–D12 extension handoff (ADR-0006)
 
 Read [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md).
 A new gun needs only scene/resources and a world muzzle; no edits to Actor,
@@ -328,7 +327,7 @@ Locomotion, MovementController, AnimationPresenter, EquipmentController,
 CombatController or camera classes. Gun receives a replaceable actor-local
 `get_world_target(origin, range, exclude)` port, **not** a camera. The
 shipped `Action5ActorTargetAimProvider` demonstrates an AI world-target
-source; D07 must provide the decision/nav target producer, NOT another gun
+source; D07 provides the decision/nav target producer, NOT another gun
 or damage clock. The optional projectile presenter always attaches visual
 effects to the world scene, never the weapon, with no collider or hits.
 An independent reload adapter may clear ONLY the overlay it successfully
@@ -385,13 +384,12 @@ covering body-first collision, solid wall obstruction, ally filtering
 and disabled Hurtbox before merge.
 
 
-## D06-02 post-visual review (2026-11-10)
+## D06-02 verified/merged baseline (2026-11-10)
 
 PR #32 has 974/974 pinned Godot assertions, passed native and WebGL2
 Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)),
 and owner-confirmed F1–F5 manual visuals. The P1 physical-body ray
-receiver regression is fixed; its review thread is resolved. PR remains
-open pending explicit squash-merge approval. Do not reintroduce stale
+receiver regression is fixed; its review thread is resolved. PR #32 is merged. Do not reintroduce stale
 "draft", "visual pending" or 941/958/967 latest-count statements.
 
 **Simplification verdict:** keep the existing small actor-local world
@@ -402,6 +400,87 @@ Gun, camera-aware hit resolution or global per-weapon flags. Only
 refactor `Gun._resolve_hit_health()`'s on-hit descendant lookup if
 profiling demonstrates a real cost with many NPCs; introducing a cache
 or hit registry solely for D06-02 adds unnecessary lifecycle coupling.
-When building D07, implement only the AI decision/nav/target producer;
-reuse Combat, Equipment, Health/Hurtbox and the current aim port. See
-ADR-0006 for the formal architectural review.
+D07 implements only the AI decision/nav/target producer and reuses
+Combat, Equipment, Health/Hurtbox and the current aim port. D08 must
+preserve these ports without moving interaction logic into the actor core.
+See ADR-0006 for the original gun architecture review.
+
+
+## D07 enemy intent/decision extension
+
+D07 AI is camera-free and actor-local. Compose `Action5AIController` with
+`Action5AITargetSensor`, `Action5AINavigation` (a normal Godot
+`NavigationAgent3D`) and `Action5AIAttackPolicy`. The AI submits
+`Action5MoveIntent` to the existing Actor and attack requests to D05
+Combat/actor-local Equipment. Never add AI branches to Actor, Locomotion,
+MovementController, AnimationPresenter, Gun or the camera. An equipped Gun
+uses `Action5ActorTargetAimProvider`; a physical wall remains authoritative.
+
+Movement move IDs are queued and the latest intent is used at the next
+physics tick. Combat heading is snapshotted at request time; a second
+concurrent request is rejected. Add a third enemy by scene inheritance and
+a configured attack policy, not new core conditionals. Test real
+`demo/ai/encounter.tscn` physics with `tests/d07_suite.gd`, plus
+`make check` and native/WebGL2 Full E2E. The separate demo AI
+encounter runs with `godot --path . res://demo/ai/encounter.tscn`.
+
+
+## D07 AI hardening contract (PR #33)
+
+The four D07 AI components are only an actor-local decision/intent layer.
+AI selects equipped actions by `attack_id`, uses explicit optional
+`reload_command`, and tracks the target of each accepted AI-owned attack.
+Guard that same target's configured range and physical LoS every physics tick
+(including startup/active); cancel only AI-owned action requests when invalid.
+Never teach shared Combat, Actor, Equipment or MovementController about AI
+or weapon names. Rejected actions and reload are not successful attacks.
+Death stops AI physics processing; use `reactivate()` only after restoring
+Health and the actor's alive state. Regression coverage must include real
+AI-driven damage without direct Combat requests, startup target loss/cover,
+autoreload, weapon cleanup and F1–F5 switching. D08 transitions and scene
+persistence belong in PR #34, not this D07 component milestone.
+
+D07 standalone scene rule: compose `CombatInputAdapter` with the player's
+`EquipmentAttackSelector` in every playable encounter; locomotion-only
+`ActorInputAdapter` does not dispatch punch/kick. Regress both actions
+through normal InputMap events and real Health damage, not direct Combat calls.
+
+
+D07 enemy presentation: `demo/ai/enemy.tscn` composes the existing
+`AnimationPresenter`, `CombatAnimationAdapter`, and optional
+`GunReloadVisualAdapter` with the shared training rig; AI itself must
+never choose or play clips. New enemies supply attack animation keys
+and a rig-specific `SkeletonProfile`. The current NPC-only
+`gun_fire` key maps to an existing forward-arm animation; player
+profiles are not altered. Equipped meshes should follow the animated
+`right_hand` socket when present, with the static socket fallback
+retained for unanimated actors. Preserve regressions for Bat and Gun
+clip begin/end, reload/death, independent model instances and no-render
+combat. For any new NPC locomotion speeds, configure its
+`AnimationPresenter.run_speed_threshold` between authored walk and run
+speeds; do not assume the player's default threshold is correct.
+Never move attack authority into the animation layer.
+
+
+## D07 merged baseline → D08 implementation handoff
+
+Merged PR #33 supplies D07 NPC AI/physical encounter and optional visual
+composition. Standalone player `CombatInputAdapter` is a D07 fixture bugfix;
+E interaction, scene doors, restart UI, snapshots and persistent-world
+handoff belong to D08 issue #16 and draft PR #34. D08's prototype
+`change_scene_to_packed()` travels by replacing scenes and cannot satisfy
+the mandatory one-world/same-player/same-enemies exit gate. D08 must use
+an input-independent Interactor, separate Door/Pickup/RoofVisibility nodes,
+collision/nav updates and the existing Health/Combat/Equipment/AI ports.
+Keep visual-only roofs and projectile tracers out of physics authority.
+D07 is merged: D08 is now the next deliverable. Rebase/retarget stacked
+PR #34 to `master`, revalidate both CI tiers and finish D08 without
+reopening the shared movement/combat/animation cores.
+
+The D07 merged baseline passed 1,018/1,018 pinned Godot assertions and
+native/Linux plus real WebGL2 Full E2E on GitHub Actions run
+#42871200034. The existing automated visual capture renders the main
+demo, not the D07 encounter: when changing NPC animation/weapon geometry,
+run `demo/ai/encounter.tscn` directly and inspect all five camera modes.
+For D08, keep its session/restart state separate from AI and combat
+and add independent persistent-world traversal acceptance tests.

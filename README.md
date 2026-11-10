@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (2026-11-10): D01–D05 merged; D06-01 Bat/Shovel accepted; D06-02 Gun implemented in PR #32, awaiting squash merge.** D06-02 passed **974 pinned Godot assertions (0 failures)**, native screenshot/first-person muzzle checks and real WebGL2 Full E2E ([run #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)). **The owner confirmed manual five-view visual testing passed on 2026-11-10.** The architecture review found no remaining P1/P2 merge blockers; D07 AI is next. The PR and issue remain open until an explicit merge decision.
+> **Project status (November 2026): D01–D07 are merged.** D07 adds reusable camera-independent AI, navigation, two equipped and animated enemy types, and a physical five-view encounter ([implementation PR #33](https://github.com/bravado/ACTION-5/pull/33)). The existing Actor, Combat, Equipment, animation and camera cores remain unchanged. **D08 is the next milestone:** same-world arena/dungeon traversal, doors, pickups, roofs and restart/session behavior are tracked in [issue #16](https://github.com/bravado/ACTION-5/issues/16) and the **incomplete** [draft PR #34](https://github.com/bravado/ACTION-5/pull/34).
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D05 are merged** (D05 via squash-merged PR #28); the crouch movement example is also merged. **D06-01 Bat/Shovel equipment** is complete in approved PR #31, with authored world/F4 weapon animations, independent attacks, and lifecycle/fast-melee hardening; 908 headless assertions, real WebGL2 Full E2E and manual visual acceptance passed. **D06-02 Gun** is implemented in [PR #32](https://github.com/bravado/ACTION-5/pull/32) and has passed **974/974 Godot assertions**, native screenshots, real WebGL2 Full E2E ([CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)), and the owner's manual F1–F5 visual review. Issue #14 stays open until squash merge. **D07 AI** is next. Neither is part of PR #31. Follow [AGENTS.md](AGENTS.md), [the movement authoring guide](docs/adding-moves.md) and the review gates in PLAN.md.
+Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is next**: draft PR #34 is an early scene-loading interaction prototype, **not** the required persistent-world solution. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
@@ -119,3 +119,20 @@ The planned framework license is **MIT**. The license file and the attribution i
 **D06-02 gun tracer:** The Pistol fires an optional visible, non-colliding gold projectile trail; the Heavy Pistol fixture uses a blue trail. Their impact point comes from the authoritative physical world-muzzle hitscan. In F4 only, the visual tracer starts at the camera-local `Grip/VisualMuzzle` so it visibly exits the on-screen barrel; other views and camera-free NPCs use the physical muzzle. No visual effect controls damage. Edit the per-gun ProjectileVisual scene to customize or remove the presenter to disable; damage is still immediate.
 
 **Developer extension:** [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md) documents the world-target port, camera-free NPC target provider, optional tracer, reload visual ownership and D07–D12 boundaries. No runtime code under `addons/action5/` imports `demo/`.
+
+
+### D07 enemy encounter
+
+Run `make import && godot --path . res://demo/ai/encounter.tscn` to
+inspect a melee Bat enemy and ranged Gun enemy navigating an opaque
+center obstacle. WASD moves the player, LMB/J and RMB/K
+punch and kick, and 1–5 switch the same five camera profiles without
+restarting either enemy. Both enemies now reuse the skeletal training rig:
+the Bat swings in its upper-body attack channel, the Gun has a
+configurable firing pose, and hit/death/reload animations are driven by
+existing optional presentation adapters. Weapons attach to animated
+right-hand bones, with a fixed-socket fallback for headless actors.
+See [AI authoring](docs/ai.md) for configuring additional enemy archetypes,
+clip mapping, automated regression evidence and the separation from D08.
+D07 does **not** implement door interaction, restart UI or cross-room
+persistence; those belong to the separate D08 world/session work.

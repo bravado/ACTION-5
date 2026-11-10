@@ -309,3 +309,35 @@ An optional world-owned emissive tracer listens to the Gun's already-
 resolved `fired` event. None of these nodes changes the D05 action
 clock or hit authority. A camera-free NPC can omit all of them. See
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
+
+
+## D07 merged enemy skeletal presentation
+
+`demo/ai/enemy.tscn` demonstrates **optional** animated enemy
+presentation by composing the same `AnimationPresenter` and
+`CombatAnimationAdapter` as the player with
+`demo/assets/action5_training_character.glb`. There is no NPC-specific
+animation engine: each combat definition provides an `animation_key`,
+CombatController emits its ordinary signals and a generic adapter
+plays/clears the selected clip independently of hit timing.
+
+The Bat uses `bat_vertical`. The ranged enemy's `gun_fire` key is
+mapped **only** in `demo/assets/enemy_skeleton_profile.tres`
+to the existing training `punch` clip as a temporary forward-arm
+firing pose; the player's profile is unchanged. The existing reload,
+hit and death signals select their corresponding world poses.
+NPC weapons attach to real `Hand_R` bone sockets when a valid presenter
+exists; the demo `SocketSource` returns its original static marker
+when the rig/presenter is omitted.
+
+The NPC walk/run speeds differ from the player: configure each
+presenter's `run_speed_threshold` **above walk speed and below run
+speed** (current melee 3.7, ranged 3.2). Without this adjustment the
+NPC can physically sprint while visually looping Walk.
+`tests/d07_suite.gd` covers both run clips during actual pursuit,
+weapon attachment, action clip selection/clearing, reload/death and
+an animation-free fallback. None of the visual components may change
+AI target decisions, physical range/LoS, damage or Gun first-hit rays.
+D07 is part of the merged project baseline (PR #33). See
+[AI authoring](ai.md) for the full composition and the next D08
+world-interaction boundary.

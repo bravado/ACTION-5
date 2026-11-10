@@ -1,0 +1,139 @@
+[gd_scene load_steps=27 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/actor/action_actor.gd" id="1"]
+[ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2"]
+[ext_resource type="Script" path="res://addons/action5/actor/facing_presenter.gd" id="3"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/movement_controller.gd" id="4"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/grounded.gd" id="5"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/airborne.gd" id="6"]
+[ext_resource type="Script" path="res://addons/action5/combat/health.gd" id="7"]
+[ext_resource type="Script" path="res://addons/action5/combat/hurtbox.gd" id="8"]
+[ext_resource type="Script" path="res://addons/action5/combat/health_actor_adapter.gd" id="9"]
+[ext_resource type="Script" path="res://addons/action5/combat/combat_controller.gd" id="10"]
+[ext_resource type="Script" path="res://addons/action5/equipment/equipment_controller.gd" id="11"]
+[ext_resource type="Script" path="res://addons/action5/combat/actor_target_aim_provider.gd" id="12"]
+[ext_resource type="Script" path="res://addons/action5/ai/target_sensor.gd" id="13"]
+[ext_resource type="Script" path="res://addons/action5/ai/navigation.gd" id="14"]
+[ext_resource type="Script" path="res://addons/action5/ai/attack_policy.gd" id="15"]
+[ext_resource type="Script" path="res://addons/action5/ai/ai_controller.gd" id="16"]
+[ext_resource type="Script" path="res://demo/ai/enemy_mount.gd" id="17"]
+[ext_resource type="PackedScene" path="res://demo/assets/action5_training_character.glb" id="18"]
+[ext_resource type="Script" path="res://addons/action5/animation/animation_presenter.gd" id="19"]
+[ext_resource type="Resource" path="res://demo/assets/enemy_skeleton_profile.tres" id="20"]
+[ext_resource type="Script" path="res://addons/action5/animation/combat_animation_adapter.gd" id="21"]
+[ext_resource type="Script" path="res://addons/action5/animation/gun_reload_visual_adapter.gd" id="22"]
+[ext_resource type="Script" path="res://demo/ai/enemy_appearance.gd" id="23"]
+
+[sub_resource type="CapsuleShape3D" id="actor_capsule"]
+radius = 0.35
+height = 1.7
+
+[sub_resource type="CapsuleMesh" id="actor_mesh"]
+radius = 0.35
+height = 1.7
+
+[sub_resource type="StandardMaterial3D" id="enemy_material"]
+albedo_color = Color(0.85, 0.35, 0.25, 1)
+
+[node name="Enemy" type="CharacterBody3D" groups=["action5_enemy"]]
+script = ExtResource("1")
+collision_layer = 1
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.85, 0)
+shape = SubResource("actor_capsule")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("7")
+max_health = 70.0
+team_id = 2
+
+[node name="HealthActorAdapter" type="Node" parent="."]
+script = ExtResource("9")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+position = Vector3(0, 0.85, 0)
+script = ExtResource("8")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("actor_capsule")
+
+[node name="CombatController" type="Node" parent="."]
+script = ExtResource("10")
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("2")
+walk_speed = 3.1
+run_speed = 4.3
+
+[node name="MovementController" type="Node" parent="Locomotion"]
+script = ExtResource("4")
+
+[node name="Moves" type="Node" parent="Locomotion/MovementController"]
+
+[node name="Grounded" type="Node" parent="Locomotion/MovementController/Moves"]
+script = ExtResource("5")
+
+[node name="Airborne" type="Node" parent="Locomotion/MovementController/Moves"]
+script = ExtResource("6")
+
+[node name="Visual" type="Node3D" parent="."]
+script = ExtResource("3")
+
+[node name="BodyMesh" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.85, 0)
+visible = false
+mesh = SubResource("actor_mesh")
+surface_material_override/0 = SubResource("enemy_material")
+
+[node name="Model" parent="Visual" instance=ExtResource("18")]
+
+[node name="AnimationPresenter" type="Node" parent="."]
+script = ExtResource("19")
+profile = ExtResource("20")
+run_speed_threshold = 3.7
+
+[node name="CombatAnimationAdapter" type="Node" parent="."]
+script = ExtResource("21")
+
+[node name="GunReloadVisual" type="Node" parent="."]
+script = ExtResource("22")
+
+[node name="EnemyAppearance" type="Node" parent="."]
+script = ExtResource("23")
+
+[node name="SocketSource" type="Node" parent="."]
+script = ExtResource("17")
+
+[node name="Socket" type="Marker3D" parent="Visual"]
+position = Vector3(0.35, 1.05, 0)
+
+[node name="Equipment" type="Node3D" parent="."]
+script = ExtResource("11")
+mount_source_path = NodePath("../SocketSource")
+
+[node name="AimTargetProvider" type="Node" parent="."]
+script = ExtResource("12")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.4
+height = 1.7
+path_desired_distance = 0.45
+target_desired_distance = 0.6
+
+[node name="TargetSensor" type="Node" parent="."]
+script = ExtResource("13")
+acquisition_range = 25.0
+
+[node name="AINavigation" type="Node" parent="."]
+script = ExtResource("14")
+
+[node name="AttackPolicy" type="Node" parent="."]
+script = ExtResource("15")
+attack_id = &"bat_swing"
+maximum_range = 1.65
+requires_equipment = true
+
+[node name="AIController" type="Node" parent="."]
+script = ExtResource("16")
