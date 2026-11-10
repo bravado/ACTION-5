@@ -221,13 +221,20 @@ independent of map geometry.
 
 `tests/d08_world_suite.gd` separately covers persistent inventory,
 dropped weapons, NPC state, physically authoritative doors, roof
-presentation, fresh/restore entry and Restart. The dungeon roof
-is a semi-transparent unshaded canopy (alpha 0.18) for side, arcade,
-isometric and overhead cameras, hidden only in first person. It casts
-no shadows; its CollisionShape3D remains authoritative in every mode.
-The dungeon's two fill lights use modest energy (0.65 and 0.5), while
-the world sun is shared with the arena. This avoids the earlier
-all-black ceiling and overbright floor without inventing another scene.
+presentation, fresh/restore entry and Restart. The dungeon ceiling
+is a **physics-only** StaticBody3D without a rendered Mesh. Its prior
+transparent world-space cube at Y=4 tinted only the upper half of the
+screen when a side/arcade camera looked underneath it.
+`demo/interactions/roof_visibility.gd` now provides a uniform
+full-viewport translucent 18%-opacity blue tint with a CanvasLayer
+(layer 0, under HUD layer 1), enabled only in the dungeon in
+views 1/2/3/5 and hidden for first person. The ColorRect has
+`MOUSE_FILTER_IGNORE`, and its anchors span the viewport regardless
+of camera orientation/aspect ratio. This is a **presentation** effect:
+the ceiling CollisionShape3D remains physically authoritative.
+The dungeon's two lights remain modest (0.65 and 0.5), and the shared
+world sun is unchanged. Regress both screen coverage and ceiling
+physics independently.
 Portal doors use the
 shared `WorldDoor.keep_visual_when_open = true` option: opening disables
 physical collision and enables the navigation link, but keeps the
