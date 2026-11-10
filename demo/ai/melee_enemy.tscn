@@ -6,6 +6,6 @@
 
 [node name="MeleeEnemy" instance=ExtResource("1")]
 
-[node name="InitialWeapon" type="Node" parent="." index="17"]
+[node name="InitialWeapon" type="Node" parent="." index="15"]
 script = ExtResource("2")
 weapon_scene = ExtResource("3")
