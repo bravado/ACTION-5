@@ -188,9 +188,10 @@ draft. `demo/main.tscn` owns one live Player, Equipment/Health/Combat,
 ViewManager and a separately authored `demo/world/encounter_sector.tscn`
 dungeon. The arena and dungeon now **share a world-space boundary**:
 the arena floor ends at X=14, and the dungeon (origin X=26, floor
-half-width 12) starts at X=14 on the same height and orientation.
+half-width 12) starts at X=14 on the same height and orientation. The gateway is centered on Z=0,
+so the default F1 side-scroller lane can reach it without switching views.
 The arena east wall is split above and below a real opening at
-**X=14, Z=-4**, with an overlapping `PassageFloor` slab so there
+**X=14, Z=0**, with an overlapping `PassageFloor` slab so there
 is no unsupported physics seam. The dungeon supplies its other three
 enclosing walls.
 
