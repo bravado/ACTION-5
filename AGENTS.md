@@ -420,9 +420,11 @@ Movement move IDs are queued and the latest intent is used at the next
 physics tick. Combat heading is snapshotted at request time; a second
 concurrent request is rejected. Add a third enemy by scene inheritance and
 a configured attack policy, not new core conditionals. Test real
-`demo/ai/encounter.tscn` physics with `tests/d07_suite.gd`, plus
-`make check` and native/WebGL2 Full E2E. The separate demo AI
-encounter runs with `godot --path . res://demo/ai/encounter.tscn`.
+`demo/world/encounter_sector.tscn` physics with `tests/d07_suite.gd`.
+The suite instantiates `demo/main.tscn`, activates the existing dungeon
+via WorldSession, and uses that same scene's Player/ViewManager/CombatInput.
+Run `make check` and native/WebGL2 Full E2E. Never recreate a second
+standalone enemy-map/Player scene just for tests.
 
 
 ## D07 AI hardening contract (PR #33)
@@ -440,10 +442,11 @@ AI-driven damage without direct Combat requests, startup target loss/cover,
 autoreload, weapon cleanup and F1–F5 switching. D08 transitions and scene
 persistence belong in PR #34, not this D07 component milestone.
 
-D07 standalone scene rule: compose `CombatInputAdapter` with the player's
-`EquipmentAttackSelector` in every playable encounter; locomotion-only
-`ActorInputAdapter` does not dispatch punch/kick. Regress both actions
-through normal InputMap events and real Health damage, not direct Combat calls.
+D07 input rule: compose `CombatInputAdapter` with the player's
+`EquipmentAttackSelector` in every playable world; locomotion-only
+`ActorInputAdapter` does not dispatch punch/kick. Regress both actions in
+the shared dungeon through normal InputMap events and real Health damage,
+not direct Combat calls.
 
 
 D07 enemy presentation: `demo/ai/enemy.tscn` composes the existing
@@ -465,7 +468,7 @@ Never move attack authority into the animation layer.
 ## D07 merged baseline → D08 implementation handoff
 
 Merged PR #33 supplies D07 NPC AI/physical encounter and optional visual
-composition. Standalone player `CombatInputAdapter` is a D07 fixture bugfix;
+composition. Player `CombatInputAdapter` is shared by all room instances;
 E interaction, scene doors, restart UI, snapshots and persistent-world
 handoff belong to D08 issue #16 and draft PR #34. D08's prototype
 `change_scene_to_packed()` travels by replacing scenes and cannot satisfy
@@ -480,8 +483,9 @@ reopening the shared movement/combat/animation cores.
 The D07 merged baseline passed 1,018/1,018 pinned Godot assertions and
 native/Linux plus real WebGL2 Full E2E on GitHub Actions run
 #42871200034. The existing automated visual capture renders the main
-demo, not the D07 encounter: when changing NPC animation/weapon geometry,
-run `demo/ai/encounter.tscn` directly and inspect all five camera modes.
+demo, but may not travel into the dungeon: when changing NPC
+animation/weapon geometry, run `demo/main.tscn`, enter the dungeon via E,
+and inspect all five camera modes. The D07 suite uses that same dungeon.
 For D08, keep its session/restart state separate from AI and combat
 and add independent persistent-world traversal acceptance tests.
 
@@ -500,5 +504,7 @@ MovementPolicy, ActorInputAdapter or CameraRig. The generic bounded
 F2/F5 camera heading is invariant even when its position clamps to the
 map edge; preserve F3/F4 yaw and user camera settings. Run `tests/d08_camera_sector_suite.gd` through
 `make check` for every new room, and validate WASD in all five views
-both before and after a doorway. The older standalone
-`demo/ai/encounter.tscn` is still needed for D07 tests.
+both before and after a doorway. There is no standalone D07 encounter scene; `tests/d07_suite.gd`
+activates the dungeon inside `demo/main.tscn`. The obsolete scene-reload
+transition suites and one-use handoff adapters were retired with the
+duplicate scene. New scenarios must use the shared-world fixture.
