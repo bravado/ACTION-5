@@ -226,12 +226,16 @@ the grip and the attached weapon mesh together, without changing world
 physics or adding an animation clock. NPCs have no private F4 model. See
 [equipment authoring and current state](equipment.md) and ADR-0005.
 
-**D06-02 is still pending.** A Gun instance should own its ammo/reload and
-hitscan behavior, request actions through the D05 clock and aim interfaces,
-then trace independently from the **actual world muzzle**. A clear
-camera-target ray alone never authorizes damage; melee box sweep is not
-a ranged hit solver. No Bat/Shovel/Gun ID dispatch is allowed in shared
-equipment, combat, camera, animation or movement classes.
+**D06-02 Gun (PR #32):** Gun instance owns its ammo/reload and
+hitscan behavior, observes D05's active-phase transition exactly once and
+traces independently from the actual **world muzzle**. A camera ray only
+selects a world target; it never authorizes damage. The injected world
+aim provider may read a player ActionInputContext (F4/F5) or accept an NPC
+target node without a Camera3D. Render-only projectile, recoil and
+reload adapters subscribe to gameplay signals; a visible tracer is
+not a second collider or a delayed hit. No Bat/Shovel/Gun ID dispatch
+is allowed in shared equipment, combat, camera, animation or movement.
+For the immutable seam and future AI/interaction handoff see [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## VT-08 — Fast melee and moving hurtboxes
 

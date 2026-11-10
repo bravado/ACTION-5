@@ -98,3 +98,19 @@ D02 regression tests cover switching all **five** modes 20 times, preserving act
 GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the current D02 pull request for its validated build and run artifacts.
 
 **D02 boundary:** the actor remains a simple placeholder. Full jumping, reusable action intents, facing/aim policies, combat and animations are *not* delivered until D03–D07. D02 must pass review before D03 work starts.
+
+
+## D06-02 view aim versus world muzzle (PR #32)
+
+The view-specific `Action5ViewAimTargetProvider` reads the existing
+`ActionInputContext`: F4 uses the center Camera3D ray to find a target,
+F1–F3 use unquantized world aim/facing, F5 can apply 8-way quantization
+only in this provider. In every mode a **separate** world-space ray from
+the gun's physical Muzzle to that target enforces obstruction. A visible
+projectile/tracer is created in the world scene from the resolved hit and
+never follows the camera or F4-only model. The camera-free NPC provider
+does not depend on ViewManager; see [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
+For future F5 4-way sword/8-way gun policies, keep view-specific
+quantization here/in action input selection, not a hard-coded flag in
+CombatController, because `AttackDefinition.facing_sectors` applies
+to **every** view.

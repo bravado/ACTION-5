@@ -204,3 +204,19 @@ Required:
 
 The demo uses capsules and boxes as *reproducible placeholder art*;
 it is structurally ready for a high-quality imported first-person rig.
+
+
+## D06-02 camera-local gun and true world projectile
+
+A Gun has only one authoritative world instance; it exposes a world
+`Muzzle` that resolves every physical hitscan. In F4 the independent
+`GunFirstPersonViewmodel` renders the grip and optional reload poses,
+receiving the existing equipped instance through the visual-only
+`set_visual_source()` port. It cannot aim, reload, duplicate damage
+or supply the projectile origin. `Action5GunProjectilePresenter`
+spawns a noncolliding emissive tip/trail in the **world scene** to the
+resolved wall/target point, so its real visual trajectory remains
+consistent across F1–F5 and survives shooter removal. Native F3/F4
+in-flight captures and a real WebGL2 firing/pickup test form the
+automated smoke; subjective near-camera muzzle/grip alignment still
+requires owner visual inspection. See ADR-0006.

@@ -4,7 +4,8 @@
 and the reusable equipment contract are implemented and approved in PR #31.**
 Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
-D06-02 Gun and D07 AI remain separate future deliverables.
+D06-02 Gun is implemented in PR #32 (under review), while D07 AI remains
+a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 development branch: hitscan gun (automated validation passed; manual visuals pending)
 
@@ -47,14 +48,16 @@ for this animation. Empty magazines, buffered/cancelled attacks and reloads
 produce no projectile because they never emit `fired`.
 
 The projectile's `top_level` world transform fixes its trajectory even if
-the shooter runs, turns, drops or switches cameras during flight. Meshes
+the shooter runs, turns, drops, destroys the weapon or switches cameras during flight. Meshes
 are created only when firing, **after** equipment registered world-weapon
 meshes, and remain on normal world layer 1 so F4 sees them without a
 second visual-only weapon or camera-type checks. The presenter reconnects
 its event listener in `_enter_tree()` after any weapon reparent (world,
 stowed, socket), because Godot does not invoke `_ready()` again on
-reparent. Its `_exit_tree()` disconnects and children are automatically
-freed on weapon destruction.
+reparent. Its `_exit_tree()` disconnects. Each spawned projectile is
+attached to the **world scene**, not to the gun: an in-flight effect
+survives weapon destruction, view switching or actor teardown and frees
+itself after a bounded duration. No global effect manager is required.
 
 To customize for another gun, author a separate PackedScene using the
 `Action5ProjectileVisual` script, then assign it to that gun's
@@ -79,6 +82,8 @@ rejects a new reload request. Weapon switching does not construct a second
 gun or a second gameplay clock. The GunReloadVisual adapter listens to
 reload events for the world skinned reload clip (if authored). F4 selects a
 camera-space reload grip; its visual pose cannot finish the reload.
+The world reload adapter only clears an upper-body clip when it actually
+owns that clip, preventing unintended cancellation of another action.
 
 **Extension:** Copy the Gun scene/resource pair, author a new unique
 AttackDefinition (use_melee_hit_query=false, facing_sectors=Free, own
@@ -90,6 +95,17 @@ actor-local Node implementing get_world_target(origin, range, exclude).
 Choose clip profiles via authored F4 resources and an optional world
 animation adapter. No actor/locomotion/movement/animation/combat/equipment
 core branches are needed for another gun.
+
+**Camera-free NPC example:** `Action5ActorTargetAimProvider` is a second
+concrete implementation of that same aim port. An AI decision component
+sets its target using `set_target(Node3D)`; assign the NPC gun's
+`aim_provider_path = ^"WorldTarget"` to the actor-local node. Missing
+or freed targets return the current muzzle origin (invalid shot), so no
+ammo or effect is produced. The target provider does not reference the
+player, camera, InputMap or navigation; the AI issues an ordinary D05
+attack request and the physical muzzle enforces occlusion. Tested in
+`tests/d06_gun_suite.gd` on a real camera-free CharacterBody3D with its
+own Health, CombatController, Equipment and mount source.
 
 **Shared visual adapter exception:** A tiny optional
 set_visual_source(weapon) call was added to EquipmentVisualAdapter when
@@ -116,11 +132,24 @@ creation event, and captures F4 idle, J fire and R reload. These
 are automated rendering smoke artifacts, **not** subjective manual
 inspection of grip, aim alignment and obstruction.
 
-**Automated acceptance (2026-11-09):** [CI #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885) passed **941 Godot assertions (0 failures)** and Linux/native + WebGL2 Full E2E, including all native Gun screenshots, browser E pickup / J attack / R reload screenshot captures, existing D05/D06-01 regressions and negative-runner self-test. Manual owner review of F1–F5 physical/visual gun alignment, F4 grip and reload, near-wall obstruction and F5 directional aim is still required before this draft becomes merge-ready.
+**Automated acceptance:** earlier gun-only [CI #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885)
+passed 941 assertions and native/WebGL2 Full E2E. Following the
+optional projectile and architectural hardening, [checks run
+#42729829975](https://github.com/bravado/ACTION-5/actions/runs/42729829975)
+passed **958 assertions, 0 failures**, including a camera-free NPC,
+reload overlay ownership and world-owned projectile teardown. An earlier
+expanded browser run [#42728334557](https://github.com/bravado/ACTION-5/actions/runs/42728334557)
+failed because its fixed-time WASD sequence selected the Bat rather
+than reaching the distant pistol; the browser scenario now uses bounded
+real-input movement/pickup attempts and requires latest-head Full E2E.
+Manual review of F1–F5 visual gun alignment, F4 grip/reload/tracer,
+near-wall obstruction and F5 directional aim remains required before merge.
 
 **Testing and handoff:** tests/d06_gun_suite.gd is registered with
 tests/run_all.gd and covers shots, body exclusions, obstruction, reload
-across views, alternate gun scene and cleanup. Automated import/tests, native screenshots and WebGL2 Full E2E passed on the cited branch head. Perform real manual visual inspection before marking issue #14 complete. No release approval or issue closure is implied.
+across views, alternate gun scene and cleanup. The 958-assertion headless suite passed; the latest extended Full E2E
+and real manual visual review remain separate acceptance gates. Do not
+close issue #14 based on documentation or screenshots alone. No release approval or issue closure is implied.
 
 ---
 

@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun and D07 AI remain pending.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
+Read `PLAN.md` completely before implementing anything. Follow the D01–D12 deliverable sequence and the explicit exit gates. **D01–D05 are merged (D05 via squash PR #28). D06-01 Bat/Shovel equipment is complete and validated in approved PR #31 (908 headless assertions; native/WebGL2 Full E2E and owner visual review passed). D06-02 Gun is under review in PR #32; D07 AI remains next.** Standalone movement examples can have separate PRs without expanding combat scope. Do not generate the framework in one untested change.
 
 ## Product invariant
 
@@ -284,7 +284,7 @@ after merging PR #31. D06-02 (#14) and D07 (#15) remain separate tasks.
 
 ## Starting task
 
-**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. The next feature is D06-02 Gun (#14), then D07 AI (#15), both using those established ports.
+**D01–D05 are merged; D06-01 Bat/Shovel is complete in approved PR #31.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) is implemented in PR #32, then D07 AI (#15) follows using those same established ports.
 ## D06-02 gun extension (implementation in PR, validation pending)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
@@ -298,7 +298,7 @@ render-only reload pose. A second gun config must need no shared core edits.
 An equipped shot blocked by geometry still spends one round; cancelled
 startup/empty magazine does not. Stowing cancels reload, preserves ammo.
 Pinned Godot 4.7.2 checks and native/WebGL2 Full E2E passed on
-2026-11-09 ([run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885), 941 assertions, 0 failures).
+earlier ([run #42680870885](https://github.com/bravado/ACTION-5/actions/runs/42680870885), 941 assertions, 0 failures); latest architectural hardening passed 958 assertions in [run #42729829975](https://github.com/bravado/ACTION-5/actions/runs/42729829975).
 Keep issue #14 open until the owner's five-view visual acceptance passes. Consult docs/equipment.md for authoring and boundaries.
 
 ## Add a projectile/tracer without affecting hit authority
@@ -311,9 +311,31 @@ to the returned impact; no extra physics ray, hurtbox, HP, damage, ammo,
 combat clock or view-mode branch belongs in presentation. An animated
 bright tip/trail is intentionally not a ballistic gameplay projectile.
 Never parent a tracer to the F4 viewmodel: all five views observe one
-world-shot trajectory. Its top-level transform must not follow the gun
+world-shot trajectory. Its top-level world scene parent must not follow or die with the gun
 after firing. The gun may be reparented multiple times in its lifetime:
 subscribe to `fired` in `_enter_tree()`, disconnect in `_exit_tree()`,
 not `_ready()` alone. Verify no visuals for dry/cancelled shots, no
 colliders, one effect per shot, automatic cleanup, physical near-wall
 endpoint, and optional per-gun scene/color. See docs/equipment.md.
+
+## D06-02 review/merge and D07–D12 extension handoff (ADR-0006)
+
+Read [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md).
+A new gun needs only scene/resources and a world muzzle; no edits to Actor,
+Locomotion, MovementController, AnimationPresenter, EquipmentController,
+CombatController or camera classes. Gun receives a replaceable actor-local
+`get_world_target(origin, range, exclude)` port, **not** a camera. The
+shipped `Action5ActorTargetAimProvider` demonstrates an AI world-target
+source; D07 must provide the decision/nav target producer, NOT another gun
+or damage clock. The optional projectile presenter always attaches visual
+effects to the world scene, never the weapon, with no collider or hits.
+An independent reload adapter may clear ONLY the overlay it successfully
+set. D08 world props use existing physics masks, D09's F5-only 4-/8-way aim
+remains a view policy, D10 validations are optional, D11 reuses the existing
+runner, and D12 requires addon-only runtime installation.
+
+**Review gates:** latest-head Godot headless checks, Linux native rendered
+captures and real WebGL2 smoke must all pass (the extended in-flight
+projectile scenario is required), followed by owner F1–F5 visual sign-off
+and final PR review. Merely having a passing earlier-head test or a
+successful screenshot capture does not constitute merge approval.

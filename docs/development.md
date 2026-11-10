@@ -133,4 +133,21 @@ Under **Settings → Rules → Rulesets** (or **Settings → Branches → Branch
 Do **not** require the workflow display name (`ACTION-5 CI`), deployment job (`CI / Deploy Pages`), individual step names, old milestone-specific job names, or `sync-roadmap`. No workflow-level path filters are used, since skipping an entire required workflow could leave checks pending. Select **Require status checks to pass before merging**; avoid **Require branches to be up to date before merging** if minimizing repeated runner time is important. Check names appear in the required-check selector after the revised workflow has run.
 
 
-D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. D05 combat and D06-01 Bat/Shovel equipment are complete. For the accepted D06-01 extension ports see [equipment authoring](equipment.md) and [ADR-0005](adr/0005-equipment-lifecycle.md); the next tasks are D06-02 Gun and D07 AI, both independent of core movement/animation classes.
+D02 provides cameras, D03 adds reusable movement and plug-in moves, and D04 adds imported skeletal clips, bone sockets and local FPS visibility. New move authors and coding agents should start with **[adding-moves.md](adding-moves.md)**, then refer to [locomotion](locomotion.md), [animation](animation.md) and [camera](cameras.md) contracts. The crouch reference is exercised in `tests/crouch_suite.gd` and real browser F4-eye/side-profile captures. D05 combat and D06-01 Bat/Shovel equipment are complete. For the accepted D06-01 extension ports see [equipment authoring](equipment.md) and [ADR-0005](adr/0005-equipment-lifecycle.md); D06-02 Gun is implemented in PR #32 (the final Full E2E and owner visuals are review gates), and D07 AI is next; both stay independent of core movement/animation classes. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md) for camera-free ranged AI, muzzle ray and tracer ownership.
+
+
+### D06-02 review matrix
+
+Use `make check` (pinned Godot 4.7.2; latest test log prints
+`ACTION5_TEST_RESULT assertions=958 failures=0`), and opt into the
+existing PR Full E2E by including `[full-e2e]` in the final commit
+message. Full E2E checks real native F1–F5 Gun scenes, F3/F4 in-flight
+tracer screenshots, rendered reload/near-wall frames and actual
+WebGL2 E pickup/J attack/R reload input. On software-rendered CI,
+browser walking distance is not proportional to wall-clock sleeps;
+use bounded real-input pickup attempts instead of a fixed movement
+delay, and never add a test-only teleport or a separate game clock.
+Only after latest-head automated checks pass should the PR be marked
+ready for external review. The owner must visually approve F1–F5
+alignment, projectile/trail readability and muzzle occlusion before
+squash/merge. Do not mark issue #14 complete in advance.

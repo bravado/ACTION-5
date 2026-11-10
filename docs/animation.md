@@ -292,3 +292,20 @@ AnimationTree transitions, animated hand attachments and F3/F4 continuity.
 
 **Not D04:** combat timelines/hitboxes (D05), real weapon state/aim (D06),
 enemy AI (D07), advanced retargeting tools and photorealistic assets.
+
+
+## D06-02 gun/reload/tracer presentation ownership
+
+The physical Gun is attached to the existing world skeleton socket. Its
+`WorldRecoil` is a non-authoritative mesh pivot, while the world
+`Muzzle` marker is a sibling and therefore never moves with recoil.
+The local-player F4 `Action5GunFirstPersonViewmodel` inherits the same
+authored grip/arm geometry as Bat and Shovel and switches to an optional
+reload profile by inspecting the equipped Gun's read-only visual state.
+The separate `GunReloadVisualAdapter` listens to reload start/end and
+clears its world upper-body overlay **only** if it successfully started
+that clip and it is still active; it must not clear unrelated actions.
+An optional world-owned emissive tracer listens to the Gun's already-
+resolved `fired` event. None of these nodes changes the D05 action
+clock or hit authority. A camera-free NPC can omit all of them. See
+[ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
