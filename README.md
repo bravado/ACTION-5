@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is in progress**: draft PR #34 now uses a physically continuous arena/dungeon, one live player, one shared gate and optional room-state policies; acceptance tests/native-WebGL2 review are still pending. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is in progress**: draft PR #34 demonstrates a physically connected opaque arena/dungeon gate with latched enemy discovery, plus an independent remote PackedScene portal; full native/WebGL2 and owner visual acceptance are still required. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
@@ -168,3 +168,37 @@ ceiling collider**, but no visual mesh/shadows; two subdued interior
 lights complement the shared world sun. D08 CI, fresh-entry lifecycle and
 manual native/WebGL2 acceptance remain separate review gates; PR #34
 has not been merged.
+
+### Two travel connections (D08 PR #34, draft)
+
+**Connected gate:** Walk right from the initial arena to **X=14, Z=0**.
+Press **E** within reach of the teal door to toggle its real physical
+barrier; then walk through to the dungeon. The same E command works
+from either side. With the gate **closed**, the other room is hidden
+from rendering in all five cameras. The dungeon's floor and physics
+are independently preloaded, but enemies **do not acquire the player**
+through that closed door. Once they discover the player through an
+opened gate, they retain aggro if it shuts again; collision, weapon
+sight and the navigation link remain authoritative, so they cannot
+shoot or walk through a closed panel.
+
+**Remote portal:** The **purple portal** at **X=-11.5, Z=0** is a
+different component. Press **E** to load
+`demo/world/remote_chamber.tscn` at a detached location, with **the
+same live player, camera, inventory and combat components**. In that
+chamber, walk toward the **RETURN TO ARENA [E]** portal to go back.
+Remote environments are cached and CPU-paused when absent; there is
+no second Player/ViewManager. `LocationPortal` can alternatively
+target any authored Marker3D in the existing world, without a new
+PackedScene. Explicit remote travel may reframe the camera; adjacent
+door crossing never changes camera bounds.
+
+The generic `Action5Interactor` accepts optional near-side
+`get_interaction_point(actor)` handles for large opaque doors. AI
+`Action5AITargetSensor` has an optional
+`allows_acquisition(observer, candidate)` filter; the example
+`DoorAcquisitionFilter` is plugged in by the demo WorldSession, not
+hardcoded into AI/movement/combat cores. Tests:
+`tests/d08_connections_suite.gd` (real E input, visibility, aggro,
+remote cached visits), `tests/d08_world_suite.gd` (inventory, fresh
+entry and door physics), and `tests/d08_camera_sector_suite.gd`.
