@@ -172,6 +172,16 @@ NavigationRegion3D plus a conditional door NavigationLink3D.
 When adding more doors, compose independent acquisition filters and
 navigation links rather than testing global is_dungeon flags.
 
+When an enemy physically crosses into the arena while the gate is
+open, closing the gate does **not** make that enemy invisible or stop
+its movement just because it was instanced in the dungeon. The
+D08 `RoomVisibility` adapter hides static sector render nodes but
+presents each mobile enemy according to its *current* physical
+side of the door. `WorldSession` keeps previously alerted or
+crossed enemies active after the dungeon preload window is left.
+The closed gate blocks sight **only when the enemy and player remain
+on opposite sides**. Aggro is retained either way.
+
 `tests/d08_connections_suite.gd` verifies that enemies stay
 unalerted as the player approaches a **closed** adjacent door,
 become alerted when it opens, and keep their acquired target after
