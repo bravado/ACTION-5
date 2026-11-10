@@ -193,6 +193,12 @@ target any authored Marker3D in the existing world, without a new
 PackedScene. Explicit remote travel may reframe the camera; adjacent
 door crossing never changes camera bounds.
 
+Enemies that **already crossed into the arena** remain visible
+and continue to fight on the arena side even if the door closes
+behind them. Only the opposite room's static geometry is hidden;
+the gate still blocks sight and movement for enemies on its other
+side.
+
 The generic `Action5Interactor` accepts optional near-side
 `get_interaction_point(actor)` handles for large opaque doors. AI
 `Action5AITargetSensor` has an optional
