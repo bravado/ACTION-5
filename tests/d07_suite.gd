@@ -61,6 +61,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D07 encounter wires player combat and equipment attack selection")
     melee_ai.set_physics_process(false)
     ranged_ai.set_physics_process(false)
+    melee.apply_move_intent(IntentScript.new())
+    ranged.apply_move_intent(IntentScript.new())
     player.global_position = arena.global_position + Vector3(-8, 0.15, -5)
     melee.global_position = arena.global_position + Vector3(-8, 0.15, -6)
     player.velocity = Vector3.ZERO
