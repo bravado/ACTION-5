@@ -154,7 +154,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     verify.call(encounter.get_node_or_null("ReturnDoor") == null
         and door.get_instance_id() == arena_door_id
-        and door.global_position.distance_to(Vector3(14, 0, -4)) < 0.01,
+        and door.global_position.distance_to(Vector3(14, 0, 0)) < 0.01,
         "The same gateway is seen from both areas; no duplicate far-side return door")
     # E works from the opposite physical side, too. The panel closes and
     # opens again while the Player's position stays unchanged.
@@ -180,7 +180,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(world.current_sector == &"arena" and encounter.visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
         "Return detects arena while keeping the dungeon loaded near the real shared doorway")
-    player.global_position = stage.to_global(Vector3(5, 0.15, -4))
+    player.global_position = stage.to_global(Vector3(5, 0.15, 0))
     await _physics_frames(tree, 3)
     verify.call(not encounter.visible and encounter.process_mode == Node.PROCESS_MODE_DISABLED,
         "Dungeon AI and physics pause when player moves beyond the gateway preload range")
