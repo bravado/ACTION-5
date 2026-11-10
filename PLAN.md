@@ -749,5 +749,13 @@ Reference compositions are `demo/ai/melee_enemy.tscn` and
 pre-authored navigation ring. `tests/d07_suite.gd` runs physics checks.
 Scope deliberately excludes behavior trees, path caching, networking,
 and a new attack/animation timeline. See `docs/ai.md`.
-**Verification is pending CI and owner native/WebGL2 visual review**;
-do not mark issue #15 completed or merge until the gates pass.
+**Original isolated head:** 995/995 Godot assertions, Linux and WebGL2
+Full E2E passed. Follow-up P1/P2 hardening adds autonomous melee/ranged
+engagement tests, range/cover changes during attack startup, explicit reload
+selection, rejected-action state, death processing and teardown. **The new
+head requires fresh CI and owner manual encounter visual review.** Do not
+mark issue #15 completed or merge until both gates pass.
+
+**D08 boundary:** Scene doors, restarted/fresh room state, persistent worlds
+and inventory handoff remain exclusively in stacked draft PR #34. Do not
+fold D08 features into this D07 AI fix.
