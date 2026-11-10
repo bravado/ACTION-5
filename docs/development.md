@@ -221,6 +221,12 @@ independent of map geometry.
 
 `tests/d08_world_suite.gd` separately covers persistent inventory,
 dropped weapons, NPC state, physically authoritative doors, roof
-presentation, fresh/restore entry and Restart. D08 release readiness
+presentation, fresh/restore entry and Restart. Portal doors use the
+shared `WorldDoor.keep_visual_when_open = true` option: opening disables
+physical collision and enables the navigation link, but keeps the
+glowing destination marker visible for return and repeat visits.
+Ordinary hinged panels keep the default `false` and disappear when
+opened. Both the arena and dungeon portals have explicit round-trip
+visual-state regressions; sector CPU pausing does not clear door state. D08 release readiness
 still requires passing fresh head-specific CI, native/WebGL2 traversal
 and manual visual checks; these docs do **not** imply PR #34 is merged.
