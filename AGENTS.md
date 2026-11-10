@@ -440,3 +440,8 @@ Health and the actor's alive state. Regression coverage must include real
 AI-driven damage without direct Combat requests, startup target loss/cover,
 autoreload, weapon cleanup and F1–F5 switching. D08 transitions and scene
 persistence belong in PR #34, not this D07 component milestone.
+
+D07 standalone scene rule: compose `CombatInputAdapter` with the player's
+`EquipmentAttackSelector` in every playable encounter; locomotion-only
+`ActorInputAdapter` does not dispatch punch/kick. Regress both actions
+through normal InputMap events and real Health damage, not direct Combat calls.
