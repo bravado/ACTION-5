@@ -53,6 +53,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and stage.get_node("Interactor") != null,
         "World boots with an inactive CPU-paused encounter and independent Interactor")
 
+    # Default doors remain hide-on-open; only explicitly configured
+    # travel portals keep a recognizable visible destination marker.
+    var normal_door := Node3D.new()
+    normal_door.name = "PlainDoorFixture"
+    normal_door.set_script(load("res://demo/interactions/world_door.gd"))
+    var normal_mesh := MeshInstance3D.new()
+    normal_mesh.name = "DoorMesh"
+    normal_door.add_child(normal_mesh)
+    stage.add_child(normal_door)
+    normal_door.call("set_open", true)
+    verify.call(not normal_mesh.visible
+        and not bool(normal_door.get("keep_visual_when_open")),
+        "Ordinary door panels still hide when opened; persistent marker is opt-in")
+    normal_door.call("set_open", false)
+    verify.call(normal_mesh.visible,
+        "Closing an ordinary door restores its panel visibility")
+    normal_door.queue_free()
+
     player.global_position = stage.get_node("BatPickup").global_position
     _press(stage, KEY_E)
     var bat := equipment.get("current_weapon") as Node3D
