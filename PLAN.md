@@ -759,3 +759,10 @@ mark issue #15 completed or merge until both gates pass.
 **D08 boundary:** Scene doors, restarted/fresh room state, persistent worlds
 and inventory handoff remain exclusively in stacked draft PR #34. Do not
 fold D08 features into this D07 AI fix.
+
+
+**D07 encounter input regression:** The standalone encounter must compose
+`CombatInputAdapter` and the player's existing `EquipmentAttackSelector`,
+not just `ActorInputAdapter`. Both punch and kick are tested by feeding
+normal InputMap actions and observing real enemy Health damage. This belongs
+to D07; D08 scene transitions remain in PR #34.
