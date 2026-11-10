@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=37 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -14,6 +14,15 @@
 
 [ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
+[ext_resource type="Script" path="res://demo/interactions/scene_door.gd" id="14_door"]
+[ext_resource type="PackedScene" path="res://demo/ai/encounter.tscn" id="15_encounter"]
+[ext_resource type="Script" path="res://demo/interactions/interact_input.gd" id="16_interaction"]
+[ext_resource type="PackedScene" path="res://demo/ui/death_overlay.tscn" id="17_death"]
+[ext_resource type="Script" path="res://demo/interactions/scene_handoff_receiver.gd" id="18_receiver"]
+
+[ext_resource type="Script" path="res://demo/interactions/world_pickup_state.gd" id="19_world_pickups"]
+
+[ext_resource type="Script" path="res://demo/interactions/scene_visit_state.gd" id="20_scene_state"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -62,6 +71,15 @@ size = Vector3(1.0, 0.3, 2.5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_step"]
 size = Vector3(1.0, 0.3, 2.5)
+
+[sub_resource type="BoxMesh" id="DoorMesh"]
+size = Vector3(0.24, 2.45, 2.1)
+
+[sub_resource type="StandardMaterial3D" id="DoorMaterial"]
+albedo_color = Color(0.18, 0.53, 0.67, 1.0)
+emission_enabled = true
+emission = Color(0.03, 0.20, 0.27, 1.0)
+emission_energy_multiplier = 1.4
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_main")
@@ -175,6 +193,24 @@ position = Vector3(2.1, 0.0, -2.0)
 [node name="FarDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(-3.0, 0.0, -5.0)
 
+[node name="EncounterDoor" type="Node3D" parent="." groups=["action5_interactable"]]
+position = Vector3(12.4, 0, -4)
+script = ExtResource("14_door")
+destination_scene = ExtResource("15_encounter")
+
+[node name="DoorMesh" type="MeshInstance3D" parent="EncounterDoor"]
+position = Vector3(0, 1.225, 0)
+mesh = SubResource("DoorMesh")
+surface_material_override/0 = SubResource("DoorMaterial")
+
+[node name="DoorLabel" type="Label3D" parent="EncounterDoor"]
+position = Vector3(-0.28, 2.75, 0)
+text = "ENCOUNTER  [E]"
+font_size = 44
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
+
 [node name="ViewManager" type="Node" parent="."]
 script = ExtResource("3_manager")
 initial_view_index = 1
@@ -199,6 +235,9 @@ action_selection_path = NodePath("../Player/EquipmentAttackSelector")
 
 [node name="WeaponCommandInput" type="Node" parent="."]
 script = ExtResource("13_weapon_command")
+
+[node name="InteractionInput" type="Node" parent="."]
+script = ExtResource("16_interaction")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, 24, 0)
@@ -270,3 +309,14 @@ offset_top = 204.0
 offset_right = 1254.0
 offset_bottom = 650.0
 script = ExtResource("6_settings")
+
+[node name="DeathOverlay" parent="." instance=ExtResource("17_death")]
+
+[node name="SceneHandoffReceiver" type="Node" parent="."]
+script = ExtResource("18_receiver")
+
+[node name="WorldPickupState" type="Node" parent="."]
+script = ExtResource("19_world_pickups")
+
+[node name="SceneVisitState" type="Node" parent="."]
+script = ExtResource("20_scene_state")

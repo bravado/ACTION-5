@@ -92,6 +92,8 @@ func _unhandled_input(event: InputEvent) -> void:
             match event.keycode:
                 KEY_E:
                     consumed = _pickup_closest_weapon()
+                    if not consumed:
+                        consumed = bool($InteractionInput.try_interact())
                 KEY_Q:
                     consumed = bool(_equipment.call("swap_next"))
                 KEY_G:
@@ -105,7 +107,8 @@ func _pickup_closest_weapon() -> bool:
     var best: float = float(_equipment.get("pickup_radius"))
     for candidate in get_tree().get_nodes_in_group("action5_weapon_pickup"):
         var weapon := candidate as Node3D
-        if weapon == null or bool(weapon.get("is_equipped")):
+        # Pickups from another instanced world must never claim this E press.
+        if weapon == null or not is_ancestor_of(weapon) or bool(weapon.get("is_equipped")):
             continue
         # Stowed items are still scene nodes, but no longer world pickups.
         if weapon.get("equipment_owner") != null:
@@ -244,7 +247,7 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D06 EQUIPMENT DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup | Q: swap | G: drop | R: gun reload | Unassigned actions: Punch/Kick"
+    _help.text = "ACTION-5 // D06 EQUIPMENT + D07 ENCOUNTER DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup / open encounter door | Q: swap | G: drop | R: gun reload | Unassigned actions: Punch/Kick | Door: east arena"
     var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
     front_wall_mesh.visible = (
         current.mode != ViewProfileScript.Mode.SIDE

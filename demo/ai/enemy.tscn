@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/actor/action_actor.gd" id="1"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2"]
@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://addons/action5/animation/combat_animation_adapter.gd" id="21"]
 [ext_resource type="Script" path="res://addons/action5/animation/gun_reload_visual_adapter.gd" id="22"]
 [ext_resource type="Script" path="res://demo/ai/enemy_appearance.gd" id="23"]
+[ext_resource type="Script" path="res://demo/ai/enemy_visit_state.gd" id="24"]
 
 [sub_resource type="CapsuleShape3D" id="actor_capsule"]
 radius = 0.35
@@ -137,3 +138,6 @@ requires_equipment = true
 
 [node name="AIController" type="Node" parent="."]
 script = ExtResource("16")
+
+[node name="VisitState" type="Node" parent="." groups=["action5_scene_persistable"]]
+script = ExtResource("24")

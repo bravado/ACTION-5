@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/combat/health.gd" id="1_health"]
 [ext_resource type="Script" path="res://addons/action5/combat/hurtbox.gd" id="2_hurtbox"]
 [ext_resource type="Script" path="res://demo/combat/training_target.gd" id="3_demo"]
+[ext_resource type="Script" path="res://demo/interactions/health_visit_state.gd" id="4_visit"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_dummy"]
 top_radius = 0.32
@@ -54,3 +55,6 @@ health_path = NodePath("../Health")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HeadHurtbox"]
 shape = SubResource("Sphere_dummy")
+
+[node name="VisitState" type="Node" parent="." groups=["action5_scene_persistable"]]
+script = ExtResource("4_visit")

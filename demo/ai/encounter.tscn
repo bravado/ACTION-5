@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://demo/ai/encounter.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2"]
@@ -9,6 +9,13 @@
 [ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="7"]
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="8"]
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9"]
+[ext_resource type="PackedScene" path="res://demo/ui/death_overlay.tscn" id="10"]
+[ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="11"]
+[ext_resource type="Script" path="res://demo/interactions/scene_door.gd" id="12"]
+[ext_resource type="Script" path="res://demo/interactions/interact_input.gd" id="13"]
+[ext_resource type="Script" path="res://demo/interactions/scene_handoff_receiver.gd" id="14"]
+[ext_resource type="Script" path="res://demo/interactions/world_pickup_state.gd" id="15"]
+[ext_resource type="Script" path="res://demo/interactions/scene_visit_state.gd" id="16"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -24,6 +31,15 @@ size = Vector3(3, 2.5, 3)
 
 [sub_resource type="StandardMaterial3D" id="obstacle_color"]
 albedo_color = Color(0.4, 0.45, 0.55, 1)
+
+[sub_resource type="BoxMesh" id="exit_mesh"]
+size = Vector3(0.28, 2.4, 2.0)
+
+[sub_resource type="StandardMaterial3D" id="exit_material"]
+albedo_color = Color(0.18, 0.53, 0.67, 1)
+emission_enabled = true
+emission = Color(0.03, 0.20, 0.27, 1)
+emission_energy_multiplier = 1.4
 
 [node name="Encounter" type="Node3D"]
 script = ExtResource("1")
@@ -77,6 +93,52 @@ script = ExtResource("8")
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9")
 action_selection_path = NodePath("../Player/EquipmentAttackSelector")
+
+[node name="WeaponCommandInput" type="Node" parent="."]
+script = ExtResource("11")
+
+[node name="DeathOverlay" parent="." instance=ExtResource("10")]
+
+[node name="EncounterHelp" type="CanvasLayer" parent="."]
+
+[node name="Help" type="Label" parent="EncounterHelp"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 1160.0
+offset_bottom = 86.0
+theme_override_font_sizes/font_size = 20
+text = "ACTION-5 // ENCOUNTER\\nWASD: move | 1-5: camera | LMB/J: punch | RMB/K: kick | Survive the enemies | E: return door"
+
+[node name="ReturnDoor" type="Node3D" parent="." groups=["action5_interactable"]]
+position = Vector3(9.4, 0, 5.2)
+script = ExtResource("12")
+destination_scene_path = "res://demo/main.tscn"
+
+[node name="DoorMesh" type="MeshInstance3D" parent="ReturnDoor"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("exit_mesh")
+surface_material_override/0 = SubResource("exit_material")
+
+[node name="DoorLabel" type="Label3D" parent="ReturnDoor"]
+position = Vector3(-0.3, 2.65, 0)
+text = "BACK TO ARENA  [E]"
+font_size = 44
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
+
+[node name="InteractionInput" type="Node" parent="."]
+script = ExtResource("13")
+handle_input = true
+
+[node name="SceneHandoffReceiver" type="Node" parent="."]
+script = ExtResource("14")
+
+[node name="WorldPickupState" type="Node" parent="."]
+script = ExtResource("15")
+
+[node name="SceneVisitState" type="Node" parent="."]
+script = ExtResource("16")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-50, 25, 0)
