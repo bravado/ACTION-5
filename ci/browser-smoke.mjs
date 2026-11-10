@@ -813,15 +813,19 @@ try {
     await page.keyboard.press('e', { delay: 110 });
     await page.waitForTimeout(220);
     if (weaponEvents.slice(beforeGun).some(line =>
-        line.includes('ACTION5_WEAPON_EQUIPPED id=gun'))) break;
-    // Bat/Shovel at spawn can be closer on the first attempts. Release the
-    // accidentally selected item and continue walking; no script teleport.
-    if (weaponEvents.slice(beforeGun).some(line =>
-        line.includes('ACTION5_WEAPON_EQUIPPED id=bat') ||
-        line.includes('ACTION5_WEAPON_EQUIPPED id=shovel'))) {
-      await page.keyboard.press('g');
-      await page.waitForTimeout(170);
-    }
+        line.includes('ACTION5_WEAPON_PICKUP id=gun'))) break;
+    // Preserve the first Bat pickup in inventory while approaching the
+    // Gun. Dropping Bat here would move it in front of the actor and
+    // repeatedly make it the closest item again.
+  }
+  if (weaponEvents.slice(beforeGun).some(line =>
+      line.includes('ACTION5_WEAPON_PICKUP id=gun')) &&
+      !weaponEvents.slice(beforeGun).some(line =>
+        line.includes('ACTION5_WEAPON_EQUIPPED id=gun'))) {
+    // EquipmentController retains the first weapon; Q selects the
+    // second equipped item using the exact public gameplay input.
+    await page.keyboard.press('q');
+    await page.waitForTimeout(450);
   }
   const equippedGun = weaponEvents.slice(beforeGun).find(line =>
     line.includes('ACTION5_WEAPON_EQUIPPED id=gun'));
