@@ -147,7 +147,8 @@ WebGL2 E pickup/J attack/R reload input. On software-rendered CI,
 browser walking distance is not proportional to wall-clock sleeps;
 use bounded real-input pickup attempts instead of a fixed movement
 delay, and never add a test-only teleport or a separate game clock.
-Only after latest-head automated checks pass should the PR be marked
-ready for external review. The owner must visually approve F1–F5
-alignment, projectile/trail readability and muzzle occlusion before
-squash/merge. Do not mark issue #14 complete in advance.
+For PR #32, latest-head automated checks passed in
+[CI #42809417312](https://github.com/bravado/ACTION-5/actions/runs/42809417312)
+(**974 assertions and Full E2E**), and the owner confirmed manual
+F1–F5 visual acceptance on 2026-11-10. Keep PR #32 open for explicit
+squash-merge approval; close issue #14 only after merge.

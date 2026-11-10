@@ -4,8 +4,8 @@
 and the reusable equipment contract are implemented and approved in PR #31.**
 Latest-head CI passed 908 assertions (0 failures), native/Linux + WebGL2
 Full E2E and owner visual checks passed ([CI #42668808972](https://github.com/bravado/ACTION-5/actions/runs/42668808972)).
-D06-02 Gun is implemented in PR #32 (under review), while D07 AI remains
-a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
+D06-02 Gun is verified in PR #32 (owner visuals passed; squash merge
+pending), while D07 AI remains a separate future milestone. See [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
 
