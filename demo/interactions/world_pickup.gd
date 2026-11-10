@@ -24,6 +24,14 @@ func _ready() -> void:
         pickup_scene = load(_weapon.scene_file_path) as PackedScene
 
 
+func _physics_process(_delta: float) -> void:
+    # A dropped weapon returns to its original world parent, but at the
+    # player's DROP position. Keep this selector aligned with that actual
+    # live node rather than the authored pickup coordinates.
+    if _available():
+        global_position = _weapon.global_position
+
+
 func _available() -> bool:
     return is_instance_valid(_weapon) and not _weapon.is_queued_for_deletion()         and _weapon.get_parent() == _spawn_parent         and _weapon.get("equipment_owner") == null
 
@@ -55,3 +63,20 @@ func restore_state(snapshot: Dictionary) -> void:
         _spawn_parent.add_child(instance)
         instance.global_transform = _spawn_transform
         _weapon = instance
+
+
+## Explicit fresh-entry reset. Never delete the player's owned original:
+## the new pickup is a NEW world instance while inventory remains intact.
+func reset_to_initial() -> void:
+    if is_instance_valid(_weapon) and _weapon.get("equipment_owner") == null:
+        _weapon.free()
+    _weapon = null
+    if pickup_scene == null or not is_instance_valid(_spawn_parent):
+        return
+    var fresh := pickup_scene.instantiate() as Node3D
+    if fresh == null:
+        return
+    _spawn_parent.add_child(fresh)
+    fresh.global_transform = _spawn_transform
+    _weapon = fresh
+    global_position = _spawn_transform.origin
