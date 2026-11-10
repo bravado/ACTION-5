@@ -16,39 +16,51 @@ layout, split inventory and actor lifecycles, and could not meet D08's
 
 ## Decision
 
-Keep **one** gameplay world at `demo/main.tscn` and **one** separately
-authored dungeon sector at `demo/world/encounter_sector.tscn`. The
-sector is instanced into the main world at a translated but unrotated
-position; it owns the floor, obstacle/navigation ring, two equipped
-D07 NPCs, physical portal and presentation-only roof.
+The game owns exactly one SceneTree world at `demo/main.tscn`, and
+authors the dungeon independently at
+`demo/world/encounter_sector.tscn`. Its origin is world X=26:
+its western floor edge (local X=-12) **meets** the arena eastern edge
+(world X=14), on the same Y elevation and without rotating the axes.
+The dungeon owns its obstacles, navigation ring, two D07 equipped NPCs,
+three outer walls and a physically authoritative ceiling.
 
-- The original player, camera, input, Health, Combat, Equipment and
-  weapon instances remain alive on regular round trips. Normal E-door
-  travel calls `WorldSession.travel_to`, **not** scene replacement.
-- Inactive dungeon processing can be disabled without discarding NPC
-  Health, gun ammo, aim/decision state, or world weapon instances.
-- Optional **Start fresh** is a separately configured room-entry policy,
-  not the default; any necessary reinitialization must be scoped to the
-  destination sector, never silently reset the player's inventory.
-- Physical door collision and NavigationLink3D are tied to open/locked
-  state. Ordinary door panels disappear when open. Persistent glowing
-  portal markers explicitly opt into `keep_visual_when_open=true` so
-  their appearance is independent from the gate's collision state and
-  they remain identifiable after returning to either sector. Both door
-  scenes must use the same setting. RoofVisibility now owns a
-  viewport-wide ColorRect tint (CanvasLayer 0 below HUD 1) rather than
-  an elevated transparent 3D plane. The geometric ceiling is a
-  StaticBody3D with no visual mesh, so the side/arcade frustum cannot
-  cover only part of the screen. The overlay is dungeon-only in
-  views 1/2/3/5 and hidden in first person; it does not change
-  physics, navigation or Gun muzzle ray authority.
-- The single `demo/world/dungeon_navigation.gd` builds a static
-  navigation ring for the dungeon. AI/Combat/Equipment do not depend on
-  demo-specific room or scene-transition classes.
-- `SectorCameraBounds` adjusts F1/F2/F5 camera target clamps to the
-  sector's global offset. Neither map nor WASD world axes are rotated;
-  F2/F5 headings stay fixed at the boundary while F3/F4 keep orbit/aim
-  behavior.
+One **two-sided physical passage** at **X=14, Z=-4** joins both spaces:
+the arena's east wall consists of two collidable segments around a
+2.5-meter opening, plus a short overlapping PassageFloor slab. There
+is only one `EncounterDoor`, parented to the shared main world.
+Its `WorldDoor` owns a real collider and NavigationLink3D; the visual
+door frame persists from both sides while `BarrierMesh` hides when
+open. The dungeon has no remote return portal or duplicated door.
+**Press E to open the physical barrier and walk through**; the E action
+does not move the player.
+
+`WorldSession` observes the original player's X coordinate on each
+physics tick, with a hysteresis around the common boundary. It
+activates dungeon physics and AI before the player reaches the
+passage, suspends them when the player moves far into the arena,
+and changes room state on *physical crossing*. Original Player,
+Camera, Health, Combat, Equipment and weapon nodes survive both ways.
+The optional explicit `travel_to()` warp is used for scripted actions
+and test setup, never by the interactive doorway.
+
+Optional **Start fresh** remains a destination-only policy; normal
+crossings restore the actual live objects. Fresh mode may reinitialize
+the destination room and its loose items but never the player's own
+inventory. Head-specific CI must still prove this behavior.
+
+F1/F2/F5 camera clamps use one world-space bounds rectangle covering
+the **union** of arena and translated dungeon. They do not move or
+snap when the player crosses the threshold. The camera and WASD
+orientation remain continuous; F2/F5 use stable fixed headings and F3
+uses its intended orbit vector rather than rotating due to follow lag.
+D03 locomotion, Combat, Equipment and AI do not import world-session
+or door scripts.
+
+The roof is physics-only. A full-viewport ColorRect (CanvasLayer 0,
+below the HUD) provides a subtle dungeon-only tint in views 1/2/3/5,
+disabled in first person. The roof's collision still obstructs
+navigation and projectile/weapon raycasts. Neither this overlay nor
+the doorway appearance defines collision authority.
 
 ## One dungeon for gameplay **and** D07 tests
 
