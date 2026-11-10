@@ -148,8 +148,8 @@ shape = SubResource("BoxShape3D_wallZ")
 
 [node name="EastWall" type="Node3D" parent="."]
 
-# Shared east wall, split around a real 2.5m opening centered at Z=-4.
-# The dungeon's western floor edge touches the arena at world X=14.
+; Shared east wall, split around a real 2.5m opening centered at Z=-4.
+; The dungeon's western floor edge touches the arena at world X=14.
 [node name="Upper" type="StaticBody3D" parent="EastWall"]
 position = Vector3(14, 1.5, -7.125)
 
@@ -230,7 +230,7 @@ position = Vector3(2.1, 0.0, -2.0)
 position = Vector3(-3.0, 0.0, -5.0)
 
 [node name="EncounterDoor" type="Node3D" parent="." groups=["action5_interactable"]]
-# One physical, two-sided gate for the arena AND dungeon.
+; One physical, two-sided gate for the arena AND dungeon.
 position = Vector3(14, 0, -4)
 script = ExtResource("14_door")
 keep_visual_when_open = true
@@ -286,7 +286,7 @@ billboard = 1
 no_depth_test = true
 
 [node name="EncounterSector" parent="." instance=ExtResource("15_encounter")]
-# Dungeon west edge (26-12=14) joins the arena's east edge (+14).
+; Dungeon west edge (26-12=14) joins the arena's east edge (+14).
 position = Vector3(26.0, 0, 0)
 
 [node name="ArenaSpawn" type="Marker3D" parent="."]
