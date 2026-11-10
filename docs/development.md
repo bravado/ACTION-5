@@ -183,41 +183,47 @@ main-arena captures do not prove encounter-specific animation quality.
 
 ### D08 persistent-world demo and orientation
 
-PR #34 is rebased on merged D07 `master` and currently remains a D08
-draft. `demo/main.tscn` hosts one live Player, one Equipment/Health/Combat
-owner, one ViewManager and a separately authored
-`demo/world/encounter_sector.tscn` instance. The dungeon is translated
-along global +X; it is **not rotated**. Room transitions preserve the
-actor and camera instead of calling `change_scene_to_packed()`.
-Unused sectors can suspend their AI/physics processing. The obsolete
-standalone `demo/ai/encounter.tscn` was removed. `tests/d07_suite.gd`
-loads the main world and activates the **same embedded dungeon** used
-by players, while the obsolete scene-reloading D07 transition suites
-and one-shot handoff scripts were retired.
+PR #34 is rebased on merged D07 `master` and remains a D08
+draft. `demo/main.tscn` owns one live Player, Equipment/Health/Combat,
+ViewManager and a separately authored `demo/world/encounter_sector.tscn`
+dungeon. The arena and dungeon now **share a world-space boundary**:
+the arena floor ends at X=14, and the dungeon (origin X=26, floor
+half-width 12) starts at X=14 on the same height and orientation.
+The arena east wall is split above and below a real opening at
+**X=14, Z=-4**, with an overlapping `PassageFloor` slab so there
+is no unsupported physics seam. The dungeon supplies its other three
+enclosing walls.
 
-**World-space camera bounds:** D02's F1/F2/F5 profiles each clamp their
-camera target to a small centered rectangle suitable for the arena.
-Without a sector offset that clamp keeps the camera near world X = 0
-when the player enters the dungeon near X = 36, making WASD appear
-misaligned. `demo/world/sector_camera_bounds.gd` is a purely scene-local
-camera adapter: it duplicates all five profile Resources per game
-instance, stores each original rectangle, translates the rectangle by the
-dungeon's actual global X/Z offset on `WorldSession.sector_changed`,
-and snaps the camera framing after the actor is moved. It **never**
-rotates the world, overrides input axes, or resets F3/F4 orbit yaw.
-The generic `CameraRig` also keeps the heading of bounded static-offset
-F2/F5 views fixed when their target is clamped at room edges; otherwise
-a near-vertical F5 camera can tilt and rotate camera-relative WASD
-near the arena wall. `Action5MovementPolicy` and `ActorInputAdapter`
-remain unchanged.
+A **single** `EncounterDoor` spans this common wall. Its `WorldDoor`
+component toggles a real CollisionShape3D and NavigationLink3D;
+`DoorMesh` is an always-visible two-sided frame, while the separately
+configured `BarrierMesh` disappears when open. **E opens the gate,
+WASD physically walks through it in either direction.** There is no
+`ReturnDoor` in the dungeon, second Player/ViewManager or door-triggered
+`travel_to()` teleport. `WorldSession` detects the player's
+world-X crossing with a small hysteresis, activates dungeon AI/physics
+*before* the player reaches the gate, and pauses them only after the
+player moves sufficiently back into the arena. The old standalone
+`demo/ai/encounter.tscn` and scene-reloading adapters were removed;
+`tests/d07_suite.gd` uses the **same embedded dungeon**.
+
+**Continuous camera bounds:** D02's F1/F2/F5 authored profiles clamp
+their camera target to the arena. `demo/world/sector_camera_bounds.gd`
+duplicates those Resources per game instance and computes the *union*
+of the arena and translated dungeon bounds. It never shifts or snaps
+the camera on crossing. Bounded F2/F5 views maintain fixed heading at
+edges, and the generic isometric rig uses its authored orbit direction
+rather than lag-induced actor look-at to prevent F3 WASD rotation.
+`Action5MovementPolicy`, `ActorInputAdapter` and all gameplay
+coordinates stay unchanged.
 
 `tests/d08_camera_sector_suite.gd` verifies in all five modes that
 W/A/S/D resolves to the same world-plane vectors before/after each
-round trip, the same player and scene remain alive, arena camera bounds
-are restored on return, and clamped cameras follow the dungeon player.
-When authoring another sector, preserve shared global X/Z axes and
-adjust only its per-sector camera rectangle; new movement modes stay
-independent of map geometry.
+round trip, the same Player/SceneTree remain alive, both floor
+edges meet at the doorway, and bounded cameras follow across one
+continuous world rectangle. Keep adjoining rooms' global X/Z axes
+aligned and do **not** synthesize movement transforms or per-room
+camera jumps. New movement modes stay independent of world geometry.
 
 `tests/d08_world_suite.gd` separately covers persistent inventory,
 dropped weapons, NPC state, physically authoritative doors, roof
@@ -235,12 +241,13 @@ the ceiling CollisionShape3D remains physically authoritative.
 The dungeon's two lights remain modest (0.65 and 0.5), and the shared
 world sun is unchanged. Regress both screen coverage and ceiling
 physics independently.
-Portal doors use the
-shared `WorldDoor.keep_visual_when_open = true` option: opening disables
-physical collision and enables the navigation link, but keeps the
-glowing destination marker visible for return and repeat visits.
-Ordinary hinged panels keep the default `false` and disappear when
-opened. Both the arena and dungeon portals have explicit round-trip
-visual-state regressions; sector CPU pausing does not clear door state. D08 release readiness
+The **single boundary gate** uses
+`WorldDoor.keep_visual_when_open = true` so its structural frame stays
+visible from both sides. Its configurable `barrier_visual_path`
+points to the opening panel, which disappears when the physical
+barrier collider disables and the navigation link enables. Ordinary
+door panels keep the default `false` to hide on opening. The shared
+frame and door state persist across all visits, even when dungeon
+processing is suspended away from the passage. D08 release readiness
 still requires passing fresh head-specific CI, native/WebGL2 traversal
 and manual visual checks; these docs do **not** imply PR #34 is merged.
