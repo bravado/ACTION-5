@@ -1,9 +1,8 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="3"]
-[ext_resource type="Script" path="res://demo/interactions/world_portal_door.gd" id="4"]
 [ext_resource type="Script" path="res://demo/world/traversal_fixture.gd" id="6"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
@@ -21,17 +20,21 @@ size = Vector3(3, 2.5, 3)
 [sub_resource type="StandardMaterial3D" id="obstacle_color"]
 albedo_color = Color(0.4, 0.45, 0.55, 1)
 
-[sub_resource type="BoxShape3D" id="door_shape"]
-size = Vector3(0.28, 2.4, 2.0)
+[sub_resource type="BoxMesh" id="dungeon_wall_x"]
+size = Vector3(24, 3, 0.6)
 
-[sub_resource type="BoxMesh" id="door_mesh"]
-size = Vector3(0.28, 2.4, 2.0)
+[sub_resource type="BoxShape3D" id="dungeon_wall_x_shape"]
+size = Vector3(24, 3, 0.6)
 
-[sub_resource type="StandardMaterial3D" id="door_color"]
-albedo_color = Color(0.18, 0.53, 0.67, 1)
-emission_enabled = true
-emission = Color(0.03, 0.20, 0.27, 1)
-emission_energy_multiplier = 1.4
+[sub_resource type="BoxMesh" id="dungeon_wall_z"]
+size = Vector3(0.6, 3, 16)
+
+[sub_resource type="BoxShape3D" id="dungeon_wall_z_shape"]
+size = Vector3(0.6, 3, 16)
+
+[sub_resource type="StandardMaterial3D" id="dungeon_wall_material"]
+albedo_color = Color(0.23, 0.28, 0.36, 1)
+roughness = 0.9
 
 [sub_resource type="BoxShape3D" id="roof_shape"]
 size = Vector3(23.5, 0.25, 15.5)
@@ -66,36 +69,35 @@ position = Vector3(-5, 0.15, 0)
 [node name="Ranged" parent="." instance=ExtResource("3")]
 position = Vector3(-6, 0.15, 3)
 
-[node name="ReturnDoor" type="Node3D" parent="." groups=["action5_interactable"]]
-position = Vector3(9.4, 0, 5.2)
-script = ExtResource("4")
-session_path = NodePath("../../WorldSession")
-destination_sector = "arena"
-keep_visual_when_open = true
+[node name="NorthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.5, -8)
 
-[node name="Body" type="StaticBody3D" parent="ReturnDoor"]
+[node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("dungeon_wall_x")
+surface_material_override/0 = SubResource("dungeon_wall_material")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ReturnDoor/Body"]
-position = Vector3(0, 1.2, 0)
-shape = SubResource("door_shape")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("dungeon_wall_x_shape")
 
-[node name="DoorMesh" type="MeshInstance3D" parent="ReturnDoor"]
-position = Vector3(0, 1.2, 0)
-mesh = SubResource("door_mesh")
-surface_material_override/0 = SubResource("door_color")
+[node name="SouthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.5, 8)
 
-[node name="NavigationLink3D" type="NavigationLink3D" parent="ReturnDoor"]
-enabled = false
-start_position = Vector3(-1.0, 0, 0)
-end_position = Vector3(1.0, 0, 0)
+[node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("dungeon_wall_x")
+surface_material_override/0 = SubResource("dungeon_wall_material")
 
-[node name="DoorLabel" type="Label3D" parent="ReturnDoor"]
-position = Vector3(-0.3, 2.65, 0)
-text = "BACK TO ARENA  [E]"
-font_size = 44
-pixel_size = 0.007
-billboard = 1
-no_depth_test = true
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("dungeon_wall_x_shape")
+
+[node name="EastWall" type="StaticBody3D" parent="."]
+position = Vector3(12, 1.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("dungeon_wall_z")
+surface_material_override/0 = SubResource("dungeon_wall_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("dungeon_wall_z_shape")
 
 [node name="Roof" type="StaticBody3D" parent="."]
 position = Vector3(0, 4.0, 0)
