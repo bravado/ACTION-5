@@ -266,6 +266,17 @@ from *first* acquiring an actor across a closed boundary, while
 already-detected targets continue chasing until normal forget/Health
 rules apply; the door still blocks physical movement and attacks.
 
+A long-distance pursuit is a separate acceptance condition from
+initial detection: after the player opens a door, a melee NPC may
+walk through to the arena. When the player closes the gate behind
+it, the dungeon walls and floor are hidden but **that NPC remains
+visible and active on the arena side**. A closed gate prevents
+line-of-sight attacks only when player and NPC occupy opposite
+sides; it must not erase an acquired target. RoomVisibility performs
+the presentation filter separately for static room geometry and
+moving NPCs/world weapons; WorldSession keeps alerted/crossed NPCs
+processing outside the normal preload radius.
+
 `Action5Interactor` uses an optional
 `get_interaction_point(actor)` method so an opaque door can provide
 symmetric handles without the ray needing to terminate inside its
