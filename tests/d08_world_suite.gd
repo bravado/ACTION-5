@@ -138,9 +138,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 3)
     await _frames(tree, 2)
-    verify.call(world.current_sector == &"arena" and not encounter.visible
+    verify.call(world.current_sector == &"arena" and encounter.visible
         and tree.current_scene == stage and player.get_instance_id() == player_id,
-        "Return to arena pauses encounter without unloading or replacing any actor")
+        "Return detects arena while keeping the dungeon loaded near the real shared doorway")
+    player.global_position = stage.to_global(Vector3(5, 0.15, -4))
+    await _physics_frames(tree, 3)
+    verify.call(not encounter.visible and encounter.process_mode == Node.PROCESS_MODE_DISABLED,
+        "Dungeon AI and physics pause when player moves beyond the gateway preload range")
     verify.call(not (stage.get_node("DungeonRoofOverlay/Tint") as ColorRect).visible,
         "Dungeon tint is removed immediately when returning to the arena")
     verify.call(door.get_instance_id() == arena_door_id
@@ -297,8 +301,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and fresh_enemy.get_node("Health").current_health > 0.0,
         "Start fresh reinitializes destination NPCs rather than reviving old instances")
     verify.call(not is_instance_valid(bat) and player.get_instance_id() == player_id
-        and equipment.inventory.size() == 1 and equipment.current_weapon == gun,
-        "Fresh resets only destination loose items; player and held Gun stay alive")
+        and equipment.inventory.size() == 1 and equipment.inventory.has(gun),
+        "Fresh resets only dungeon loose items; original player and inventoried Gun stay alive")
     verify.call(encounter.get_node_or_null("ReturnDoor") == null
         and stage.get_node("EncounterDoor").get_instance_id() == arena_door_id
         and arena_door_mesh.visible,
