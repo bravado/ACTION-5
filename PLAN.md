@@ -682,9 +682,9 @@ Next: <lowest numbered unblocked deliverable>
 ```
 
 **Final product rule:** A feature does not count as delivered merely because code compiles. It must be demonstrably usable, testable and compatible with the framework's shared-world/five-view architecture.
-### D06-02 verified handoff — PR #32 (2026-11-10)
+### D06-02 merged baseline — PR #32 (2026-11-10)
 
-**Status: implementation and acceptance verified; awaiting explicit squash merge.**
+**Status: merged into `master` via squash commit `c2c4b9c7`.**
 The `feat/d06-02-gun` branch implements an instance-local Gun using D06-01
 inventory/mount registration and the existing D05 active-phase attack clock.
 The separate actor-local aim providers resolve a world-space target from
@@ -729,51 +729,91 @@ obstacles. D09 keeps F5 quantization in view policy and HUD read-only.
 D10 opt-in authoring validators, D11 the existing test runner/matrix,
 and D12 demo-independent addon packaging remain separate milestones.
 
-**Next action:** squash-merge the reviewed PR only on explicit
-approval, then close issue #14 and proceed to D07 (#15). The approved
-manual visual result is not permission to merge automatically.
+**D06 handoff complete:** D07 reuses the camera-free aim port and existing
+combat/equipment interfaces. D08 is the next level-design milestone once
+D07 is approved; do not reopen D06 or introduce a new combat/animation core
+for level interactions.
 
 
-## D07-01 implementation handoff (issue #15)
+## D07-01 completed implementation handoff — PR #33 (issue #15)
 
-D07 uses independently configured actor-local `TargetSensor` (living target
-and LoS), `AINavigation` (navigation waypoint only), `AttackPolicy`
-(range, configured D05/D06 action and per-weapon reload) and
-`AIController` (intent-producing decision state). The world owns the
-navigation region; one shared Actor/Locomotion/Combat/Health/Equipment
-implementation remains authoritative in all camera modes.
+**Release target:** v0.2 Combat. **Implementation scope:** actor-local AI,
+physical melee/ranged enemies and an independent playable encounter. D07
+delivers the following stable composition; merge/issue state is tracked
+separately by GitHub and no merge is implied by this document.
 
-Reference compositions are `demo/ai/melee_enemy.tscn` and
-`demo/ai/ranged_enemy.tscn`; a separate playable arena at
-`demo/ai/encounter.tscn` contains an opaque center obstacle and a
-pre-authored navigation ring. `tests/d07_suite.gd` runs physics checks.
-Scope deliberately excludes behavior trees, path caching, networking,
-and a new attack/animation timeline. See `docs/ai.md`.
-**Original isolated head:** 995/995 Godot assertions, Linux and WebGL2
-Full E2E passed. Follow-up P1/P2 hardening adds autonomous melee/ranged
-engagement tests, range/cover changes during attack startup, explicit reload
-selection, rejected-action state, death processing and teardown. **The new
-head requires fresh CI and owner manual encounter visual review.** Do not
-mark issue #15 completed or merge until both gates pass.
+- `Action5AITargetSensor`: live targets, bounded acquisition/forgetting,
+  target death/free/reacquisition and physical line of sight.
+- `Action5AINavigation`: world-owned Godot navigation waypoints; no direct
+  steering through unloaded navigation regions or opaque obstacles.
+- `Action5AIAttackPolicy`: D05/D06 attacks chosen by configured
+  `attack_id` and optional explicit `reload_command`; no weapon-index or
+  weapon-type branches in the reusable combat engine.
+- `Action5AIController`: camera-free intent producer, separate from
+  locomotion's movement FSM and CombatController's physics timeline.
+  Cancels only AI-owned attack requests upon lost range/LoS/target; rejected
+  requests never publish attack state. Dead actors stop AI processing and
+  may opt into reactivation after their authoritative health/alive state
+  has been restored.
 
-**D08 boundary:** Scene doors, restarted/fresh room state, persistent worlds
-and inventory handoff remain exclusively in stacked draft PR #34. Do not
-fold D08 features into this D07 AI fix.
+**Reference scenes:** `demo/ai/melee_enemy.tscn`,
+`demo/ai/ranged_enemy.tscn` and `demo/ai/encounter.tscn`. Both NPCs own
+independent Health, Combat, Equipment, world aim, navigation and action
+decisions. They reuse the existing imported training rig and the optional
+D04/D05/D06 presentation adapters for Bat swing, Gun firing/reload,
+reaction/death and animated bone-socket equipment. The fallback static
+socket keeps presentation optional. The encounter also installs the
+normal player CombatInputAdapter, so Punch/Kick work in all five views.
 
+**Verification contract:** `tests/d07_suite.gd` covers navigation around
+opaque geometry, camera switches, concurrent NPC ownership, real
+autonomous Bat/Gun damage, player input attacks, exact attack heading,
+same-tick arbitration, changing cover/range during startup, ammo/reload,
+target death/free/reacquisition, optional skeletal presentation and
+unanimated fallback, NPC death, and equipment teardown.
+GitHub Actions `CI / Checks` runs pinned Godot headless validation;
+`CI / Full E2E` validates Linux/Web exports, native startup and
+real WebGL2 browser startup. See PR #33 for the **latest head-specific**
+evidence; a previously green run does not validate later commits.
+The native/browser screenshot harness primarily exercises
+`demo/main.tscn` — therefore the two-enemy **encounter appearance,
+weapon alignment and F1–F5 manual visual acceptance** remain a separate
+owner release gate. Never call a screenshot of the main demo proof of
+native/WebGL2 encounter visuals.
 
-**D07 encounter input regression:** The standalone encounter must compose
-`CombatInputAdapter` and the player's existing `EquipmentAttackSelector`,
-not just `ActorInputAdapter`. Both punch and kick are tested by feeding
-normal InputMap actions and observing real enemy Health damage. This belongs
-to D07; D08 scene transitions remain in PR #34.
+**Architecture:** No new AI-specific Actor, movement controller, attack
+clock, equipment owner, global target registry, projectile manager or
+animation engine. The addon imports no `demo/` assets. NPC-only material
+tints, starter equipment and skeleton clip mapping remain in `demo/`.
+See `docs/ai.md`, AGENTS and the D07 PR for recipes and evidence.
 
+## D08-01 successor handoff — issue #16 / draft PR #34
 
-**D07 animated enemy follow-up (PR #33):** Both NPCs now compose the
-existing D04 skeletal model and animation presenter, D05 combat animation
-adapter and D06 reload presenter. Bat swing, NPC-local Gun firing pose,
-hit/death/reload and animated weapon sockets use existing event contracts.
-A fallback marker keeps the behavior usable without presentation; optional
-demo-only color overlays distinguish melee and ranged instances. The
-`tests/d07_suite.gd` visual-port regressions are required alongside
-native/WebGL2 encounter visual acceptance. No shared AI/Actor/Combat/
-Equipment/Camera code changed for this composition.
+**Do not move D08 work back into D07.** The required D08 result is an
+arena-to-dungeon passage in **one persistent world**, retaining the
+same live player and NPC state with no mandatory reload. D07's separate
+encounter is a playable AI fixture, **not** an implementation of that
+world-transition requirement.
+
+The D08 preparation in PR #34 includes E/door scene-loading portals,
+death/restart UI, inventory and HP handoff, consumed pickup history and
+optional fresh/restore scene snapshots. Those are **prototypes**, not
+completion of D08: `change_scene_to_packed()` replaces live actors and
+does not satisfy shared-world traversal or state continuity.
+
+D08 must still deliver an actor-local Interactor and an input-independent
+`interact(actor)` path, separate Door/WorldPickup/RoofVisibility components,
+locked/open physical door + navigation updates, presentation-only roof
+hiding, shared-world traversal and small step/gap/ledge/overhang fixtures.
+Preserve world-muzzle first-hit authority and the same actor-owned
+equipment/Health/AI/animation instances through interactions. Test
+screen/UI input, all five views, scripted NPC interaction, traversal and
+native/WebGL2 results; compare against VT-13 and VT-22.
+Never force restart or scene serialization into D07 AI, Health or the
+generic combat/movement layers.
+
+**Sequencing:** After D07 receives owner visual approval and explicit
+squash-merge authorization, rebase the stacked PR #34 onto the resulting
+master, retarget it to `master`, resolve integration conflicts from newer
+D07 player-input/animation changes and rerun both CI tiers. Keep #34
+draft and #16 open until the actual same-world D08 exit criteria pass.
