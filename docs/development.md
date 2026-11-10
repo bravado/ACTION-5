@@ -199,8 +199,12 @@ camera adapter: it duplicates all five profile Resources per game
 instance, stores each original rectangle, translates the rectangle by the
 dungeon's actual global X/Z offset on `WorldSession.sector_changed`,
 and snaps the camera framing after the actor is moved. It **never**
-rotates the world, overrides input axes, resets F3/F4 orbit yaw or alters
-`Action5MovementPolicy` / `ActorInputAdapter`.
+rotates the world, overrides input axes, or resets F3/F4 orbit yaw.
+The generic `CameraRig` also keeps the heading of bounded static-offset
+F2/F5 views fixed when their target is clamped at room edges; otherwise
+a near-vertical F5 camera can tilt and rotate camera-relative WASD
+near the arena wall. `Action5MovementPolicy` and `ActorInputAdapter`
+remain unchanged.
 
 `tests/d08_camera_sector_suite.gd` verifies in all five modes that
 W/A/S/D resolves to the same world-plane vectors before/after each
