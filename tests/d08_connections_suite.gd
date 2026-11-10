@@ -80,9 +80,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 100)
     verify.call(melee.global_position.x < chase_start_x - 1.0,
         "Alerted enemy physically moves along navigation toward the player through an open gate")
-
+    print("ACTION5_CHASE_DOOR_DEBUG before close pos=", player.global_position,
+        " handle=", door.call("get_interaction_point", player),
+        " eligible=", interactor.call("_eligible", player, door),
+        " can=", door.call("can_interact", player),
+        " open=", door.open, " sector=", session.current_sector,
+        " alive=", player.get("alive"))
     _press_e()
     await _ticks(tree, 5)
+    print("ACTION5_CHASE_DOOR_DEBUG after close pos=", player.global_position,
+        " eligible=", interactor.call("_eligible", player, door),
+        " open=", door.open, " sector=", session.current_sector)
     verify.call(not door.open and panel.visible and not room.visible,
         "Closing gate re-occludes room from arena on every camera angle")
     verify.call(sensor.call("get_target", melee) == player
