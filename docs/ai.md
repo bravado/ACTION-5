@@ -128,13 +128,14 @@ physical muzzle obstruction, character hit/death response, player
 attack input and persistence of the enemy's HP/decision state while
 switching views.
 
-The D07 PR's latest green CI verifies pinned Godot assertions,
-native/Linux and Web exports, native startup and real WebGL2 **main
-demo** startup. The native screenshots/browser harness target
-`demo/main.tscn`, not the two-NPC `encounter.tscn`; they are
-**not** substitute evidence for the owner's encounter visual review.
-The issue #15/PR #33 merge gates remain owner visual acceptance and
-explicit merge authorization.
+**D07 is merged** (implementation PR #33). Final verification:
+[CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034)
+passed **1,018 Godot assertions with zero failures**, Linux/Web exports,
+native rendering and real WebGL2 Full E2E. The native screenshots/browser
+harness target `demo/main.tscn`, not the two-NPC `encounter.tscn`;
+future changes to enemy models/animations still require a direct
+F1–F5 encounter visual review rather than treating those screenshots
+as encounter-specific evidence.
 
 ## D08 successor boundary
 
@@ -144,6 +145,7 @@ own actor-local `Interactor`, doors, pickups, roof visibility,
 restart UI, shared-world traversal and optional persistence policies.
 The current stacked scene-loading prototype replaces actors via
 `change_scene_to_packed()` and does **not** satisfy the mandatory
-same-live-player/retained-enemies world-state requirement. Once D07
-is squash-merged, rebase/retarget D08 to the new master and validate
-its interactions without extending D07 AI or combat cores.
+same-live-player/retained-enemies world-state requirement. D07 is
+already the merged baseline: rebase/retarget the stacked D08 branch
+against `master` and validate its interactions without extending
+D07 AI or combat cores.
