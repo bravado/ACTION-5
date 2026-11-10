@@ -1,4 +1,4 @@
-[gd_scene load_steps=50 format=3]
+[gd_scene load_steps=51 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="23_roof_overlay"]
 [ext_resource type="Script" path="res://demo/interactions/door_acquisition_filter.gd" id="24_gate_sensor"]
 [ext_resource type="Script" path="res://demo/world/room_visibility.gd" id="25_room_visibility"]
+[ext_resource type="Script" path="res://demo/world/arena_navigation.gd" id="26_arena_nav"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -117,6 +118,9 @@ surface_material_override/0 = SubResource("Material_floor")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 shape = SubResource("BoxShape3D_floor")
+
+[node name="ArenaNavigation" type="NavigationRegion3D" parent="."]
+script = ExtResource("26_arena_nav")
 
 [node name="NorthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, -9)
