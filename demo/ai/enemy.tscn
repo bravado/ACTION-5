@@ -92,6 +92,7 @@ surface_material_override/0 = SubResource("enemy_material")
 [node name="AnimationPresenter" type="Node" parent="."]
 script = ExtResource("19")
 profile = ExtResource("20")
+run_speed_threshold = 3.7
 
 [node name="CombatAnimationAdapter" type="Node" parent="."]
 script = ExtResource("21")
