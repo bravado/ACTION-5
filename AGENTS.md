@@ -445,3 +445,16 @@ D07 standalone scene rule: compose `CombatInputAdapter` with the player's
 `EquipmentAttackSelector` in every playable encounter; locomotion-only
 `ActorInputAdapter` does not dispatch punch/kick. Regress both actions
 through normal InputMap events and real Health damage, not direct Combat calls.
+
+
+D07 enemy presentation: `demo/ai/enemy.tscn` composes the existing
+`AnimationPresenter`, `CombatAnimationAdapter`, and optional
+`GunReloadVisualAdapter` with the shared training rig; AI itself must
+never choose or play clips. New enemies supply attack animation keys
+and a rig-specific `SkeletonProfile`. The current NPC-only
+`gun_fire` key maps to an existing forward-arm animation; player
+profiles are not altered. Equipped meshes should follow the animated
+`right_hand` socket when present, with the static socket fallback
+retained for unanimated actors. Preserve regressions for Bat and Gun
+clip begin/end, reload/death, independent model instances and no-render
+combat. Never move attack authority into the animation layer.
