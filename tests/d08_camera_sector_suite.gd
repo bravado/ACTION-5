@@ -178,6 +178,56 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             verify.call(camera.global_basis.z.distance_to(before_heading.z) < 0.001,
                 "F4 first-person look never resets at the doorway")
 
+    # Proximity fade is explicitly limited to exterior perimeter walls.
+    # It must work under WebGL2's Compatibility renderer, where generic
+    # GeometryInstance3D.transparency is ignored. The material override
+    # remains per mesh; collision and the interior props never change.
+    var fader: Node = world.get_node("OuterWallFader")
+    var south := world.get_node("SouthWall") as StaticBody3D
+    var south_visual := south.get_node("MeshInstance3D") as MeshInstance3D
+    var original_south: Material = south_visual.get_surface_override_material(0)
+    var south_collider := south.get_node("CollisionShape3D") as CollisionShape3D
+    var pillar := world.get_node("PillarA/MeshInstance3D") as MeshInstance3D
+    var pillar_material: Material = pillar.get_surface_override_material(0)
+    var shared_wall := world.get_node("EastWall/Upper/MeshInstance3D") as MeshInstance3D
+    var shared_material: Material = shared_wall.get_surface_override_material(0)
+    views.switch_view(1)
+    player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
+    fader.call("_process", 1.0)
+    var faded: StandardMaterial3D = south_visual.get_surface_override_material(0)
+    verify.call(south.is_in_group("action5_outer_wall")
+        and faded != original_south
+        and faded != null
+        and faded.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+        and faded.albedo_color.a < 0.35
+        and not south_collider.disabled and south.collision_layer != 0,
+        "Close to south/front outer wall uses alpha-blended opacity without disabling collision")
+    verify.call(not pillar.get_parent().is_in_group("action5_outer_wall")
+        and pillar.get_surface_override_material(0) == pillar_material
+        and shared_wall.get_surface_override_material(0) == shared_material,
+        "Interior obstacles and shared physical doorway walls never fade")
+    player.global_position = world.to_global(Vector3(0, 0.15, 0))
+    fader.call("_process", 1.0)
+    verify.call(south_visual.get_surface_override_material(0) == original_south,
+        "Moving away restores the exact opaque outer-wall material override")
+    player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
+    views.switch_view(3)
+    fader.call("_process", 1.0)
+    verify.call(south_visual.get_surface_override_material(0) == original_south,
+        "First-person wall remains opaque at point-blank range")
+    views.switch_view(1)
+    player.global_position = world.to_global(Vector3(26, 0.15, 6.9))
+    fader.call("_process", 1.0)
+    var dungeon_south := dungeon.get_node("SouthWall") as StaticBody3D
+    var dungeon_mesh := dungeon_south.get_node("Mesh") as MeshInstance3D
+    var dungeon_mat := dungeon_mesh.get_surface_override_material(0) as StandardMaterial3D
+    verify.call(dungeon_south.is_in_group("action5_outer_wall")
+        and dungeon_mat != null
+        and dungeon_mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+        and dungeon_mat.albedo_color.a < 0.35
+        and not (dungeon_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,
+        "Independent dungeon outer wall uses the same camera-only proximity fade")
+
     tree.current_scene = original_scene
     world.queue_free()
     await _frames(tree, 2)
