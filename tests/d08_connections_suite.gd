@@ -326,7 +326,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     active_return.set("destination_marker_path", NodePath("../../EncounterSpawn"))
     player.global_position = active_return.global_position + Vector3(0.7, 0.15, 0)
     await _ticks(tree, 3)
-    var interactor: Node = stage.get_node("Interactor")
     verify.call(not inactive_return.can_process()
         and not bool(inactive_return.call("can_interact", player))
         and not bool(interactor.call("_eligible", player, inactive_return))
