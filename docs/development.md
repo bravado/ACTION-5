@@ -398,3 +398,28 @@ NavigationLink3D, scene-room visibility, or NPC/Gun line of sight.
 Shared boundary walls and the solid door must **not** opt in.
 `tests/d08_camera_sector_suite.gd` exercises material opacity,
 restoration and no collision changes in all relevant modes.
+
+
+### F1 shared combat lane (D08)
+
+`SideLaneController` in `demo/main.tscn` composes the existing
+`Locomotion.lock_side_lane()` port for the Player and active enemies,
+without changing `CameraRig`, CombatController or AI's intent FSM.
+On entering F1 it uses collision sweeps to align each living actor
+to a shared configurable world-Z lane (0 in the connected world,
+matching the physical doorway; detached rooms have their own
+local-Z=0). Small lateral X offsets may be used only after testing
+both motions against the same physical colliders, and physical
+obstructions/closed doors are never disabled or traversed. Actors
+keep their HP, inventory, AI target and instance identities.
+
+While F1 is active, every actor's existing solver locks to its new
+Z lane, and newly spawned/reactivated NPCs are registered on
+SceneTree/activation events. Enemy-to-enemy physical collision
+exceptions prevent same-line NPCs blocking one another; they persist
+only while needed to let NPCs separate after returning to F2–F5.
+The player continues to collide with opponents and all solid
+world geometry. Leaving F1 unlocks 3D movement without restoring
+stale pre-switch enemy positions. `tests/d08_camera_sector_suite.gd`
+covers alignment, late spawning, camera switching and physical
+door/health invariants.

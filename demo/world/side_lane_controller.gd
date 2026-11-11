@@ -30,6 +30,10 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 var _side_active: bool = false
 ## Tracks only actors whose locomotion we locked, not all entities in tree.
 var _locked: Dictionary = {}
+## Enemies sharing a 2D plane must not body-block one another. Exceptions
+## survive view exit ONLY until their bodies separate, so a transition
+## back to 3D cannot trap the melee pursuer behind the ranged enemy.
+var _enemy_pairs: Dictionary = {}
 
 
 func _ready() -> void:
@@ -81,7 +85,7 @@ func _on_enemy_added(reference: WeakRef) -> void:
         return
     var actor: CharacterBody3D = reference.get_ref() as CharacterBody3D
     if _belongs_to_active_location(actor):
-        _align(actor)
+        _sync_lane()
 
 
 func _active_root() -> Node3D:
@@ -118,10 +122,46 @@ func _sync_lane() -> void:
         return
     if _belongs_to_active_location(player):
         _align(player)
+    var enemies: Array[CharacterBody3D] = []
     for candidate in get_tree().get_nodes_in_group(enemy_group):
         var actor := candidate as CharacterBody3D
         if _belongs_to_active_location(actor) and bool(actor.get("alive")):
-            _align(actor)
+            if _align(actor):
+                enemies.append(actor)
+    # Only enemy/enemy pairs: never bypass player, wall or doorway physics.
+    for i in range(enemies.size()):
+        for j in range(i + 1, enemies.size()):
+            _soften_pair(enemies[i], enemies[j])
+
+
+func _soften_pair(a: CharacterBody3D, b: CharacterBody3D) -> void:
+    var key: String = "%d:%d" % [
+        mini(a.get_instance_id(), b.get_instance_id()),
+        maxi(a.get_instance_id(), b.get_instance_id())
+    ]
+    if _enemy_pairs.has(key):
+        return
+    a.add_collision_exception_with(b)
+    b.add_collision_exception_with(a)
+    _enemy_pairs[key] = {"a": weakref(a), "b": weakref(b)}
+
+
+func _prune_enemy_pairs(force: bool = false) -> void:
+    for key in _enemy_pairs.keys():
+        var entry: Dictionary = _enemy_pairs[key]
+        var a: CharacterBody3D = (entry["a"] as WeakRef).get_ref() as CharacterBody3D
+        var b: CharacterBody3D = (entry["b"] as WeakRef).get_ref() as CharacterBody3D
+        if not is_instance_valid(a) or not is_instance_valid(b):
+            _enemy_pairs.erase(key)
+            continue
+        # Leave temporary separation enabled while returning to free 3D:
+        # removing it at the exact moment of the view switch can wedge
+        # two NPCs in a single line before navigation spreads them out.
+        if force or (not _side_active and a.global_position.distance_to(
+                b.global_position) > 1.5):
+            a.remove_collision_exception_with(b)
+            b.remove_collision_exception_with(a)
+            _enemy_pairs.erase(key)
 
 
 func _align(actor: CharacterBody3D) -> bool:
@@ -163,6 +203,7 @@ func _move_to_lane(actor: CharacterBody3D, lane: float) -> bool:
 
 
 func _physics_process(_delta: float) -> void:
+    _prune_enemy_pairs()
     if not _side_active:
         return
     for id in _locked.keys():
@@ -189,6 +230,7 @@ func _unlock_all() -> void:
 
 func _exit_tree() -> void:
     _unlock_all()
+    _prune_enemy_pairs(true)
     if is_instance_valid(views) and views.view_changed.is_connected(_on_view_changed):
         views.view_changed.disconnect(_on_view_changed)
     if is_instance_valid(locations) \

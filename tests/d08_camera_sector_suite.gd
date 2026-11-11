@@ -179,6 +179,60 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             verify.call(camera.global_basis.z.distance_to(before_heading.z) < 0.001,
                 "F4 first-person look never resets at the doorway")
 
+    # F1 aligns all living opponents to the same world-Z plane as the
+    # player's punches/kicks. The demo-level adapter uses Locomotion's
+    # existing side lock and temporarily prevents NPCs from blocking one
+    # another in that single-file lane. F2 releases lane confinement.
+    var lane: Node = world.get_node("SideLaneController")
+    var melee := dungeon.get_node("Melee") as CharacterBody3D
+    var ranged := dungeon.get_node("Ranged") as CharacterBody3D
+    var melee_health: float = float(melee.get_node("Health").get("current_health"))
+    var ranged_health: float = float(ranged.get_node("Health").get("current_health"))
+    player.global_position = world.to_global(Vector3(17.0, 0.15, 2.8))
+    melee.global_position = world.to_global(Vector3(21.0, 0.15, -2.0))
+    ranged.global_position = world.to_global(Vector3(20.0, 0.15, 3.0))
+    views.switch_view(0)
+    await _physics_frames(tree, 3)
+    var side_z: float = world.to_global(Vector3(0, 0, 0)).z
+    verify.call(absf(player.global_position.z - side_z) < 0.08
+        and absf(melee.global_position.z - side_z) < 0.08
+        and absf(ranged.global_position.z - side_z) < 0.08,
+        "F1 projects player, melee and ranged enemy onto one attackable world-Z lane")
+    verify.call(bool(player.get_node("Locomotion").get("side_lane_locked"))
+        and bool(melee.get_node("Locomotion").get("side_lane_locked"))
+        and bool(ranged.get_node("Locomotion").get("side_lane_locked"))
+        and melee.get_collision_exceptions().has(ranged)
+        and ranged.get_collision_exceptions().has(melee),
+        "F1 locks all actors to the same lane without NPC/NPC body blocking")
+    verify.call(absf(float(melee.get_node("Health").get("current_health"))
+            - melee_health) < 0.01
+        and absf(float(ranged.get_node("Health").get("current_health"))
+            - ranged_health) < 0.01
+        and not bool(doorway.get("open")),
+        "F1 lane alignment preserves enemy health and closed-gate authority")
+
+    # A late-instantiated enemy and a freshly replaced dungeon also
+    # inherit the active side lane without changing Enemy/Combat core.
+    var extra_enemy := (load("res://demo/ai/melee_enemy.tscn") as PackedScene
+        ).instantiate() as CharacterBody3D
+    extra_enemy.position = Vector3(-8, 0.15, -3.0)
+    dungeon.add_child(extra_enemy)
+    await _frames(tree, 3)
+    verify.call(absf(extra_enemy.global_position.z - side_z) < 0.08
+        and bool(extra_enemy.get_node("Locomotion").get("side_lane_locked")),
+        "A late-spawned F1 enemy joins the shared attack plane automatically")
+    views.switch_view(1)
+    await _physics_frames(tree, 2)
+    verify.call(not bool(player.get_node("Locomotion").get("side_lane_locked"))
+        and not bool(melee.get_node("Locomotion").get("side_lane_locked"))
+        and not bool(ranged.get_node("Locomotion").get("side_lane_locked")),
+        "F2 releases the player's and enemies' 3D navigation restrictions")
+    extra_enemy.queue_free()
+    # Restore the player's original test position; later wall tests assume
+    # camera movement is independent of the combat-lane fixture.
+    player.global_position = world.to_global(Vector3(12.25, 0.15, 0.0))
+    await _physics_frames(tree, 3)
+
     # Per-profile camera rectangles are unioned across arbitrarily rotated
     # connected sectors, not hard-coded arena/dungeon translation.
     var extra := Node3D.new()

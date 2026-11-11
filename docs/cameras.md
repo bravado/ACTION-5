@@ -187,3 +187,21 @@ renderer-only effect leaves the real StaticBody3D CollisionShape3D,
 world-space gun rays, enemy detection and NavigationMesh unchanged.
 Inner obstacles, the shared-room door and its panel do **not** belong
 to the outer-wall group and never fade.
+
+
+### F1 shared combat plane
+
+The **scene-level** `SideLaneController` aligns the Player and
+living enemies to the same world-Z lane on entering F1, so punches
+and kicks can reach enemies that spawned at different depths in F2/F3.
+The connected-world default is local Z=0 (the physical door corridor);
+cached remote environments use their own configurable Z=0.
+It tests physical sweeps before repositioning and keeps original
+collision authority. The existing Locomotion component constrains
+movement to that plane while F1 is active, including knockback.
+Active enemy pairs may temporarily ignore one another's **body**
+collision to avoid piling up on that line; world walls and player
+collisions remain. Returning to F2–F5 restores unrestricted 3D
+navigation, without moving enemies back to stale positions.
+This scene adapter does not change CameraRig orientation, input
+mapping or any shared Combat/AI code.

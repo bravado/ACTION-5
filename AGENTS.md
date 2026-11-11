@@ -703,3 +703,19 @@ collision, enemy discovery/LoS, navigation, or any shared material
 resource. The single opt-in front mesh belongs to OuterWallFader. Extend D08 camera integration tests for proximity
 alpha, F1 arena/dungeon/remote foreground hiding, restored materials,
 nonfading interior walls, opaque F4/F5 and detached scene path.
+
+
+### D08 F1 actor plane
+
+`demo/world/side_lane_controller.gd` is the opt-in scene composer
+for F1 shared Player/enemy world-Z alignment. It reads the selected
+view, active remote scene and enemy group; it uses existing Locomotion
+lane ports and collision-tested movement only. Do NOT move actors
+inside the camera rig or add camera/door IDs to AI/Combat/Actor.
+All living active enemies must join the same lane when F1 is selected,
+including newly spawned or recreated dungeon NPCs. Releasing F1
+unlocks their native 3D movement; keep temporary enemy/enemy
+collision exceptions until separated, so the D07 navigation-through-
+door regression still passes. No exception may remove player/world/
+door physics. Cover F1/F2 switches, AI/HP persistence, and optional
+detached-location behavior in D08 suites.
