@@ -1,75 +1,74 @@
 extends Node
-## Continuous world-space camera clamps for physically connected sectors.
-## Profiles are duplicated per game instance; arena and dungeon share the
-## SAME camera axes and ONE union rectangle. Walking across the doorway
-## never snaps the camera, rotates WASD, or resets orbit/first-person look.
+## Presentation adapter for one connected world and any number of added
+## sectors. Author per-profile local bounds once; transform all four X/Z
+## corners for each sector, including rotated sectors, into world-space AABBs.
+## Only explicit detached travel temporarily reframes the same camera.
 
 const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
 @export var view_manager_path: NodePath = ^"../ViewManager"
-@export var dungeon_path: NodePath = ^"../EncounterSector"
+## Scene composition supplies connected roots; the parent is always sector 0.
+## No assumption that the extra levels have the same world rotation.
+@export var connected_sector_paths: Array[NodePath] = [^"../EncounterSector"]
 @export var location_manager_path: NodePath = ^"../LocationManager"
 @export var detached_half_size: Vector2 = Vector2(9.0, 6.0)
 
 var _connected_bounds: Array[Dictionary] = []
-
 @onready var views: Node = get_node_or_null(view_manager_path)
-@onready var dungeon: Node3D = get_node_or_null(dungeon_path) as Node3D
 
 
 func _ready() -> void:
-    if views == null or dungeon == null:
-        push_error("ACTION5: SectorCameraBounds needs ViewManager and the dungeon")
+    if views == null:
+        push_error("ACTION5: SectorCameraBounds needs ViewManager")
         return
     var originals: Array = views.get("profiles")
     if originals.is_empty():
-        push_error("ACTION5: SectorCameraBounds needs initialized view profiles")
+        push_error("ACTION5: SectorCameraBounds needs initialized profiles")
         return
-    var root := get_parent() as Node3D
-    # Both sectors have exactly the same world axes: only the dungeon
-    # origin is translated. The union also admits every point in the
-    # physical doorway, with no camera discontinuity at the boundary.
-    var delta := Vector2(
-        dungeon.global_position.x - root.global_position.x,
-        dungeon.global_position.z - root.global_position.z
-    )
-    # CameraRig clamps the actor's GLOBAL X/Z coordinates. The .tres
-    # bounds are authored relative to the level root, so translate the
-    # entire connected union to this instance's world-space origin.
-    # This matters for instanced levels and detached test fixtures away
-    # from (0,0,0); otherwise the player looks at the wrong location.
-    var origin := Vector2(root.global_position.x, root.global_position.z)
+    var sectors: Array[Node3D] = [get_parent() as Node3D]
+    for path in connected_sector_paths:
+        var sector: Node3D = get_node_or_null(path) as Node3D
+        if not is_instance_valid(sector):
+            push_error("ACTION5: Invalid connected sector path: " + str(path))
+            return
+        sectors.append(sector)
     for i in range(originals.size()):
         var profile := originals[i] as ProfileScript
         if profile == null:
             push_error("ACTION5: SectorCameraBounds received invalid profile")
             return
         var local_profile := profile.duplicate(true) as ProfileScript
-        var original_min: Vector2 = profile.bounds_min
-        var original_max: Vector2 = profile.bounds_max
-        local_profile.bounds_min = origin + Vector2(
-            minf(original_min.x, original_min.x + delta.x),
-            minf(original_min.y, original_min.y + delta.y)
-        )
-        local_profile.bounds_max = origin + Vector2(
-            maxf(original_max.x, original_max.x + delta.x),
-            maxf(original_max.y, original_max.y + delta.y)
-        )
+        var union: Dictionary = _bounds_for_sectors(profile.bounds_min,
+            profile.bounds_max, sectors)
+        local_profile.bounds_min = union["min"]
+        local_profile.bounds_max = union["max"]
         originals[i] = local_profile
-        _connected_bounds.append({
-            "min": local_profile.bounds_min,
-            "max": local_profile.bounds_max
-        })
+        _connected_bounds.append(union)
     views.set("profiles", originals)
     var active: int = int(views.get("active_index"))
     if active >= 0 and active < originals.size():
         views.set("current_profile", originals[active])
         views.get_node("CameraRig").set("profile", originals[active])
-    # No sector_changed listener: ordinary connected doors never move
-    # or reset a camera. Explicit REMOTE scene travel is different.
+    # A physical gateway does not reframe or alter movement axes.
     var locations: Node = get_node_or_null(location_manager_path)
     if locations != null:
         locations.location_changed.connect(_on_location_changed)
+
+
+## Four transformed footprint corners per sector. Called only at setup,
+## not every frame. Also supports an arbitrary number of rotated sectors.
+func _bounds_for_sectors(local_min: Vector2, local_max: Vector2,
+        sectors: Array[Node3D]) -> Dictionary:
+    var low := Vector2(INF, INF)
+    var high := Vector2(-INF, -INF)
+    for sector in sectors:
+        for x in [local_min.x, local_max.x]:
+            for z in [local_min.y, local_max.y]:
+                var global: Vector3 = sector.to_global(Vector3(x, 0.0, z))
+                var point := Vector2(global.x, global.z)
+                low = Vector2(minf(low.x, point.x), minf(low.y, point.y))
+                high = Vector2(maxf(high.x, point.x), maxf(high.y, point.y))
+    return {"min": low, "max": high}
 
 
 func _on_location_changed(_previous: StringName, current: StringName,
@@ -85,8 +84,6 @@ func _on_location_changed(_previous: StringName, current: StringName,
             p.bounds_min = _connected_bounds[i]["min"]
             p.bounds_max = _connected_bounds[i]["max"]
         else:
-            # Only an explicit nonadjacent transition changes bounds.
-            # Do not mutate a shared authored .tres or the actor's yaw.
             var center := Vector2(location_root.global_position.x,
                 location_root.global_position.z)
             p.bounds_min = center - detached_half_size
@@ -94,4 +91,3 @@ func _on_location_changed(_previous: StringName, current: StringName,
     var rig: Node = views.get_node_or_null("CameraRig")
     if rig != null and rig.has_method("refresh_settings"):
         rig.call("refresh_settings")
-

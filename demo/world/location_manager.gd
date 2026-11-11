@@ -1,9 +1,8 @@
 extends Node
-## Explicit non-adjacent travel. Keep the SAME player, ViewManager, combat,
-## equipment and inventory while loading an independent environment scene.
-## This is intentionally separate from the physical door/sector crossing.
-## Loaded PackedScenes are cached and paused offscreen, not recreated on
-## every visit; only an explicit fresh-session restart forgets them.
+## Explicit remote travel: one persistent Player, equipment and camera.
+## Cached environment scenes remain in the SceneTree, but inactive scenes
+## have NO physical collisions or navigation. Visibility/process_mode alone
+## do not deactivate a PhysicsServer body or NavigationServer region.
 
 signal location_changed(previous: StringName, current: StringName, location_root: Node3D)
 
@@ -17,6 +16,9 @@ signal location_changed(previous: StringName, current: StringName, location_root
 var current_location: StringName = &"connected"
 var active_scene: Node3D
 var _loaded: Dictionary = {}
+## Only snapshot when deactivating, and restore the exact authored/live
+## properties when reactivating. Weak references avoid retaining removed nodes.
+var _inactive_physics: Dictionary = {}
 
 
 func can_travel(candidate: Node3D) -> bool:
@@ -34,18 +36,24 @@ func travel_to_scene(candidate: Node3D, packed: PackedScene, arrival_path: NodeP
         location = packed.instantiate() as Node3D
         if location == null:
             return false
+        # Validate BEFORE adding anything to the live world. Bad portals
+        # must not leave orphan colliders, inventory, or cached scenes.
+        if not (location.get_node_or_null(arrival_path) is Marker3D):
+            location.free()
+            push_warning("ACTION5: Detached scene needs a Marker3D arrival point")
+            return false
+        location.add_to_group("action5_detached_location")
         location.position = detached_origin
         get_parent().add_child(location)
         _loaded[key] = location
     var arrival: Marker3D = location.get_node_or_null(arrival_path) as Marker3D
     if arrival == null:
-        push_error("ACTION5: Detached scene needs a Marker3D arrival point")
+        push_warning("ACTION5: Detached scene needs a Marker3D arrival point")
         return false
     var previous: StringName = current_location
     current_location = StringName(key)
     active_scene = location
-    active_scene.visible = true
-    active_scene.process_mode = Node.PROCESS_MODE_INHERIT
+    _set_scene_active(location, true)
     _move_actor(candidate, arrival.global_position)
     session.call("enter_detached")
     location_changed.emit(previous, current_location, active_scene)
@@ -57,8 +65,7 @@ func travel_to_marker(candidate: Node3D, marker: Marker3D) -> bool:
         return false
     var previous: StringName = current_location
     if is_instance_valid(active_scene):
-        active_scene.visible = false
-        active_scene.process_mode = Node.PROCESS_MODE_DISABLED
+        _set_scene_active(active_scene, false)
         active_scene = null
     current_location = &"connected"
     _move_actor(candidate, marker.global_position)
@@ -68,6 +75,47 @@ func travel_to_marker(candidate: Node3D, marker: Marker3D) -> bool:
         session.call("reconcile_actor_sector")
     location_changed.emit(previous, current_location, null)
     return true
+
+
+## Only cached environments are affected. Never touch the shared player,
+## their carried equipment, or the connected rooms.
+func _set_scene_active(location: Node3D, enabled: bool) -> void:
+    var id: int = location.get_instance_id()
+    if enabled:
+        location.visible = true
+        location.process_mode = Node.PROCESS_MODE_INHERIT
+        var snapshots: Array = _inactive_physics.get(id, [])
+        for entry in snapshots:
+            var node: Node = (entry["node"] as WeakRef).get_ref() as Node
+            if not is_instance_valid(node):
+                continue
+            if node is CollisionObject3D:
+                var body := node as CollisionObject3D
+                body.collision_layer = entry["layer"]
+                body.collision_mask = entry["mask"]
+            elif node is NavigationRegion3D or node is NavigationLink3D:
+                node.set("enabled", entry["enabled"])
+        _inactive_physics.erase(id)
+        return
+    var snapshots: Array = []
+    # Include the scene root itself, in case it is a collision object.
+    var nodes: Array[Node] = [location]
+    nodes.append_array(location.find_children("*", "", true, false))
+    for node in nodes:
+        if node is CollisionObject3D:
+            var body := node as CollisionObject3D
+            snapshots.append({
+                "node": weakref(body), "layer": body.collision_layer,
+                "mask": body.collision_mask
+            })
+            body.collision_layer = 0
+            body.collision_mask = 0
+        elif node is NavigationRegion3D or node is NavigationLink3D:
+            snapshots.append({"node": weakref(node), "enabled": node.get("enabled")})
+            node.set("enabled", false)
+    _inactive_physics[id] = snapshots
+    location.visible = false
+    location.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 func _move_actor(candidate: Node3D, arrival_position: Vector3) -> void:

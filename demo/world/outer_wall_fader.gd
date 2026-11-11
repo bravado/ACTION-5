@@ -34,6 +34,9 @@ func _process(delta: float) -> void:
         and views.current_profile != null and int(views.current_profile.mode) == 3
     var fade_rate: float = 1.0 - exp(-fade_speed * maxf(delta, 0.0))
     var distance_span: float = maxf(fade_start_distance - fully_faded_distance, 0.01)
+    # Fresh-entry room replacement frees old wall meshes. Keep the cache
+    # proportional to currently live meshes, not total room visits.
+    _prune_materials()
     for candidate in get_tree().get_nodes_in_group(outer_wall_group):
         var wall := candidate as StaticBody3D
         if not is_instance_valid(wall) or not get_parent().is_ancestor_of(wall):
@@ -62,6 +65,15 @@ func _process(delta: float) -> void:
             if not is_instance_valid(mesh):
                 continue
             _set_opacity(mesh, desired_alpha, fade_rate)
+
+
+func _prune_materials() -> void:
+    for id in _materials.keys():
+        var mesh: MeshInstance3D = (
+            (_materials[id]["mesh"] as WeakRef).get_ref() as MeshInstance3D
+        )
+        if not is_instance_valid(mesh) or mesh.is_queued_for_deletion():
+            _materials.erase(id)
 
 
 func _set_opacity(mesh: MeshInstance3D, target: float, blend: float) -> void:

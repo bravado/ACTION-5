@@ -113,7 +113,8 @@ func _pickup_closest_weapon() -> bool:
     for candidate in get_tree().get_nodes_in_group("action5_weapon_pickup"):
         var weapon := candidate as Node3D
         # Pickups from another instanced world must never claim this E press.
-        if weapon == null or not is_ancestor_of(weapon) or bool(weapon.get("is_equipped")):
+        if weapon == null or not is_ancestor_of(weapon) or not weapon.is_visible_in_tree() \
+                or bool(weapon.get("is_equipped")):
             continue
         # Stowed items are still scene nodes, but no longer world pickups.
         if weapon.get("equipment_owner") != null:
