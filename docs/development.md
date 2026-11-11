@@ -378,11 +378,16 @@ transitions toward 20% opacity, reaching that value at 1.1 units.
 The bottom/front `SouthWall` in the arena and dungeon is the main
 visibility improvement; other exterior bounds in those rooms and the
 remote chamber opt in using the same group. The same presenter owns
-the optional F1 front-wall mesh hide through `side_hidden_mesh_path`,
-with immediate view-change response and original visibility restored
-on component exit. `main.gd` never writes wall mesh visibility.
-First person keeps walls opaque. Near/far thresholds, minimum opacity,
-response rate, and F4 exemption remain exported settings.
+F1 foreground-wall hiding using the opt-in
+`action5_side_hidden_wall` group on the same perimeter StaticBody3D.
+Arena, dungeon (including fresh-entry replacement), and cached remote
+SouthWall meshes hide in F1; rear walls, door frame/barrier and
+colliders remain. The presenter restores authored mesh visibility on
+view switch and teardown. `main.gd` never writes wall mesh
+visibility. **Both F4 and F5 remain opaque**, immediately restoring
+unmodified original surface materials after F2/F3 fading. Near/far
+thresholds, minimum opacity, response rate and both opaque-view flags
+remain exported settings.
 
 Use a cached alpha-enabled **duplicate** of each wall's existing
 StandardMaterial3D surface material and restore the original override

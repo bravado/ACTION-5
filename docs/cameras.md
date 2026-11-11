@@ -156,10 +156,15 @@ explicit detached-location portal temporarily reframes the camera.
 ### Exterior wall visibility near the player (D08)
 
 The opt-in `OuterWallFader` is also the **sole owner** of F1's
-front-wall mesh hide: `side_hidden_mesh_path` references only that
-specific mesh, never its collider or the room root. It reacts to
-`ViewManager.view_changed` and restores the authored visibility
-when removed; `demo/main.gd` handles only view UI.
+foreground-wall hiding. Tag a camera-facing exterior `StaticBody3D`
+with both `action5_outer_wall` and `action5_side_hidden_wall`:
+the wall's mesh disappears in F1, but its solid collision body stays
+active. This is configured on the arena, dungeon and remote chamber
+`SouthWall` meshes; rear walls remain visible as scenery, and the
+door frame/panel never disappear. Runtime room replacement and
+remote-scene loading use the same group without a per-room NodePath.
+View changes take effect immediately; removing the presenter restores
+each mesh's authored visibility. `demo/main.gd` handles only view UI.
 
 
 `demo/world/outer_wall_fader.gd` is an opt-in scene
@@ -169,8 +174,11 @@ walls tagged `action5_outer_wall` fade as the player approaches their
 typical example; the same behavior works for arena, dungeon and
 separately loaded remote chambers. At **3.8 world units**, the fade
 begins; at **1.1 units**, the wall reaches 20% opacity. Moving away
-restores the exact original material. First person (view 4) remains
-fully opaque. All parameters are exported.
+restores the exact original material. First person (view 4) and
+retro top-down (view 5) both remain **fully opaque**, including when
+switching directly out of a faded wall in F2/F3. F1 hides only tagged
+foreground walls, while untagged rear walls retain normal rendering.
+All parameters are exported.
 
 We use a **cached duplicated StandardMaterial3D with alpha blending**
 instead of `GeometryInstance3D.transparency`, which Godot's

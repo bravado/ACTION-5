@@ -234,6 +234,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     fader.call("_process", 1.0)
     verify.call(south_visual.get_surface_override_material(0) == original_south,
         "First-person wall remains opaque at point-blank range")
+    # F5 is equally opaque: switching out of a faded F2 wall must restore
+    # its original material immediately, not after an alpha transition.
+    views.switch_view(1)
+    fader.call("_process", 1.0)
+    verify.call(south_visual.get_surface_override_material(0) != original_south,
+        "F2 still fades exterior perimeter walls near the actor")
+    views.switch_view(4)
+    verify.call(south_visual.get_surface_override_material(0) == original_south
+        and south_visual.visible and not south_collider.disabled
+        and bool(fader.get("preserve_top_down")),
+        "F5 immediately restores opaque exterior walls without changing physics")
     views.switch_view(1)
     player.global_position = world.to_global(Vector3(26, 0.15, 6.9))
     fader.call("_process", 1.0)
@@ -247,22 +258,32 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not (dungeon_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,
         "Independent dungeon outer wall uses the same camera-only proximity fade")
 
-    # Composition regression: F1 owns only the front mesh hide, the
-    # gate owns collision/room switching, and F2 fader owns opacity.
+    # All camera-foreground F1 walls must hide, including the dungeon
+    # instance. Background walls and the gate remain rendered, while
+    # real physics/AI collision and room-root visibility stay untouched.
     var room_visibility: Node = world.get_node("RoomVisibility")
+    var dungeon_north := dungeon.get_node("NorthWall/Mesh") as MeshInstance3D
+    var arena_north := world.get_node("NorthWall/MeshInstance3D") as MeshInstance3D
     views.switch_view(0)
     doorway.call("set_open", true)
     doorway.call("set_open", false)
     await _frames(tree, 2)
-    verify.call(not south_visual.visible and not south_collider.disabled
-        and south.collision_layer != 0,
-        "F1 front wall stays graphically hidden but physically solid across door toggles")
+    verify.call(not south_visual.visible and not dungeon_mesh.visible
+        and south.is_in_group("action5_side_hidden_wall")
+        and dungeon_south.is_in_group("action5_side_hidden_wall")
+        and arena_north.visible and dungeon_north.visible
+        and not south_collider.disabled and south.collision_layer != 0
+        and not (dungeon_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,
+        "F1 hides arena and dungeon foreground meshes, not background walls or physics")
+    verify.call(doorway.get_node("DoorMesh").visible
+        and doorway.get_node("BarrierMesh").visible,
+        "Side-view wall hiding leaves the opaque closed door and its frame visible")
     views.switch_view(1)
     player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
     fader.call("_process", 1.0)
-    verify.call(south_visual.visible and south_visual.get_surface_override_material(0)
-        is StandardMaterial3D,
-        "F2 re-shows the wall and applies independent proximity opacity")
+    verify.call(south_visual.visible and dungeon_mesh.visible
+        and south_visual.get_surface_override_material(0) is StandardMaterial3D,
+        "F2 restores both foreground meshes and independent proximity opacity")
 
     # Dynamically spawned pickups must hide, reappear on room crossing,
     # and hand rendering authority back to Equipment when collected.
@@ -321,16 +342,18 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(not (fader.get("_materials") as Dictionary).has(mesh_id)
             and not (room_visibility.get("_original_visibility") as Dictionary).has(floor_id),
             "Fresh sector prunes its replaced mesh and room-visibility cache entries")
-    # The presenter exclusively owns F1's front-wall hiding and its
-    # material fade. Unplugging it restores authored mesh visibility.
+    # Fresh sector recreation must be picked up by the group-driven
+    # presenter without modifying CameraRig or rewiring a NodePath.
     views.switch_view(0)
-    verify.call(not south_visual.visible,
-        "F1 front wall is hidden by the wall presenter, not demo main script")
+    fader.call("_process", 0.0)
+    var fresh_front := world.get_node("EncounterSector/SouthWall/Mesh") as MeshInstance3D
+    verify.call(not south_visual.visible and not fresh_front.visible,
+        "F1 automatically hides newly recreated dungeon foreground meshes")
     fader.queue_free()
     await _frames(tree, 2)
-    verify.call(south_visual.visible
+    verify.call(south_visual.visible and fresh_front.visible
         and south_visual.get_surface_override_material(0) == original_south,
-        "Removing wall presenter restores original mesh visibility/material")
+        "Removing wall presenter restores arena and new dungeon authored visibility")
     tree.current_scene = original_scene
     world.queue_free()
     await _frames(tree, 2)

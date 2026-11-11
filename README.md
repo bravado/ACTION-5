@@ -226,5 +226,8 @@ keeps solid walls. This is a **visual-only** effect: collision,
 enemy sight and combat remain blocked. Inner walls, props and
 the door panel never fade. The F2 camera's lateral peek has also
 been reduced to **6°**, adjustable per profile in Camera Settings.
-The same optional outer-wall presenter owns F1 front-wall mesh hiding
-and near-wall opacity without changing physical collision.
+The optional outer-wall presenter now hides foreground perimeter meshes
+in **all three** F1 areas (arena, dungeon and remote chamber), leaving
+rear scenery and solid collision intact. F4 first-person and F5
+top-down walls remain opaque; proximity opacity only applies to the
+other eligible views. Neither the door frame nor its collider disappears.

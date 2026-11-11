@@ -660,10 +660,14 @@ visuals, and wall/door collision is independent of visibility.
 Prune WeakRef visibility/material entries after fresh scene resets,
 and restore original flags when removing the adapter.
 
-Only OuterWallFader owns the optional F1 front-wall mesh hide,
-F2's restored mesh and near-wall material opacity. Its
-`side_hidden_mesh_path` identifies a specific mesh, not the wall
-collider or room root, and original visibility must return on exit.
+Only OuterWallFader owns F1 foreground-wall mesh hiding, F2/F3 fade
+and F4/F5 opaque rendering. Both `action5_outer_wall` and
+`action5_side_hidden_wall` must tag camera-facing foreground walls
+in the arena, dungeon and detached rooms. The group is on the
+StaticBody3D, but only direct MeshInstance3D children are hidden;
+colliders, opaque door panels and room-root visibility stay authoritative.
+View switches and fresh sector replacement must apply the new policy,
+and original mesh visibility/material/shadows return on teardown.
 Do not reintroduce a wall visibility writer in demo/main.gd.
 SectorCameraBounds handles any number of configured, rotated connected
 sector transforms by merging world-space bounds; never add room names
@@ -682,9 +686,11 @@ group, including camera-front `SouthWall`. The interior
 visible door frame, BarrierMesh and any NavigationLink3D are never
 tagged. Fade starts 3.8 units from the wall and reaches 20% material
 opacity at 1.1 units; original surface override and cast shadows
-are restored at full distance and when the presenter exits. The
-first-person camera keeps wall rendering opaque, and view 2's
-direction-sensitive peek defaults to a configurable 6°.
+are restored at full distance and when the presenter exits. F1
+hides only camera-foreground meshes tagged `action5_side_hidden_wall`
+while preserving their collision; F4 and F5 keep all exterior
+walls opaque. The F2 direction-sensitive peek remains configurable
+and defaults to 6°.
 
 **Web compatibility:** NEVER substitute
 `GeometryInstance3D.transparency` for this effect. That property is
@@ -695,5 +701,5 @@ cached material to avoid repeated shader/resource allocation. Do
 not alter room-root visibility owned by RoomVisibility, physical
 collision, enemy discovery/LoS, navigation, or any shared material
 resource. The single opt-in front mesh belongs to OuterWallFader. Extend D08 camera integration tests for proximity
-alpha, restored materials, nonfading interior walls, F4 and the
-detached scene path.
+alpha, F1 arena/dungeon/remote foreground hiding, restored materials,
+nonfading interior walls, opaque F4/F5 and detached scene path.

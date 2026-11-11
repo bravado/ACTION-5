@@ -242,6 +242,27 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     stage.get_node("OuterWallFader").call("_process", 1.0)
     verify.call(remote_wall_mesh.get_surface_override_material(0) == remote_original,
         "Returning to the center restores detached wall's opaque authored material")
+    # The same opt-in foreground group is active for cached PackedScenes,
+    # without a hard-coded path or cloned side-scroller camera.
+    var remote_north := detached.get_node("NorthWall/Mesh") as MeshInstance3D
+    views.switch_view(0)
+    stage.get_node("OuterWallFader").call("_process", 0.0)
+    verify.call(not remote_wall_mesh.visible and remote_north.visible
+        and remote_south.collision_layer != 0
+        and not (remote_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,
+        "F1 hides remote chamber foreground but preserves its rear wall and solid collider")
+    player.global_position = detached.to_global(Vector3(0, 0.15, 5.9))
+    views.switch_view(1)
+    stage.get_node("OuterWallFader").call("_process", 1.0)
+    verify.call(remote_wall_mesh.visible
+        and remote_wall_mesh.get_surface_override_material(0) != remote_original,
+        "F2 resumes remote-room proximity fade when switching from side view")
+    views.switch_view(4)
+    verify.call(remote_wall_mesh.visible
+        and remote_wall_mesh.get_surface_override_material(0) == remote_original,
+        "F5 keeps a close remote-room wall opaque after a fade in F2")
+    views.switch_view(1)
+    player.global_position = detached.to_global(Vector3(0, 0.15, 0))
     var exit := detached.get_node("ReturnPortal") as Node3D
     player.global_position = exit.global_position + Vector3(0.9, 0.15, 0)
     player.velocity = Vector3.ZERO
