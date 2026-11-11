@@ -10,12 +10,25 @@ extends Node3D
 @export var destination_marker_path: NodePath
 @export var destination_scene: PackedScene
 @export var arrival_marker_path: NodePath = ^"Arrival"
+## Optional presentation only; connected physical doors have no labels.
+## Portals may expose a label, but neither the Interactor nor the
+## destination manager reads or requires this Label3D.
+@export var show_label: bool = true
+@export var label_path: NodePath = ^"Label3D"
 
 @onready var manager: Node = get_node_or_null(location_manager_path)
 
 
 func _ready() -> void:
     add_to_group("action5_interactable")
+    set_label_visible(show_label)
+
+
+func set_label_visible(value: bool) -> void:
+    show_label = value
+    var label: Node3D = get_node_or_null(label_path) as Node3D
+    if is_instance_valid(label):
+        label.visible = value
 
 
 func can_interact(actor: Node3D) -> bool:
