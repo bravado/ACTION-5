@@ -19,6 +19,7 @@ const D07SuiteScript = preload("res://tests/d07_suite.gd")
 const D08WorldSuiteScript = preload("res://tests/d08_world_suite.gd")
 const D08CameraSectorSuiteScript = preload("res://tests/d08_camera_sector_suite.gd")
 const D08ConnectionsSuiteScript = preload("res://tests/d08_connections_suite.gd")
+const D09ReferenceSuiteScript = preload("res://tests/d09_reference_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -688,6 +689,9 @@ func _run_tests() -> void:
     await d08_camera_sector_suite.run_tests(self, Callable(self, "_check"))
     var d08_connections_suite := D08ConnectionsSuiteScript.new()
     await d08_connections_suite.run_tests(self, Callable(self, "_check"))
+
+    var d09_suite := D09ReferenceSuiteScript.new()
+    await d09_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

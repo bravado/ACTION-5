@@ -719,3 +719,15 @@ collision exceptions until separated, so the D07 navigation-through-
 door regression still passes. No exception may remove player/world/
 door physics. Cover F1/F2 switches, AI/HP persistence, and optional
 detached-location behavior in D08 suites.
+
+
+## D09-01 reference demo (pending verification)
+
+`demo/ui/reference_hud.gd` owns read-only status/help and observes public
+ViewManager/Health/CombatController/Equipment/weapon/InputMap state.
+No UI state in addon or repeated always-on physics HUD layout updates.
+`demo/interactions/reference_exit.gd` is a scene-specific Interactor
+target, gated by real enemies' Health. Completion UI remains independent
+of gameplay authority. Do not add weapon-name branches or couple D09-02
+retro policy to the HUD. Run the D09 suite, native/web exports and manual
+scenario before considering the feature ready for merge.

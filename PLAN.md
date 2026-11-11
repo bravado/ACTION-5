@@ -828,3 +828,16 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 - [x] Owner verified F1/F2/F3/F5 near-wall rendering and F4 opaque
   walls on November 11, 2026; maintain automated native/WebGL2
   screenshot and startup gates for subsequent changes.
+
+
+### D09-01 draft handoff (2026-11-11)
+
+Status: Partially complete; automated and manual validation pending.
+Scope: demo-only HUD, dynamically sourced input help, gated dungeon exit
+and completion/restart overlay; public signals and existing Interactor,
+Health, combat/equipment/view ports; no reusable addon core changes.
+Tests: `tests/d09_reference_suite.gd` registered in `tests/run_all.gd`.
+`make check`, native/WebGL2 export and smoke, actual start-to-exit run,
+and 20-minute visual/focus exploratory run: **NOT VERIFIED** (Godot/browser
+unavailable through connector). Do not close issue or merge based on code
+alone. Follow-up: D09-02 retro top-down encounter and view policy.

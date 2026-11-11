@@ -244,3 +244,24 @@ in **all three** F1 areas (arena, dungeon and remote chamber), leaving
 rear scenery and solid collision intact. F4 first-person and F5
 top-down walls remain opaque; proximity opacity only applies to the
 other eligible views. Neither the door frame nor its collider disappears.
+
+
+## D09-01 playable reference (draft)
+
+Use `make run` and follow the displayed objective. The scene combines the
+existing arena, physical east gate, dungeon, enemies and the EXIT marker.
+Defeat the dungeon enemies and press the displayed interact key at EXIT
+to show the completion screen; use **Play Again** or the existing death
+screen **Restart** to reload the scene. The remote portal is a separate
+optional exploration route.
+
+The HUD is a read-only listener to ViewManager, Health, CombatController,
+MovementController, Equipment, InputMap and the currently equipped weapon.
+It displays the five view bindings, attack definition mappings, unarmed
+fallback, optional ammo/reload and weapon commands (including Heavy Pistol).
+The E/Q/G demo interactions can be rebound through InputMap.
+
+**Verification pending:** `make check`, `make linux`, `make web`,
+native/WebGL2 start-to-exit smoke and 20-minute exploratory gameplay.
+These are **NOT VERIFIED** in this connector-only environment. D09-02
+retro-specific encounter/aim/scrolling is a separate milestone.
