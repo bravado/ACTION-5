@@ -40,7 +40,7 @@ surface_material_override/0 = SubResource("floor_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 shape = SubResource("floor_shape")
 
-[node name="NorthWall" type="StaticBody3D" parent="."]
+[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(0, 1.5, -7)
 
 [node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
@@ -50,7 +50,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("wall_north_shape")
 
-[node name="SouthWall" type="StaticBody3D" parent="."]
+[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(0, 1.5, 7)
 
 [node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
@@ -60,7 +60,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
 shape = SubResource("wall_north_shape")
 
-[node name="EastWall" type="StaticBody3D" parent="."]
+[node name="EastWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(10, 1.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="EastWall"]
@@ -70,7 +70,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
 shape = SubResource("wall_east_shape")
 
-[node name="WestWall" type="StaticBody3D" parent="."]
+[node name="WestWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(-10, 1.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="WestWall"]
