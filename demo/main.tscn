@@ -152,7 +152,7 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("BoxShape3D_wallX")
 
-[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
 position = Vector3(0, 1.5, 9)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SouthWall"]
@@ -511,4 +511,3 @@ script = ExtResource("25_room_visibility")
 
 [node name="OuterWallFader" type="Node" parent="."]
 script = ExtResource("30_outer_wall_fader")
-side_hidden_mesh_path = NodePath("../SouthWall/MeshInstance3D")

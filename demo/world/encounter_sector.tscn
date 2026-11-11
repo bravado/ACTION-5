@@ -79,7 +79,7 @@ surface_material_override/0 = SubResource("dungeon_wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("dungeon_wall_x_shape")
 
-[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
 position = Vector3(0, 1.5, 8)
 
 [node name="Mesh" type="MeshInstance3D" parent="SouthWall"]

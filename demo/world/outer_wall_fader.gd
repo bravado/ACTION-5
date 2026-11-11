@@ -1,8 +1,8 @@
 extends Node
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
-## Visual-only proximity fade for explicitly tagged *outer* perimeter
-## walls. Only optional F1 front-mesh visibility changes with the view;
-## no door, AI, navigation or collision state is changed.
+## Render-only rules for explicitly tagged exterior perimeter walls.
+## F1 hides authored camera-foreground meshes; F2/F3 may proximity fade;
+## F4/F5 remain opaque. Never change collision, AI, doors or navigation.
 ##
 ## Use a duplicated StandardMaterial3D with alpha blending instead of
 ## GeometryInstance3D.transparency: the latter is unsupported by Godot's
@@ -18,50 +18,47 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export_range(0.1, 5.0, 0.1) var fully_faded_distance: float = 1.1
 @export_range(0.05, 0.95, 0.05) var closest_opacity: float = 0.20
 @export_range(1.0, 30.0, 0.5) var fade_speed: float = 11.0
-## Keep physical walls visibly solid in F4 (first person).
+## Keep exterior walls opaque in first-person and overhead views.
 @export var preserve_first_person: bool = true
-## Optional side-on wall hiding belongs to this same outer-wall presenter;
-## the demo main script never directly writes a wall's visibility.
-@export var side_hidden_mesh_path: NodePath
+@export var preserve_top_down: bool = true
+## Camera-foreground meshes in F1 opt in on their StaticBody3D parents.
+## Only meshes disappear; the collider and other room-root visuals persist.
+@export var side_hidden_wall_group: StringName = &"action5_side_hidden_wall"
 
 @onready var actor: Node3D = get_node_or_null(actor_path) as Node3D
 @onready var views: Node = get_node_or_null(view_manager_path)
 
-# Key: mesh instance id. Value: mesh weak ref, original material override,
-# original shadow mode, cached fade material, current opacity.
+# Key: mesh instance id. Original visibility, material and shadow state
+# share one weak-reference cache, so scene reset/reload cannot leak either.
 var _materials: Dictionary = {}
-var _side_mesh: MeshInstance3D
-var _side_original_visible: bool = true
 
 
 func _ready() -> void:
-    _side_mesh = get_node_or_null(side_hidden_mesh_path) as MeshInstance3D
-    if is_instance_valid(_side_mesh):
-        _side_original_visible = _side_mesh.visible
     if is_instance_valid(views):
         views.view_changed.connect(_on_view_changed)
-    _refresh_side_wall()
+    _process(0.0)
 
 
 func _on_view_changed(_current: Resource, _previous: Resource) -> void:
-    _refresh_side_wall()
-
-
-func _refresh_side_wall() -> void:
-    if not is_instance_valid(_side_mesh):
-        return
-    # Only its mesh is hidden in F1; the StaticBody3D remains solid.
-    var side_view: bool = is_instance_valid(views) and views.current_profile != null \
-        and views.current_profile.mode == ViewProfileScript.Mode.SIDE
-    _side_mesh.visible = _side_original_visible and not side_view
+    # Apply F1 mesh hiding and F4/F5 opacity before the next physics tick.
+    _process(0.0)
 
 
 func _process(delta: float) -> void:
     if not is_instance_valid(actor):
         return
-    var first_person: bool = preserve_first_person and is_instance_valid(views) \
-        and views.current_profile != null and views.current_profile.mode == ViewProfileScript.Mode.FIRST_PERSON
-    var fade_rate: float = 1.0 - exp(-fade_speed * maxf(delta, 0.0))
+    var mode: int = -1
+    if is_instance_valid(views) and views.current_profile != null:
+        mode = views.current_profile.mode
+    var side_view: bool = mode == ViewProfileScript.Mode.SIDE
+    var opaque_view: bool = (
+        (preserve_first_person and mode == ViewProfileScript.Mode.FIRST_PERSON)
+        or (preserve_top_down and mode == ViewProfileScript.Mode.RETRO_TOPDOWN)
+    )
+    # Do not leave an old alpha material on screen during F4/F5 entry.
+    var fade_rate: float = (
+        1.0 if opaque_view else 1.0 - exp(-fade_speed * maxf(delta, 0.0))
+    )
     var distance_span: float = maxf(fade_start_distance - fully_faded_distance, 0.01)
     # Fresh-entry room replacement frees old wall meshes. Keep the cache
     # proportional to currently live meshes, not total room visits.
@@ -87,13 +84,19 @@ func _process(delta: float) -> void:
         )
         proximity = proximity * proximity * (3.0 - 2.0 * proximity)
         var desired_alpha: float = (
-            1.0 if first_person else lerpf(1.0, closest_opacity, proximity)
+            1.0 if opaque_view else lerpf(1.0, closest_opacity, proximity)
         )
+        var hide_in_side: bool = side_view and wall.is_in_group(side_hidden_wall_group)
         for node in wall.get_children():
             var mesh := node as MeshInstance3D
             if not is_instance_valid(mesh):
                 continue
             _set_opacity(mesh, desired_alpha, fade_rate)
+            if wall.is_in_group(side_hidden_wall_group):
+                var original_visible: bool = bool(_materials[mesh.get_instance_id()]["visible"])
+                var should_show: bool = original_visible and not hide_in_side
+                if mesh.visible != should_show:
+                    mesh.visible = should_show
 
 
 func _prune_materials() -> void:
@@ -111,21 +114,24 @@ func _set_opacity(mesh: MeshInstance3D, target: float, blend: float) -> void:
         var original: Material = mesh.get_surface_override_material(0)
         var base := (original if original != null
             else mesh.get_active_material(0)) as StandardMaterial3D
-        if base == null:
-            return
-        var transparent := base.duplicate(true) as StandardMaterial3D
-        transparent.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+        var transparent: StandardMaterial3D
+        if base != null:
+            transparent = base.duplicate(true) as StandardMaterial3D
+            transparent.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
         _materials[id] = {
             "mesh": weakref(mesh),
             "original": original,
             "transparent": transparent,
             "alpha": 1.0,
-            "shadow": mesh.cast_shadow
+            "shadow": mesh.cast_shadow,
+            "visible": mesh.visible
         }
     var entry: Dictionary = _materials[id]
+    var fade_material: StandardMaterial3D = entry["transparent"]
+    if fade_material == null:
+        return
     var alpha: float = lerpf(float(entry["alpha"]), target, blend)
     entry["alpha"] = alpha
-    var fade_material: StandardMaterial3D = entry["transparent"]
     if alpha > 0.995:
         if mesh.get_surface_override_material(0) != entry["original"]:
             mesh.set_surface_override_material(0, entry["original"])
@@ -142,11 +148,10 @@ func _set_opacity(mesh: MeshInstance3D, target: float, blend: float) -> void:
 func _exit_tree() -> void:
     if is_instance_valid(views) and views.view_changed.is_connected(_on_view_changed):
         views.view_changed.disconnect(_on_view_changed)
-    if is_instance_valid(_side_mesh):
-        _side_mesh.visible = _side_original_visible
     for entry in _materials.values():
         var mesh: MeshInstance3D = (entry["mesh"] as WeakRef).get_ref() as MeshInstance3D
         if is_instance_valid(mesh):
+            mesh.visible = bool(entry["visible"])
             mesh.set_surface_override_material(0, entry["original"])
             mesh.cast_shadow = entry["shadow"]
     _materials.clear()
