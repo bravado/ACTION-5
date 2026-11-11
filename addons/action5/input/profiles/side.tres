@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Action5ViewControlProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/input/view_control_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+view_mode = 0
+vertical_movement = false
+extra_left_action = &"actor_turn_left"
+extra_right_action = &"actor_turn_right"
+extra_jump_action = &"move_up"
+held_move_action = &"move_down"
+held_move_id = &"crouch"
+held_move_variants = Array[StringName]([&"crouch", &"crouch_walk"])

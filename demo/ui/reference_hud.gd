@@ -9,6 +9,7 @@ extends CanvasLayer
 @export var moves_path: NodePath = ^"../Player/Locomotion/MovementController"
 @export var session_path: NodePath = ^"../WorldSession"
 @export var exit_path: NodePath = ^"../EncounterSector/ExitTerminal"
+@export var actor_input_path: NodePath = ^"../ActorInput"
 
 @onready var status: Label = $Status
 @onready var help: Label = $Help
@@ -18,6 +19,7 @@ extends CanvasLayer
 @onready var equipment: Node = get_node_or_null(equipment_path)
 @onready var moves: Node = get_node_or_null(moves_path)
 @onready var session: Node = get_node_or_null(session_path)
+@onready var actor_input: Node = get_node_or_null(actor_input_path)
 
 var _weapon: Node
 var _exit: Node
@@ -127,20 +129,42 @@ func refresh() -> void:
         var item: Resource = (views.get("profiles") as Array)[i] as Resource
         view_hints.append("%s %s" % [_binding(StringName("view_" + str(i + 1))), str(item.get("display_name"))])
     instructions += "\nViews: " + "  ·  ".join(view_hints) + " | Controller: " + _binding(&"view_previous") + "/" + _binding(&"view_next")
-    instructions += "\nMove: %s/%s/%s/%s | Jump: %s | Run: %s | Interact: %s | Swap: %s | Drop: %s" % [
-        _binding(&"move_up"), _binding(&"move_left"), _binding(&"move_down"), _binding(&"move_right"),
-        _binding(&"actor_jump"), _binding(&"actor_run"), _binding(&"demo_interact"),
+    var controls: Resource = actor_input.call("get_active_controls") as Resource \
+        if is_instance_valid(actor_input) else null
+    if controls != null:
+        var horizontal: String = "%s/%s" % [
+            _binding(controls.get("move_left_action")),
+            _binding(controls.get("move_right_action"))
+        ]
+        if not str(controls.get("extra_left_action")).is_empty():
+            horizontal += " or %s/%s" % [
+                _binding(controls.get("extra_left_action")),
+                _binding(controls.get("extra_right_action"))
+            ]
+        instructions += "\nMove left/right: %s" % horizontal
+        if bool(controls.get("vertical_movement")):
+            instructions += " | Forward/back: %s/%s" % [
+                _binding(controls.get("move_up_action")),
+                _binding(controls.get("move_down_action"))
+            ]
+        var jump_keys: String = _binding(controls.get("jump_action"))
+        if not str(controls.get("extra_jump_action")).is_empty():
+            jump_keys += " or " + _binding(controls.get("extra_jump_action"))
+        instructions += " | Jump: %s" % jump_keys
+        if not str(controls.get("held_move_action")).is_empty():
+            instructions += " | Hold %s: %s" % [
+                str(controls.get("held_move_id")).capitalize(),
+                _binding(controls.get("held_move_action"))
+            ]
+        if not str(controls.get("turn_left_action")).is_empty():
+            instructions += " | Turn: %s/%s" % [
+                _binding(controls.get("turn_left_action")),
+                _binding(controls.get("turn_right_action"))
+            ]
+    instructions += " | Run: %s | Interact: %s | Swap: %s | Drop: %s" % [
+        _binding(&"actor_run"), _binding(&"demo_interact"),
         _binding(&"demo_swap"), _binding(&"demo_drop")
     ]
-    if int(profile.get("mode")) == 3: # Action5ViewProfile.Mode.FIRST_PERSON
-        instructions += "\nF4 turn: %s / %s | Strafe: %s / %s (or left stick)" % [
-            _binding(&"actor_turn_left"), _binding(&"actor_turn_right"),
-            _binding(&"move_left"), _binding(&"move_right")
-        ]
-    else:
-        instructions += " | Horizontal arrows: %s / %s" % [
-            _binding(&"actor_turn_left"), _binding(&"actor_turn_right")
-        ]
     var actions := PackedStringArray()
     if combat.has_method("get_attacks"):
         var seen: Dictionary = {}
