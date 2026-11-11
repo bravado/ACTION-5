@@ -67,7 +67,11 @@ func _set_visual(piece: Node3D, show: bool) -> void:
     var id: int = piece.get_instance_id()
     if not _original_visibility.has(id):
         _original_visibility[id] = {"node": weakref(piece), "visible": piece.visible}
-    piece.visible = bool(_original_visibility[id]["visible"]) and show
+    var visible_now: bool = bool(_original_visibility[id]["visible"]) and show
+    # Enemy/pickup checks run each physics tick. Don't trigger repeated
+    # visibility notifications if the cached presentation state is unchanged.
+    if piece.visible != visible_now:
+        piece.visible = visible_now
 
 
 func _prune_visibility() -> void:

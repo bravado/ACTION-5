@@ -1,6 +1,8 @@
 extends Node
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## Visual-only proximity fade for explicitly tagged *outer* perimeter
-## walls. No view, door, AI, navigation or collision state is changed.
+## walls. Only optional F1 front-mesh visibility changes with the view;
+## no door, AI, navigation or collision state is changed.
 ##
 ## Use a duplicated StandardMaterial3D with alpha blending instead of
 ## GeometryInstance3D.transparency: the latter is unsupported by Godot's
@@ -50,7 +52,7 @@ func _refresh_side_wall() -> void:
         return
     # Only its mesh is hidden in F1; the StaticBody3D remains solid.
     var side_view: bool = is_instance_valid(views) and views.current_profile != null \
-        and int(views.current_profile.mode) == 0
+        and views.current_profile.mode == ViewProfileScript.Mode.SIDE
     _side_mesh.visible = _side_original_visible and not side_view
 
 
@@ -58,7 +60,7 @@ func _process(delta: float) -> void:
     if not is_instance_valid(actor):
         return
     var first_person: bool = preserve_first_person and is_instance_valid(views) \
-        and views.current_profile != null and int(views.current_profile.mode) == 3
+        and views.current_profile != null and views.current_profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     var fade_rate: float = 1.0 - exp(-fade_speed * maxf(delta, 0.0))
     var distance_span: float = maxf(fade_start_distance - fully_faded_distance, 0.01)
     # Fresh-entry room replacement frees old wall meshes. Keep the cache
