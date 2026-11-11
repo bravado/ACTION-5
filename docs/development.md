@@ -311,7 +311,7 @@ usual D07 NPC and D08 dropped-equipment/camera regressions still run.
 
 
 **F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
-`lateral_peek_degrees = 20`, with an exponential response of 8.
+`lateral_peek_degrees = 12`, with an exponential response of 8.
 The camera sidesteps left while the player moves right and vice versa,
 holding the last viewing angle when idle. This makes X-normal
 walls/door panels visible without rotating F2 movement: WASD remains
@@ -327,3 +327,26 @@ child on remote portals; omit the label or call
 `set_label_visible(false)` to hide it without changing E eligibility
 or where the original Player travels. Connected physical doors have
 no labels or scene-transition logic.
+
+### Outer perimeter fade without gameplay coupling
+
+The D08 `demo/world/outer_wall_fader.gd` presenter monitors the
+player's horizontal distance to authored **outer wall**
+CollisionShape3D box footprints. Only `action5_outer_wall` members
+fade. When the actor approaches within 3.8 units, the wall mesh
+transitions toward 20% opacity, reaching that value at 1.1 units.
+The bottom/front `SouthWall` in the arena and dungeon is the main
+visibility improvement; other exterior bounds in those rooms and the
+remote chamber opt in using the same group. First person keeps walls
+opaque. Near/far thresholds, minimum opacity, response rate, and
+F4 exemption are exported settings.
+
+Use a cached alpha-enabled **duplicate** of each wall's existing
+StandardMaterial3D surface material and restore the original override
+when far; generic GeometryInstance3D transparency does not work
+with WebGL2 Compatibility. The original opaque resources are never
+mutated; no rendering change touches a StaticBody3D, CollisionShape3D,
+NavigationLink3D, scene-room visibility, or NPC/Gun line of sight.
+Shared boundary walls and the solid door must **not** opt in.
+`tests/d08_camera_sector_suite.gd` exercises material opacity,
+restoration and no collision changes in all relevant modes.
