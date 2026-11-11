@@ -128,7 +128,9 @@ func _is_connected_pickup(weapon: Node3D) -> bool:
 
 
 func _track_pickup(weapon: Node3D) -> void:
-    if not is_instance_valid(weapon) or not weapon.is_in_group("action5_weapon_pickup") \
+    if not is_instance_valid(weapon) or not weapon.is_inside_tree() \
+            or weapon.is_queued_for_deletion() \
+            or not weapon.is_in_group("action5_weapon_pickup") \
             or weapon.get("equipment_owner") != null or not _is_connected_pickup(weapon):
         return
     _ground_weapons[weapon.get_instance_id()] = weakref(weapon)
@@ -136,7 +138,8 @@ func _track_pickup(weapon: Node3D) -> void:
 
 
 func _update_pickup(weapon: Node3D) -> void:
-    if not is_instance_valid(weapon) or weapon.get("equipment_owner") != null:
+    if not is_instance_valid(weapon) or not weapon.is_inside_tree() \
+            or weapon.get("equipment_owner") != null:
         return
     var root := get_parent() as Node3D
     var boundary: float = float(session.get("passage_boundary_x"))
@@ -147,7 +150,8 @@ func _update_pickup(weapon: Node3D) -> void:
 func _update_ground_weapons() -> void:
     for id in _ground_weapons.keys():
         var weapon: Node3D = (_ground_weapons[id] as WeakRef).get_ref() as Node3D
-        if not is_instance_valid(weapon) or weapon.is_queued_for_deletion():
+        if not is_instance_valid(weapon) or not weapon.is_inside_tree() \
+                or weapon.is_queued_for_deletion():
             _ground_weapons.erase(id)
             _original_visibility.erase(id)
         elif weapon.get("equipment_owner") != null or not _is_connected_pickup(weapon):
@@ -173,8 +177,12 @@ func _on_node_added(candidate: Node) -> void:
 
 
 func _track_new_pickup(reference: WeakRef) -> void:
+    # Deferred registration can run after a restart or reparent. Never
+    # inspect transforms of nodes removed from SceneTree in the meantime.
+    if not is_inside_tree() or is_queued_for_deletion():
+        return
     var weapon: Node3D = reference.get_ref() as Node3D
-    if is_instance_valid(weapon):
+    if is_instance_valid(weapon) and weapon.is_inside_tree():
         _track_pickup(weapon)
 
 
