@@ -90,6 +90,8 @@ func _unhandled_input(event: InputEvent) -> void:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
     # The demo's remappable actions accept keyboard, controller and mouse.
+    if event is InputEventKey and event.echo:
+        return
     if _camera_settings.visible or not event.is_pressed():
         return
     var consumed: bool = false
