@@ -731,3 +731,17 @@ target, gated by real enemies' Health. Completion UI remains independent
 of gameplay authority. Do not add weapon-name branches or couple D09-02
 retro policy to the HUD. Run the D09 suite, native/web exports and manual
 scenario before considering the feature ready for merge.
+
+
+### D09-01 F4 keyboard yaw and sidestep
+
+Keep keyboard rotation in the reusable ActorInputAdapter via the
+CameraRig `apply_yaw_delta()` look port and existing facing intent; do
+not rotate Actor transforms directly or add hardcoded keys to Combat,
+Equipment or CameraRig. Default arrow Left/Right actions are
+`actor_turn_left`/`actor_turn_right`, separate from WASD and
+left-stick strafe. Other views continue to use horizontal arrows as
+lateral movement. Focus loss/UI disable must suppress turns and require
+neutral rearming before resumed input. Show the active controls in the
+demo HUD; test F4 yaw with no strafe, A/D with no yaw, and F2 arrows
+continuing to move horizontally.

@@ -132,6 +132,15 @@ func refresh() -> void:
         _binding(&"actor_jump"), _binding(&"actor_run"), _binding(&"demo_interact"),
         _binding(&"demo_swap"), _binding(&"demo_drop")
     ]
+    if int(profile.get("mode")) == 3: # Action5ViewProfile.Mode.FIRST_PERSON
+        instructions += "\\nF4 turn: %s / %s | Strafe: %s / %s (or left stick)" % [
+            _binding(&"actor_turn_left"), _binding(&"actor_turn_right"),
+            _binding(&"move_left"), _binding(&"move_right")
+        ]
+    else:
+        instructions += " | Horizontal arrows: %s / %s" % [
+            _binding(&"actor_turn_left"), _binding(&"actor_turn_right")
+        ]
     var actions := PackedStringArray()
     if combat.has_method("get_attacks"):
         var seen: Dictionary = {}

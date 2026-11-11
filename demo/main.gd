@@ -152,7 +152,12 @@ func _on_move_changed(previous: StringName, current: StringName) -> void:
         _refresh_status(_views.current_profile)
 
 
-## Legacy demo smoke hook; D09 HUD owns all read-only projection.\nfunc _refresh_status(_profile: ViewProfileScript) -> void:\n    $Hud.refresh()\n\n\nfunc _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
+## Legacy demo smoke hook; D09 HUD owns all read-only projection.
+func _refresh_status(_profile: ViewProfileScript) -> void:
+    $Hud.refresh()
+
+
+func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
     if current == null:
         return
     # Remove stale GUI focus left by view buttons or camera sliders.

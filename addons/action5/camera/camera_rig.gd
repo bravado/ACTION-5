@@ -21,7 +21,7 @@ var transition_count: int = 0
 var _snap_next: bool = true
 # Each orbit view retains its own look direction across profile changes.
 var _orbit_angles: Dictionary = {}
-## Advances only for actual mouse-look input, not for camera view changes.
+## Advances for genuine mouse/keyboard look input, never for camera view changes.
 var look_input_revision: int = 0
 var _last_fps_exit_facing_yaw: float = 0.0
 var _has_fps_exit_facing: bool = false
@@ -145,6 +145,19 @@ func apply_mouse_motion(relative: Vector2) -> void:
             deg_to_rad(profile.min_pitch_degrees),
             deg_to_rad(profile.max_pitch_degrees)
         )
+
+
+## Remappable keyboard/gamepad look input can rotate the same persistent
+## orbit as mouse motion. In F4 update the basis before physics samples
+## movement/facing, eliminating a one-tick aim/strafe delay.
+func apply_yaw_delta(radians: float) -> void:
+    if profile == null or not profile.is_orbit_mode() or not is_finite(radians) \
+            or is_zero_approx(radians):
+        return
+    orbit_yaw = wrapf(orbit_yaw + radians, -PI, PI)
+    look_input_revision += 1
+    if profile.mode == ViewProfileScript.Mode.FIRST_PERSON:
+        camera.global_basis = Basis.from_euler(Vector3(-orbit_pitch, orbit_yaw, 0.0))
 
 
 func _process(delta: float) -> void:

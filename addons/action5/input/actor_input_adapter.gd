@@ -17,6 +17,8 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export_range(0.0, 0.95, 0.05) var aim_deadzone: float = 0.28
 @export_enum("4-way", "8-way") var retro_facing: int = 1
 @export var independent_aim_enabled: bool = true
+## F4-only keyboard turning. Turn actions are remappable independently of A/D.
+@export_range(30.0, 360.0, 5.0) var first_person_turn_speed: float = 135.0
 
 @onready var actor: ActorScript = get_node_or_null(actor_path) as ActorScript
 @onready var views: ViewManagerScript = get_node_or_null(view_manager_path) as ViewManagerScript
@@ -55,13 +57,23 @@ func _physics_process(_delta: float) -> void:
     if not enabled or not focus_active or not actor.alive or not actor.controls_enabled:
         return
 
-    var axes := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", move_deadzone)
+    var axes: Vector2 = get_movement_axes()
     var aim_axes := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    var turn_axis: float = Input.get_axis(&"actor_turn_left", &"actor_turn_right")
     if require_neutral:
-        if axes.length_squared() > 0.001 or aim_axes.length_squared() > 0.001:
+        if axes.length_squared() > 0.001 or aim_axes.length_squared() > 0.001 \
+                or absf(turn_axis) > 0.001:
             clear_input()
             return
         require_neutral = false
+
+    # The camera's yaw is an existing look-input port; movement, weapons and
+    # combat only receive the resulting world-space intent. A/D are untouched.
+    if views.current_profile.mode == ViewProfileScript.Mode.FIRST_PERSON \
+            and absf(turn_axis) > 0.001:
+        views.camera_rig.apply_yaw_delta(
+            -turn_axis * deg_to_rad(first_person_turn_speed) * _delta
+        )
 
     var command: IntentScript = compose_intent(
         axes,
@@ -70,6 +82,18 @@ func _physics_process(_delta: float) -> void:
         Input.is_action_pressed(&"actor_run")
     )
     actor.apply_move_intent(command)
+
+## F1/F2/F3/F5 retain arrow-key lateral movement. F4 reserves Left/Right
+## for yaw, and horizontal movement comes only from A/D or the left stick.
+func get_movement_axes() -> Vector2:
+    var axes := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", move_deadzone)
+    if views != null and views.current_profile != null \
+            and views.current_profile.mode != ViewProfileScript.Mode.FIRST_PERSON:
+        axes.x = clampf(
+            axes.x + Input.get_axis(&"actor_turn_left", &"actor_turn_right"),
+            -1.0, 1.0
+        )
+    return axes.limit_length(1.0)
 
 
 func compose_intent(
@@ -164,8 +188,10 @@ func _notification(what: int) -> void:
 
 
 func _register_default_actions() -> void:
-    _ensure(&"move_left", [KEY_A, KEY_LEFT], JOY_AXIS_LEFT_X, -1.0)
-    _ensure(&"move_right", [KEY_D, KEY_RIGHT], JOY_AXIS_LEFT_X, 1.0)
+    _ensure(&"move_left", [KEY_A], JOY_AXIS_LEFT_X, -1.0)
+    _ensure(&"move_right", [KEY_D], JOY_AXIS_LEFT_X, 1.0)
+    _ensure_button(&"actor_turn_left", [KEY_LEFT], -1)
+    _ensure_button(&"actor_turn_right", [KEY_RIGHT], -1)
     _ensure(&"move_up", [KEY_W, KEY_UP], JOY_AXIS_LEFT_Y, -1.0)
     _ensure(&"move_down", [KEY_S, KEY_DOWN], JOY_AXIS_LEFT_Y, 1.0)
     _ensure(&"aim_left", [], JOY_AXIS_RIGHT_X, -1.0)
@@ -219,6 +245,7 @@ func _ensure_button(action: StringName, keys: Array, button: int) -> void:
         var ev := InputEventKey.new()
         ev.keycode = key
         InputMap.action_add_event(action, ev)
-    var joy := InputEventJoypadButton.new()
-    joy.button_index = button
-    InputMap.action_add_event(action, joy)
+    if button >= 0:
+        var joy := InputEventJoypadButton.new()
+        joy.button_index = button
+        InputMap.action_add_event(action, joy)

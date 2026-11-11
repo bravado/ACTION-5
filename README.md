@@ -265,3 +265,16 @@ The E/Q/G demo interactions can be rebound through InputMap.
 native/WebGL2 start-to-exit smoke and 20-minute exploratory gameplay.
 These are **NOT VERIFIED** in this connector-only environment. D09-02
 retro-specific encounter/aim/scrolling is a separate milestone.
+
+
+### First-person arrow-key turning (D09-01)
+
+In first-person view (4/F4), **Left/Right arrows** rotate the view and actor
+yaw continuously (default 135°/second); **A/D** strafe independently,
+**W/S** or Up/Down arrows move forward/backward. In views 1, 2, 3 and 5,
+Left/Right arrows still move sideways. The `actor_turn_left` and
+`actor_turn_right` InputMap actions can be rebound independently of
+`move_left`/`move_right`; a separate input-adapter property controls
+F4 turn speed. All rotation uses the existing CameraRig yaw port and
+ActorInputAdapter facing intent; no gameplay core or equipment code depends
+on the keys.
