@@ -280,7 +280,12 @@ processing outside the normal preload radius.
 `Action5Interactor` uses an optional
 `get_interaction_point(actor)` method so an opaque door can provide
 symmetric handles without the ray needing to terminate inside its
-own panel. The AI sensor likewise accepts an optional
+own panel. Each of the two **gold handles** at world X=14 aligns
+precisely with those near-side E points. A connected door has **no
+Label3D nodes**. The teal lintel/solid panel share one physical
+coordinate frame, and the mesh uses the same dimensions/position as
+the blocking CollisionShape3D. This is important in F2, where the
+formerly frontal +Z camera saw the vertical panel edge-on. The AI sensor likewise accepts an optional
 `allows_acquisition(observer, candidate)` filter. Both protocols
 are replaceable and have no input, camera or combat dependencies.
 ArenaNavigation uses a minimal flat demo NavMesh, connected to
@@ -303,3 +308,22 @@ both-sided gate behavior, room invisibility before entry,
 acquisition denial/persistence, nav/collision states, and repeated
 detached scene travel with the same inventory/actor identity. The
 usual D07 NPC and D08 dropped-equipment/camera regressions still run.
+
+
+**F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
+`lateral_peek_degrees = 20`, with an exponential response of 8.
+The camera sidesteps left while the player moves right and vice versa,
+holding the last viewing angle when idle. This makes X-normal
+walls/door panels visible without rotating F2 movement: WASD remains
+world-X/Z, and F1/F3/F4/F5 remain untouched. Set the profile angle to
+0 to disable. The `SectorCameraBounds` adapter now translates
+authored local arena+dungeon rectangles to the root's **global**
+X/Z origin; instancing a whole level away from the world origin no
+longer leaves its camera focusing elsewhere.
+
+**Portal label policy:** `demo/interactions/location_portal.gd`
+offers `show_label` and `label_path`. Defaults show a `Label3D`
+child on remote portals; omit the label or call
+`set_label_visible(false)` to hide it without changing E eligibility
+or where the original Player travels. Connected physical doors have
+no labels or scene-transition logic.
