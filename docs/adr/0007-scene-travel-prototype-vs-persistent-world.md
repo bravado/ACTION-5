@@ -1,8 +1,8 @@
 # ADR-0007: One persistent world with a reusable dungeon scene
 
-- **Status:** Adopted in D08 PR #34 (pending full D08 acceptance)
+- **Status:** Accepted (D08 persistent-world architecture)
 - **Date:** 2026-11-10
-- **Related:** merged D07 PR #33, D08 issue #16, D08 PR #34
+- **Related:** D07 AI foundation, D08 issue #16, D09 reference scenario
 
 ## Context
 
@@ -171,9 +171,11 @@ completed; do not claim performance superiority without profiling.
 ## Remaining release gates
 
 D08's architecture now satisfies the structural same-world requirement,
-but PR #34 remains **ready for review, unmerged** until head-specific Godot tests (including
-the independent D07 suite), fresh-entry item/NPC lifetime regressions,
-native/WebGL2 tests and owner camera/interaction visual review all pass.
+and its owner F1–F5 manual visual verification passed on
+November 11, 2026. The 1,212-assertion headless test suite covers
+the independent D07 encounter, fresh-entry item/NPC lifetimes,
+physics isolation, navigation restoration and camera continuity.
+Native and WebGL2 export/browser checks remain standard release gates.
 The original scene-loading prototype is historical context, not a
 supported alternative at runtime.
 

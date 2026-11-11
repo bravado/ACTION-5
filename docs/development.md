@@ -139,13 +139,13 @@ D02 supplies five cameras; D03 supplies data-driven movement; D04 supplies
 imported skeletal clips, bone sockets and local first-person visibility.
 D05 implements authored combat and D06 Bat/Shovel/Gun, muzzle-first physical
 hits and optional projectile/reload visuals; D06-01 and D06-02 merged as
-PRs #31 and #32. The crouch movement example also uses the same ports.
+D06-01 and #32. The crouch movement example also uses the same ports.
 Use [adding moves](adding-moves.md), [animation](animation.md),
 [combat](combat.md), [equipment](equipment.md) and
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md)
 rather than introducing new actor or attack clocks.
 
-D07-01 (merged PR #33) adds four actor-local AI components and two
+D07-01 (merged D07-01) adds four actor-local AI components and two
 equipped melee/ranged NPCs. Their only authored battle environment is now
 `demo/world/encounter_sector.tscn`, embedded by `demo/main.tscn` with
 real navigation, physical obstruction, shared player punch/kick input
@@ -183,8 +183,8 @@ main-arena captures do not prove encounter-specific animation quality.
 
 ### D08 persistent-world demo and orientation
 
-PR #34 is rebased on merged D07 `master` and remains a D08
-draft. `demo/main.tscn` owns one live Player, Equipment/Health/Combat,
+D08 builds on the completed D07 AI components. `demo/main.tscn`
+owns one live Player, Equipment/Health/Combat,
 ViewManager and a separately authored `demo/world/encounter_sector.tscn`
 dungeon. The arena and dungeon now **share a world-space boundary**:
 the arena floor ends at X=14, and the dungeon (origin X=26, floor
@@ -251,9 +251,9 @@ points to the opening panel, which disappears when the physical
 barrier collider disables and the navigation link enables. Ordinary
 door panels keep the default `false` to hide on opening. The shared
 frame and door state persist across all visits, even when dungeon
-processing is suspended away from the passage. D08 release readiness
-still requires passing fresh head-specific CI, native/WebGL2 traversal
-and manual visual checks; these docs do **not** imply PR #34 is merged.
+processing is suspended away from the passage. D08's state/camera/door regressions passed 1,212 Godot assertions;
+the owner accepted F1–F5 manual visual behavior on November 11, 2026.
+Keep the native/WebGL2 verification gates for future changes.
 
 ### D08 door occlusion, awareness and remote PackedScene transitions
 

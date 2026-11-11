@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D07 are merged.** D07 adds reusable camera-independent AI, navigation, two equipped and animated enemy types, and a physical five-view encounter ([implementation PR #33](https://github.com/bravado/ACTION-5/pull/33)). The existing Actor, Combat, Equipment, animation and camera cores remain unchanged. **D08 is the next milestone:** same-world arena/dungeon traversal, doors, pickups, roofs and restart/session behavior are tracked in [issue #16](https://github.com/bravado/ACTION-5/issues/16) and the **incomplete** [draft PR #34](https://github.com/bravado/ACTION-5/pull/34).
+> **Project status (November 2026): D01–D08 completed.** The five-view demo now combines camera-independent melee/ranged enemy AI with persistent arena/dungeon traversal, a physical two-sided door, room occlusion, cached remote portals, independent equipment/pickup lifecycles and configurable camera presentation. D08 is visually accepted; **D09 is the next implementation milestone**. The reusable Actor, Combat, Equipment, Animation and Camera cores remain separate from scene-specific world composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -96,7 +96,8 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is in progress**: draft PR #34 demonstrates a physically connected opaque arena/dungeon gate with latched enemy discovery, plus an independent remote PackedScene portal; full native/WebGL2 and owner visual acceptance are still required. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D08 and the independent crouch example are complete.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D09 reference scenario and retro aim/scrolling. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
@@ -143,7 +144,7 @@ New NPC regression scenarios must extend the **same dungeon scene**
 without authoring a second encounter map. See
 [AI authoring](docs/ai.md).
 
-### D08 connected persistent world (PR #34, under development)
+### D08 connected persistent world
 
 `demo/main.tscn` contains the arena (X=-14..14) and the instanced
 `demo/world/encounter_sector.tscn` dungeon (X=14..38), on the
@@ -165,11 +166,12 @@ CanvasLayer covers the entire viewport below the HUD instead of drawing
 a horizontal 3D roof, which previously tinted only the top half of
 side/arcade cameras. The overhead roof still has its **physical
 ceiling collider**, but no visual mesh/shadows; two subdued interior
-lights complement the shared world sun. D08 CI, fresh-entry lifecycle and
-manual native/WebGL2 acceptance remain separate review gates; PR #34
-has not been merged.
+lights complement the shared world sun. D08 regression tests cover fresh-entry lifecycle, continuous
+camera behavior and physical door state. Manual F1–F5 and portal
+visual acceptance was completed on November 11, 2026; native and
+WebGL2 exports remain subject to the standard CI gates.
 
-### Two travel connections (D08 PR #34, draft)
+### Two travel connections
 
 **Connected gate:** Walk right from the initial arena to **X=14, Z=0**.
 Press **E** at either **visible gold handle** on the teal door to toggle

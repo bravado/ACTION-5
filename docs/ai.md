@@ -129,7 +129,7 @@ physical muzzle obstruction, character hit/death response, player
 attack input and persistence of the enemy's HP/decision state while
 switching views.
 
-**D07 is merged** (implementation PR #33). Final verification:
+**D07 is merged** (implementation D07-01). Final verification:
 [CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034)
 passed **1,018 Godot assertions with zero failures**, Linux/Web exports,
 native rendering and real WebGL2 Full E2E. The native screenshots/browser
@@ -143,8 +143,8 @@ D07 remains the merged AI component baseline, but its old standalone
 `demo/ai/encounter.tscn` has been removed. `tests/d07_suite.gd`
 instantiates `demo/main.tscn`, enters the *same*
 `demo/world/encounter_sector.tscn` as real gameplay and exercises both
-NPCs there. D08 issue #16 / draft PR #34 own the scene-local Interactor,
-Door, WorldPickup, roof presentation, Restart and optional fresh/restore
+NPCs there. D08 provides the scene-local Interactor, Door,
+WorldPickup, roof presentation, Restart and optional fresh/restore
 room policy. Normal world travel preserves the live player, inventory
 and enemies instead of calling `change_scene_to_packed()`. The one-shot
 scene-handoff prototype and its obsolete test suites were removed.
