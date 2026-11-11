@@ -41,6 +41,65 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not exit_node.call("can_interact", player),
         "D09 exit requires defeat of live encounter enemies")
     var actor_id: int = player.get_instance_id()
+    var input_adapter: Node = stage.get_node("ActorInput")
+    var key_left := InputEventKey.new()
+    key_left.keycode = KEY_LEFT
+    var key_right := InputEventKey.new()
+    key_right.keycode = KEY_RIGHT
+    verify.call(InputMap.event_is_action(key_left, &"actor_turn_left")
+        and InputMap.event_is_action(key_right, &"actor_turn_right")
+        and not InputMap.event_is_action(key_left, &"move_left")
+        and not InputMap.event_is_action(key_right, &"move_right"),
+        "D09 arrow turn InputMap actions do not overlap A/D strafe")
+    views.switch_view(3)
+    await _ticks(tree, 2)
+    var rig: Node = views.get("camera_rig")
+    var original_yaw: float = rig.get("orbit_yaw")
+    var original_position: Vector3 = player.global_position
+    Input.action_press(&"actor_turn_right")
+    await _ticks(tree, 8)
+    Input.action_release(&"actor_turn_right")
+    verify.call(float(rig.get("orbit_yaw")) < original_yaw - 0.15
+        and player.global_position.distance_to(original_position) < 0.15
+        and (input_adapter.call("get_movement_axes") as Vector2).is_zero_approx(),
+        "D09 F4 right-arrow turns player/camera without lateral translation")
+    verify.call(help.text.contains("F4 turn:") and help.text.contains("Strafe:"),
+        "D09 HUD explains first-person turning and strafing")
+    var yaw_after_turn: float = rig.get("orbit_yaw")
+    var movement_before: Vector3 = player.global_position
+    Input.action_press(&"move_left")
+    await _ticks(tree, 6)
+    Input.action_release(&"move_left")
+    var strafe_delta: Vector3 = player.global_position - movement_before
+    var camera_right: Vector3 = (views.get_active_camera() as Camera3D).global_basis.x
+    verify.call(absf(float(rig.get("orbit_yaw")) - yaw_after_turn) < 0.001
+        and Vector2(strafe_delta.x, strafe_delta.z).dot(
+            Vector2(-camera_right.x, -camera_right.z)) > 0.015,
+        "D09 F4 A moves sideways relative to camera without changing yaw")
+    # Focus loss and regain with a held arrow never introduces delayed turning.
+    Input.action_press(&"actor_turn_left")
+    input_adapter._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+    await _ticks(tree, 2)
+    input_adapter._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_IN)
+    await _ticks(tree, 2)
+    verify.call(absf(float(rig.get("orbit_yaw")) - yaw_after_turn) < 0.001,
+        "D09 focus loss/re-entry blocks held turn input")
+    Input.action_release(&"actor_turn_left")
+    await _ticks(tree, 2)
+    Input.action_press(&"actor_turn_left")
+    await _ticks(tree, 2)
+    Input.action_release(&"actor_turn_left")
+    verify.call(float(rig.get("orbit_yaw")) > yaw_after_turn,
+        "D09 new arrow press resumes F4 turn after neutral rearm")
+    views.switch_view(1)
+    var other_view_yaw: float = rig.get("orbit_yaw")
+    Input.action_press(&"actor_turn_right")
+    await _ticks(tree, 2)
+    verify.call((input_adapter.call("get_movement_axes") as Vector2).x > 0.95
+        and absf(float(rig.get("orbit_yaw")) - other_view_yaw) < 0.001,
+        "D09 F2 right-arrow still moves right without rotating camera")
+    Input.action_release(&"actor_turn_right")
+    await _ticks(tree, 2)
     for i in range(5):
         views.switch_view(i)
         hud.call("refresh")

@@ -133,7 +133,7 @@ func refresh() -> void:
         _binding(&"demo_swap"), _binding(&"demo_drop")
     ]
     if int(profile.get("mode")) == 3: # Action5ViewProfile.Mode.FIRST_PERSON
-        instructions += "\\nF4 turn: %s / %s | Strafe: %s / %s (or left stick)" % [
+        instructions += "\nF4 turn: %s / %s | Strafe: %s / %s (or left stick)" % [
             _binding(&"actor_turn_left"), _binding(&"actor_turn_right"),
             _binding(&"move_left"), _binding(&"move_right")
         ]
