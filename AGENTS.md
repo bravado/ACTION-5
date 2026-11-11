@@ -556,7 +556,7 @@ make F2 appear usable. `LocationPortal` is different: its optional
 `show_label` and `label_path` control destination text independently
 of `can_interact` and travel. No label node is required for a portal.
 A small direction-sensitive F2 camera yaw (profile-configurable,
-20° default) reveals wall faces. Check geometry and E handle reach
+12° default) reveals wall faces. Check geometry and E handle reach
 from both sides in F1–F5; do NOT rotate world geometry or remap WASD.
 
 ### D08 connection contract: physical gate versus remote portal
@@ -611,3 +611,30 @@ post-opening latched aggro, door/navlink physics and remote cached
 scene/marker returns. Keep D07 enemy tests and D08 world/camera tests
 passing. Do not disable strict LoS or add conditionals to movement,
 combat, camera core or animation code for any of these connections.
+
+### D08 proximity transparency: only outer walls
+
+`demo/world/outer_wall_fader.gd` fades **only explicitly tagged**
+`action5_outer_wall` StaticBody3D nodes, using the physical
+CollisionShape3D footprint rather than distance to a long wall's
+center. Arena/dungeon/remote chamber perimeter walls opt into the
+group, including camera-front `SouthWall`. The interior
+`PillarA`/`PillarB`, obstacle, east shared partition sections,
+visible door frame, BarrierMesh and any NavigationLink3D are never
+tagged. Fade starts 3.8 units from the wall and reaches 20% material
+opacity at 1.1 units; original surface override and cast shadows
+are restored at full distance and when the presenter exits. The
+first-person camera keeps wall rendering opaque, and view 2's
+direction-sensitive peek was reduced to 12°.
+
+**Web compatibility:** NEVER substitute
+`GeometryInstance3D.transparency` for this effect. That property is
+ignored by Godot's Compatibility/WebGL2 renderer. Duplicate
+`StandardMaterial3D` once per wall mesh, use
+`BaseMaterial3D.TRANSPARENCY_ALPHA` only when close, and reuse the
+cached material to avoid repeated shader/resource allocation. Do
+not alter wall visibility flags owned by RoomVisibility, physical
+collision, enemy discovery/LoS, navigation, or any shared material
+resource. Extend D08 camera integration tests for proximity
+alpha, restored materials, nonfading interior walls, F4 and the
+detached scene path.
