@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3]
+[gd_scene load_steps=57 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -96,6 +96,16 @@ size = Vector3(0.6, 2.9, 0.34)
 
 [sub_resource type="BoxMesh" id="DoorLintelMesh"]
 size = Vector3(0.6, 0.40, 3.05)
+
+[sub_resource type="BoxMesh" id="DoorHandleMesh"]
+size = Vector3(0.14, 0.30, 0.38)
+
+[sub_resource type="StandardMaterial3D" id="DoorHandleMaterial"]
+albedo_color = Color(0.94, 0.72, 0.27, 1)
+roughness = 0.4
+emission_enabled = true
+emission = Color(0.18, 0.10, 0.03, 1)
+emission_energy_multiplier = 0.5
 
 [sub_resource type="BoxMesh" id="EastWallUpperMesh"]
 size = Vector3(0.6, 3.0, 7.75)
@@ -298,21 +308,17 @@ position = Vector3(0, 1.225, 0)
 mesh = SubResource("DoorMesh")
 surface_material_override/0 = SubResource("DoorMaterial")
 
-[node name="DoorLabel" type="Label3D" parent="EncounterDoor"]
-position = Vector3(-0.55, 3.10, 0)
-text = "ARENA <-> DUNGEON [E]"
-font_size = 42
-pixel_size = 0.007
-billboard = 1
-no_depth_test = true
+[node name="Handles" type="Node3D" parent="EncounterDoor"]
 
-[node name="ReturnLabel" type="Label3D" parent="EncounterDoor"]
-position = Vector3(0.55, 3.10, 0)
-text = "DUNGEON <-> ARENA [E]"
-font_size = 42
-pixel_size = 0.007
-billboard = 1
-no_depth_test = true
+[node name="ArenaHandle" type="MeshInstance3D" parent="EncounterDoor/Handles"]
+position = Vector3(-0.8, 1.05, 0)
+mesh = SubResource("DoorHandleMesh")
+surface_material_override/0 = SubResource("DoorHandleMaterial")
+
+[node name="DungeonHandle" type="MeshInstance3D" parent="EncounterDoor/Handles"]
+position = Vector3(0.8, 1.05, 0)
+mesh = SubResource("DoorHandleMesh")
+surface_material_override/0 = SubResource("DoorHandleMaterial")
 
 [node name="EncounterSector" parent="." instance=ExtResource("15_encounter")]
 ; Dungeon west edge (26-12=14) joins the arena's east edge (+14).
