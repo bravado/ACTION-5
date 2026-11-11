@@ -115,12 +115,17 @@ func get_movement_axes() -> Vector2:
     var controls: ControlProfileScript = get_active_controls()
     if controls == null:
         return Vector2.ZERO
-    var axes := Input.get_vector(
-        controls.move_left_action, controls.move_right_action,
-        controls.move_up_action, controls.move_down_action, move_deadzone
-    )
-    if not controls.vertical_movement:
-        axes.y = 0.0
+    var axes: Vector2
+    if controls.vertical_movement:
+        axes = Input.get_vector(
+            controls.move_left_action, controls.move_right_action,
+            controls.move_up_action, controls.move_down_action, move_deadzone
+        )
+    else:
+        # Prevent S/Down (now crouch) from reducing horizontal speed via
+        # Input.get_vector()'s diagonal normalization.
+        axes = Vector2(Input.get_axis(controls.move_left_action,
+            controls.move_right_action), 0.0)
     axes.x = clampf(axes.x + _axis(controls.extra_left_action,
         controls.extra_right_action), -1.0, 1.0)
     return axes.limit_length(1.0)

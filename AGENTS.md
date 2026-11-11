@@ -751,3 +751,27 @@ The D09 EXIT marker is at dungeon-local (9, 0, 0), on the F1 Z=0
 playable lane and outside the physical SteepFace traversal obstacle.
 Do not bypass generic Interactor LoS for victory or put the exit
 behind an obstruction impossible to reach in a selected view.
+
+
+## D09-01 view-local input mapping
+
+`addons/action5/input/view_control_profile.gd` is a pure data Resource:
+its InputMap action names assign horizontal/vertical movement, optional
+extra horizontal directions, look yaw, jump, alternate jump and a held
+registered move ID for ONE view. The ActorInputAdapter has one fallback
+profile (F2/F3/F5) and configurable overrides (F1/F4); resolve by view
+mode, not physical key comparison. Add new per-view bindings by editing
+or assigning an input-profile `.tres`, **not** by adding another
+`if view ==...` block to Actor, Combat, Camera, or InputAdapter.
+InputMap stays globally remappable; the profile maps those actions to
+different roles. F1 W/Up is a jump edge and S/Down is hold-to-crouch;
+Space remains jump, Ctrl keeps its existing toggle, and left/right
+remain lateral. F4 Left/Right turns; A/D strafes. F2/F3/F5 preserve
+normal WASD/arrow movement.
+
+Held move requests are owned by the input adapter only when it initiated
+them. A repeated physics tick must not toggle crouch, release must
+request exit even if headroom temporarily blocks it, focus loss and
+UI-disable must clear stale held state. Keep the locomotion/move FSM
+decoupled from all keys/views. HUD controls must read the active input
+profile rather than contain mode-specific keys.

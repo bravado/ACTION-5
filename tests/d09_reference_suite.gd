@@ -63,7 +63,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and player.global_position.distance_to(original_position) < 0.15
         and (input_adapter.call("get_movement_axes") as Vector2).is_zero_approx(),
         "D09 F4 right-arrow turns player/camera without lateral translation")
-    verify.call(help.text.contains("F4 turn:") and help.text.contains("Strafe:"),
+    verify.call(help.text.contains("Turn:") and help.text.contains("Move left/right:"),
         "D09 HUD explains first-person turning and strafing")
     var yaw_after_turn: float = rig.get("orbit_yaw")
     var movement_before: Vector3 = player.global_position
@@ -99,6 +99,51 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and absf(float(rig.get("orbit_yaw")) - other_view_yaw) < 0.001,
         "D09 F2 right-arrow still moves right without rotating camera")
     Input.action_release(&"actor_turn_right")
+    await _ticks(tree, 2)
+
+    # Per-view input roles are data-defined; no change to Actor or Crouch.
+    views.switch_view(0)
+    await _ticks(tree, 6)
+    var side_controls: Resource = input_adapter.call("get_active_controls") as Resource
+    verify.call(not bool(side_controls.get("vertical_movement"))
+        and side_controls.get("extra_jump_action") == &"move_up"
+        and side_controls.get("held_move_action") == &"move_down",
+        "D09 F1 control resource assigns W/Up to jump and S/Down to hold crouch")
+    Input.action_press(&"move_up")
+    verify.call((input_adapter.call("get_movement_axes") as Vector2).y == 0.0,
+        "D09 F1 Up does not move world depth")
+    await _ticks(tree, 3)
+    verify.call(player.velocity.y > 0.01,
+        "D09 F1 W/Up triggers jump through the existing actor intent")
+    Input.action_release(&"move_up")
+    await _ticks(tree, 85)
+    Input.action_press(&"move_down")
+    await _ticks(tree, 7)
+    var controller: Node = player.get_node("Locomotion/MovementController")
+    verify.call(controller.get("active_id") == &"crouch"
+        and (input_adapter.call("get_movement_axes") as Vector2).y == 0.0,
+        "D09 F1 S/Down holds crouch instead of moving in stage depth")
+    Input.action_press(&"move_right")
+    await _ticks(tree, 6)
+    verify.call(controller.get("active_id") == &"crouch_walk"
+        and (input_adapter.call("get_movement_axes") as Vector2).x > 0.9,
+        "D09 holding S while pressing D uses crouch-walk at full horizontal input")
+    Input.action_release(&"move_down")
+    await _ticks(tree, 6)
+    verify.call(controller.get("active_id") != &"crouch"
+        and controller.get("active_id") != &"crouch_walk",
+        "D09 releasing S/Down stands without toggling repeatedly")
+    Input.action_release(&"move_right")
+    await _ticks(tree, 4)
+    views.switch_view(1)
+    Input.action_press(&"move_down")
+    verify.call((input_adapter.call("get_movement_axes") as Vector2).y > 0.9,
+        "D09 F2 S/Down retains standard forward/backward input")
+    await _ticks(tree, 3)
+    verify.call(controller.get("active_id") != &"crouch"
+        and controller.get("active_id") != &"crouch_walk",
+        "D09 F2 S does not invoke F1 crouch")
+    Input.action_release(&"move_down")
     await _ticks(tree, 2)
     for i in range(5):
         views.switch_view(i)

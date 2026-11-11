@@ -129,8 +129,9 @@ func refresh() -> void:
         var item: Resource = (views.get("profiles") as Array)[i] as Resource
         view_hints.append("%s %s" % [_binding(StringName("view_" + str(i + 1))), str(item.get("display_name"))])
     instructions += "\nViews: " + "  ·  ".join(view_hints) + " | Controller: " + _binding(&"view_previous") + "/" + _binding(&"view_next")
-    var controls: Resource = actor_input.call("get_active_controls") as Resource \
-        if is_instance_valid(actor_input) else null
+    var controls: Resource = null
+    if is_instance_valid(actor_input):
+        controls = actor_input.call("get_active_controls") as Resource
     if controls != null:
         var horizontal: String = "%s/%s" % [
             _binding(controls.get("move_left_action")),

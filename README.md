@@ -278,3 +278,24 @@ Left/Right arrows still move sideways. The `actor_turn_left` and
 F4 turn speed. All rotation uses the existing CameraRig yaw port and
 ActorInputAdapter facing intent; no gameplay core or equipment code depends
 on the keys.
+
+
+### Per-view input profiles (D09-01)
+
+The same InputMap actions can mean different things per view, configured
+through `addons/action5/input/view_control_profile.gd` Resources
+(`profiles/default.tres`, `side.tres`, `first_person.tres`).
+`Action5ActorInputAdapter.default_controls` applies to unspecified
+views, and `view_controls` overrides particular modes. Add a custom
+view mapping by assigning another `.tres` without changing the Actor,
+movement FSM, camera or weapon code.
+
+| View | W / Up | S / Down | A / D | Left / Right |
+| --- | --- | --- | --- | --- |
+| 1 Side-scroller | Jump (also Space) | Hold crouch (Ctrl still toggles) | Move left / right | Move left / right |
+| 2 Beat'em Up | Move up stage | Move down stage | Move left / right | Move left / right |
+| 3 Isometric | Move forward | Move backward | Move left / right | Move left / right |
+| 4 First-person | Move forward | Move backward | Strafe | Turn |
+| 5 Retro overhead | Move up | Move down | Move left / right | Move left / right |
+
+The HUD shows the active profile's actions, including dynamic bindings.

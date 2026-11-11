@@ -841,3 +841,14 @@ Tests: `tests/d09_reference_suite.gd` registered in `tests/run_all.gd`.
 and 20-minute visual/focus exploratory run: **NOT VERIFIED** (Godot/browser
 unavailable through connector). Do not close issue or merge based on code
 alone. Follow-up: D09-02 retro top-down encounter and view policy.
+
+
+### D09-01 input mapping revision (2026-11-11)
+
+Side view uses W/Up to jump and S/Down as hold-to-crouch (with crouch-walk
+while A/D moves). The per-view `Action5ViewControlProfile` data resource
+also encodes the earlier F4 turn-versus-strafe distinction. InputMap
+physical bindings remain remappable, while action roles are selected by
+view profile; no keys or view branches are added to the Actor, movement
+FSM, camera or combat subsystems. D09 test suite covers all view
+transitions, held crouch/release, F4 yaw and standard F2 movement.
