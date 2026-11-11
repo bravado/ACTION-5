@@ -153,6 +153,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = exit_node.global_position + Vector3(-1, 0.15, 0)
     player.velocity = Vector3.ZERO
     await _ticks(tree, 4)
+    print("ACTION5_D09_EXIT_DIAG alive=", player.get("alive"),
+        " sector=", session.get("current_sector"),
+        " process=", exit_node.can_process(),
+        " dist=", player.global_position.distance_to(
+            exit_node.call("get_interaction_point", player)),
+        " can_interact=", exit_node.call("can_interact", player),
+        " eligible=", interactor.call("_eligible", player, exit_node),
+        " sight=", interactor.call("_clear_sight", player, exit_node))
     verify.call(bool(interactor.call("interact", player, exit_node)),
         "D09 exit uses normal physical interaction port")
     verify.call(bool(exit_node.get("complete")) and overlay.get_node("Screen").visible

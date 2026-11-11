@@ -49,12 +49,12 @@ func _ready() -> void:
     refresh()
 
 
-func _connect(source: Node, event: StringName, callback: Callable) -> void:
+func _connect(source: Variant, event: StringName, callback: Callable) -> void:
     if is_instance_valid(source) and source.has_signal(event) and not source.is_connected(event, callback):
         source.connect(event, callback)
 
 
-func _disconnect(source: Node, event: StringName, callback: Callable) -> void:
+func _disconnect(source: Variant, event: StringName, callback: Callable) -> void:
     if is_instance_valid(source) and source.has_signal(event) and source.is_connected(event, callback):
         source.disconnect(event, callback)
 
@@ -127,7 +127,7 @@ func refresh() -> void:
         var item: Resource = (views.get("profiles") as Array)[i] as Resource
         view_hints.append("%s %s" % [_binding(StringName("view_" + str(i + 1))), str(item.get("display_name"))])
     instructions += "\nViews: " + "  ·  ".join(view_hints) + " | Controller: " + _binding(&"view_previous") + "/" + _binding(&"view_next")
-    instructions += "\nMove: %s/%s/%s/%s | Jump: %s | Run: %s | E: %s | Q: %s | G: %s" % [
+    instructions += "\nMove: %s/%s/%s/%s | Jump: %s | Run: %s | Interact: %s | Swap: %s | Drop: %s" % [
         _binding(&"move_up"), _binding(&"move_left"), _binding(&"move_down"), _binding(&"move_right"),
         _binding(&"actor_jump"), _binding(&"actor_run"), _binding(&"demo_interact"),
         _binding(&"demo_swap"), _binding(&"demo_drop")
