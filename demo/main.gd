@@ -91,14 +91,9 @@ func _unhandled_input(event: InputEvent) -> void:
             var consumed: bool = false
             match event.keycode:
                 KEY_E:
-                    # First honor the nearest visible world interaction
-                    # (door, authored pickup or switch). This avoids picking
-                    # up a previously dropped item behind an intended door
-                    # before a portal transition. Dynamically spawned
-                    # legacy world weapons remain pickup-compatible.
+                    # Authored, dynamic and dropped weapons use the same
+                    # physical line-of-sight and range policy as doors.
                     consumed = bool($InteractionInput.try_interact())
-                    if not consumed:
-                        consumed = _pickup_closest_weapon()
                 KEY_Q:
                     consumed = bool(_equipment.call("swap_next"))
                 KEY_G:
@@ -106,26 +101,6 @@ func _unhandled_input(event: InputEvent) -> void:
             if consumed:
                 get_viewport().set_input_as_handled()
 
-
-func _pickup_closest_weapon() -> bool:
-    var closest: Node3D
-    var best: float = float(_equipment.get("pickup_radius"))
-    for candidate in get_tree().get_nodes_in_group("action5_weapon_pickup"):
-        var weapon := candidate as Node3D
-        # Pickups from another instanced world must never claim this E press.
-        if weapon == null or not is_ancestor_of(weapon) or not weapon.is_visible_in_tree() \
-                or bool(weapon.get("is_equipped")):
-            continue
-        # Stowed items are still scene nodes, but no longer world pickups.
-        if weapon.get("equipment_owner") != null:
-            continue
-        if (_equipment.get("inventory") as Array).has(weapon):
-            continue
-        var distance: float = weapon.global_position.distance_to(_player.global_position)
-        if distance <= best:
-            closest = weapon
-            best = distance
-    return closest != null and bool(_equipment.call("pickup", closest))
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.

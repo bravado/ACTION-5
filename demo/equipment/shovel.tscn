@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/shovel.tres" id="2"]
 
+[ext_resource type="Script" path="res://demo/interactions/weapon_pickup_interaction.gd" id="pickup_interaction"]
 [sub_resource type="BoxMesh" id="handle"]
 size = Vector3(0.10, 0.11, 1.22)
 
@@ -26,3 +27,6 @@ mesh = SubResource("handle")
 position = Vector3(0, -0.05, -1.32)
 mesh = SubResource("blade")
 material_override = SubResource("steel")
+
+[node name="PickupInteraction" type="Node3D" parent="."]
+script = ExtResource("pickup_interaction")
