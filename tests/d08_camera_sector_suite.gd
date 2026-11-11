@@ -81,17 +81,18 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for index in range(5):
         var profile: Resource = views.profiles[index]
         var authored: Resource = load(PROFILES[index])
-        var expected_min := Vector2(
+        var level_origin := Vector2(world.global_position.x, world.global_position.z)
+        var expected_min := level_origin + Vector2(
             minf(authored.bounds_min.x, authored.bounds_min.x + shift.x),
             minf(authored.bounds_min.y, authored.bounds_min.y + shift.y)
         )
-        var expected_max := Vector2(
+        var expected_max := level_origin + Vector2(
             maxf(authored.bounds_max.x, authored.bounds_max.x + shift.x),
             maxf(authored.bounds_max.y, authored.bounds_max.y + shift.y)
         )
         verify.call(profile.bounds_min.distance_to(expected_min) < 0.001
             and profile.bounds_max.distance_to(expected_max) < 0.001,
-            "F%d has one continuous arena+dungeon camera rectangle" % (index + 1))
+            "F%d has one global-space connected bounds rectangle for an offset level" % (index + 1))
 
         # Position at the arena side of the actual physical doorway.
         player.global_position = world.to_global(Vector3(12.25, 0.15, 0))
