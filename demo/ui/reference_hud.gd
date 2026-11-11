@@ -122,7 +122,7 @@ func refresh() -> void:
         elif sector == "encounter":
             objective = "Defeat the dungeon enemies to unlock EXIT"
     var instructions: String = "ACTION-5 | " + objective
-    var view_hints: Array[String] = []
+    var view_hints := PackedStringArray()
     for i in range((views.get("profiles") as Array).size()):
         var item: Resource = (views.get("profiles") as Array)[i] as Resource
         view_hints.append("%s %s" % [_binding(StringName("view_" + str(i + 1))), str(item.get("display_name"))])
@@ -132,7 +132,7 @@ func refresh() -> void:
         _binding(&"actor_jump"), _binding(&"actor_run"), _binding(&"demo_interact"),
         _binding(&"demo_swap"), _binding(&"demo_drop")
     ]
-    var actions: Array[String] = []
+    var actions := PackedStringArray()
     if combat.has_method("get_attacks"):
         var seen: Dictionary = {}
         for definition in combat.call("get_attacks"):
@@ -150,7 +150,7 @@ func refresh() -> void:
                 actions.append("%s [%s]" % [
                     str(selected.get("attack_id")).replace("_", " ").capitalize(), _binding(action)
                 ])
-    var commands: Array[String] = command_hints(_weapon)
+    var commands: PackedStringArray = command_hints(_weapon)
     instructions += "\nActions: " + (" | ".join(actions) if not actions.is_empty() else "none")
     if not commands.is_empty():
         instructions += " | " + " | ".join(commands)
@@ -191,8 +191,8 @@ func weapon_summary(weapon: Node) -> String:
     return name
 
 
-func command_hints(weapon: Node) -> Array[String]:
-    var result: Array[String] = []
+func command_hints(weapon: Node) -> PackedStringArray:
+    var result := PackedStringArray()
     if not is_instance_valid(weapon) or not weapon.has_method("get_command_bindings"):
         return result
     for command in weapon.call("get_command_bindings"):
