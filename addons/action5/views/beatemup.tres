@@ -10,7 +10,7 @@ mode = 1
 fixed_offset = Vector3(0, 4.5, 10.0)
 ; Peek behind the player's shoulders as they move laterally. A 20-degree
 ; yaw reveals the face of east/west walls without rotating WASD input.
-lateral_peek_degrees = 20.0
+lateral_peek_degrees = 12.0
 lateral_peek_response = 8.0
 focus_height = 1.05
 orthographic = true
