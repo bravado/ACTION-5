@@ -876,3 +876,21 @@ movement toward the player and cached remote-scene return with
 inventory preserved. Rerun full D07/D08 integration, native/WebGL2
 smoke and a manual F1–F5 walk/remote portal visual test before PR #34
 is marked ready to merge. No core Movement/Combat/Animation coupling.
+
+### D08 outer-wall visibility and F2 camera comfort
+
+- [x] Reduce F2 lateral camera peek from 20° to 12° in its
+  instance-owned profile; preserve the existing 0° disable option
+  and world-aligned beat'em-up WASD.
+- [x] Add a reusable **presentation-only** `OuterWallFader`
+  activated via explicit `action5_outer_wall` groups on outer arena,
+  dungeon and remote-room walls. Only these near-player perimeter
+  meshes fade; shared/interior wall geometry, equipment props and
+  the closed dungeon door remain fully opaque.
+- [x] Use per-mesh duplicated/cached alpha StandardMaterial3D for
+  **Compatibility/WebGL2** and restore original overrides when far.
+  Keep collider, attacks, AI visibility/navigation and
+  RoomVisibility's sector occlusion independent of fade.
+- [ ] Confirm native/WebGL2 render visually, manual F1/F2/F3/F5
+  near-wall behavior, and FPS unchanged after latest-head
+  CI and owner acceptance.
