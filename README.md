@@ -172,9 +172,14 @@ has not been merged.
 ### Two travel connections (D08 PR #34, draft)
 
 **Connected gate:** Walk right from the initial arena to **X=14, Z=0**.
-Press **E** within reach of the teal door to toggle its real physical
-barrier; then walk through to the dungeon. The same E command works
-from either side. With the gate **closed**, the other room is hidden
+Press **E** at either **visible gold handle** on the teal door to toggle
+its real physical barrier; then walk through to the dungeon. There
+are **no text labels** on connected doors (no duplicated headings
+over the entrance). The handles on both faces are aligned with the
+actual interaction points and collision panel. In beat'em-up view 2
+the camera now subtly turns **opposite lateral movement** to reveal
+X-facing walls instead of presenting the doorway edge-on, retaining
+its last tilt at rest. WASD stays world-aligned. With the gate **closed**, the other room is hidden
 from rendering in all five cameras. The dungeon's floor and physics
 are independently preloaded, but enemies **do not acquire the player**
 through that closed door. Once they discover the player through an
@@ -183,7 +188,9 @@ sight and the navigation link remain authoritative, so they cannot
 shoot or walk through a closed panel.
 
 **Remote portal:** The **purple portal** at **X=-11.5, Z=0** is a
-different component. Press **E** to load
+different component. Unlike physical doors, it has an **optional
+destination label** (configure `show_label` or omit its Label3D).
+Press **E** to load
 `demo/world/remote_chamber.tscn` at a detached location, with **the
 same live player, camera, inventory and combat components**. In that
 chamber, walk toward the **RETURN TO ARENA [E]** portal to go back.
