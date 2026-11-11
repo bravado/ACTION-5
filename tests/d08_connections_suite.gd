@@ -165,6 +165,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Actor owns equipment before transitioning to an unrelated PackedScene")
 
     var portal := stage.get_node("RemotePortal") as Node3D
+    var portal_label := portal.get_node("Label3D") as Label3D
+    verify.call(portal_label.visible and portal.get("show_label"),
+        "Nonadjacent portals may display an optional destination label")
+    portal.call("set_label_visible", false)
+    verify.call(not portal_label.visible and not portal.get("show_label")
+        and portal.has_method("can_interact"),
+        "Hiding a remote portal label does not disable its interaction")
+    portal.call("set_label_visible", true)
+    verify.call(portal_label.visible,
+        "Remote portal label can be re-enabled without recreating the scene")
     var manager: Node = stage.get_node("LocationManager")
     player.global_position = portal.global_position + Vector3(0.7, 0.15, 0)
     player.velocity = Vector3.ZERO
