@@ -261,9 +261,10 @@ It displays the five view bindings, attack definition mappings, unarmed
 fallback, optional ammo/reload and weapon commands (including Heavy Pistol).
 The E/Q/G demo interactions can be rebound through InputMap.
 
-**Verification pending:** `make check`, `make linux`, `make web`,
-native/WebGL2 start-to-exit smoke and 20-minute exploratory gameplay.
-These are **NOT VERIFIED** in this connector-only environment. D09-02
+**Validation:** pinned Godot `make check` passed (1,266 assertions, zero
+failures) in CI [run #43116927805](https://github.com/bravado/ACTION-5/actions/runs/43116927805).
+Native/WebGL2 start-to-exit smoke, full E2E and 20-minute exploratory
+visual gameplay remain **NOT YET VERIFIED**. D09-02
 retro-specific encounter/aim/scrolling is a separate milestone.
 
 

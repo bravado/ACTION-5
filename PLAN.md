@@ -832,15 +832,15 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 
 ### D09-01 draft handoff (2026-11-11)
 
-Status: Partially complete; automated and manual validation pending.
+Status: Partially complete; quick CI checks passed, manual/native-Web acceptance pending.
 Scope: demo-only HUD, dynamically sourced input help, gated dungeon exit
 and completion/restart overlay; public signals and existing Interactor,
 Health, combat/equipment/view ports; no reusable addon core changes.
 Tests: `tests/d09_reference_suite.gd` registered in `tests/run_all.gd`.
-`make check`, native/WebGL2 export and smoke, actual start-to-exit run,
-and 20-minute visual/focus exploratory run: **NOT VERIFIED** (Godot/browser
-unavailable through connector). Do not close issue or merge based on code
-alone. Follow-up: D09-02 retro top-down encounter and view policy.
+`make check`: **PASS** in pinned Godot CI run #43116927805 (1,266 assertions,
+zero failures). Native/WebGL2 export and smoke, actual start-to-exit run,
+and 20-minute visual/focus exploratory run: **NOT YET VERIFIED**. Do not close
+issue or merge based on headless regression tests alone. Follow-up: D09-02 retro top-down encounter and view policy.
 
 
 ### D09-01 input mapping revision (2026-11-11)
@@ -852,3 +852,9 @@ physical bindings remain remappable, while action roles are selected by
 view profile; no keys or view branches are added to the Actor, movement
 FSM, camera or combat subsystems. D09 test suite covers all view
 transitions, held crouch/release, F4 yaw and standard F2 movement.
+
+
+**Input mapping validation:** CI / Checks passed with 1,266 assertions, zero
+failures in [run #43116927805](https://github.com/bravado/ACTION-5/actions/runs/43116927805).
+The next CI run requests `CI / Full E2E` before acceptance; owner visual
+validation across F1–F5 remains required.
