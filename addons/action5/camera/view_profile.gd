@@ -13,6 +13,12 @@ enum Mode {
 @export var mode: Mode = Mode.BEATEMUP
 @export var display_name: String = "Beat'em Up"
 @export var fixed_offset: Vector3 = Vector3(0.0, 10.0, 13.0)
+## Optional arcade camera peek: lateral body velocity changes only the
+## CAMERA VIEW ANGLE, never movement axes or input orientation.
+## Use 0 for a classic fixed camera. A small value makes X-normal walls
+## and a physical door panel visible instead of edge-on.
+@export_range(0.0, 35.0, 0.5) var lateral_peek_degrees: float = 0.0
+@export_range(1.0, 20.0, 0.5) var lateral_peek_response: float = 8.0
 @export_range(0.0, 3.0, 0.05) var focus_height: float = 0.85
 @export var orthographic: bool = true
 @export_range(4.0, 45.0, 0.5) var orthographic_size: float = 17.0
