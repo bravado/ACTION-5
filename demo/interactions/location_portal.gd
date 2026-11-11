@@ -32,7 +32,7 @@ func set_label_visible(value: bool) -> void:
 
 
 func can_interact(actor: Node3D) -> bool:
-    if not is_instance_valid(manager) or not manager.has_method("can_travel") \
+    if not can_process() or not is_instance_valid(manager) or not manager.has_method("can_travel") \
             or not bool(manager.call("can_travel", actor)):
         return false
     if destination_mode == 0:

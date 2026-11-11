@@ -118,6 +118,16 @@ func _set_scene_active(location: Node3D, enabled: bool) -> void:
     location.process_mode = Node.PROCESS_MODE_DISABLED
 
 
+## Optional duck-typed Equipment drop destination. Scene-owned state
+## selects the current room, keeping Equipment free of remote portal IDs.
+func get_drop_parent(candidate: Node3D) -> Node3D:
+    if not is_instance_valid(candidate) or candidate != actor:
+        return null
+    if current_location != &"connected":
+        return active_scene if is_instance_valid(active_scene) else null
+    return get_parent() as Node3D
+
+
 func _move_actor(candidate: Node3D, arrival_position: Vector3) -> void:
     var locomotion: Node = candidate.get_node_or_null("Locomotion")
     if locomotion != null and locomotion.has_method("stop"):

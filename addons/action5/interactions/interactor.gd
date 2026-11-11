@@ -63,7 +63,10 @@ func _interaction_point(actor: Node3D, item: Node3D) -> Vector3:
 
 
 func _eligible(actor: Node3D, item: Node3D) -> bool:
-    if not _valid_actor(actor) or not is_instance_valid(item) or not item.is_inside_tree()             or not world.is_ancestor_of(item) or item == actor             or not item.is_in_group(candidate_group)             or actor.global_position.distance_squared_to(_interaction_point(actor, item))                 > maximum_distance * maximum_distance             or not item.has_method("can_interact")             or not bool(item.call("can_interact", actor)):
+    # Cached remote scenes remain in the tree even while paused; their
+    # invisible interactables must not compete with the active scene.
+    if not _valid_actor(actor) or not is_instance_valid(item) or not item.is_inside_tree() \
+            or not item.can_process() or not world.is_ancestor_of(item) or item == actor             or not item.is_in_group(candidate_group)             or actor.global_position.distance_squared_to(_interaction_point(actor, item))                 > maximum_distance * maximum_distance             or not item.has_method("can_interact")             or not bool(item.call("can_interact", actor)):
         return false
     return not require_line_of_sight or _clear_sight(actor, item)
 

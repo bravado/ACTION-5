@@ -31,6 +31,9 @@ func _ready() -> void:
     _equipment.weapon_picked_up.connect(_on_weapon_picked_up)
     _equipment.weapon_equipped.connect(_on_weapon_equipped)
     _equipment.weapon_dropped.connect(_on_weapon_dropped)
+    # Compose the scene's optional world-drop policy; Equipment never
+    # references LocationManager or a specific PackedScene itself.
+    _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
