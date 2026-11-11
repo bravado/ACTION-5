@@ -67,6 +67,9 @@ func _on_view_changed(profile: Resource, _previous: Resource) -> void:
 func _on_location_changed(_old: StringName, _new: StringName, _root: Node3D) -> void:
     if _side_active:
         _unlock_all()
+        # A cached room should not retain crowd exceptions from a player
+        # visit. The new active scene gets its own distinct actor pairs.
+        _prune_enemy_pairs(true)
         _sync_lane()
 
 
@@ -141,9 +144,16 @@ func _soften_pair(a: CharacterBody3D, b: CharacterBody3D) -> void:
     ]
     if _enemy_pairs.has(key):
         return
-    a.add_collision_exception_with(b)
-    b.add_collision_exception_with(a)
-    _enemy_pairs[key] = {"a": weakref(a), "b": weakref(b)}
+    var added_ab: bool = not a.get_collision_exceptions().has(b)
+    var added_ba: bool = not b.get_collision_exceptions().has(a)
+    if added_ab:
+        a.add_collision_exception_with(b)
+    if added_ba:
+        b.add_collision_exception_with(a)
+    _enemy_pairs[key] = {
+        "a": weakref(a), "b": weakref(b),
+        "added_ab": added_ab, "added_ba": added_ba
+    }
 
 
 func _prune_enemy_pairs(force: bool = false) -> void:
@@ -159,8 +169,12 @@ func _prune_enemy_pairs(force: bool = false) -> void:
         # two NPCs in a single line before navigation spreads them out.
         if force or (not _side_active and a.global_position.distance_to(
                 b.global_position) > 1.5):
-            a.remove_collision_exception_with(b)
-            b.remove_collision_exception_with(a)
+            # Never remove exceptions that were already authored by an
+            # independent collision policy before this adapter ran.
+            if bool(entry["added_ab"]):
+                a.remove_collision_exception_with(b)
+            if bool(entry["added_ba"]):
+                b.remove_collision_exception_with(a)
             _enemy_pairs.erase(key)
 
 
