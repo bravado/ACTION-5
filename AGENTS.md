@@ -612,6 +612,36 @@ scene/marker returns. Keep D07 enemy tests and D08 world/camera tests
 passing. Do not disable strict LoS or add conditionals to movement,
 combat, camera core or animation code for any of these connections.
 
+### D08 room lifecycle and visibility authority
+
+Inactive detached PackedScenes must disable their real physics:
+LocationManager snapshots and clears CollisionObject3D collision
+layer/mask values and NavigationRegion3D/NavigationLink3D enabled flags,
+restoring those values on return. Merely hiding or pausing a node is not
+collision isolation. No detached scene owns the permanent Player,
+Equipment, Health or Camera; invalid Marker3D destinations leave no
+orphan nodes. Tag each cached remote scene with
+`action5_detached_location` so connected-world RoomVisibility skips its
+loose pickups. Extend `tests/d08_connections_suite.gd` with a second
+overlapping cached scene whenever travel lifecycle changes.
+
+RoomVisibility owns only scene-composed room rendering, enemy/loose
+pickup occlusion and the original-visibility cache. It observes
+Equipment pickup/drop signals plus SceneTree node additions, and
+checks only tracked loose items for X-boundary movements; do not scan
+all pickup groups every physics frame. Equipment owns picked-up weapon
+visuals, and wall/door collision is independent of visibility.
+Prune WeakRef visibility/material entries after fresh scene resets,
+and restore original flags when removing the adapter.
+
+F1 may hide the front wall mesh for a purely horizontal view; F2
+must keep it rendered and let OuterWallFader set its opacity.
+SectorCameraBounds handles any number of configured, rotated connected
+sector transforms by merging world-space bounds; never add room names
+or specific movements to the core camera, Actor, AI or Combat. The
+two-room visibility adapter is deliberately a demo-level composition,
+not a new speculative generic framework.
+
 ### D08 proximity transparency: only outer walls
 
 `demo/world/outer_wall_fader.gd` fades **only explicitly tagged**

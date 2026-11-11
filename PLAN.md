@@ -418,7 +418,7 @@ Every deliverable is an independently reviewable PR/commit set with: scope, code
 
 **Tasks**
 - Implement proximity interaction contracts and example door, health pickup, weapon pickup, trigger volume and destructible prop.
-- Build a continuous arena + dungeon corridor environment using shared world physics/navmesh.
+- Build a continuous arena + dungeon corridor environment using shared world physics/navmesh; separate physical adjacent gates from remote portals, and isolate colliders/navigation of inactive cached remote locations while preserving the original player/equipment.
 - Add per-zone camera bounds, side-view stage lane constraints (if enabled), and separate tilted-isometric F3 / true-overhead F5 roof/wall occlusion and camera scrolling behavior.
 - Add simple respawn/checkpoint and pause/restart of demo (not generalized persistence framework).
 

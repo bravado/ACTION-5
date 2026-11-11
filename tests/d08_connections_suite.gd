@@ -232,6 +232,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(player.get_instance_id() == player_id
         and (equipment.get("inventory") as Array).size() == inventory_count,
         "Return from detached PackedScene preserves exact actor and weapon instances")
+    var cached_floor := detached.get_node("Floor") as StaticBody3D
+    var authored_layer: int = 1
+    verify.call(cached_floor.collision_layer == 0 and cached_floor.collision_mask == 0
+        and not cached_floor.is_visible_in_tree(),
+        "Paused remote scene has no effective collision layers or masks")
+    var probe := PhysicsRayQueryParameters3D.create(
+        detached.to_global(Vector3(3, 3, 0)),
+        detached.to_global(Vector3(3, -2, 0)), authored_layer)
+    await _ticks(tree, 2)
+    verify.call(stage.get_world_3d().direct_space_state.intersect_ray(probe).is_empty(),
+        "Cached inactive scene cannot block a physical world-space ray")
 
     player.global_position = portal.global_position + Vector3(0.7, 0.15, 0)
     await _ticks(tree, 3)
@@ -240,6 +251,48 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(manager.active_scene.get_instance_id() == remote_id
         and player.get_instance_id() == player_id,
         "Repeated remote visit restores cached environment instead of duplicating scenes")
+    await _ticks(tree, 2)
+    verify.call(cached_floor.collision_layer == authored_layer
+        and stage.get_world_3d().direct_space_state.intersect_ray(probe).get("collider")
+            == cached_floor,
+        "Re-entering the first cached scene restores authored floor collision")
+
+    # Two independently cached rooms intentionally overlap at the SAME
+    # remote origin. Only the currently active scene may own physics.
+    var arena_return := stage.get_node("RemoteReturnSpawn") as Marker3D
+    verify.call(manager.call("travel_to_marker", player, arena_return),
+        "Detached scene can return without a player reload")
+    var alternate := load("res://demo/world/remote_chamber_alternate.tscn") as PackedScene
+    var cache_count: int = (manager.get("_loaded") as Dictionary).size()
+    verify.call(not manager.call("travel_to_scene", player, alternate,
+        NodePath("MissingArrival"))
+        and (manager.get("_loaded") as Dictionary).size() == cache_count,
+        "Broken remote arrival does not add an orphan cached scene")
+    verify.call(manager.call("travel_to_scene", player, alternate, NodePath("Arrival")),
+        "Second independent PackedScene uses the same portal contract")
+    var second := manager.active_scene as Node3D
+    var second_floor := second.get_node("Floor") as StaticBody3D
+    await _ticks(tree, 2)
+    verify.call(second != detached
+        and second.global_position.distance_to(detached.global_position) < 0.01
+        and cached_floor.collision_layer == 0 and cached_floor.collision_mask == 0
+        and second_floor.collision_layer == authored_layer
+        and stage.get_world_3d().direct_space_state.intersect_ray(probe).get("collider")
+            == second_floor,
+        "Overlapping inactive room cannot supply ghost physics to active room")
+    verify.call(manager.call("travel_to_marker", player, arena_return)
+        and second_floor.collision_layer == 0
+        and manager.call("travel_to_scene", player,
+            load("res://demo/world/remote_chamber.tscn") as PackedScene,
+            NodePath("Arrival")),
+        "Both cached scenes independently deactivate and reactivate")
+    await _ticks(tree, 2)
+    verify.call(manager.active_scene.get_instance_id() == remote_id
+        and cached_floor.collision_layer == authored_layer
+        and second_floor.collision_layer == 0
+        and player.get_instance_id() == player_id
+        and (equipment.get("inventory") as Array).size() == inventory_count,
+        "Returning to first room preserves physics and the original inventory")
 
     tree.current_scene = original
     stage.queue_free()

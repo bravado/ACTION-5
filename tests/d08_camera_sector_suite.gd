@@ -179,6 +179,23 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             verify.call(camera.global_basis.z.distance_to(before_heading.z) < 0.001,
                 "F4 first-person look never resets at the doorway")
 
+    # Per-profile camera rectangles are unioned across arbitrarily rotated
+    # connected sectors, not hard-coded arena/dungeon translation.
+    var extra := Node3D.new()
+    extra.name = "RotatedSectorFixture"
+    extra.position = Vector3(50, 0, 40)
+    extra.rotation.y = PI * 0.5
+    world.add_child(extra)
+    var sectors: Array[Node3D] = [world, extra]
+    var expanded: Dictionary = bounds_adapter.call("_bounds_for_sectors",
+        Vector2(-2, -3), Vector2(4, 5), sectors)
+    verify.call(absf(expanded["max"].x - (extra.global_position.x + 5.0)) < 0.01
+        and absf(expanded["max"].y - (extra.global_position.z + 2.0)) < 0.01
+        and expanded["min"].distance_to(Vector2(
+            world.global_position.x - 2.0, world.global_position.z - 3.0)) < 0.01,
+        "A rotated third sector can extend connected bounds without core camera changes")
+    extra.queue_free()
+
     # Proximity fade is explicitly limited to exterior perimeter walls.
     # It must work under WebGL2's Compatibility renderer, where generic
     # GeometryInstance3D.transparency is ignored. The material override
@@ -230,6 +247,78 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not (dungeon_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,
         "Independent dungeon outer wall uses the same camera-only proximity fade")
 
+    # Composition regression: F1 owns only the front mesh hide, the
+    # gate owns collision/room switching, and F2 fader owns opacity.
+    var room_visibility: Node = world.get_node("RoomVisibility")
+    views.switch_view(0)
+    doorway.call("set_open", true)
+    doorway.call("set_open", false)
+    await _frames(tree, 2)
+    verify.call(not south_visual.visible and not south_collider.disabled
+        and south.collision_layer != 0,
+        "F1 front wall stays graphically hidden but physically solid across door toggles")
+    views.switch_view(1)
+    player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
+    fader.call("_process", 1.0)
+    verify.call(south_visual.visible and south_visual.get_surface_override_material(0)
+        is StandardMaterial3D,
+        "F2 re-shows the wall and applies independent proximity opacity")
+
+    # Dynamically spawned pickups must hide, reappear on room crossing,
+    # and hand rendering authority back to Equipment when collected.
+    player.global_position = world.to_global(Vector3(11, 0.15, 0))
+    await _physics_frames(tree, 4)
+    var new_weapon := (load("res://demo/equipment/gun.tscn") as PackedScene).instantiate() as Node3D
+    new_weapon.position = Vector3(18, 0.4, 0)
+    world.add_child(new_weapon)
+    await _frames(tree, 4)
+    var weapon_id: int = new_weapon.get_instance_id()
+    verify.call(not new_weapon.visible
+        and (room_visibility.get("_ground_weapons") as Dictionary).has(weapon_id),
+        "New pickup behind closed door is immediately registered and hidden")
+    new_weapon.position = Vector3(11.5, 0.4, 0)
+    await _physics_frames(tree, 4)
+    verify.call(new_weapon.visible,
+        "Tracked loose pickup becomes visible when physically relocated to arena")
+    var equipment: Node = player.get_node("Equipment")
+    var picked: bool = bool(equipment.call("pickup", new_weapon))
+    verify.call(picked and not (room_visibility.get("_ground_weapons") as Dictionary).has(weapon_id)
+        and not (room_visibility.get("_original_visibility") as Dictionary).has(weapon_id),
+        "Collecting pickup releases visual ownership to Equipment")
+    player.global_position = world.to_global(Vector3(18, 0.15, 0))
+    await _physics_frames(tree, 4)
+    verify.call(bool(equipment.call("drop_current"))
+        and (room_visibility.get("_ground_weapons") as Dictionary).has(weapon_id),
+        "Dropping weapon registers it for room-aware visibility immediately")
+    player.global_position = world.to_global(Vector3(12.5, 0.15, 0))
+    await _physics_frames(tree, 6)
+    new_weapon.global_position = world.to_global(Vector3(14.5, 0.4, 0))
+    await _physics_frames(tree, 4)
+    verify.call(not new_weapon.visible and not bool(world.call("_pickup_closest_weapon")),
+        "Closed-door hidden pickup cannot be taken by fallback E within pickup radius")
+
+    # Repeated fresh-entry replacement must not leak obsolete visibility or
+    # duplicated material cache entries from old sector instances.
+    for iteration in range(3):
+        var old_dungeon := world.get_node("EncounterSector") as Node3D
+        var old_mesh := old_dungeon.get_node("SouthWall/Mesh") as MeshInstance3D
+        var old_floor := old_dungeon.get_node("Floor") as Node3D
+        var mesh_id: int = old_mesh.get_instance_id()
+        var floor_id: int = old_floor.get_instance_id()
+        player.global_position = world.to_global(Vector3(26, 0.15, 6.9))
+        fader.call("_process", 1.0)
+        room_visibility.call("refresh")
+        verify.call((fader.get("_materials") as Dictionary).has(mesh_id)
+            and (room_visibility.get("_original_visibility") as Dictionary).has(floor_id),
+            "Active dungeon visuals have an authored material and visible-state cache")
+        player.global_position = world.to_global(Vector3(12, 0.15, 0))
+        verify.call(bool(session.call("_reset_encounter")),
+            "Fresh dungeon replaces only the sector, not the shared player")
+        room_visibility.call("refresh")
+        fader.call("_process", 1.0)
+        verify.call(not (fader.get("_materials") as Dictionary).has(mesh_id)
+            and not (room_visibility.get("_original_visibility") as Dictionary).has(floor_id),
+            "Fresh sector prunes its replaced mesh and room-visibility cache entries")
     tree.current_scene = original_scene
     world.queue_free()
     await _frames(tree, 2)

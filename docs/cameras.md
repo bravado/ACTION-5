@@ -143,6 +143,15 @@ quantization here/in action input selection, not a hard-coded flag in
 CombatController, because `AttackDefinition.facing_sectors` applies
 to **every** view.
 
+### Connected-room camera bounds (D08)
+
+`SectorCameraBounds` is an opt-in demo adapter that computes a
+single world-axis union of the authored local camera rectangle across
+the main world and each `connected_sector_paths` entry. Each sector
+may be translated or rotated. The adapter does not change
+Action5CameraRig, player movement or the shared Camera3D. Only an
+explicit detached-location portal temporarily reframes the camera.
+
 ### Exterior wall visibility near the player (D08)
 
 `demo/world/outer_wall_fader.gd` is an opt-in scene

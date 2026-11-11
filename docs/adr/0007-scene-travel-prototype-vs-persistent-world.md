@@ -82,7 +82,11 @@ The generic Interactor may query a near-side door handle through
 explicit E moves the same actor to a Marker3D. For a separate
 PackedScene, `LocationManager` loads its *environment only* as a
 detached child scene and moves the original actor to its entry marker.
-The scene is cached, hidden and CPU-paused when inactive; another
+The scene is cached, hidden and CPU-paused when inactive. It also
+snapshots/disables CollisionObject3D layers/masks and navigation region
+and link activation, restoring original values on reentry. Two cached
+remote scenes may overlap without leaving invisible solid walls.
+Player, equipment and camera are never paused or cloned. Another
 Marker3D portal returns the actor to the arena. The example
 `demo/world/remote_chamber.tscn` is **not** another connected room
 and does not contain a duplicate Player, Combat, Equipment, camera or
@@ -125,6 +129,19 @@ test actors into that scene.
 | Keep independent complete game scenes | High | Potential double player/camera/input | Duplicated | Rejected |
 | **One world, instanced sectors, pause inactive NPCs** | Retains sector nodes | Pausable | **Same live actors** | Chosen |
 | Compact explicit fresh-entry reset | Transient reinitialization | Infrequent | Same player | Optional, requires testing |
+
+RoomVisibility uses equipment and SceneTree node-creation events to
+register loose connected-world pickups, then tracks only those items for
+changes of room position. It excludes tagged detached scene roots,
+releases visual ownership on pickup, and prunes dead weak references
+after room resets. OuterWallFader similarly prunes dead material entries.
+Visibility paths remain a scene-composition policy, not an addon core
+dependency.
+
+SectorCameraBounds unions the four transformed X/Z corners of local
+profile rectangles across arbitrary additional configured connected
+sector roots, including rotated layouts. It only reframes for explicit
+remote portals; physical door crossings remain continuous.
 
 No measured frame-time/memory/native/WebGL2 comparison has been
 completed; do not claim performance superiority without profiling.
