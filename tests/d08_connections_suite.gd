@@ -305,7 +305,22 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     remote_nav.start_position = Vector3(0, 0, 0)
     remote_nav.end_position = Vector3(2, 0, 0)
     second.add_child(remote_nav)
+    # Explicitly authored KEEP_ACTIVE must not leave ghost physics when
+    # the cached location is later disabled.
+    var persistent_body := StaticBody3D.new()
+    persistent_body.position = Vector3(3, 1.1, 3)
+    persistent_body.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
+    var special_shape := CollisionShape3D.new()
+    special_shape.shape = BoxShape3D.new()
+    persistent_body.add_child(special_shape)
+    second.add_child(persistent_body)
+    var special_probe := PhysicsRayQueryParameters3D.create(
+        second.to_global(Vector3(3, 3, 3)), second.to_global(Vector3(3, 0.8, 3)), 1)
     await _frames(tree, 3)
+    await _ticks(tree, 2)
+    verify.call(stage.get_world_3d().direct_space_state.intersect_ray(
+        special_probe).get("collider") == persistent_body,
+        "Non-default KEEP_ACTIVE body collides while its scene is active")
     verify.call(remote_pickup.visible
         and not (stage.get_node("RoomVisibility").get("_ground_weapons") as Dictionary
             ).has(remote_pickup.get_instance_id())
@@ -339,6 +354,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and session.current_sector == &"encounter"
         and not active_return.can_process(),
         "E follows only the active portal's distinct destination, never an inactive cached portal")
+    await _ticks(tree, 2)
+    verify.call(persistent_body.disable_mode == CollisionObject3D.DISABLE_MODE_REMOVE
+        and persistent_body.collision_layer == authored_layer
+        and not persistent_body.can_process()
+        and stage.get_world_3d().direct_space_state.intersect_ray(
+            special_probe).is_empty(),
+        "Disabling cached scene overrides KEEP_ACTIVE and removes physics without layer mutation")
     verify.call(manager.call("travel_to_marker", player, arena_return)
         and second_floor.collision_layer == authored_layer
         and not second_floor.can_process() and not remote_nav.enabled
@@ -358,6 +380,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and manager.call("travel_to_scene", player, alternate, NodePath("Arrival"))
         and remote_nav.enabled and remote_pickup.visible,
         "Cached second scene restores authored navigation and preserves its loose pickup")
+    await _ticks(tree, 2)
+    verify.call(stage.get_world_3d().direct_space_state.intersect_ray(
+        special_probe).get("collider") == persistent_body,
+        "Reactivating cached scene restores physical collision without reconstructing bodies")
     verify.call(manager.call("travel_to_marker", player, arena_return)
         and not remote_nav.enabled,
         "Pausing second scene restores collision and navigation isolation on every visit")
