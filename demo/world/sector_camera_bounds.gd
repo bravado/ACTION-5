@@ -33,6 +33,12 @@ func _ready() -> void:
         dungeon.global_position.x - root.global_position.x,
         dungeon.global_position.z - root.global_position.z
     )
+    # CameraRig clamps the actor's GLOBAL X/Z coordinates. The .tres
+    # bounds are authored relative to the level root, so translate the
+    # entire connected union to this instance's world-space origin.
+    # This matters for instanced levels and detached test fixtures away
+    # from (0,0,0); otherwise the player looks at the wrong location.
+    var origin := Vector2(root.global_position.x, root.global_position.z)
     for i in range(originals.size()):
         var profile := originals[i] as ProfileScript
         if profile == null:
@@ -41,11 +47,11 @@ func _ready() -> void:
         var local_profile := profile.duplicate(true) as ProfileScript
         var original_min: Vector2 = profile.bounds_min
         var original_max: Vector2 = profile.bounds_max
-        local_profile.bounds_min = Vector2(
+        local_profile.bounds_min = origin + Vector2(
             minf(original_min.x, original_min.x + delta.x),
             minf(original_min.y, original_min.y + delta.y)
         )
-        local_profile.bounds_max = Vector2(
+        local_profile.bounds_max = origin + Vector2(
             maxf(original_max.x, original_max.x + delta.x),
             maxf(original_max.y, original_max.y + delta.y)
         )
