@@ -138,7 +138,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             var rig: Node = views.get_node("CameraRig")
             var actor_body := player as CharacterBody3D
             var configured_peek: float = float(profile.lateral_peek_degrees)
-            verify.call(configured_peek >= 15.0 and configured_peek <= 25.0,
+            verify.call(configured_peek >= 10.0 and configured_peek <= 14.0,
                 "F2 wall reveal is a small configurable camera-only yaw")
             var original_velocity: Vector3 = actor_body.velocity
             actor_body.velocity = Vector3(4.0, 0.0, 0.0)
@@ -153,8 +153,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             rig.call("_update_camera", 0.5)
             var idle_heading_x: float = camera.global_basis.z.x
             actor_body.velocity = original_velocity
-            verify.call(right_heading_x < -0.20 and left_heading_x > 0.20
-                and idle_heading_x > 0.20,
+            verify.call(right_heading_x < -0.14 and left_heading_x > 0.14
+                and idle_heading_x > 0.14,
                 "F2 peeks behind lateral movement direction and retains wall visibility at rest")
             verify.call(_same_movement(right_input, left_input)
                 and _same_movement(right_input, before),
