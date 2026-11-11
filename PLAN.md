@@ -847,8 +847,10 @@ Two **independent** scene-composed interaction contracts now exist:
   open or close a real opaque panel at X=14, Z=0; walking across the
   gap alone changes the active arena/dungeon sector. The shared
   NavigationLink3D connects independently authored arena and dungeon
-  nav regions only while open. Both-sided handles solve closed-panel
-  interaction without bypassing the generic Interactor LoS contract.
+  nav regions only while open. Both-sided **visible handles** match
+  the exact `get_interaction_point(actor)` coordinates, without
+  bypassing generic Interactor LoS. Connected doors show **no
+  destination labels**: mirrored text on both sides overlapped.
 - `RoomVisibility` owns *presentation only*: the opposing room's meshes
   and ground pickups are hidden behind a closed gate in every view,
   while its physical floor and AI instances can remain loaded.
@@ -861,6 +863,8 @@ Two **independent** scene-composed interaction contracts now exist:
   or a separately authored PackedScene. `LocationManager` loads and
   caches remote environment instances, pauses inactive ones, and moves
   the existing Player/Equipment/Combat to the new arrival marker.
+  Both remote and return portal labels are optional: the
+  `LocationPortal.show_label` property controls text rendering only.
   The demo remote chamber has its own return portal. Only these
   explicit transitions change camera bounds for a distant location;
   ordinary room walking never teleports or resets orientation.
