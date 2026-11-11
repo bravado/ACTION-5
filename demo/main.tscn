@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3]
+[gd_scene load_steps=58 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -30,6 +30,7 @@
 [ext_resource type="Script" path="res://demo/world/location_manager.gd" id="27_location_manager"]
 [ext_resource type="Script" path="res://demo/interactions/location_portal.gd" id="28_location_portal"]
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
+[ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -141,7 +142,7 @@ shape = SubResource("BoxShape3D_floor")
 [node name="ArenaNavigation" type="NavigationRegion3D" parent="."]
 script = ExtResource("26_arena_nav")
 
-[node name="NorthWall" type="StaticBody3D" parent="."]
+[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(0, 1.5, -9)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="NorthWall"]
@@ -151,7 +152,7 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("BoxShape3D_wallX")
 
-[node name="SouthWall" type="StaticBody3D" parent="."]
+[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(0, 1.5, 9)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SouthWall"]
@@ -161,7 +162,7 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
 shape = SubResource("BoxShape3D_wallX")
 
-[node name="WestWall" type="StaticBody3D" parent="."]
+[node name="WestWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
 position = Vector3(-14, 1.5, 0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WestWall"]
@@ -507,3 +508,6 @@ script = ExtResource("22_bounds")
 
 [node name="RoomVisibility" type="Node" parent="."]
 script = ExtResource("25_room_visibility")
+
+[node name="OuterWallFader" type="Node" parent="."]
+script = ExtResource("30_outer_wall_fader")
