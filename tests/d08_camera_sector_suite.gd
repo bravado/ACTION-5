@@ -132,9 +132,43 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             and player.get_instance_id() == player_id,
             "F%d return preserves input direction and actor identity" % (index + 1))
         if index == 1:
-            var heading: Vector3 = Vector3(0.0, 4.5, 10.0).normalized()
-            verify.call(camera.global_basis.z.distance_to(heading) < 0.001,
-                "F2 fixed beat-em-up camera still points consistently")
+            # F2's optional lateral peek rotates the CAMERA to reveal
+            # X-facing walls, but keeps world-axis WASD unchanged.
+            var rig: Node = views.get_node("CameraRig")
+            var actor_body := player as CharacterBody3D
+            var configured_peek: float = float(profile.lateral_peek_degrees)
+            verify.call(configured_peek >= 15.0 and configured_peek <= 25.0,
+                "F2 wall reveal is a small configurable camera-only yaw")
+            var original_velocity: Vector3 = actor_body.velocity
+            actor_body.velocity = Vector3(4.0, 0.0, 0.0)
+            rig.call("_update_camera", 0.5)
+            var right_heading_x: float = camera.global_basis.z.x
+            var right_input: Array[Vector2] = _movement(views)
+            actor_body.velocity = Vector3(-4.0, 0.0, 0.0)
+            rig.call("_update_camera", 0.5)
+            var left_heading_x: float = camera.global_basis.z.x
+            var left_input: Array[Vector2] = _movement(views)
+            actor_body.velocity = Vector3.ZERO
+            rig.call("_update_camera", 0.5)
+            var idle_heading_x: float = camera.global_basis.z.x
+            actor_body.velocity = original_velocity
+            verify.call(right_heading_x < -0.20 and left_heading_x > 0.20
+                and idle_heading_x > 0.20,
+                "F2 peeks behind lateral movement direction and retains wall visibility at rest")
+            verify.call(_same_movement(right_input, left_input)
+                and _same_movement(right_input, before),
+                "F2 left/right camera peek never rotates arena or dungeon WASD")
+            var panel := doorway.get_node("BarrierMesh") as MeshInstance3D
+            var body_shape := doorway.get_node("Body/CollisionShape3D") as CollisionShape3D
+            verify.call(panel.global_position.distance_to(body_shape.global_position) < 0.001
+                and panel.mesh is BoxMesh
+                and (panel.mesh as BoxMesh).size.is_equal_approx(
+                    (body_shape.shape as BoxShape3D).size),
+                "F2 visible door panel occupies the exact authoritative solid collider")
+            verify.call(
+                not camera.is_position_behind(doorway.global_position + Vector3.UP * 1.2),
+                "F2 camera looks toward the physical doorway rather than seeing its edge from behind")
+
         elif index == 4:
             verify.call(camera.global_basis.y.distance_to(Vector3.FORWARD) < 0.001
                 and camera.global_basis.z.distance_to(Vector3.UP) < 0.001,
