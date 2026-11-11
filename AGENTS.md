@@ -525,9 +525,13 @@ arena+dungeon bounds rectangle from instance-local copies of the D02
 profiles. Do **not** shift camera clamps or snap the camera at each
 sector crossing: both rooms are on the same plane and camera space. Never patch shared `.tres` profiles, rotate
 a map's movement axes, or add map-specific D08 conditions to
-MovementPolicy, ActorInputAdapter or CameraRig. The generic bounded
-F2/F5 camera heading is invariant even when its position clamps to the
-map edge; preserve F3/F4 yaw and user camera settings. Run `tests/d08_camera_sector_suite.gd` through
+MovementPolicy, ActorInputAdapter or CameraRig for room-specific
+heading changes. F5's bounded overhead heading stays invariant even at
+map edges; F2 may use the **generic configurable** lateral-peek
+presenter (`ViewProfile.lateral_peek_degrees`) to reveal X-facing
+walls as the actor walks along world X, and holds its last angle at rest.
+That F2 yaw is NEVER used to remap beat'em-up world-axis WASD.
+Preserve F3/F4 yaw and user camera settings. Run `tests/d08_camera_sector_suite.gd` through
 `make check` for every new room, and validate WASD in all five views
 both before and after a doorway. There is no standalone D07 encounter scene; `tests/d07_suite.gd`
 activates the dungeon inside `demo/main.tscn`. The obsolete scene-reload
@@ -543,6 +547,17 @@ hide-on-open visual behavior. Do not duplicate a return portal in the
 dungeon. Verify entry from both sides, closed/open collision, continuous
 player movement and persistent inventory in `tests/d08_world_suite.gd`.
 Neither door rendering nor entrance state is a camera/actor concern.
+**Adjacent connected doors have no destination Label3D** (avoid mirrored
+overlapping text). Keep an opaque BarrierMesh co-located EXACTLY with
+the door's CollisionShape3D and expose distinct physical handles on
+both faces matching `get_interaction_point(actor)`; do not move a
+visual-only marker away from the actual interaction point just to
+make F2 appear usable. `LocationPortal` is different: its optional
+`show_label` and `label_path` control destination text independently
+of `can_interact` and travel. No label node is required for a portal.
+A small direction-sensitive F2 camera yaw (profile-configurable,
+20° default) reveals wall faces. Check geometry and E handle reach
+from both sides in F1–F5; do NOT rotate world geometry or remap WASD.
 
 ### D08 connection contract: physical gate versus remote portal
 
