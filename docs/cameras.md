@@ -22,7 +22,7 @@ The arena-dungeon gate lies in the **Y/Z plane** at world X=14. A
 perfectly frontal +Z beat'em-up camera shows that wall and its
 blocking panel edge-on, making the blue lintel appear separated from
 the interactable doorway. The **shipped F2 profile** now sets
-`lateral_peek_degrees = 20` and `lateral_peek_response = 8`
+`lateral_peek_degrees = 12` and `lateral_peek_response = 8`
 (in `addons/action5/views/beatemup.tres`). For every fixed-offset
 camera tick, `Action5CameraRig` reads only the followed
 `CharacterBody3D.velocity.x`: moving right leans the camera
@@ -142,3 +142,23 @@ For future F5 4-way sword/8-way gun policies, keep view-specific
 quantization here/in action input selection, not a hard-coded flag in
 CombatController, because `AttackDefinition.facing_sectors` applies
 to **every** view.
+
+### Exterior wall visibility near the player (D08)
+
+`demo/world/outer_wall_fader.gd` is an opt-in scene
+presentation component independent of the CameraRig: only StaticBody3D
+walls tagged `action5_outer_wall` fade as the player approaches their
+**collision-box footprint**. The front/bottom `SouthWall` is a
+typical example; the same behavior works for arena, dungeon and
+separately loaded remote chambers. At **3.8 world units**, the fade
+begins; at **1.1 units**, the wall reaches 20% opacity. Moving away
+restores the exact original material. First person (view 4) remains
+fully opaque. All parameters are exported.
+
+We use a **cached duplicated StandardMaterial3D with alpha blending**
+instead of `GeometryInstance3D.transparency`, which Godot's
+Compatibility renderer ignores (important for WebGL2). The
+renderer-only effect leaves the real StaticBody3D CollisionShape3D,
+world-space gun rays, enemy detection and NavigationMesh unchanged.
+Inner obstacles, the shared-room door and its panel do **not** belong
+to the outer-wall group and never fade.
