@@ -12,6 +12,8 @@ const FIELDS = [
     {"key": "orthographic_size", "label": "Zoom", "min": 4.0, "max": 28.0, "step": 0.25},
     {"key": "fixed_height", "label": "Camera height", "min": 1.0, "max": 14.0, "step": 0.25},
     {"key": "fixed_distance", "label": "Camera depth", "min": 5.0, "max": 22.0, "step": 0.25},
+    {"key": "lateral_peek_degrees", "label": "Side peek (deg)", "min": 0.0, "max": 35.0, "step": 0.5},
+    {"key": "lateral_peek_response", "label": "Peek response", "min": 1.0, "max": 20.0, "step": 0.5},
     {"key": "chase_distance", "label": "Wide distance", "min": 4.0, "max": 26.0, "step": 0.25},
     {"key": "close_chase_distance", "label": "Close distance", "min": 1.5, "max": 9.0, "step": 0.1},
     {"key": "pitch", "label": "Isometric pitch", "min": 10.0, "max": 70.0, "step": 1.0},
@@ -148,7 +150,7 @@ func _field_visible(key: String, profile: ViewProfileScript) -> bool:
     match key:
         "orthographic_size":
             return profile.orthographic
-        "fixed_height", "fixed_distance":
+        "fixed_height", "fixed_distance", "lateral_peek_degrees", "lateral_peek_response":
             return profile.mode == ViewProfileScript.Mode.BEATEMUP
         "chase_distance", "close_chase_distance", "pitch", "close_pitch_degrees", "shoulder_offset", "shoulder_lift", "aim_ahead":
             return profile.mode == ViewProfileScript.Mode.ISOMETRIC

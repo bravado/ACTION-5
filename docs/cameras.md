@@ -22,7 +22,7 @@ The arena-dungeon gate lies in the **Y/Z plane** at world X=14. A
 perfectly frontal +Z beat'em-up camera shows that wall and its
 blocking panel edge-on, making the blue lintel appear separated from
 the interactable doorway. The **shipped F2 profile** now sets
-`lateral_peek_degrees = 12` and `lateral_peek_response = 8`
+`lateral_peek_degrees = 6` and `lateral_peek_response = 8`
 (in `addons/action5/views/beatemup.tres`). For every fixed-offset
 camera tick, `Action5CameraRig` reads only the followed
 `CharacterBody3D.velocity.x`: moving right leans the camera
@@ -57,7 +57,7 @@ The close-camera wall raycast prevents passing through world geometry. It exclud
 Click **Camera Settings [C]**, or press **C**, to open the Godot UI panel. It changes the **selected view resource live** and never changes the actor transform or velocity. Use **Reset this camera** to restore the shipped defaults, or **Close** to hide it.
 
 - **Mode 1 and 5:** orthographic zoom and follow speed.
-- **Mode 2:** orthographic zoom, camera height, camera depth and follow speed. The lateral peek angle/response are authored directly in the `beatemup.tres` profile for now.
+- **Mode 2:** orthographic zoom, camera height, camera depth and follow speed. **Side peek (deg)** and **Peek response** are editable live, saved per-profile, and resettable (6° and 8 by default). Set the angle to 0 for no horizontal tilt.
 - **Mode 3:** orthographic zoom, wide/close orbit distances, wide isometric pitch, close shoulder pitch, left/right shoulder offset, shoulder lift, look-ahead and follow speed.
 - **Mode 4:** field of view, eye height and **Invert Y-axis (mouse)** (checkbox, **off by default**). With inversion off, mouse down looks down; enabling inversion makes mouse down look up.
 

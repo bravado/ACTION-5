@@ -138,8 +138,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             var rig: Node = views.get_node("CameraRig")
             var actor_body := player as CharacterBody3D
             var configured_peek: float = float(profile.lateral_peek_degrees)
-            verify.call(configured_peek >= 10.0 and configured_peek <= 14.0,
-                "F2 wall reveal is a small configurable camera-only yaw")
+            verify.call(configured_peek >= 5.5 and configured_peek <= 6.5,
+                "F2 starts with a subtle, profile-configurable 6-degree yaw")
             var original_velocity: Vector3 = actor_body.velocity
             actor_body.velocity = Vector3(4.0, 0.0, 0.0)
             rig.call("_update_camera", 0.5)
@@ -153,9 +153,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             rig.call("_update_camera", 0.5)
             var idle_heading_x: float = camera.global_basis.z.x
             actor_body.velocity = original_velocity
-            verify.call(right_heading_x < -0.14 and left_heading_x > 0.14
-                and idle_heading_x > 0.14,
-                "F2 peeks behind lateral movement direction and retains wall visibility at rest")
+            verify.call(right_heading_x < -0.05 and left_heading_x > 0.05
+                and idle_heading_x > 0.05
+                and absf(right_heading_x) < 0.14 and left_heading_x < 0.14,
+                "F2 gently peeks with movement and retains a small viewing angle at rest")
             verify.call(_same_movement(right_input, left_input)
                 and _same_movement(right_input, before),
                 "F2 left/right camera peek never rotates arena or dungeon WASD")
@@ -196,6 +197,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     fader.call("_process", 1.0)
     var faded: StandardMaterial3D = south_visual.get_surface_override_material(0)
     verify.call(south.is_in_group("action5_outer_wall")
+        and south_visual.visible
         and faded != original_south
         and faded != null
         and faded.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA

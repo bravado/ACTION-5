@@ -346,7 +346,7 @@ func _run_tests() -> void:
             and (level.get_node("SouthWall") as StaticBody3D).collision_layer != 0,
             "F1 foreground wall hidden visually, still physical")
         manager.switch_view(1)
-        _check(not front_wall.visible, "F2 also hides front-wall graphics")
+        _check(front_wall.visible, "F2 keeps the outer wall rendered for proximity fading")
         _check(manager.current_profile.orthographic_size <= 7.0,
             "F2 brawler uses close arcade-scale framing")
 
@@ -368,7 +368,31 @@ func _run_tests() -> void:
         zoom_slider.value = 7.25
         _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
             "UI slider immediately updates F2 camera zoom")
+        var peek_row := settings.get_node("Padding/Controls/Row_lateral_peek_degrees") as HBoxContainer
+        var peek_response_row := settings.get_node("Padding/Controls/Row_lateral_peek_response") as HBoxContainer
+        _check(peek_row.visible and peek_response_row.visible,
+            "F2 exposes lateral camera angle and response in Camera Settings")
+        _check(settings.call("set_current_value", "lateral_peek_degrees", 3.5)
+            and absf(manager.current_profile.lateral_peek_degrees - 3.5) < 0.01,
+            "F2 camera peek can be reduced live without editing resource files")
+        var peek_slider := settings.get_node(
+            "Padding/Controls/Row_lateral_peek_degrees/Slider") as HSlider
+        peek_slider.value = 5.0
+        _check(absf(manager.current_profile.lateral_peek_degrees - 5.0) < 0.01,
+            "F2 lateral camera setting responds to its in-game slider")
+        var peek_config := ConfigFile.new()
+        _check(peek_config.load(settings.preferences_path) == OK
+            and absf(float(peek_config.get_value(
+                "profile_beatemup", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
+            "F2 lateral peek override is persisted under its stable profile ID")
         settings.call("reset_current_camera")
+        _check(absf(manager.current_profile.lateral_peek_degrees - 6.0) < 0.01,
+            "F2 reset restores the subtler shipped camera peek")
+        var reset_peek_config := ConfigFile.new()
+        _check(reset_peek_config.load(settings.preferences_path) == OK
+            and not reset_peek_config.has_section_key(
+                "profile_beatemup", "lateral_peek_degrees"),
+            "Reset removes F2 peek overrides so future defaults remain editable")
 
         # First-person's boolean Y-axis setting is a per-profile checkbox,
         # not a numeric slider. Changing it must preserve actor and camera IDs.
