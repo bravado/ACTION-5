@@ -14,6 +14,9 @@ signal weapon_dropped(weapon: Node3D)
 @export_range(0.1, 10.0, 0.1) var pickup_radius: float = 2.5
 @export var combat_path: NodePath = ^"../CombatController"
 @export var mount_source_path: NodePath = ^"../EquipmentVisualAdapter"
+## Optional world-owned policy that resolves where to drop at the *current*
+## location, rather than remembering a parent freed by a fresh-sector reset.
+@export var drop_parent_provider_path: NodePath
 
 @onready var combat: Node = get_node_or_null(combat_path)
 @onready var mount_source: Node = get_node_or_null(mount_source_path)
@@ -121,9 +124,22 @@ func drop_current() -> bool:
         return false
     var actor := get_parent() as Node3D
     var weapon: WeaponScript = current_weapon
-    var destination: Node3D = _world_parents.get(weapon) as Node3D
-    if actor == null or not is_instance_valid(destination) \
-            or destination.is_queued_for_deletion():
+    if actor == null:
+        return false
+    var destination: Node3D
+    if not drop_parent_provider_path.is_empty():
+        var provider: Node = get_node_or_null(drop_parent_provider_path)
+        if not is_instance_valid(provider) or not provider.has_method("get_drop_parent"):
+            return false
+        destination = provider.call("get_drop_parent", actor) as Node3D
+    else:
+        destination = _world_parents.get(weapon) as Node3D
+        # Bare NPC/actor fixtures may lack a provider and survive a
+        # dynamically replaced parent: use the actor's live world instead.
+        if not is_instance_valid(destination):
+            destination = actor.get_parent() as Node3D
+    if not is_instance_valid(destination) or destination.is_queued_for_deletion() \
+            or not destination.is_inside_tree():
         return false
     _stow_current()
     inventory.erase(weapon)

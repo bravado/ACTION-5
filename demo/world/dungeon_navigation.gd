@@ -1,7 +1,7 @@
 extends Node3D
-## Independent D07 fixture with real static obstacle and a pre-authored
-## NavigationMesh polygon ring. No generated meshes or external assets.
-## Movement still uses ordinary Godot physics and D03 actor intents.
+## Dungeon-owned navigation fixture, shared by the D07 NPC regressions and
+## the playable D08 persistent-world room. No duplicate encounter scene.
+## Collision and AI pathing remain independent of camera presentation.
 
 @onready var navigation_region: NavigationRegion3D = $NavigationRegion3D
 

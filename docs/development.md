@@ -99,7 +99,7 @@ The [ACTION-5 CI workflow](../.github/workflows/godot-ci.yml) has two stable job
 
 Superseded PR runs are cancelled; `master` runs are not cancelled. Fast checks use only the pinned Godot editor; the much larger export templates and Chromium dependencies are installed only by the full E2E job. Each job shares the phony Godot import across its Make targets in one invocation.
 
-**Action runtime maintenance:** workflows use Node.js 24-native versions of GitHub's checkout, artifact and Pages actions (GitHub-hosted runners on Ubuntu 24.04). Keep these dependencies upgraded together; changing the JavaScript action runtime does not change Godot's pinned version or Playwright's pinned test version. The full E2E browser test uses the **headless Chromium shell only** (no unused headed browser download), with a 10-minute bound on real WebGL2 smoke. The full E2E job has an 18-minute safety limit, compared with the prior 30-minute limit. The WebGL2 screenshot/timing assertions are unchanged.
+**Action runtime maintenance:** workflows use Node.js 24-native versions of GitHub's checkout, artifact and Pages actions (GitHub-hosted runners on Ubuntu 24.04). Keep these dependencies upgraded together; changing the JavaScript action runtime does not change Godot's pinned version or Playwright's pinned test version. The full E2E browser test installs the **headless Chromium shell only** (no unused headed browser download, no Playwright-triggered `apt-get --with-deps` against transient Ubuntu mirrors), with a 10-minute bound on real WebGL2 smoke. System libraries come from the GitHub Ubuntu runner image. Failure to launch the actual WebGL2 browser remains a failing test; installation is never treated as proof of a passing browser smoke. The full E2E job has an 18-minute safety limit, compared with the prior 30-minute limit. The WebGL2 screenshot/timing assertions are unchanged.
 
 ```bash
 make test     # Local Godot headless tests, requires Godot 4.7.2 and Python 3
@@ -139,16 +139,18 @@ D02 supplies five cameras; D03 supplies data-driven movement; D04 supplies
 imported skeletal clips, bone sockets and local first-person visibility.
 D05 implements authored combat and D06 Bat/Shovel/Gun, muzzle-first physical
 hits and optional projectile/reload visuals; D06-01 and D06-02 merged as
-PRs #31 and #32. The crouch movement example also uses the same ports.
+D06-01 and #32. The crouch movement example also uses the same ports.
 Use [adding moves](adding-moves.md), [animation](animation.md),
 [combat](combat.md), [equipment](equipment.md) and
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md)
 rather than introducing new actor or attack clocks.
 
-D07-01 (merged PR #33) adds four actor-local AI components, equipped melee/ranged
-NPCs and an independent `demo/ai/encounter.tscn` with real navigation,
-physical obstruction, player punch/kick input and optional shared
-skeletal animations. See [AI authoring](ai.md) for extensions and the
+D07-01 (merged D07-01) adds four actor-local AI components and two
+equipped melee/ranged NPCs. Their only authored battle environment is now
+`demo/world/encounter_sector.tscn`, embedded by `demo/main.tscn` with
+real navigation, physical obstruction, shared player punch/kick input
+and optional skeletal animations. No duplicate Player/ViewManager scene
+exists for tests. See [AI authoring](ai.md) for extensions and the
 D07-to-D08 handoff.
 
 ### D07 verification recipe
@@ -156,7 +158,7 @@ D07-to-D08 handoff.
 ```bash
 make check
 make import
-godot --path . res://demo/ai/encounter.tscn
+godot --path . res://demo/main.tscn # E at east-side door enters the dungeon
 ```
 
 `tests/d07_suite.gd`, automatically included in `make check`, verifies
@@ -170,21 +172,254 @@ and Web export checks, the exported native smoke and the real WebGL2
 browser test before approval. Superseded PR runs are cancelled and do
 not count as final-head evidence. The existing native screenshot and
 browser scripts target `demo/main.tscn` by default: they validate
-shared rendering/export and main demo gameplay, **not** the D07
-encounter itself. The owner's F1–F5 visual review of the two NPCs,
+shared rendering/export and the main arena, but **not necessarily an
+actual dungeon visit**. The owner's F1–F5 visual review of the two NPCs,
 weapon positions, animated firing/swinging and obstruction must be
 recorded separately. D07 final verification passed **1,018 Godot assertions (0 failures)**,
 Linux/Web builds, native startup/rendering and real WebGL2 Full E2E in
 [CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034).
-Future NPC visual changes still need a direct encounter review; the
-main-demo captures do not prove encounter-specific animation quality.
+Future NPC visual changes still need an actual E-door dungeon review;
+main-arena captures do not prove encounter-specific animation quality.
 
-### D08 handoff
+### D08 persistent-world demo and orientation
 
-D08 issue #16 and stacked draft PR #34 own the Interactor, world Door,
-WorldPickup, RoofVisibility, restart/session UI and arena/dungeon
-traversal. Draft PR #34's scene-loading door/restoration is preliminary
-and **fails** the mandatory same-persistent-world acceptance criterion.
-D07 is merged; rebase #34 onto `master`, retarget the PR, resolve
-overlapping scene/animation/input changes and rerun the full CI matrix. D08 must not duplicate Health/Combat/Equipment/AI or
-make camera-based roof hiding alter real collision/nav/muzzle authority.
+D08 builds on the completed D07 AI components. `demo/main.tscn`
+owns one live Player, Equipment/Health/Combat,
+ViewManager and a separately authored `demo/world/encounter_sector.tscn`
+dungeon. The arena and dungeon now **share a world-space boundary**:
+the arena floor ends at X=14, and the dungeon (origin X=26, floor
+half-width 12) starts at X=14 on the same height and orientation. The gateway is centered on Z=0,
+so the default F1 side-scroller lane can reach it without switching views.
+The arena east wall is split above and below a real opening at
+**X=14, Z=0**, with an overlapping `PassageFloor` slab so there
+is no unsupported physics seam. The dungeon supplies its other three
+enclosing walls.
+
+A **single** `EncounterDoor` spans this common wall. Its `WorldDoor`
+component toggles a real CollisionShape3D and NavigationLink3D;
+`DoorMesh` is an always-visible two-sided frame, while the separately
+configured `BarrierMesh` disappears when open. **E opens the gate,
+WASD physically walks through it in either direction.** There is no
+`ReturnDoor` in the dungeon, second Player/ViewManager or door-triggered
+`travel_to()` teleport. `WorldSession` detects the player's
+world-X crossing with a small hysteresis, activates dungeon AI/physics
+*before* the player reaches the gate, and pauses them only after the
+player moves sufficiently back into the arena. The old standalone
+`demo/ai/encounter.tscn` and scene-reloading adapters were removed;
+`tests/d07_suite.gd` uses the **same embedded dungeon**.
+
+**Continuous camera bounds:** D02's F1/F2/F5 authored profiles clamp
+their camera target to the arena. `demo/world/sector_camera_bounds.gd`
+duplicates those Resources per game instance and computes the *union*
+of the arena and dungeon bounds, plus any configured connected sectors.
+Each profile's local X/Z rectangle is transformed at all four corners
+into a union that also supports rotated sectors. It never shifts or snaps
+the camera on crossing. Bounded F2/F5 views maintain fixed heading at
+edges, and the generic isometric rig uses its authored orbit direction
+rather than lag-induced actor look-at to prevent F3 WASD rotation.
+`Action5MovementPolicy`, `ActorInputAdapter` and all gameplay
+coordinates stay unchanged.
+
+`tests/d08_camera_sector_suite.gd` verifies in all five modes that
+W/A/S/D resolves to the same world-plane vectors before/after each
+round trip, the same Player/SceneTree remain alive, both floor
+edges meet at the doorway, and bounded cameras follow across one
+continuous world rectangle. Keep adjoining rooms' global X/Z axes
+aligned and do **not** synthesize movement transforms or per-room
+camera jumps. New movement modes stay independent of world geometry.
+
+`tests/d08_world_suite.gd` separately covers persistent inventory,
+dropped weapons, NPC state, physically authoritative doors, roof
+presentation, fresh/restore entry and Restart. The dungeon ceiling
+is a **physics-only** StaticBody3D without a rendered Mesh. Its prior
+transparent world-space cube at Y=4 tinted only the upper half of the
+screen when a side/arcade camera looked underneath it.
+`demo/interactions/roof_visibility.gd` now provides a uniform
+full-viewport translucent 18%-opacity blue tint with a CanvasLayer
+(layer 0, under HUD layer 1), enabled only in the dungeon in
+views 1/2/3/5 and hidden for first person. The ColorRect has
+`MOUSE_FILTER_IGNORE`, and its anchors span the viewport regardless
+of camera orientation/aspect ratio. This is a **presentation** effect:
+the ceiling CollisionShape3D remains physically authoritative.
+The dungeon's two lights remain modest (0.65 and 0.5), and the shared
+world sun is unchanged. Regress both screen coverage and ceiling
+physics independently.
+The **single boundary gate** uses
+`WorldDoor.keep_visual_when_open = true` so its structural frame stays
+visible from both sides. Its configurable `barrier_visual_path`
+points to the opening panel, which disappears when the physical
+barrier collider disables and the navigation link enables. Ordinary
+door panels keep the default `false` to hide on opening. The shared
+frame and door state persist across all visits, even when dungeon
+processing is suspended away from the passage. D08's state/camera/door regressions passed 1,212 Godot assertions;
+the owner accepted F1–F5 manual visual behavior on November 11, 2026.
+Keep the native/WebGL2 verification gates for future changes.
+
+### D08 door occlusion, awareness and remote PackedScene transitions
+
+In `demo/main.tscn`, the teal gate at **X=14, Z=0** joins two
+rooms. Physically press E at its near-side handle and then walk
+through. A closed door disables its NavigationLink3D, enables its
+blocking shape and restores the opaque panel. `RoomVisibility`
+hides the opposite room's render nodes, including world pickup
+meshes, **without disabling their physics or resetting AI state**.
+The linked `DoorAcquisitionFilter` prevents the two NPC sensors
+from *first* acquiring an actor across a closed boundary, while
+already-detected targets continue chasing until normal forget/Health
+rules apply; the door still blocks physical movement and attacks.
+
+A long-distance pursuit is a separate acceptance condition from
+initial detection: after the player opens a door, a melee NPC may
+walk through to the arena. When the player closes the gate behind
+it, the dungeon walls and floor are hidden but **that NPC remains
+visible and active on the arena side**. A closed gate prevents
+line-of-sight attacks only when player and NPC occupy opposite
+sides; it must not erase an acquired target. RoomVisibility performs
+the presentation filter separately for static room geometry and
+moving NPCs/world weapons; WorldSession keeps alerted/crossed NPCs
+processing outside the normal preload radius.
+
+`Action5Interactor` uses an optional
+`get_interaction_point(actor)` method so an opaque door can provide
+symmetric handles without the ray needing to terminate inside its
+own panel. Each of the two **gold handles** at world X=14 aligns
+precisely with those near-side E points. A connected door has **no
+Label3D nodes**. The teal lintel/solid panel share one physical
+coordinate frame, and the mesh uses the same dimensions/position as
+the blocking CollisionShape3D. This is important in F2, where the
+formerly frontal +Z camera saw the vertical panel edge-on. The AI sensor likewise accepts an optional
+`allows_acquisition(observer, candidate)` filter. Both protocols
+are replaceable and have no input, camera or combat dependencies.
+ArenaNavigation uses a minimal flat demo NavMesh, connected to
+the dungeon's authored ring by the physical door link. For a real
+game, bake obstacle-aware nav polygons for each sector.
+
+The purple portal at **X=-11.5, Z=0** is *not* a physical doorway.
+Its independent `LocationPortal` loads
+`demo/world/remote_chamber.tscn` (or can instead target a Marker3D),
+then `LocationManager` repositions the **original player** to the
+arrival point and caches the detached scene instance. The room has a
+return-to-arena marker portal. When cached inactive, its visibility and
+processing are disabled. Cached CollisionObject3D instances are
+removed/restored by Godot's `DISABLE_MODE_REMOVE` without mutating
+their authored collision layers or masks. NavigationRegion3D and
+NavigationLink3D enabled flags are still saved and restored explicitly.
+Two remote scenes may share the same offset with no invisible physical
+blockers. The original player and inventory are
+never cached or reinitialized. Missing remote arrival markers are
+rejected before caching a bad scene.
+`WorldSession` stops threshold checking only during detached travel.
+Camera bounds change only for the explicit distant jump, not while
+walking between adjacent rooms.
+
+**One pickup and drop contract:** every demo weapon prefab now owns an
+optional `PickupInteraction` child implementing `can_interact/interact`.
+Authored, newly spawned and dropped weapons use the exact same
+`Action5Interactor` E path with real physical LoS and distance;
+there is no direct `Equipment.pickup()` fallback in `main.gd`.
+`WorldPickup` is only the original authored spawn/reset state. It does
+not delete a weapon dropped into a different cached location.
+`EquipmentController` consumes an optional generic
+`get_drop_parent(actor)` provider configured by the demo's
+`LocationManager`, so it drops into the active world or remote
+PackedScene even if the original sector has been freed/re-instanced.
+The generic Interactor also ignores descendants whose scene processing
+is disabled; `LocationPortal.can_interact` rejects direct calls
+against inactive cached return portals.
+
+Run `make check` and `tests/d08_connections_suite.gd` (through
+`tests/run_all.gd`). The tests exercise a real viewport E key,
+both-sided gate behavior, room invisibility before entry,
+acquisition denial/persistence, nav/collision states, and repeated
+detached scene travel with the same inventory/actor identity. The
+usual D07 NPC and D08 dropped-equipment/camera regressions still run.
+
+
+**F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
+`lateral_peek_degrees = 6`, with an exponential response of 8.
+Use **C → Side peek (deg) / Peek response** to edit these independently
+of gameplay state; profile-specific overrides persist and Reset restores
+the shipped 6-degree angle.
+The camera sidesteps left while the player moves right and vice versa,
+holding the last viewing angle when idle. This makes X-normal
+walls/door panels visible without rotating F2 movement: WASD remains
+world-X/Z, and F1/F3/F4/F5 remain untouched. Set the profile angle to
+0 to disable. The `SectorCameraBounds` adapter unions transformed
+authored rectangles across all configured sectors. Instancing a
+whole level away from the world origin or rotating an added sector
+does not leave the camera clamped to the wrong location.
+
+**Portal label policy:** `demo/interactions/location_portal.gd`
+offers `show_label` and `label_path`. Defaults show a `Label3D`
+child on remote portals; omit the label or call
+`set_label_visible(false)` to hide it without changing E eligibility
+or where the original Player travels. Connected physical doors have
+no labels or scene-transition logic.
+
+**Weapon visibility lifecycle:** `RoomVisibility` observes weapon
+pickup/drop and runtime node-creation events, tracks only loose weapons
+in the connected rooms during physics ticks, and updates their
+visibility if they move across the closed-gate boundary. Once picked up,
+`EquipmentController` owns their visible state. The single generic E pickup path cannot collect a hidden weapon
+through a closed gate or any solid obstruction. Remote-room
+pickups are excluded by their `action5_detached_location` ancestor.
+Old visible-state and material weak references are pruned on fresh
+dungeon replacement. SceneTree node-added events are filtered to
+pickup-group nodes *before* deferral: spawning unrelated effects or
+enemy meshes no longer queues extra pickup callbacks.
+
+### Outer perimeter fade without gameplay coupling
+
+The D08 `demo/world/outer_wall_fader.gd` presenter monitors the
+player's horizontal distance to authored **outer wall**
+CollisionShape3D box footprints. Only `action5_outer_wall` members
+fade. When the actor approaches within 3.8 units, the wall mesh
+transitions toward 20% opacity, reaching that value at 1.1 units.
+The bottom/front `SouthWall` in the arena and dungeon is the main
+visibility improvement; other exterior bounds in those rooms and the
+remote chamber opt in using the same group. The same presenter owns
+F1 foreground-wall hiding using the opt-in
+`action5_side_hidden_wall` group on the same perimeter StaticBody3D.
+Arena, dungeon (including fresh-entry replacement), and cached remote
+SouthWall meshes hide in F1; rear walls, door frame/barrier and
+colliders remain. The presenter restores authored mesh visibility on
+view switch and teardown. `main.gd` never writes wall mesh
+visibility. **Both F4 and F5 remain opaque**, immediately restoring
+unmodified original surface materials after F2/F3 fading. Near/far
+thresholds, minimum opacity, response rate and both opaque-view flags
+remain exported settings.
+
+Use a cached alpha-enabled **duplicate** of each wall's existing
+StandardMaterial3D surface material and restore the original override
+when far; generic GeometryInstance3D transparency does not work
+with WebGL2 Compatibility. The original opaque resources are never
+mutated; no rendering change touches a StaticBody3D, CollisionShape3D,
+NavigationLink3D, scene-room visibility, or NPC/Gun line of sight.
+Shared boundary walls and the solid door must **not** opt in.
+`tests/d08_camera_sector_suite.gd` exercises material opacity,
+restoration and no collision changes in all relevant modes.
+
+
+### F1 shared combat lane (D08)
+
+`SideLaneController` in `demo/main.tscn` composes the existing
+`Locomotion.lock_side_lane()` port for the Player and active enemies,
+without changing `CameraRig`, CombatController or AI's intent FSM.
+On entering F1 it uses collision sweeps to align each living actor
+to a shared configurable world-Z lane (0 in the connected world,
+matching the physical doorway; detached rooms have their own
+local-Z=0). Small lateral X offsets may be used only after testing
+both motions against the same physical colliders, and physical
+obstructions/closed doors are never disabled or traversed. Actors
+keep their HP, inventory, AI target and instance identities.
+
+While F1 is active, every actor's existing solver locks to its new
+Z lane, and newly spawned/reactivated NPCs are registered on
+SceneTree/activation events. Enemy-to-enemy physical collision
+exceptions prevent same-line NPCs blocking one another; they persist
+only while needed to let NPCs separate after returning to F2–F5.
+The player continues to collide with opponents and all solid
+world geometry. Leaving F1 unlocks 3D movement without restoring
+stale pre-switch enemy positions. `tests/d08_camera_sector_suite.gd`
+covers alignment, late spawning, camera switching and physical
+door/health invariants.

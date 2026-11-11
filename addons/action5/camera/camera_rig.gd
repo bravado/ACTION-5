@@ -25,6 +25,10 @@ var _orbit_angles: Dictionary = {}
 var look_input_revision: int = 0
 var _last_fps_exit_facing_yaw: float = 0.0
 var _has_fps_exit_facing: bool = false
+## Only the BEATEMUP presentation uses this small direction-sensitive
+## sidestep. Player controls stay mapped to fixed world axes.
+var _arcade_peek_angle: float = 0.0
+var _arcade_last_lateral_sign: float = 1.0
 
 
 func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void:
@@ -153,7 +157,25 @@ func _update_camera(delta: float) -> void:
         return
     var actor_position: Vector3 = target.global_position
     var focus: Vector3 = actor_position + Vector3.UP * profile.focus_height
-    var desired: Vector3 = focus + profile.fixed_offset
+    var view_offset: Vector3 = profile.fixed_offset
+    if profile.mode == ViewProfileScript.Mode.BEATEMUP \
+            and profile.lateral_peek_degrees > 0.0:
+        # Slightly behind the direction of world-X travel so east/west
+        # walls (whose faces are perpendicular to X) are never edge-on.
+        # Preserve the last side when stationary: the door remains visible
+        # and its frame/handles stay aligned even after the player stops.
+        if target is CharacterBody3D:
+            var lateral_velocity: float = (target as CharacterBody3D).velocity.x
+            if absf(lateral_velocity) > 0.2:
+                _arcade_last_lateral_sign = signf(lateral_velocity)
+        var target_peek: float = (
+            -_arcade_last_lateral_sign * deg_to_rad(profile.lateral_peek_degrees)
+        )
+        var speed: float = maxf(profile.lateral_peek_response, 0.0)
+        _arcade_peek_angle = lerpf(_arcade_peek_angle, target_peek,
+            1.0 - exp(-speed * maxf(delta, 0.0)))
+        view_offset = profile.fixed_offset.rotated(Vector3.UP, _arcade_peek_angle)
+    var desired: Vector3 = focus + view_offset
     var look_target: Vector3 = focus
     var up_axis: Vector3 = Vector3.UP
 
@@ -199,7 +221,7 @@ func _update_camera(delta: float) -> void:
     elif profile.bound_camera_target:
         focus.x = clampf(focus.x, profile.bounds_min.x, profile.bounds_max.x)
         focus.z = clampf(focus.z, profile.bounds_min.y, profile.bounds_max.y)
-        desired = focus + profile.fixed_offset
+        desired = focus + view_offset
 
     var collided_with_wall: bool = false
     if profile.camera_collision and profile.mode == ViewProfileScript.Mode.ISOMETRIC and get_isometric_close_factor() > 0.35:
@@ -230,6 +252,18 @@ func _update_camera(delta: float) -> void:
         # Fixed side-on projection: -Z is always into the stage. NEVER look_at()
         # the actor here; smoothing would introduce yaw/pitch and ruin the XY view.
         camera.global_basis = Basis.IDENTITY
+    elif profile.bound_camera_target:
+        # Aim from the configured static offset (optionally yawed for F2),
+        # not at the chasing actor. Following/clamping cannot introduce
+        # unwanted pitch or rotate camera-relative movement on F5.
+        camera.look_at(camera.global_position - view_offset, up_axis)
+    elif profile.mode == ViewProfileScript.Mode.ISOMETRIC and not collided_with_wall:
+        # Use the authored orbit direction, not a moving actor target, for
+        # camera heading. Following a player across connected sectors must
+        # not turn F3 / camera-relative WASD merely because the camera
+        # position is still smoothing. The wall-collision case still
+        # explicitly aims at the actor to respect close camera occlusion.
+        camera.look_at(camera.global_position + (look_target - desired), up_axis)
     else:
         camera.look_at(look_target, up_axis)
 

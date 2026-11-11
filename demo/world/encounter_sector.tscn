@@ -1,0 +1,123 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
+[ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="3"]
+[ext_resource type="Script" path="res://demo/world/traversal_fixture.gd" id="6"]
+
+[sub_resource type="BoxShape3D" id="floor_shape"]
+size = Vector3(24, 0.4, 16)
+
+[sub_resource type="BoxMesh" id="floor_mesh"]
+size = Vector3(24, 0.4, 16)
+
+[sub_resource type="BoxShape3D" id="obstacle_shape"]
+size = Vector3(3, 2.5, 3)
+
+[sub_resource type="BoxMesh" id="obstacle_mesh"]
+size = Vector3(3, 2.5, 3)
+
+[sub_resource type="StandardMaterial3D" id="obstacle_color"]
+albedo_color = Color(0.4, 0.45, 0.55, 1)
+
+[sub_resource type="BoxMesh" id="dungeon_wall_x"]
+size = Vector3(24, 3, 0.6)
+
+[sub_resource type="BoxShape3D" id="dungeon_wall_x_shape"]
+size = Vector3(24, 3, 0.6)
+
+[sub_resource type="BoxMesh" id="dungeon_wall_z"]
+size = Vector3(0.6, 3, 16)
+
+[sub_resource type="BoxShape3D" id="dungeon_wall_z_shape"]
+size = Vector3(0.6, 3, 16)
+
+[sub_resource type="StandardMaterial3D" id="dungeon_wall_material"]
+albedo_color = Color(0.23, 0.28, 0.36, 1)
+roughness = 0.9
+
+[sub_resource type="BoxShape3D" id="roof_shape"]
+size = Vector3(23.5, 0.25, 15.5)
+
+[node name="EncounterSector" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.2, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("floor_shape")
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("floor_mesh")
+
+[node name="Obstacle" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.25, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Obstacle"]
+shape = SubResource("obstacle_shape")
+
+[node name="Mesh" type="MeshInstance3D" parent="Obstacle"]
+mesh = SubResource("obstacle_mesh")
+surface_material_override/0 = SubResource("obstacle_color")
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+
+[node name="Melee" parent="." instance=ExtResource("2")]
+position = Vector3(-5, 0.15, 0)
+
+[node name="Ranged" parent="." instance=ExtResource("3")]
+position = Vector3(-6, 0.15, 3)
+
+[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+position = Vector3(0, 1.5, -8)
+
+[node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("dungeon_wall_x")
+surface_material_override/0 = SubResource("dungeon_wall_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("dungeon_wall_x_shape")
+
+[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
+position = Vector3(0, 1.5, 8)
+
+[node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("dungeon_wall_x")
+surface_material_override/0 = SubResource("dungeon_wall_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("dungeon_wall_x_shape")
+
+[node name="EastWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+position = Vector3(12, 1.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("dungeon_wall_z")
+surface_material_override/0 = SubResource("dungeon_wall_material")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("dungeon_wall_z_shape")
+
+[node name="Roof" type="StaticBody3D" parent="."]
+position = Vector3(0, 4.0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Roof"]
+shape = SubResource("roof_shape")
+
+[node name="DungeonFillLight" type="OmniLight3D" parent="."]
+position = Vector3(-4.5, 2.9, 0)
+light_color = Color(1, 0.88, 0.70, 1)
+light_energy = 0.65
+omni_range = 12.0
+shadow_enabled = false
+
+[node name="DungeonCombatLight" type="OmniLight3D" parent="."]
+position = Vector3(4.5, 2.9, 0)
+light_color = Color(0.77, 0.87, 1, 1)
+light_energy = 0.5
+omni_range = 12.0
+shadow_enabled = false
+
+[node name="TraversalFixture" type="Node3D" parent="."]
+script = ExtResource("6")

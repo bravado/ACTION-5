@@ -226,7 +226,7 @@ the grip and the attached weapon mesh together, without changing world
 physics or adding an animation clock. NPCs have no private F4 model. See
 [equipment authoring and current state](equipment.md) and ADR-0005.
 
-**D06-02 Gun (PR #32):** Gun instance owns its ammo/reload and
+**D06-02 Gun (D06-02):** Gun instance owns its ammo/reload and
 hitscan behavior, observes D05's active-phase transition exactly once and
 traces independently from the actual **world muzzle**. A camera ray only
 selects a world target; it never authorizes damage. The injected world
@@ -268,8 +268,8 @@ independent Punch/Kick/third action registration, all five views, 3D aim,
 F5 directional choice, near/far hit geometry, overlapping hurtbox dedup,
 teams, blocking, immunity, external impulse lifetime, focus release gate,
 active-view switching and death. The existing import-first CI additionally
-runs native and Web exports and WebGL2 view smoke. See PR #28 for
-run-specific results and limitations.
+runs native and Web exports and WebGL2 view smoke. Refer to
+the D05 regression suite and CI evidence for run-specific results.
 
 
 ## Merged D07 AI request interface and D08 world interactions
@@ -287,8 +287,7 @@ and Health events; they never control damage.
 `tests/d07_suite.gd` covers autonomous melee/Gun damage, startup
 range/cover cancellation, independent NPC clocks, player punch/kick
 input in the encounter, animations and death. See [AI authoring](ai.md).
-D07 is merged as the existing camera-independent AI consumer of D05
-Combat (PR #33). The next D08 world interaction layer may invoke
-Health, Combat or Equipment through their existing public ports but
-must **not** add door/restart/pickup branches to CombatController or
-create a second combat timeline for scene changes.
+D07's camera-independent AI and D08's world interactions consume
+D05 Combat through existing public ports. Future changes must **not**
+add door/restart/pickup branches to CombatController or create a
+second combat timeline for scene transitions.

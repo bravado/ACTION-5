@@ -16,6 +16,9 @@ const D06FastSwingSuiteScript = preload("res://tests/d06_fast_swing_suite.gd")
 const D06MovementViewSuiteScript = preload("res://tests/d06_movement_view_suite.gd")
 const D06GunSuiteScript = preload("res://tests/d06_gun_suite.gd")
 const D07SuiteScript = preload("res://tests/d07_suite.gd")
+const D08WorldSuiteScript = preload("res://tests/d08_world_suite.gd")
+const D08CameraSectorSuiteScript = preload("res://tests/d08_camera_sector_suite.gd")
+const D08ConnectionsSuiteScript = preload("res://tests/d08_connections_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -78,8 +81,10 @@ func _run_tests() -> void:
         "South wall includes a physical collision shape")
     _check(level.get_node_or_null("WestWall/CollisionShape3D") is CollisionShape3D,
         "West wall includes a physical collision shape")
-    _check(level.get_node_or_null("EastWall/CollisionShape3D") is CollisionShape3D,
-        "East wall includes a physical collision shape")
+    _check(level.get_node_or_null("EastWall/Upper/CollisionShape3D") is CollisionShape3D
+        and level.get_node_or_null("EastWall/Lower/CollisionShape3D") is CollisionShape3D
+        and level.get_node_or_null("PassageFloor/CollisionShape3D") is CollisionShape3D,
+        "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
     _check(level.get_node_or_null("Hud/Help") is Label,
@@ -341,7 +346,7 @@ func _run_tests() -> void:
             and (level.get_node("SouthWall") as StaticBody3D).collision_layer != 0,
             "F1 foreground wall hidden visually, still physical")
         manager.switch_view(1)
-        _check(not front_wall.visible, "F2 also hides front-wall graphics")
+        _check(front_wall.visible, "F2 keeps the outer wall rendered for proximity fading")
         _check(manager.current_profile.orthographic_size <= 7.0,
             "F2 brawler uses close arcade-scale framing")
 
@@ -363,7 +368,31 @@ func _run_tests() -> void:
         zoom_slider.value = 7.25
         _check(absf(manager.get_active_camera().size - 7.25) < 0.01,
             "UI slider immediately updates F2 camera zoom")
+        var peek_row := settings.get_node("Padding/Controls/Row_lateral_peek_degrees") as HBoxContainer
+        var peek_response_row := settings.get_node("Padding/Controls/Row_lateral_peek_response") as HBoxContainer
+        _check(peek_row.visible and peek_response_row.visible,
+            "F2 exposes lateral camera angle and response in Camera Settings")
+        _check(settings.call("set_current_value", "lateral_peek_degrees", 3.5)
+            and absf(manager.current_profile.lateral_peek_degrees - 3.5) < 0.01,
+            "F2 camera peek can be reduced live without editing resource files")
+        var peek_slider := settings.get_node(
+            "Padding/Controls/Row_lateral_peek_degrees/Slider") as HSlider
+        peek_slider.value = 5.0
+        _check(absf(manager.current_profile.lateral_peek_degrees - 5.0) < 0.01,
+            "F2 lateral camera setting responds to its in-game slider")
+        var peek_config := ConfigFile.new()
+        _check(peek_config.load(settings.preferences_path) == OK
+            and absf(float(peek_config.get_value(
+                "profile_beatemup", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
+            "F2 lateral peek override is persisted under its stable profile ID")
         settings.call("reset_current_camera")
+        _check(absf(manager.current_profile.lateral_peek_degrees - 6.0) < 0.01,
+            "F2 reset restores the subtler shipped camera peek")
+        var reset_peek_config := ConfigFile.new()
+        _check(reset_peek_config.load(settings.preferences_path) == OK
+            and not reset_peek_config.has_section_key(
+                "profile_beatemup", "lateral_peek_degrees"),
+            "Reset removes F2 peek overrides so future defaults remain editable")
 
         # First-person's boolean Y-axis setting is a per-profile checkbox,
         # not a numeric slider. Changing it must preserve actor and camera IDs.
@@ -653,6 +682,12 @@ func _run_tests() -> void:
 
     var d07_suite := D07SuiteScript.new()
     await d07_suite.run_tests(self, Callable(self, "_check"))
+    var d08_world_suite := D08WorldSuiteScript.new()
+    await d08_world_suite.run_tests(self, Callable(self, "_check"))
+    var d08_camera_sector_suite := D08CameraSectorSuiteScript.new()
+    await d08_camera_sector_suite.run_tests(self, Callable(self, "_check"))
+    var d08_connections_suite := D08ConnectionsSuiteScript.new()
+    await d08_connections_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

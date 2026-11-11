@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D07 are merged.** D07 adds reusable camera-independent AI, navigation, two equipped and animated enemy types, and a physical five-view encounter ([implementation PR #33](https://github.com/bravado/ACTION-5/pull/33)). The existing Actor, Combat, Equipment, animation and camera cores remain unchanged. **D08 is the next milestone:** same-world arena/dungeon traversal, doors, pickups, roofs and restart/session behavior are tracked in [issue #16](https://github.com/bravado/ACTION-5/issues/16) and the **incomplete** [draft PR #34](https://github.com/bravado/ACTION-5/pull/34).
+> **Project status (November 2026): D01–D08 completed.** The five-view demo now combines camera-independent melee/ranged enemy AI with persistent arena/dungeon traversal, a physical two-sided door, room occlusion, cached remote portals, independent equipment/pickup lifecycles and configurable camera presentation. D08 is visually accepted; **D09 is the next implementation milestone**. The reusable Actor, Combat, Equipment, Animation and Camera cores remain separate from scene-specific world composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -96,7 +96,8 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D07 and the separate crouch example are merged**, including Bat/Shovel equipment (PR #31), Gun/projectile visuals (PR #32) and the two camera-independent enemy archetypes (PR #33). D07 provides an opaque-obstacle encounter with real navigation, autonomous melee/ranged attacks, optional skeletal attack/hit/death/reload animations and working player punch/kick controls. These reuse the shared Actor, Locomotion, Combat, Equipment and Camera ports without parallel AI-specific engines. **D08-01 is next**: draft PR #34 is an early scene-loading interaction prototype, **not** the required persistent-world solution. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D08 and the independent crouch example are complete.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D09 reference scenario and retro aim/scrolling. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
@@ -121,18 +122,125 @@ The planned framework license is **MIT**. The license file and the attribution i
 **Developer extension:** [ADR-0006](docs/adr/0006-authoritative-gun-and-projectile-visuals.md) documents the world-target port, camera-free NPC target provider, optional tracer, reload visual ownership and D07–D12 boundaries. No runtime code under `addons/action5/` imports `demo/`.
 
 
-### D07 enemy encounter
+### D07 enemy AI in the shared dungeon
 
-Run `make import && godot --path . res://demo/ai/encounter.tscn` to
-inspect a melee Bat enemy and ranged Gun enemy navigating an opaque
-center obstacle. WASD moves the player, LMB/J and RMB/K
-punch and kick, and 1–5 switch the same five camera profiles without
-restarting either enemy. Both enemies now reuse the skeletal training rig:
-the Bat swings in its upper-body attack channel, the Gun has a
-configurable firing pose, and hit/death/reload animations are driven by
-existing optional presentation adapters. Weapons attach to animated
-right-hand bones, with a fixed-socket fallback for headless actors.
-See [AI authoring](docs/ai.md) for configuring additional enemy archetypes,
-clip mapping, automated regression evidence and the separation from D08.
-D07 does **not** implement door interaction, restart UI or cross-room
-persistence; those belong to the separate D08 world/session work.
+Run `make import && godot --path . res://demo/main.tscn`, then press
+**E at the east-side gate** to open its panel and **walk right** into the
+adjoining dungeon. To return, walk left through that **same doorway**.
+No teleport or second scene is involved. The dungeon is an
+instance of `demo/world/encounter_sector.tscn`, not a second game scene.
+It hosts the D07 Bat melee and Gun ranged enemies navigating an opaque
+obstacle. LMB/J and RMB/K issue normal combat actions, 1–5 switch the
+camera, Q swaps inventory weapons and G drops one. The same player and
+equipment persist on the return trip. Both NPCs retain their shared
+skeletal presentation adapters and animated weapon sockets.
+
+`tests/d07_suite.gd` runs the actual embedded dungeon inside
+`demo/main.tscn` for camera-free AI, weapons, attack animations, real
+navigation and combat input regressions. The obsolete standalone
+`demo/ai/encounter.tscn` and its duplicate player/camera, old
+scene-reload handoff, and superseded transition tests have been removed.
+New NPC regression scenarios must extend the **same dungeon scene**
+without authoring a second encounter map. See
+[AI authoring](docs/ai.md).
+
+### D08 connected persistent world
+
+`demo/main.tscn` contains the arena (X=-14..14) and the instanced
+`demo/world/encounter_sector.tscn` dungeon (X=14..38), on the
+**same floor elevation and global axes**. The former ten-unit void and
+dungeon's far-side return door are removed. A single physical gate at
+**X=14, Z=0** joins both floors; its split flanking wall segments
+and overlapping floor slab form a real passable doorway. **E opens or
+closes the gate; walking across switches the active sector**, without
+replacing/teleporting the original player. The frame and two-sided
+signage remain visible from both rooms.
+
+Health, Combat, Equipment and enemy nodes retain their live instances
+on normal visits. A world-local `SectorCameraBounds` now configures
+one **continuous** F1/F2/F5 camera clamp spanning both areas, so there
+is no camera snap or WASD orientation change when crossing the wall.
+The dungeon now uses a **full-screen 18%-opacity blue ceiling tint**
+in external views (1/2/3/5), removed in first person (4). Its
+CanvasLayer covers the entire viewport below the HUD instead of drawing
+a horizontal 3D roof, which previously tinted only the top half of
+side/arcade cameras. The overhead roof still has its **physical
+ceiling collider**, but no visual mesh/shadows; two subdued interior
+lights complement the shared world sun. D08 regression tests cover fresh-entry lifecycle, continuous
+camera behavior and physical door state. Manual F1–F5 and portal
+visual acceptance was completed on November 11, 2026; native and
+WebGL2 exports remain subject to the standard CI gates.
+
+### F1 shared combat lane
+
+Switching to side-scroller (view 1) aligns the player and living
+enemies on a single collision-tested world-Z plane so punches and kicks
+can reach enemies that spawned at different beat'em-up depths.
+`SideLaneController` composes the existing Locomotion lock; the
+connected world and each cached remote room use configurable local Z
+(default 0). Freshly spawned or recreated enemies join that lane
+automatically. Temporary enemy-to-enemy collision exceptions prevent
+same-line body blocking and remain only until opponents separate
+after switching back to free 3D movement. Walls, doors, player collision,
+health and aggro remain authoritative.
+
+### Two travel connections
+
+**Connected gate:** Walk right from the initial arena to **X=14, Z=0**.
+Press **E** at either **visible gold handle** on the teal door to toggle
+its real physical barrier; then walk through to the dungeon. There
+are **no text labels** on connected doors (no duplicated headings
+over the entrance). The handles on both faces are aligned with the
+actual interaction points and collision panel. In beat'em-up view 2
+the camera now subtly turns **opposite lateral movement** to reveal
+X-facing walls instead of presenting the doorway edge-on, retaining
+its last tilt at rest. WASD stays world-aligned. With the gate **closed**, the other room is hidden
+from rendering in all five cameras. The dungeon's floor and physics
+are independently preloaded, but enemies **do not acquire the player**
+through that closed door. Once they discover the player through an
+opened gate, they retain aggro if it shuts again; collision, weapon
+sight and the navigation link remain authoritative, so they cannot
+shoot or walk through a closed panel.
+
+**Remote portal:** The **purple portal** at **X=-11.5, Z=0** is a
+different component. Unlike physical doors, it has an **optional
+destination label** (configure `show_label` or omit its Label3D).
+Press **E** to load
+`demo/world/remote_chamber.tscn` at a detached location, with **the
+same live player, camera, inventory and combat components**. In that
+chamber, walk toward the **RETURN TO ARENA [E]** portal to go back.
+Remote environments are cached and CPU-paused when absent; there is
+no second Player/ViewManager. `LocationPortal` can alternatively
+target any authored Marker3D in the existing world, without a new
+PackedScene. Explicit remote travel may reframe the camera; adjacent
+door crossing never changes camera bounds.
+
+Enemies that **already crossed into the arena** remain visible
+and continue to fight on the arena side even if the door closes
+behind them. Only the opposite room's static geometry is hidden;
+the gate still blocks sight and movement for enemies on its other
+side.
+
+The generic `Action5Interactor` accepts optional near-side
+`get_interaction_point(actor)` handles for large opaque doors. AI
+`Action5AITargetSensor` has an optional
+`allows_acquisition(observer, candidate)` filter; the example
+`DoorAcquisitionFilter` is plugged in by the demo WorldSession, not
+hardcoded into AI/movement/combat cores. Tests:
+`tests/d08_connections_suite.gd` (real E input, visibility, aggro,
+remote cached visits), `tests/d08_world_suite.gd` (inventory, fresh
+entry and door physics), and `tests/d08_camera_sector_suite.gd`.
+
+**Near-wall readability:** In views 1/2/3/5, the surrounding
+**outer walls**, especially the lower/front walls, progressively
+become translucent as the player approaches (from 3.8 to 1.1 units,
+minimum 20% opacity); moving away restores opacity. First person
+keeps solid walls. This is a **visual-only** effect: collision,
+enemy sight and combat remain blocked. Inner walls, props and
+the door panel never fade. The F2 camera's lateral peek has also
+been reduced to **6°**, adjustable per profile in Camera Settings.
+The optional outer-wall presenter now hides foreground perimeter meshes
+in **all three** F1 areas (arena, dungeon and remote chamber), leaving
+rear scenery and solid collision intact. F4 first-person and F5
+top-down walls remain opaque; proximity opacity only applies to the
+other eligible views. Neither the door frame nor its collider disappears.

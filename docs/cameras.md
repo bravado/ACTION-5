@@ -7,7 +7,7 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 | Key | Profile resource | Camera framing | D02 demo movement |
 |---|---|---|---|
 | **1** | `side.tres` | Fixed horizontal, orthographic XY side view (Mario / Altered Beast). Looking along world −Z, no downward tilt | X only; Z lane policy formalized in D03 |
-| **2** | `beatemup.tres` | Low, close orthographic arcade brawler (Streets of Rage / Golden Axe). Default ortho zoom 7 | World X/Z |
+| **2** | `beatemup.tres` | Low, close orthographic arcade brawler (Streets of Rage / Golden Axe), default zoom 7; optional gentle side peek toward vertical walls | World X/Z (never camera-relative) |
 | **3** | `isometric.tres` | **One orthographic, adjustable isometric/shoulder profile.** Zoom out for inclined dungeon view; zoom in for camera close above the shoulder | Camera/screen-relative X/Z |
 | **4** | `first_person.tres` | Eye-level perspective, yaw/pitch mouse look, local mesh hidden | Camera-relative X/Z |
 | **5** | `retro_topdown.tres` | Precisely vertical orthographic overhead, distinct from inclined isometric (Zelda / Commando) | Screen-relative X/Z using camera up/right, never projected forward |
@@ -15,6 +15,34 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 **Number row 1–5** is the primary shortcut on both desktop and Web. F1–F5 is an optional secondary binding, because browsers may reserve function keys. There are five visible in-game selector buttons and configurable gamepad shoulder-button cycling. `Ctrl+1–5` is *not* a supported browser fallback: browsers use Ctrl+number for tab navigation.
 
 Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
+
+## Optional F2 side-wall camera peek (D08)
+
+The arena-dungeon gate lies in the **Y/Z plane** at world X=14. A
+perfectly frontal +Z beat'em-up camera shows that wall and its
+blocking panel edge-on, making the blue lintel appear separated from
+the interactable doorway. The **shipped F2 profile** now sets
+`lateral_peek_degrees = 6` and `lateral_peek_response = 8`
+(in `addons/action5/views/beatemup.tres`). For every fixed-offset
+camera tick, `Action5CameraRig` reads only the followed
+`CharacterBody3D.velocity.x`: moving right leans the camera
+**slightly left**, and moving left leans it **slightly right**.
+The yaw interpolates smoothly and retains its last facing at rest,
+so tall east/west walls and the actual blue door panel remain visible
+without requiring continued motion. The default initial peek exposes
+the arena's **east** wall. Setting the profile's angle to **0** restores
+the original perfectly frontal arcade camera.
+
+This is **camera presentation only**, not actor facing or a movement
+transform. `Action5MovementPolicy` still maps F2 WASD directly to the
+world X/Z axes, regardless of camera basis, and doors use their
+physical X/Z position independently. The rig points along its own
+yawed fixed offset rather than aiming at the actor during follow
+smoothing; this avoids unintended heading changes near camera bounds.
+F5 overhead keeps its fixed world heading and F1 its exactly
+horizontal XY projection. D08 regression tests check both F2 tilt
+directions, the idle hold, fixed WASD mappings and exact overlap of
+the visible door panel with its collision box.
 
 ## One isometric/shoulder profile
 
@@ -29,7 +57,7 @@ The close-camera wall raycast prevents passing through world geometry. It exclud
 Click **Camera Settings [C]**, or press **C**, to open the Godot UI panel. It changes the **selected view resource live** and never changes the actor transform or velocity. Use **Reset this camera** to restore the shipped defaults, or **Close** to hide it.
 
 - **Mode 1 and 5:** orthographic zoom and follow speed.
-- **Mode 2:** orthographic zoom, camera height, camera depth and follow speed.
+- **Mode 2:** orthographic zoom, camera height, camera depth and follow speed. **Side peek (deg)** and **Peek response** are editable live, saved per-profile, and resettable (6° and 8 by default). Set the angle to 0 for no horizontal tilt.
 - **Mode 3:** orthographic zoom, wide/close orbit distances, wide isometric pitch, close shoulder pitch, left/right shoulder offset, shoulder lift, look-ahead and follow speed.
 - **Mode 4:** field of view, eye height and **Invert Y-axis (mouse)** (checkbox, **off by default**). With inversion off, mouse down looks down; enabling inversion makes mouse down look up.
 
@@ -95,12 +123,13 @@ Every Make target that runs, tests or exports imports Godot resources first. `.g
 
 D02 regression tests cover switching all **five** modes 20 times, preserving actor/camera identities and physics state, true side/overhead projections, wide-to-close isometric zoom within one resource, camera collision, editable settings, reset, saved overrides and legacy preference migration.
 
-GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the current D02 pull request for its validated build and run artifacts.
+GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the CI workflow and retained evidence artifacts for the
+current camera and browser test matrix.
 
 **D02 boundary:** the actor remains a simple placeholder. Full jumping, reusable action intents, facing/aim policies, combat and animations are *not* delivered until D03–D07. D02 must pass review before D03 work starts.
 
 
-## D06-02 view aim versus world muzzle (PR #32)
+## D06-02 view aim versus world muzzle (D06-02)
 
 The view-specific `Action5ViewAimTargetProvider` reads the existing
 `ActionInputContext`: F4 uses the center Camera3D ray to find a target,
@@ -114,3 +143,65 @@ For future F5 4-way sword/8-way gun policies, keep view-specific
 quantization here/in action input selection, not a hard-coded flag in
 CombatController, because `AttackDefinition.facing_sectors` applies
 to **every** view.
+
+### Connected-room camera bounds (D08)
+
+`SectorCameraBounds` is an opt-in demo adapter that computes a
+single world-axis union of the authored local camera rectangle across
+the main world and each `connected_sector_paths` entry. Each sector
+may be translated or rotated. The adapter does not change
+Action5CameraRig, player movement or the shared Camera3D. Only an
+explicit detached-location portal temporarily reframes the camera.
+
+### Exterior wall visibility near the player (D08)
+
+The opt-in `OuterWallFader` is also the **sole owner** of F1's
+foreground-wall hiding. Tag a camera-facing exterior `StaticBody3D`
+with both `action5_outer_wall` and `action5_side_hidden_wall`:
+the wall's mesh disappears in F1, but its solid collision body stays
+active. This is configured on the arena, dungeon and remote chamber
+`SouthWall` meshes; rear walls remain visible as scenery, and the
+door frame/panel never disappear. Runtime room replacement and
+remote-scene loading use the same group without a per-room NodePath.
+View changes take effect immediately; removing the presenter restores
+each mesh's authored visibility. `demo/main.gd` handles only view UI.
+
+
+`demo/world/outer_wall_fader.gd` is an opt-in scene
+presentation component independent of the CameraRig: only StaticBody3D
+walls tagged `action5_outer_wall` fade as the player approaches their
+**collision-box footprint**. The front/bottom `SouthWall` is a
+typical example; the same behavior works for arena, dungeon and
+separately loaded remote chambers. At **3.8 world units**, the fade
+begins; at **1.1 units**, the wall reaches 20% opacity. Moving away
+restores the exact original material. First person (view 4) and
+retro top-down (view 5) both remain **fully opaque**, including when
+switching directly out of a faded wall in F2/F3. F1 hides only tagged
+foreground walls, while untagged rear walls retain normal rendering.
+All parameters are exported.
+
+We use a **cached duplicated StandardMaterial3D with alpha blending**
+instead of `GeometryInstance3D.transparency`, which Godot's
+Compatibility renderer ignores (important for WebGL2). The
+renderer-only effect leaves the real StaticBody3D CollisionShape3D,
+world-space gun rays, enemy detection and NavigationMesh unchanged.
+Inner obstacles, the shared-room door and its panel do **not** belong
+to the outer-wall group and never fade.
+
+
+### F1 shared combat plane
+
+The **scene-level** `SideLaneController` aligns the Player and
+living enemies to the same world-Z lane on entering F1, so punches
+and kicks can reach enemies that spawned at different depths in F2/F3.
+The connected-world default is local Z=0 (the physical door corridor);
+cached remote environments use their own configurable Z=0.
+It tests physical sweeps before repositioning and keeps original
+collision authority. The existing Locomotion component constrains
+movement to that plane while F1 is active, including knockback.
+Active enemy pairs may temporarily ignore one another's **body**
+collision to avoid piling up on that line; world walls and player
+collisions remain. Returning to F2–F5 restores unrestricted 3D
+navigation, without moving enemies back to stale positions.
+This scene adapter does not change CameraRig orientation, input
+mapping or any shared Combat/AI code.

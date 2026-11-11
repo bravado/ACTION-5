@@ -108,7 +108,7 @@ real navigation around an opaque obstacle, F1–F5 switches, gated
 player input, autonomous melee/ranged damage, range and cover changes
 during startup, rejected attack/reload behavior, target
 death/free/reacquisition, NPC death and teardown. It also verifies
-real `CombatInputAdapter` punch/kick damage in the standalone encounter,
+real `CombatInputAdapter` punch/kick damage in the embedded dungeon,
 valid individual animation trees, animated sockets, swing/fire/reload/
 death clip activation and clearing, locomotion run clips and the
 unanimated equipment fallback.
@@ -116,10 +116,11 @@ unanimated equipment fallback.
 ```bash
 make check
 make import
-godot --path . res://demo/ai/encounter.tscn
+godot --path . res://demo/main.tscn
 ```
 
-In the encounter, use WASD to move, **LMB/J** to punch,
+In the main demo, use E at the arena's east-side portal to enter the
+shared dungeon. Use WASD to move, **LMB/J** to punch,
 **RMB/K** to kick and **1–5** to change view. Verify the red Bat
 pursuer visibly swings and holds its weapon during the animation,
 and the blue Gun pursuer shows fire/reload/death poses without
@@ -128,24 +129,61 @@ physical muzzle obstruction, character hit/death response, player
 attack input and persistence of the enemy's HP/decision state while
 switching views.
 
-**D07 is merged** (implementation PR #33). Final verification:
+**D07 is merged** (implementation D07-01). Final verification:
 [CI run #42871200034](https://github.com/bravado/ACTION-5/actions/runs/42871200034)
 passed **1,018 Godot assertions with zero failures**, Linux/Web exports,
 native rendering and real WebGL2 Full E2E. The native screenshots/browser
-harness target `demo/main.tscn`, not the two-NPC `encounter.tscn`;
-future changes to enemy models/animations still require a direct
-F1–F5 encounter visual review rather than treating those screenshots
-as encounter-specific evidence.
+harness target `demo/main.tscn` but do not necessarily navigate through
+the dungeon; future changes to enemy models/animations require an actual
+E-door visit and F1–F5 dungeon review, not only a main-stage screenshot.
 
 ## D08 successor boundary
 
-D07's separate AI encounter is a fixture; it is **not** the D08
-arena/dungeon same-world transition. D08 issue #16 and draft PR #34
-own actor-local `Interactor`, doors, pickups, roof visibility,
-restart UI, shared-world traversal and optional persistence policies.
-The current stacked scene-loading prototype replaces actors via
-`change_scene_to_packed()` and does **not** satisfy the mandatory
-same-live-player/retained-enemies world-state requirement. D07 is
-already the merged baseline: rebase/retarget the stacked D08 branch
-against `master` and validate its interactions without extending
-D07 AI or combat cores.
+D07 remains the merged AI component baseline, but its old standalone
+`demo/ai/encounter.tscn` has been removed. `tests/d07_suite.gd`
+instantiates `demo/main.tscn`, enters the *same*
+`demo/world/encounter_sector.tscn` as real gameplay and exercises both
+NPCs there. D08 provides the scene-local Interactor, Door,
+WorldPickup, roof presentation, Restart and optional fresh/restore
+room policy. Normal world travel preserves the live player, inventory
+and enemies instead of calling `change_scene_to_packed()`. The one-shot
+scene-handoff prototype and its obsolete test suites were removed.
+Keep future AI regression coverage in this shared dungeon, without
+reintroducing another Player/Camera scene or touching combat-core APIs.
+
+## D08 closed-gate detection and retained aggro
+
+`Action5AITargetSensor.set_acquisition_gate(node)` accepts an
+optional, map-composed `allows_acquisition(observer, candidate) -> bool`
+protocol. The example `demo/interactions/door_acquisition_filter.gd`
+uses a physical door's opening plane: it rejects **new** player
+detection across a closed gate but permits acquisition within the
+same room and across an opened gate. When the gate closes, the
+already-acquired target remains valid until the ordinary forget-range
+or Health lifecycle clears it. AI keeps its navigation/pursuit intent
+but cannot physically cross a closed door or attack through its
+blocked world-space LoS.
+
+`WorldSession` connects the two dungeon sensors to this gate on
+normal startup and after a **Start fresh** room reinstance; the
+reusable sensor, AI FSM, navigation and combat do not import
+WorldDoor or scene coordinates. The demo now includes an arena
+NavigationRegion3D plus a conditional door NavigationLink3D.
+When adding more doors, compose independent acquisition filters and
+navigation links rather than testing global is_dungeon flags.
+
+When an enemy physically crosses into the arena while the gate is
+open, closing the gate does **not** make that enemy invisible or stop
+its movement just because it was instanced in the dungeon. The
+D08 `RoomVisibility` adapter hides static sector render nodes but
+presents each mobile enemy according to its *current* physical
+side of the door. `WorldSession` keeps previously alerted or
+crossed enemies active after the dungeon preload window is left.
+The closed gate blocks sight **only when the enemy and player remain
+on opposite sides**. Aggro is retained either way.
+
+`tests/d08_connections_suite.gd` verifies that enemies stay
+unalerted as the player approaches a **closed** adjacent door,
+become alerted when it opens, and keep their acquired target after
+closure while physical cover continues blocking attacks. D07
+same-room detection and obstacle pursuit remain separately tested.

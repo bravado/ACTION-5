@@ -11,16 +11,30 @@ func _ticks(tree: SceneTree, count: int) -> void:
 
 
 func run_tests(tree: SceneTree, verify: Callable) -> void:
-    var scene := load("res://demo/ai/encounter.tscn") as PackedScene
-    verify.call(scene != null, "D07 physical enemy encounter scene loads")
-    if scene == null:
+    # D08 owns the single authoritative dungeon PackedScene. Exercise D07
+    # AI through that very same sector inside the real persistent world,
+    # rather than maintaining a second standalone combat map and Player.
+    var scene := load("res://demo/main.tscn") as PackedScene
+    var dungeon := load("res://demo/world/encounter_sector.tscn") as PackedScene
+    verify.call(scene != null and dungeon != null,
+        "D07 NPC regressions reuse the live-world dungeon scene")
+    if scene == null or dungeon == null:
         return
-    var arena := scene.instantiate() as Node3D
-    arena.position = Vector3(500, 0, 500)
-    tree.root.add_child(arena)
-    var player := arena.get_node("Player") as CharacterBody3D
-    var views := arena.get_node("ViewManager")
-    arena.get_node("ActorInput").set_enabled(false)
+    var stage := scene.instantiate() as Node3D
+    stage.position = Vector3(500, 0, 500)
+    tree.root.add_child(stage)
+    var arena := stage.get_node("EncounterSector") as Node3D
+    var player := stage.get_node("Player") as CharacterBody3D
+    var views := stage.get_node("ViewManager")
+    stage.get_node("ActorInput").set_enabled(false)
+    # WorldSession intentionally pauses inactive rooms after initial
+    # loadouts. Wait for its initial snapshot, then enter the live dungeon
+    # without replacing any actor or its equipment.
+    for frame in range(4):
+        await tree.process_frame
+    verify.call(stage.get_node("WorldSession").travel_to(player, &"encounter")
+        and arena.visible and arena.process_mode == Node.PROCESS_MODE_INHERIT,
+        "D07 physics fixture activates the existing dungeon with one player")
     var melee := arena.get_node("Melee") as CharacterBody3D
     var ranged := arena.get_node("Ranged") as CharacterBody3D
     var melee_ai := melee.get_node("AIController")
@@ -44,7 +58,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and ranged_combat.get_attack(&"gun_fire") != null,
         "Independent NPC inventories register different configured combat actions")
     if not is_instance_valid(gun) or not is_instance_valid(bat):
-        arena.queue_free()
+        stage.queue_free()
         await tree.process_frame
         return
     verify.call(melee_health.team_id == ranged_health.team_id
@@ -88,13 +102,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(melee_tint != null and ranged_tint != null
         and melee_tint.albedo_color != ranged_tint.albedo_color,
         "Demo-only model palettes differentiate two NPCs without mutating shared GLB")
-    # Player combat input must be wired in this standalone encounter too.
+    # The persistent world must expose real player combat input in its dungeon.
     # Exercise the *real* input adapter, not Combat.request_attack directly.
-    var combat_input := arena.get_node_or_null("CombatInput") as Node
+    var combat_input := stage.get_node_or_null("CombatInput") as Node
     verify.call(combat_input != null and combat_input.is_physics_processing()
         and combat_input.get("combat") == player.get_node("CombatController")
         and combat_input.get("action_selection_source") == player.get_node("EquipmentAttackSelector"),
-        "D07 encounter wires player combat and equipment attack selection")
+        "Persistent-world dungeon wires player combat and equipment attack selection")
     melee_ai.set_physics_process(false)
     ranged_ai.set_physics_process(false)
     melee.apply_move_intent(IntentScript.new())
@@ -103,7 +117,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     melee.global_position = arena.global_position + Vector3(-8, 0.15, -6)
     player.velocity = Vector3.ZERO
     melee.velocity = Vector3.ZERO
-    arena.get_node("ActorInput").set_enabled(true)
+    stage.get_node("ActorInput").set_enabled(true)
     await _ticks(tree, 4)
     var melee_hp_before_input: float = melee_health.current_health
     Input.action_press(&"actor_punch")
@@ -111,15 +125,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     Input.action_release(&"actor_punch")
     await _ticks(tree, 28)
     verify.call(melee_health.current_health < melee_hp_before_input,
-        "Player punch uses CombatInput in the D07 encounter")
+        "Player punch uses CombatInput in the shared dungeon fixture")
     melee_hp_before_input = melee_health.current_health
     Input.action_press(&"actor_kick")
     await _ticks(tree, 1)
     Input.action_release(&"actor_kick")
     await _ticks(tree, 30)
     verify.call(melee_health.current_health < melee_hp_before_input,
-        "Player kick uses CombatInput in the D07 encounter")
-    arena.get_node("ActorInput").set_enabled(false)
+        "Player kick uses CombatInput in the shared dungeon fixture")
+    stage.get_node("ActorInput").set_enabled(false)
     player.get_node("CombatController").cancel()
     melee_combat.cancel()
     player.global_position = arena.global_position + Vector3(5, 0.15, 0)
@@ -453,7 +467,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     var captured_gun: WeakRef = weakref(gun)
     var captured_bat: WeakRef = weakref(bat)
-    arena.queue_free()
+    stage.queue_free()
     await tree.process_frame
     await tree.process_frame
     verify.call(captured_gun.get_ref() == null and captured_bat.get_ref() == null,

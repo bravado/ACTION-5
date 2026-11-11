@@ -1,6 +1,6 @@
 # ADR-0002 — Actor movement, facing and input intents
 
-**Status:** D03 movement-component extension, pending technical gate
+**Status:** Accepted — D03 movement-component architecture
 **Date:** 2026-11-06
 
 ## Context

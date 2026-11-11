@@ -338,6 +338,6 @@ NPC can physically sprint while visually looping Walk.
 weapon attachment, action clip selection/clearing, reload/death and
 an animation-free fallback. None of the visual components may change
 AI target decisions, physical range/LoS, damage or Gun first-hit rays.
-D07 is part of the merged project baseline (PR #33). See
-[AI authoring](ai.md) for the full composition and the next D08
+D07 and D08 are implemented parts of the shared project baseline.
+See [AI authoring](ai.md) for composition and the established
 world-interaction boundary.

@@ -216,9 +216,12 @@ jobs:
           done
           curl --fail --silent --show-error http://127.0.0.1:8765/index.html -o /dev/null
           npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.56.1
-          # browser-smoke.mjs launches headless Chromium with no channel;
-          # skip the separate headed Chromium download on every E2E run.
-          npx playwright install --with-deps --only-shell chromium
+          # GitHub Ubuntu runners already provide browser runtime libraries.
+          # Install only the headless browser shell: --with-deps would run
+          # apt-get against external mirrors and can fail from transient DNS
+          # errors even when Linux/Web exports and the game tests are clean.
+          # Keep the actual WebGL2 smoke mandatory; do not skip verification.
+          npx playwright install --only-shell chromium
           # Bound failures that would otherwise leave the software WebGL2
           # browser running until the 18-minute job timeout.
           timeout 600s node ci/browser-smoke.mjs 2>&1 | tee build/evidence/browser-smoke.log

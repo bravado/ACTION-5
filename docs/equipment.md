@@ -1,12 +1,12 @@
 # D06 equipment authoring and implementation state
 
-**Status (November 2026): D05, D06-01, D06-02 and D07 are merged.**
-PR #31 established Bat/Shovel and the reusable Equipment lifecycle;
-PR #32 added Gun, authoritative world-muzzle hits, reload and visual
-tracers; PR #33 added two camera-independent NPCs using those same
-equipment and combat ports, with optional animated hand sockets.
-D08 is the next milestone and owns world interactions and scene
-persistence. See [AI authoring](ai.md) and
+**Status (November 2026): D05–D08 completed.**
+D06-01 established Bat/Shovel and the reusable Equipment lifecycle;
+D06-02 added Guns, world-muzzle hits, reload and visual tracers;
+D07 added camera-independent NPCs using the same Equipment/Combat ports.
+D08 adds persistent inventory, cached-location travel, single-path
+weapon pickup and a location-scoped drop parent. D09 extends those
+components without changing shared equipment internals. See [AI authoring](ai.md) and
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
@@ -143,16 +143,15 @@ The physically simulated `CharacterBody3D` receiver regression verifies
 body-first hits through an enabled owned Hurtbox, wall obstruction,
 friendly-fire rejection and disabled Hurtbox behavior. The **owner's
 manual five-view visual test passed** on 2026-11-10, including the
-first-person weapon/tracer behavior from this PR. No automated tests
-remain pending on this head.
+first-person weapon/tracer behavior. The D06-02 acceptance suite
+completed without pending test failures.
 
 **Testing and handoff:** `tests/d06_gun_suite.gd` is registered with
 `tests/run_all.gd` and covers the per-instance shot clock, physical
 receiver, obstruction, reload across views, alternate gun, NPC,
 visual ownership, shader gradient and lifetime. The independent
 `ci/browser-smoke.mjs` and `tests/capture_scene.gd` demonstrate exported
-WebGL2/native behavior. **PR #32 is merged**, and these D06 components are part of the
-baseline consumed by D07 and D08.
+WebGL2/native behavior. These accepted D06 components form the baseline consumed by D07/D08.
 
 ---
 
@@ -373,11 +372,11 @@ native/Web exports. The release matrix (native Xvfb screenshots and real
 Playwright WebGL2 browser input) is implemented by
 `.github/workflows/godot-ci.yml`: add `[full-e2e]` to the latest PR
 commit to run it. Review native and WebGL2 screenshot/log artifacts,
-including narrow/wide viewport and near-wall images. **PR #31 passed**
+including narrow/wide viewport and near-wall images. **D06-01 passed**
 908 headless assertions, native/WebGL2 Full E2E and owner visual review
-on 2026-11-09. PR #31 is merged.
+on 2026-11-09. D06-01 is merged.
 
-**Projectile feature checks (merged PR #32):** the expanded
+**Projectile feature checks (merged D06-02):** the expanded
 `tests/d06_gun_suite.gd` checks the true muzzle-to-impact endpoints,
 wall-truncated rays, one spawned visual per real shot, 3D layer/collision
 isolation, finite cleanup, alternate color/scene and dry/cancelled no-op.
@@ -385,7 +384,7 @@ Native and browser in-flight screenshots are part of the opt-in Full E2E
 pipeline. Owner manual visual acceptance passed on 2026-11-10.
 
 
-### F4 projectile visual muzzle alignment (PR #32 correction)
+### F4 projectile visual muzzle alignment (D06-02 correction)
 
 The real world `Gun/Muzzle` remains authoritative for raycasts, health
 damage, ammunition and wall blocking in **all** views. In F4 the weapon

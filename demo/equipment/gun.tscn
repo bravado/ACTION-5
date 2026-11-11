@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 [ext_resource type="Script" path="res://addons/action5/equipment/gun.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/gun.tres" id="2"]
 [ext_resource type="Script" path="res://addons/action5/animation/gun_world_recoil.gd" id="3"]
 [ext_resource type="Script" path="res://addons/action5/animation/gun_projectile_presenter.gd" id="4"]
+[ext_resource type="Script" path="res://demo/interactions/weapon_pickup_interaction.gd" id="pickup_interaction"]
 [sub_resource type="BoxMesh" id="body"]
 size = Vector3(0.13, 0.18, 0.48)
 [sub_resource type="BoxMesh" id="grip"]
@@ -37,3 +38,6 @@ material_override = SubResource("steel")
 script = ExtResource("4")
 visual_origin_provider_path = NodePath("EquipmentVisualAdapter")
 debug_events = true
+
+[node name="PickupInteraction" type="Node3D" parent="."]
+script = ExtResource("pickup_interaction")

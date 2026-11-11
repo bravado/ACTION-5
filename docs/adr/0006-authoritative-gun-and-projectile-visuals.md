@@ -1,6 +1,7 @@
 # ADR-0006 — Authoritative world shots, replaceable aim and render-only projectiles
 
-Status: Accepted and verified for D06-02 PR #32 (owner visuals passed 2026-11-10; squash merge pending).
+Status: Accepted — D06-02 world-muzzle gun and projectile
+architecture (owner visuals passed 2026-11-10).
 
 ## Decision
 
@@ -104,8 +105,8 @@ Hurtbox, one-shot ammo/timing, camera-free NPC, independent reload
 visual ownership, F4 muzzle alignment, and the world-owned tracer
 with gradient/lifetime cleanup. The **owner confirmed F1–F5 visual
 testing passed on 2026-11-10**. No unresolved P1/P2 architectural
-finding was found in this final review. PR #32 remains open for
-explicit squash merge; close issue #14 afterwards.
+finding was found in this final review; D06-02 is part of the
+accepted implementation baseline.
 
 ## Amendment: first-person projectile appearance
 
