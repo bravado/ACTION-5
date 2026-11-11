@@ -200,6 +200,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(remote_floor.visible
         and stage.get_node("SectorCameraBounds") != null,
         "Detached scene remains visible and keeps same ViewManager")
+    # Remote F1 uses the active chamber's Z plane and must not reposition
+    # enemies in the paused connected dungeon behind the other portal.
+    var connected_enemy_z: float = melee.global_position.z
+    var remote_enemy := (load("res://demo/ai/melee_enemy.tscn") as PackedScene
+        ).instantiate() as CharacterBody3D
+    remote_enemy.position = Vector3(4.0, 0.15, 3.0)
+    detached.add_child(remote_enemy)
+    views.switch_view(0)
+    await _ticks(tree, 3)
+    verify.call(absf(remote_enemy.global_position.z - player.global_position.z) < 0.08
+        and bool(remote_enemy.get_node("Locomotion").get("side_lane_locked"))
+        and absf(melee.global_position.z - connected_enemy_z) < 0.01,
+        "Remote F1 aligns newly spawned enemies without touching inactive connected ones")
+    views.switch_view(1)
+    verify.call(not bool(remote_enemy.get_node("Locomotion").get("side_lane_locked")),
+        "Leaving F1 restores unrestricted locomotion for remote enemy")
+    remote_enemy.queue_free()
+    await _ticks(tree, 2)
     # P1: a weapon picked in the arena must drop in the active remote
     # scene, remain cached there on exit, then be pickable through E.
     var carried := equipment.get("current_weapon") as Node3D

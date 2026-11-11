@@ -396,9 +396,18 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(not (fader.get("_materials") as Dictionary).has(mesh_id)
             and not (room_visibility.get("_original_visibility") as Dictionary).has(floor_id),
             "Fresh sector prunes its replaced mesh and room-visibility cache entries")
-    # Fresh sector recreation must be picked up by the group-driven
-    # presenter without modifying CameraRig or rewiring a NodePath.
+    # Fresh sector recreation while F1 is already active must also
+    # align newly instantiated opponents without another camera switch.
     views.switch_view(0)
+    verify.call(bool(session.call("_reset_encounter")),
+        "Fresh-entry can recreate dungeon while F1 side lane remains active")
+    await _frames(tree, 4)
+    var fresh_melee := world.get_node("EncounterSector/Melee") as CharacterBody3D
+    var fresh_ranged := world.get_node("EncounterSector/Ranged") as CharacterBody3D
+    verify.call(absf(fresh_melee.global_position.z - side_z) < 0.08
+        and absf(fresh_ranged.global_position.z - side_z) < 0.08
+        and bool(fresh_ranged.get_node("Locomotion").get("side_lane_locked")),
+        "Freshly recreated dungeon enemies join the existing F1 attack lane")
     fader.call("_process", 0.0)
     var fresh_front := world.get_node("EncounterSector/SouthWall/Mesh") as MeshInstance3D
     verify.call(not south_visual.visible and not fresh_front.visible,

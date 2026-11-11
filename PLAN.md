@@ -791,6 +791,16 @@ See `docs/ai.md`, AGENTS and the D07 implementation for recipes and evidence.
 
 ## D08-01 delivered architecture — persistent world and interactables
 
+**F1 combat-lane follow-up:** A scene-owned `SideLaneController`
+uses the existing Locomotion lock for the player and living enemies
+on entry to F1, including late-spawned, fresh-dungeon and cached-remote
+NPCs. Collision-tested movement aligns them to configurable local
+Z=0 without bypassing solid gates. Enemy/enemy crowd exceptions
+prevent one stacked NPC from blocking another's pursuit through the
+door when switching back to F2–F5; they are removed after separation.
+This adds no camera-, AI-, or combat-core conditional.
+
+
 D08 extends the existing D07-equipped NPCs without changing the reusable actor, combat, locomotion or equipment cores. The playable scene `demo/main.tscn` hosts one persistent Player, Camera/ViewManager, inventory and the embedded `demo/world/encounter_sector.tscn` dungeon. The arena and dungeon meet on world X=14 at the same elevation, with a bridging floor and a single two-sided `WorldDoor` whose frame remains visible; E toggles an actual collision panel and navigation link, while the player walks through without being teleported.
 
 `WorldSession` detects physical sector transitions, preloads nearby NPC physics, preserves live enemy state on ordinary revisits and supports an explicit destination-only fresh/restore policy. The `Action5Interactor` handles doors, switches, portals and prefab-local weapon pickups with real range and line-of-sight validation. An optional `LocationPortal` loads a cached environment PackedScene without duplicating Player, equipment or camera. Disabled remote locations are isolated by Godot `DISABLE_MODE_REMOVE` for collision objects and explicit navigation state handling. A location-owned drop-parent provider resolves the active world at drop time.

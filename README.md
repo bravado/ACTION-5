@@ -171,6 +171,19 @@ camera behavior and physical door state. Manual F1–F5 and portal
 visual acceptance was completed on November 11, 2026; native and
 WebGL2 exports remain subject to the standard CI gates.
 
+### F1 shared combat lane
+
+Switching to side-scroller (view 1) aligns the player and living
+enemies on a single collision-tested world-Z plane so punches and kicks
+can reach enemies that spawned at different beat'em-up depths.
+`SideLaneController` composes the existing Locomotion lock; the
+connected world and each cached remote room use configurable local Z
+(default 0). Freshly spawned or recreated enemies join that lane
+automatically. Temporary enemy-to-enemy collision exceptions prevent
+same-line body blocking and remain only until opponents separate
+after switching back to free 3D movement. Walls, doors, player collision,
+health and aggro remain authoritative.
+
 ### Two travel connections
 
 **Connected gate:** Walk right from the initial arena to **X=14, Z=0**.
