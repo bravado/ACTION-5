@@ -200,6 +200,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(remote_floor.visible
         and stage.get_node("SectorCameraBounds") != null,
         "Detached scene remains visible and keeps same ViewManager")
+    # A newly instantiated *detached* PackedScene uses the same
+    # opt-in wall group; no hardcoded list of arena/dungeon wall nodes.
+    var remote_south := detached.get_node("SouthWall") as StaticBody3D
+    var remote_wall_mesh := remote_south.get_node("Mesh") as MeshInstance3D
+    var remote_original := remote_wall_mesh.get_surface_override_material(0)
+    player.global_position = detached.to_global(Vector3(0, 0.15, 5.9))
+    stage.get_node("OuterWallFader").call("_process", 1.0)
+    var remote_faded := remote_wall_mesh.get_surface_override_material(0) as StandardMaterial3D
+    verify.call(remote_south.is_in_group("action5_outer_wall")
+        and remote_faded != null
+        and remote_faded != remote_original
+        and remote_faded.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+        and remote_faded.albedo_color.a < 0.35,
+        "Cached remote PackedScene perimeter walls automatically share the player-proximity fade")
+    player.global_position = detached.to_global(Vector3(0, 0.15, 0))
+    stage.get_node("OuterWallFader").call("_process", 1.0)
+    verify.call(remote_wall_mesh.get_surface_override_material(0) == remote_original,
+        "Returning to the center restores detached wall's opaque authored material")
     var exit := detached.get_node("ReturnPortal") as Node3D
     player.global_position = exit.global_position + Vector3(0.9, 0.15, 0)
     player.velocity = Vector3.ZERO
