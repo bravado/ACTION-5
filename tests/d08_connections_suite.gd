@@ -258,9 +258,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Return from detached PackedScene preserves exact actor and weapon instances")
     var cached_floor := detached.get_node("Floor") as StaticBody3D
     var authored_layer: int = 1
-    verify.call(cached_floor.collision_layer == 0 and cached_floor.collision_mask == 0
-        and not cached_floor.is_visible_in_tree(),
-        "Paused remote scene has no effective collision layers or masks")
+    verify.call(cached_floor.collision_layer == 1 and cached_floor.collision_mask == 1
+        and cached_floor.disable_mode == CollisionObject3D.DISABLE_MODE_REMOVE
+        and not cached_floor.can_process() and not cached_floor.is_visible_in_tree(),
+        "Inactive remote scene preserves authored layers but has no physics body")
     var probe := PhysicsRayQueryParameters3D.create(
         detached.to_global(Vector3(3, 3, 0)),
         detached.to_global(Vector3(3, -2, 0)), authored_layer)
@@ -313,7 +314,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     verify.call(second != detached
         and second.global_position.distance_to(detached.global_position) < 0.01
-        and cached_floor.collision_layer == 0 and cached_floor.collision_mask == 0
+        and cached_floor.collision_layer == authored_layer
+        and not cached_floor.can_process() and second_floor.can_process()
         and second_floor.collision_layer == authored_layer
         and stage.get_world_3d().direct_space_state.intersect_ray(probe).get("collider")
             == second_floor,
@@ -338,7 +340,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not active_return.can_process(),
         "E follows only the active portal's distinct destination, never an inactive cached portal")
     verify.call(manager.call("travel_to_marker", player, arena_return)
-        and second_floor.collision_layer == 0 and not remote_nav.enabled
+        and second_floor.collision_layer == authored_layer
+        and not second_floor.can_process() and not remote_nav.enabled
         and manager.call("travel_to_scene", player,
             load("res://demo/world/remote_chamber.tscn") as PackedScene,
             NodePath("Arrival")),
@@ -346,7 +349,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     verify.call(manager.active_scene.get_instance_id() == remote_id
         and cached_floor.collision_layer == authored_layer
-        and second_floor.collision_layer == 0
+        and second_floor.collision_layer == authored_layer
+        and not second_floor.can_process()
         and player.get_instance_id() == player_id
         and (equipment.get("inventory") as Array).size() == inventory_count,
         "Returning to first room preserves physics and the original inventory")

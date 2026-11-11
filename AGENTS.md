@@ -637,10 +637,12 @@ overlapping return portals with distinct destinations.
 ### D08 room lifecycle and visibility authority
 
 Inactive detached PackedScenes must disable their real physics:
-LocationManager snapshots and clears CollisionObject3D collision
-layer/mask values and NavigationRegion3D/NavigationLink3D enabled flags,
-restoring those values on return. Merely hiding or pausing a node is not
-collision isolation. No detached scene owns the permanent Player,
+LocationManager enforces CollisionObject3D.DISABLE_MODE_REMOVE so
+Godot removes/re-adds cached physics with the disabled/enabled scene.
+Do not snapshot/mutate collision layer/mask values; they retain their
+authored state. NavigationRegion3D/NavigationLink3D enabled flags
+still require explicit snapshot/restore. Merely hiding a mesh does
+not isolate physics. No detached scene owns the permanent Player,
 Equipment, Health or Camera; invalid Marker3D destinations leave no
 orphan nodes. Tag each cached remote scene with
 `action5_detached_location` so connected-world RoomVisibility skips its

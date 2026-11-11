@@ -83,9 +83,11 @@ explicit E moves the same actor to a Marker3D. For a separate
 PackedScene, `LocationManager` loads its *environment only* as a
 detached child scene and moves the original actor to its entry marker.
 The scene is cached, hidden and CPU-paused when inactive. It also
-snapshots/disables CollisionObject3D layers/masks and navigation region
-and link activation, restoring original values on reentry. Two cached
-remote scenes may overlap without leaving invisible solid walls.
+uses CollisionObject3D.DISABLE_MODE_REMOVE to let Godot automatically
+remove/recreate inactive collision bodies without modifying their
+authored layers/masks. Navigation regions/links still snapshot and
+restore enabled flags explicitly. Two cached remote scenes may
+overlap without leaving invisible solid walls.
 Player, equipment and camera are never paused or cloned. Another
 Marker3D portal returns the actor to the arena. The example
 `demo/world/remote_chamber.tscn` is **not** another connected room
@@ -130,8 +132,9 @@ test actors into that scene.
 | **One world, instanced sectors, pause inactive NPCs** | Retains sector nodes | Pausable | **Same live actors** | Chosen |
 | Compact explicit fresh-entry reset | Transient reinitialization | Infrequent | Same player | Optional, requires testing |
 
-RoomVisibility uses equipment and SceneTree node-creation events to
-register loose connected-world pickups, then tracks only those items for
+RoomVisibility uses equipment and SceneTree pickup-node events to
+register loose connected-world pickups (unrelated Node3D additions do
+not schedule deferred work), then tracks only those items for
 changes of room position. It excludes tagged detached scene roots,
 releases visual ownership on pickup, and prunes dead weak references
 after room resets. OuterWallFader similarly prunes dead material entries.
@@ -149,7 +152,7 @@ completed; do not claim performance superiority without profiling.
 ## Remaining release gates
 
 D08's architecture now satisfies the structural same-world requirement,
-but PR #34 remains **draft** until head-specific Godot tests (including
+but PR #34 remains **ready for review, unmerged** until head-specific Godot tests (including
 the independent D07 suite), fresh-entry item/NPC lifetime regressions,
 native/WebGL2 tests and owner camera/interaction visual review all pass.
 The original scene-loading prototype is historical context, not a

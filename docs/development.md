@@ -300,10 +300,12 @@ Its independent `LocationPortal` loads
 then `LocationManager` repositions the **original player** to the
 arrival point and caches the detached scene instance. The room has a
 return-to-arena marker portal. When cached inactive, its visibility and
-processing are disabled **and its physics collision layers/masks and
-navigation region/link flags are saved and cleared**, then restored
-on re-entry. Two remote scenes may share the same offset with no
-invisible physical blockers. The original player and inventory are
+processing are disabled. Cached CollisionObject3D instances are
+removed/restored by Godot's `DISABLE_MODE_REMOVE` without mutating
+their authored collision layers or masks. NavigationRegion3D and
+NavigationLink3D enabled flags are still saved and restored explicitly.
+Two remote scenes may share the same offset with no invisible physical
+blockers. The original player and inventory are
 never cached or reinitialized. Missing remote arrival markers are
 rejected before caching a bad scene.
 `WorldSession` stops threshold checking only during detached travel.
