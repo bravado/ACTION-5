@@ -137,3 +137,24 @@ the independent D07 suite), fresh-entry item/NPC lifetime regressions,
 native/WebGL2 tests and owner camera/interaction visual review all pass.
 The original scene-loading prototype is historical context, not a
 supported alternative at runtime.
+
+## Presentation at enclosing outer walls
+
+In F2 the shallow camera can obscure actors near the lower/front
+room boundary. The playable scene installs one independent
+`OuterWallFader` whose only inputs are the shared player transform,
+optional camera mode and opt-in `action5_outer_wall` physical wall
+footprints. It fades exterior wall **materials only** within
+3.8 units to a minimum 20% opacity by 1.1 units. Main arena,
+instanced dungeon and detached remote chamber use the same group.
+The component cannot affect a shared interior wall, opaque door,
+enemy LoS, collision, pathfinding or actor state. FPS remains opaque.
+
+The material is duplicated and cached per MeshInstance3D to preserve
+the source asset and minimize per-frame allocations; the original
+surface override is restored at full distance. Alpha blended
+StandardMaterial3D supports the native and WebGL2 Compatibility
+pipelines, unlike the `GeometryInstance3D.transparency` multiplier,
+which Compatibility ignores. This decision explicitly separates
+the *perimeter visibility effect* from `RoomVisibility`'s hiding of
+the opposite area behind a **closed** connected door.
