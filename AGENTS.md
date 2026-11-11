@@ -612,6 +612,28 @@ scene/marker returns. Keep D07 enemy tests and D08 world/camera tests
 passing. Do not disable strict LoS or add conditionals to movement,
 combat, camera core or animation code for any of these connections.
 
+### D08 interaction and drop contracts
+
+All demo weapon prefabs install a lightweight optional
+`PickupInteraction` child; the only E path for static, new or dropped
+weapons is `Action5Interactor` with distance and physical LoS.
+Never reintroduce a direct Equipment pickup fallback in main.gd:
+nearby items behind real walls would be collectable. Authored
+`WorldPickup` wrappers now hold spawn/reset state only and must not
+delete weapons relocated into other cached environments.
+`Action5Interactor` skips inactive scene descendants, and
+`LocationPortal` also refuses direct interactions while paused.
+
+`EquipmentController.drop_parent_provider_path` is a replaceable
+`get_drop_parent(actor)` port; the demo connects it to
+`LocationManager`, which returns the live connected root or active
+detached PackedScene. Do not infer a drop destination from the weapon
+type or an original parent destroyed by Start fresh. NPC equipment
+still works without a drop provider, using its existing parent where
+available. D08 tests should cover blocked E pickups, dropped gear
+after a destroyed spawn parent, remote retained gear and two
+overlapping return portals with distinct destinations.
+
 ### D08 room lifecycle and visibility authority
 
 Inactive detached PackedScenes must disable their real physics:

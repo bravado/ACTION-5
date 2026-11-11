@@ -200,6 +200,30 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(remote_floor.visible
         and stage.get_node("SectorCameraBounds") != null,
         "Detached scene remains visible and keeps same ViewManager")
+    # P1: a weapon picked in the arena must drop in the active remote
+    # scene, remain cached there on exit, then be pickable through E.
+    var carried := equipment.get("current_weapon") as Node3D
+    verify.call(is_instance_valid(carried)
+        and bool(equipment.call("drop_current"))
+        and carried.get_parent() == detached and carried.visible,
+        "Remote weapon drop uses active detached scene, not the arena spawn parent")
+    var dropped_in_remote: Vector3 = carried.global_position
+    var remote_return: Marker3D = stage.get_node("RemoteReturnSpawn") as Marker3D
+    verify.call(manager.call("travel_to_marker", player, remote_return)
+        and not detached.visible and carried.get_parent() == detached,
+        "Remote dropped item stays cached in its location after player returns to arena")
+    verify.call(manager.call("travel_to_scene", player,
+        load("res://demo/world/remote_chamber.tscn") as PackedScene,
+        NodePath("Arrival"))
+        and manager.active_scene == detached
+        and carried.get_parent() == detached and carried.visible,
+        "Revisiting remote PackedScene restores its exact loose weapon instance")
+    player.global_position = dropped_in_remote
+    await _ticks(tree, 3)
+    stage.call("_unhandled_input", _key_down(KEY_E))
+    verify.call(equipment.current_weapon == carried
+        and (equipment.get("inventory") as Array).size() == inventory_count,
+        "Remote dropped weapon is re-collected using generic physical-LoS E interaction")
     # A newly instantiated *detached* PackedScene uses the same
     # opt-in wall group; no hardcoded list of arena/dungeon wall nodes.
     var remote_south := detached.get_node("SouthWall") as StaticBody3D
@@ -294,6 +318,26 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and stage.get_world_3d().direct_space_state.intersect_ray(probe).get("collider")
             == second_floor,
         "Overlapping inactive room cannot supply ghost physics to active room")
+    # P1: two cached PackedScenes overlap. The inactive first room's
+    # portal must not compete even if its Label3D and node stay in tree.
+    # Give the active portal a DIFFERENT target to catch wrong selection.
+    var inactive_return := detached.get_node("ReturnPortal") as Node3D
+    var active_return := second.get_node("ReturnPortal") as Node3D
+    active_return.set("destination_marker_path", NodePath("../../EncounterSpawn"))
+    player.global_position = active_return.global_position + Vector3(0.7, 0.15, 0)
+    await _ticks(tree, 3)
+    var interactor: Node = stage.get_node("Interactor")
+    verify.call(not inactive_return.can_process()
+        and not bool(inactive_return.call("can_interact", player))
+        and not bool(interactor.call("_eligible", player, inactive_return))
+        and bool(interactor.call("_eligible", player, active_return)),
+        "Paused cached return portal is not eligible even at the same physical position")
+    stage.call("_unhandled_input", _key_down(KEY_E))
+    await _ticks(tree, 4)
+    verify.call(manager.current_location == &"connected"
+        and session.current_sector == &"encounter"
+        and not active_return.can_process(),
+        "E follows only the active portal's distinct destination, never an inactive cached portal")
     verify.call(manager.call("travel_to_marker", player, arena_return)
         and second_floor.collision_layer == 0 and not remote_nav.enabled
         and manager.call("travel_to_scene", player,

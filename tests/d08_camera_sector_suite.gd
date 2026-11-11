@@ -294,8 +294,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _physics_frames(tree, 6)
     new_weapon.global_position = world.to_global(Vector3(14.5, 0.4, 0))
     await _physics_frames(tree, 4)
-    verify.call(not new_weapon.visible and not bool(world.call("_pickup_closest_weapon")),
-        "Closed-door hidden pickup cannot be taken by fallback E within pickup radius")
+    verify.call(not new_weapon.visible
+        and not bool(world.get_node("Interactor").call("interact",
+            player, new_weapon.get_node("PickupInteraction"))),
+        "Closed-door hidden pickup cannot pass generic Interactor eligibility")
 
     # Repeated fresh-entry replacement must not leak obsolete visibility or
     # duplicated material cache entries from old sector instances.

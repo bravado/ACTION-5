@@ -310,6 +310,21 @@ rejected before caching a bad scene.
 Camera bounds change only for the explicit distant jump, not while
 walking between adjacent rooms.
 
+**One pickup and drop contract:** every demo weapon prefab now owns an
+optional `PickupInteraction` child implementing `can_interact/interact`.
+Authored, newly spawned and dropped weapons use the exact same
+`Action5Interactor` E path with real physical LoS and distance;
+there is no direct `Equipment.pickup()` fallback in `main.gd`.
+`WorldPickup` is only the original authored spawn/reset state. It does
+not delete a weapon dropped into a different cached location.
+`EquipmentController` consumes an optional generic
+`get_drop_parent(actor)` provider configured by the demo's
+`LocationManager`, so it drops into the active world or remote
+PackedScene even if the original sector has been freed/re-instanced.
+The generic Interactor also ignores descendants whose scene processing
+is disabled; `LocationPortal.can_interact` rejects direct calls
+against inactive cached return portals.
+
 Run `make check` and `tests/d08_connections_suite.gd` (through
 `tests/run_all.gd`). The tests exercise a real viewport E key,
 both-sided gate behavior, room invisibility before entry,

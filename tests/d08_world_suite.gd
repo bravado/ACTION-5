@@ -81,6 +81,38 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Closing an ordinary door restores its panel visibility")
     normal_door.queue_free()
 
+    # P1: the E fallback must never bypass the generic Interactor's
+    # physical ray. A dynamically spawned weapon with an obstructed
+    # pickup interaction cannot be collected simply because it is near.
+    var blocked_weapon := (
+        load("res://demo/equipment/gun_alt.tscn") as PackedScene
+    ).instantiate() as Node3D
+    blocked_weapon.position = Vector3(-8.3, 0.45, 4.0)
+    stage.add_child(blocked_weapon)
+    player.global_position = stage.to_global(Vector3(-10.0, 0.15, 4.0))
+    var pickup_blocker := StaticBody3D.new()
+    pickup_blocker.position = Vector3(-9.1, 1.0, 4.0)
+    var blocker_shape := CollisionShape3D.new()
+    blocker_shape.shape = BoxShape3D.new()
+    (blocker_shape.shape as BoxShape3D).size = Vector3(0.35, 2.3, 2.0)
+    pickup_blocker.add_child(blocker_shape)
+    stage.add_child(pickup_blocker)
+    await _physics_frames(tree, 3)
+    _press(stage, KEY_E)
+    verify.call(equipment.inventory.is_empty()
+        and not bool(stage.get_node("Interactor").call("interact", player,
+            blocked_weapon.get_node("PickupInteraction"))),
+        "E cannot collect an otherwise visible nearby weapon through a solid wall")
+    pickup_blocker.queue_free()
+    await _physics_frames(tree, 3)
+    _press(stage, KEY_E)
+    verify.call(equipment.current_weapon == blocked_weapon
+        and equipment.inventory.size() == 1,
+        "Removing the wall lets the SAME dynamically spawned weapon be collected by E")
+    if equipment.inventory.has(blocked_weapon):
+        equipment.call("drop_current")
+    blocked_weapon.free()
+
     player.global_position = stage.get_node("BatPickup").global_position
     _press(stage, KEY_E)
     var bat := equipment.get("current_weapon") as Node3D
@@ -373,10 +405,44 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(world.current_sector == &"arena" and tree.current_scene == stage,
         "Fresh entry updates destination only, keeping one live world and player")
 
+    # P1: the weapon's original world parent can be freed while the
+    # weapon is carried. Equipment must still drop it into the active
+    # connected world, and the dropped prefab remains interactable.
+    world.set("arena_entry_policy", 0)
+    world.set("dungeon_entry_policy", 0)
+    var dungeon_loot := (
+        load("res://demo/equipment/shovel.tscn") as PackedScene
+    ).instantiate() as Node3D
+    dungeon_loot.position = Vector3(-9, 0.45, 4.5)
+    encounter.add_child(dungeon_loot)
+    player.global_position = dungeon_loot.global_position
+    await _physics_frames(tree, 3)
+    _press(stage, KEY_E)
+    verify.call(equipment.inventory.has(dungeon_loot)
+        and bool(equipment.call("equip", dungeon_loot)),
+        "Dungeon-authored pickup uses E and remains owned by the same Equipment")
+    player.global_position = stage.to_global(Vector3(-7, 0.15, 3.0))
+    await _physics_frames(tree, 3)
+    var destroyed_source: Node3D = encounter
+    verify.call(bool(world.call("_reset_encounter")) and not is_instance_valid(destroyed_source)
+        and equipment.inventory.has(dungeon_loot),
+        "Start-fresh replacement frees the original weapon parent but preserves inventory")
+    verify.call(bool(equipment.call("drop_current"))
+        and dungeon_loot.get_parent() == stage and dungeon_loot.visible
+        and dungeon_loot.equipment_owner == null,
+        "Equipped weapon with freed original parent drops into the live world")
+    player.global_position = dungeon_loot.global_position
+    await _physics_frames(tree, 2)
+    _press(stage, KEY_E)
+    verify.call(equipment.inventory.has(dungeon_loot),
+        "Dropped item remains pickable through its prefab-local interaction port")
+
     # Death UI is optional and independent: only explicitly pressing Restart
     # reloads a *whole session*, unlike ordinary door travel.
     var health := player.get_node("Health")
-    health.take_hit(1000.0, fresh_enemy, null, Vector2.RIGHT, 0.0, 0)
+    health.take_hit(1000.0,
+        stage.get_node("EncounterSector/Melee") as CharacterBody3D,
+        null, Vector2.RIGHT, 0.0, 0)
     var overlay := stage.get_node("DeathOverlay")
     verify.call(overlay.get_node("Screen").visible,
         "Player death in either sector exposes the existing Restart button")
