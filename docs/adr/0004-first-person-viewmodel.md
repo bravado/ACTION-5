@@ -1,6 +1,6 @@
 # ADR-0004 — Camera-local viewmodel presentation, not world-bone projection
 
-Status: Proposed, D05 PR #28.
+Status: Accepted — D05 first-person presentation architecture.
 
 ## Context
 

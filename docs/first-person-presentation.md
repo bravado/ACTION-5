@@ -1,7 +1,8 @@
 # First-person presentation architecture — research and D05 refactor
 
-Status: D05 merged via [PR #28](https://github.com/bravado/ACTION-5/pull/28).
-D06-01 equipped viewmodel/attack selection was implemented and visually approved in PR #31, with real native/WebGL2 Full E2E evidence.
+Status: Accepted D05/D06 first-person presentation architecture.
+D06-01's equipped viewmodel and attack-selection features passed
+manual visual acceptance and native/WebGL2 Full E2E.
 
 ## Root-cause analysis
 
@@ -219,7 +220,7 @@ resolved wall/target point, so its real visual trajectory remains
 consistent across F1–F5 and survives shooter removal. Native F3/F4
 in-flight captures and a real WebGL2 firing/pickup test form the
 automated smoke; subjective near-camera muzzle/grip alignment still
-was manually accepted by the owner on 2026-11-10 (PR #32). See ADR-0006.
+was manually accepted by the owner on 2026-11-10 (D06-02). See ADR-0006.
 
 
 ### Visible F4 projectile origin

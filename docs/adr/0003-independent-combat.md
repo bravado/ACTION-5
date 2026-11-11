@@ -1,6 +1,6 @@
 # ADR-0003 — Independent tick-based combat and external motion
 
-Status: Proposed (D05 PR #28).
+Status: Accepted — D05 combat architecture.
 
 D03 locomotion remains the **sole** writer of CharacterBody3D.velocity.
 D04 animation channels are visual state, not action clocks. D05 therefore

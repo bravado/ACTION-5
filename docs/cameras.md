@@ -123,12 +123,13 @@ Every Make target that runs, tests or exports imports Godot resources first. `.g
 
 D02 regression tests cover switching all **five** modes 20 times, preserving actor/camera identities and physics state, true side/overhead projections, wide-to-close isometric zoom within one resource, camera collision, editable settings, reset, saved overrides and legacy preference migration.
 
-GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the current D02 pull request for its validated build and run artifacts.
+GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the CI workflow and retained evidence artifacts for the
+current camera and browser test matrix.
 
 **D02 boundary:** the actor remains a simple placeholder. Full jumping, reusable action intents, facing/aim policies, combat and animations are *not* delivered until D03–D07. D02 must pass review before D03 work starts.
 
 
-## D06-02 view aim versus world muzzle (PR #32)
+## D06-02 view aim versus world muzzle (D06-02)
 
 The view-specific `Action5ViewAimTargetProvider` reads the existing
 `ActionInputContext`: F4 uses the center Camera3D ray to find a target,
