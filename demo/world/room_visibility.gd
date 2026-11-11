@@ -2,8 +2,8 @@ extends Node
 ## Scene-specific visual composition, independent of physics/AI/camera.
 ## Connected room roots are configurable; mobile actor/item visibility uses
 ## the physical boundary and gate, not the currently selected camera.
-## No global pickup scan per frame: creation/equipment events register items,
-## and only tracked loose pickups are checked for boundary changes.
+## Filter creation signals before deferring; only tracked loose pickups
+## are checked for boundary changes on physics ticks.
 
 @export var session_path: NodePath = ^"../WorldSession"
 @export var door_path: NodePath = ^"../EncounterDoor"
@@ -170,9 +170,9 @@ func _refresh_ground_weapons() -> void:
 
 
 func _on_node_added(candidate: Node) -> void:
-    if candidate is Node3D:
-        # Runtime weapons may join the pickup group in _ready, after
-        # node_added fires; check on the following idle iteration.
+    # Weapon prefabs already have this group before entering SceneTree.
+    # Do not allocate deferred work for every new mesh, actor or effect.
+    if candidate is Node3D and candidate.is_in_group("action5_weapon_pickup"):
         call_deferred("_track_new_pickup", weakref(candidate))
 
 

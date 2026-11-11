@@ -1,8 +1,8 @@
 extends Node
 ## Explicit remote travel: one persistent Player, equipment and camera.
 ## Cached environment scenes remain in the SceneTree, but inactive scenes
-## have NO physical collisions or navigation. Visibility/process_mode alone
-## do not deactivate a PhysicsServer body or NavigationServer region.
+## have no physical collisions or navigation. Disabled CollisionObject3D
+## objects use DISABLE_MODE_REMOVE; navigation remains explicit.
 
 signal location_changed(previous: StringName, current: StringName, location_root: Node3D)
 
@@ -13,12 +13,14 @@ signal location_changed(previous: StringName, current: StringName, location_root
 @onready var actor: Node3D = get_node_or_null(actor_path) as Node3D
 @onready var session: Node = get_node_or_null(world_session_path)
 
-var current_location: StringName = &"connected"
 var active_scene: Node3D
+## Read-only location identity derives from the one authoritative scene.
+var current_location: StringName:
+    get:
+        return StringName(active_scene.scene_file_path) if is_instance_valid(active_scene) \
+            else &"connected"
 var _loaded: Dictionary = {}
-## Only snapshot when deactivating, and restore the exact authored/live
-## properties when reactivating. Weak references avoid retaining removed nodes.
-var _inactive_physics: Dictionary = {}
+var _inactive_navigation: Dictionary = {}
 
 
 func can_travel(candidate: Node3D) -> bool:
@@ -51,7 +53,6 @@ func travel_to_scene(candidate: Node3D, packed: PackedScene, arrival_path: NodeP
         push_warning("ACTION5: Detached scene needs a Marker3D arrival point")
         return false
     var previous: StringName = current_location
-    current_location = StringName(key)
     active_scene = location
     _set_scene_active(location, true)
     _move_actor(candidate, arrival.global_position)
@@ -67,7 +68,6 @@ func travel_to_marker(candidate: Node3D, marker: Marker3D) -> bool:
     if is_instance_valid(active_scene):
         _set_scene_active(active_scene, false)
         active_scene = null
-    current_location = &"connected"
     _move_actor(candidate, marker.global_position)
     if previous != &"connected":
         session.call("leave_detached")
@@ -77,43 +77,30 @@ func travel_to_marker(candidate: Node3D, marker: Marker3D) -> bool:
     return true
 
 
-## Only cached environments are affected. Never touch the shared player,
-## their carried equipment, or the connected rooms.
+## Cached environments never contain the shared actor or equipped items.
 func _set_scene_active(location: Node3D, enabled: bool) -> void:
     var id: int = location.get_instance_id()
     if enabled:
         location.visible = true
         location.process_mode = Node.PROCESS_MODE_INHERIT
-        var snapshots: Array = _inactive_physics.get(id, [])
-        for entry in snapshots:
+        for entry in _inactive_navigation.get(id, []):
             var node: Node = (entry["node"] as WeakRef).get_ref() as Node
-            if not is_instance_valid(node):
-                continue
-            if node is CollisionObject3D:
-                var body := node as CollisionObject3D
-                body.collision_layer = entry["layer"]
-                body.collision_mask = entry["mask"]
-            elif node is NavigationRegion3D or node is NavigationLink3D:
+            if is_instance_valid(node):
                 node.set("enabled", entry["enabled"])
-        _inactive_physics.erase(id)
+        _inactive_navigation.erase(id)
         return
-    var snapshots: Array = []
-    # Include the scene root itself, in case it is a collision object.
+    var navigation: Array = []
     var nodes: Array[Node] = [location]
     nodes.append_array(location.find_children("*", "", true, false))
     for node in nodes:
         if node is CollisionObject3D:
-            var body := node as CollisionObject3D
-            snapshots.append({
-                "node": weakref(body), "layer": body.collision_layer,
-                "mask": body.collision_mask
-            })
-            body.collision_layer = 0
-            body.collision_mask = 0
+            # Godot restores collision objects automatically on reenable;
+            # explicit REMOVE also overrides authored KEEP_ACTIVE variants.
+            (node as CollisionObject3D).disable_mode = CollisionObject3D.DISABLE_MODE_REMOVE
         elif node is NavigationRegion3D or node is NavigationLink3D:
-            snapshots.append({"node": weakref(node), "enabled": node.get("enabled")})
+            navigation.append({"node": weakref(node), "enabled": node.get("enabled")})
             node.set("enabled", false)
-    _inactive_physics[id] = snapshots
+    _inactive_navigation[id] = navigation
     location.visible = false
     location.process_mode = Node.PROCESS_MODE_DISABLED
 
