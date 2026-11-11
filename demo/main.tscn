@@ -1,4 +1,4 @@
-[gd_scene load_steps=58 format=3]
+[gd_scene load_steps=59 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -31,6 +31,7 @@
 [ext_resource type="Script" path="res://demo/interactions/location_portal.gd" id="28_location_portal"]
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
 [ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
+[ext_resource type="Script" path="res://demo/world/side_lane_controller.gd" id="31_side_lane"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -511,3 +512,6 @@ script = ExtResource("25_room_visibility")
 
 [node name="OuterWallFader" type="Node" parent="."]
 script = ExtResource("30_outer_wall_fader")
+
+[node name="SideLaneController" type="Node" parent="."]
+script = ExtResource("31_side_lane")
