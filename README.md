@@ -215,3 +215,13 @@ hardcoded into AI/movement/combat cores. Tests:
 `tests/d08_connections_suite.gd` (real E input, visibility, aggro,
 remote cached visits), `tests/d08_world_suite.gd` (inventory, fresh
 entry and door physics), and `tests/d08_camera_sector_suite.gd`.
+
+**Near-wall readability:** In views 1/2/3/5, the surrounding
+**outer walls**, especially the lower/front walls, progressively
+become translucent as the player approaches (from 3.8 to 1.1 units,
+minimum 20% opacity); moving away restores opacity. First person
+keeps solid walls. This is a **visual-only** effect: collision,
+enemy sight and combat remain blocked. Inner walls, props and
+the door panel never fade. The F2 camera's lateral peek has also
+been reduced to **12°** to show side-facing door geometry without
+excessive camera rotation.
