@@ -123,6 +123,25 @@ Do not create a standalone encounter scene for new AI tests: author
 more NPC configurations in the existing dungeon or inject temporary
 test actors into that scene.
 
+## Simplification follow-up
+
+`LocationManager.current_location` is derived from the single
+`active_scene` reference instead of maintained as a second mutable
+identifier. Godot's `CollisionObject3D.DISABLE_MODE_REMOVE` handles
+cached room physics, including scenes originally authored with
+`KEEP_ACTIVE`; only navigation-region/link enabled flags require
+an explicit snapshot. The unused `WorldSector`, alternate equipment
+input, enemy visit-state and portable weapon snapshot adapters were
+removed; the D08 room policy keeps live NPC state or re-instantiates
+the authored dungeon for Start fresh.
+
+`RoomVisibility` filters pickup-group creation before any deferred
+registration work and still owns only room-root occlusion and loose
+pickup/enemy visibility. `OuterWallFader` now owns both optional F1
+front-wall mesh hiding and proximity materials, restoring original
+state when removed. The door remains the physical blocker; no
+additional global world, input or combat manager was introduced.
+
 ## Performance tradeoffs
 
 | Strategy | Memory | Idle CPU | Player/equipment identity | Result |

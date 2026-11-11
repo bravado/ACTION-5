@@ -223,5 +223,6 @@ minimum 20% opacity); moving away restores opacity. First person
 keeps solid walls. This is a **visual-only** effect: collision,
 enemy sight and combat remain blocked. Inner walls, props and
 the door panel never fade. The F2 camera's lateral peek has also
-been reduced to **12°** to show side-facing door geometry without
-excessive camera rotation.
+been reduced to **6°**, adjustable per profile in Camera Settings.
+The same optional outer-wall presenter owns F1 front-wall mesh hiding
+and near-wall opacity without changing physical collision.

@@ -651,15 +651,20 @@ overlapping cached scene whenever travel lifecycle changes.
 
 RoomVisibility owns only scene-composed room rendering, enemy/loose
 pickup occlusion and the original-visibility cache. It observes
-Equipment pickup/drop signals plus SceneTree node additions, and
-checks only tracked loose items for X-boundary movements; do not scan
-all pickup groups every physics frame. Equipment owns picked-up weapon
+Equipment pickup/drop signals plus SceneTree **pickup-group** node
+additions. Filter before deferring, so unrelated camera/actor/effect
+nodes incur no pickup registration work. Only tracked loose pickups
+are checked for boundary movement; never scan all pickup groups each
+physics tick. Equipment owns picked-up weapon
 visuals, and wall/door collision is independent of visibility.
 Prune WeakRef visibility/material entries after fresh scene resets,
 and restore original flags when removing the adapter.
 
-F1 may hide the front wall mesh for a purely horizontal view; F2
-must keep it rendered and let OuterWallFader set its opacity.
+Only OuterWallFader owns the optional F1 front-wall mesh hide,
+F2's restored mesh and near-wall material opacity. Its
+`side_hidden_mesh_path` identifies a specific mesh, not the wall
+collider or room root, and original visibility must return on exit.
+Do not reintroduce a wall visibility writer in demo/main.gd.
 SectorCameraBounds handles any number of configured, rotated connected
 sector transforms by merging world-space bounds; never add room names
 or specific movements to the core camera, Actor, AI or Combat. The
@@ -679,7 +684,7 @@ tagged. Fade starts 3.8 units from the wall and reaches 20% material
 opacity at 1.1 units; original surface override and cast shadows
 are restored at full distance and when the presenter exits. The
 first-person camera keeps wall rendering opaque, and view 2's
-direction-sensitive peek was reduced to 12°.
+direction-sensitive peek defaults to a configurable 6°.
 
 **Web compatibility:** NEVER substitute
 `GeometryInstance3D.transparency` for this effect. That property is
@@ -687,8 +692,8 @@ ignored by Godot's Compatibility/WebGL2 renderer. Duplicate
 `StandardMaterial3D` once per wall mesh, use
 `BaseMaterial3D.TRANSPARENCY_ALPHA` only when close, and reuse the
 cached material to avoid repeated shader/resource allocation. Do
-not alter wall visibility flags owned by RoomVisibility, physical
+not alter room-root visibility owned by RoomVisibility, physical
 collision, enemy discovery/LoS, navigation, or any shared material
-resource. Extend D08 camera integration tests for proximity
+resource. The single opt-in front mesh belongs to OuterWallFader. Extend D08 camera integration tests for proximity
 alpha, restored materials, nonfading interior walls, F4 and the
 detached scene path.

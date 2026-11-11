@@ -879,11 +879,13 @@ is marked ready to merge. No core Movement/Combat/Animation coupling.
 
 ### D08 outer-wall visibility and F2 camera comfort
 
-- [x] Reduce F2 lateral camera peek from 20° to 12° in its
-  instance-owned profile; preserve the existing 0° disable option
-  and world-aligned beat'em-up WASD.
-- [x] Add a reusable **presentation-only** `OuterWallFader`
-  activated via explicit `action5_outer_wall` groups on outer arena,
+- [x] Reduce F2 lateral camera peek from 20° to a configurable
+  **6° default**; preserve the 0° disable option and world-aligned
+  beat'em-up WASD.
+- [x] Reuse the **presentation-only** `OuterWallFader` to own
+  both F1's front-wall mesh hide and near-wall fade, removing the
+  competing main-scene writer. Its material fade is activated via
+  `action5_outer_wall` groups on outer arena,
   dungeon and remote-room walls. Only these near-player perimeter
   meshes fade; shared/interior wall geometry, equipment props and
   the closed dungeon door remain fully opaque.

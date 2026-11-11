@@ -154,6 +154,13 @@ explicit detached-location portal temporarily reframes the camera.
 
 ### Exterior wall visibility near the player (D08)
 
+The opt-in `OuterWallFader` is also the **sole owner** of F1's
+front-wall mesh hide: `side_hidden_mesh_path` references only that
+specific mesh, never its collider or the room root. It reacts to
+`ViewManager.view_changed` and restores the authored visibility
+when removed; `demo/main.gd` handles only view UI.
+
+
 `demo/world/outer_wall_fader.gd` is an opt-in scene
 presentation component independent of the CameraRig: only StaticBody3D
 walls tagged `action5_outer_wall` fade as the player approaches their

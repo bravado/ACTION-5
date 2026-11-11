@@ -360,11 +360,13 @@ no labels or scene-transition logic.
 pickup/drop and runtime node-creation events, tracks only loose weapons
 in the connected rooms during physics ticks, and updates their
 visibility if they move across the closed-gate boundary. Once picked up,
-`EquipmentController` owns their visible state. The fallback E pickup
-cannot collect a hidden weapon through a closed gate. Remote-room
+`EquipmentController` owns their visible state. The single generic E pickup path cannot collect a hidden weapon
+through a closed gate or any solid obstruction. Remote-room
 pickups are excluded by their `action5_detached_location` ancestor.
 Old visible-state and material weak references are pruned on fresh
-dungeon replacement to prevent repeated-visit cache growth.
+dungeon replacement. SceneTree node-added events are filtered to
+pickup-group nodes *before* deferral: spawning unrelated effects or
+enemy meshes no longer queues extra pickup callbacks.
 
 ### Outer perimeter fade without gameplay coupling
 
@@ -375,9 +377,12 @@ fade. When the actor approaches within 3.8 units, the wall mesh
 transitions toward 20% opacity, reaching that value at 1.1 units.
 The bottom/front `SouthWall` in the arena and dungeon is the main
 visibility improvement; other exterior bounds in those rooms and the
-remote chamber opt in using the same group. First person keeps walls
-opaque. Near/far thresholds, minimum opacity, response rate, and
-F4 exemption are exported settings.
+remote chamber opt in using the same group. The same presenter owns
+the optional F1 front-wall mesh hide through `side_hidden_mesh_path`,
+with immediate view-change response and original visibility restored
+on component exit. `main.gd` never writes wall mesh visibility.
+First person keeps walls opaque. Near/far thresholds, minimum opacity,
+response rate, and F4 exemption remain exported settings.
 
 Use a cached alpha-enabled **duplicate** of each wall's existing
 StandardMaterial3D surface material and restore the original override
