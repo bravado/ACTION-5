@@ -41,6 +41,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var door := stage.get_node("EncounterDoor") as Node3D
     var arena_door_mesh := door.get_node("DoorMesh") as Node3D
     var barrier_mesh := door.get_node("BarrierMesh") as MeshInstance3D
+    verify.call(door.get_node_or_null("DoorLabel") == null
+        and door.get_node_or_null("ReturnLabel") == null,
+        "Adjacent physical doors have no redundant destination labels")
+    var left_handle := door.get_node("Handles/ArenaHandle") as MeshInstance3D
+    var right_handle := door.get_node("Handles/DungeonHandle") as MeshInstance3D
+    verify.call(left_handle.visible and right_handle.visible
+        and (left_handle.global_position - right_handle.global_position).length() > 1.5,
+        "One physical gate has distinct near-side visible handles instead of overlapping labels")
     var arena_door_id: int = door.get_instance_id()
     var player_id: int = player.get_instance_id()
     var stage_id: int = stage.get_instance_id()
@@ -99,6 +107,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # opens the barrier, but MUST NOT teleport the actor or change sector.
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 2)
+    verify.call((door.call("get_interaction_point", player) as Vector3).distance_to(
+        left_handle.global_position) < 0.001,
+        "Arena-side E interaction point aligns exactly with the visible door handle")
     # Real collision before/after opening, through the center of the
     # shared wall gap. Exclude only the player's own body.
     var exclude: Array[RID] = [player.get_rid()]
@@ -161,6 +172,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "The same gateway is seen from both areas; no duplicate far-side return door")
     # E works from the opposite physical side, too. The panel closes and
     # opens again while the Player's position stays unchanged.
+    verify.call((door.call("get_interaction_point", player) as Vector3).distance_to(
+        right_handle.global_position) < 0.001,
+        "Dungeon-side E interaction point aligns with the opposite visible handle")
     _press(stage, KEY_E)
     await _physics_frames(tree, 2)
     verify.call(not door.open and barrier_mesh.visible
