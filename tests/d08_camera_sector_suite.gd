@@ -215,12 +215,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # inherit the active side lane without changing Enemy/Combat core.
     var extra_enemy := (load("res://demo/ai/melee_enemy.tscn") as PackedScene
         ).instantiate() as CharacterBody3D
-    extra_enemy.position = Vector3(-8, 0.15, -3.0)
+    # Spawn directly behind an already-aligned enemy at the SAME X:
+    # the scene crowd rule must be active before depth projection.
+    var extra_spawn_x: float = melee.global_position.x
+    extra_enemy.position = dungeon.to_local(melee.global_position)
+    extra_enemy.position.z = -3.0
     dungeon.add_child(extra_enemy)
     await _frames(tree, 3)
     verify.call(absf(extra_enemy.global_position.z - side_z) < 0.08
+        and absf(extra_enemy.global_position.x - extra_spawn_x) < 0.9
         and bool(extra_enemy.get_node("Locomotion").get("side_lane_locked")),
-        "A late-spawned F1 enemy joins the shared attack plane automatically")
+        "A same-X late-spawned F1 enemy joins the lane without detouring around a teammate")
     views.switch_view(1)
     await _physics_frames(tree, 2)
     verify.call(not bool(player.get_node("Locomotion").get("side_lane_locked"))

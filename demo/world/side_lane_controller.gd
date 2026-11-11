@@ -129,12 +129,15 @@ func _sync_lane() -> void:
     for candidate in get_tree().get_nodes_in_group(enemy_group):
         var actor := candidate as CharacterBody3D
         if _belongs_to_active_location(actor) and bool(actor.get("alive")):
-            if _align(actor):
-                enemies.append(actor)
-    # Only enemy/enemy pairs: never bypass player, wall or doorway physics.
+            enemies.append(actor)
+    # Prepare only NPC/NPC exceptions BEFORE collision-tested alignment.
+    # Otherwise a second enemy spawned at the same X could be blocked
+    # by the first and remain on an unreachable depth plane.
     for i in range(enemies.size()):
         for j in range(i + 1, enemies.size()):
             _soften_pair(enemies[i], enemies[j])
+    for actor in enemies:
+        _align(actor)
 
 
 func _soften_pair(a: CharacterBody3D, b: CharacterBody3D) -> void:
