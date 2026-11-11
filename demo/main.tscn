@@ -511,3 +511,4 @@ script = ExtResource("25_room_visibility")
 
 [node name="OuterWallFader" type="Node" parent="."]
 script = ExtResource("30_outer_wall_fader")
+side_hidden_mesh_path = NodePath("../SouthWall/MeshInstance3D")

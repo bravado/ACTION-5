@@ -18,6 +18,9 @@ extends Node
 @export_range(1.0, 30.0, 0.5) var fade_speed: float = 11.0
 ## Keep physical walls visibly solid in F4 (first person).
 @export var preserve_first_person: bool = true
+## Optional side-on wall hiding belongs to this same outer-wall presenter;
+## the demo main script never directly writes a wall's visibility.
+@export var side_hidden_mesh_path: NodePath
 
 @onready var actor: Node3D = get_node_or_null(actor_path) as Node3D
 @onready var views: Node = get_node_or_null(view_manager_path)
@@ -25,6 +28,30 @@ extends Node
 # Key: mesh instance id. Value: mesh weak ref, original material override,
 # original shadow mode, cached fade material, current opacity.
 var _materials: Dictionary = {}
+var _side_mesh: MeshInstance3D
+var _side_original_visible: bool = true
+
+
+func _ready() -> void:
+    _side_mesh = get_node_or_null(side_hidden_mesh_path) as MeshInstance3D
+    if is_instance_valid(_side_mesh):
+        _side_original_visible = _side_mesh.visible
+    if is_instance_valid(views):
+        views.view_changed.connect(_on_view_changed)
+    _refresh_side_wall()
+
+
+func _on_view_changed(_current: Resource, _previous: Resource) -> void:
+    _refresh_side_wall()
+
+
+func _refresh_side_wall() -> void:
+    if not is_instance_valid(_side_mesh):
+        return
+    # Only its mesh is hidden in F1; the StaticBody3D remains solid.
+    var side_view: bool = is_instance_valid(views) and views.current_profile != null \
+        and int(views.current_profile.mode) == 0
+    _side_mesh.visible = _side_original_visible and not side_view
 
 
 func _process(delta: float) -> void:
@@ -111,6 +138,10 @@ func _set_opacity(mesh: MeshInstance3D, target: float, blend: float) -> void:
 
 
 func _exit_tree() -> void:
+    if is_instance_valid(views) and views.view_changed.is_connected(_on_view_changed):
+        views.view_changed.disconnect(_on_view_changed)
+    if is_instance_valid(_side_mesh):
+        _side_mesh.visible = _side_original_visible
     for entry in _materials.values():
         var mesh: MeshInstance3D = (entry["mesh"] as WeakRef).get_ref() as MeshInstance3D
         if is_instance_valid(mesh):

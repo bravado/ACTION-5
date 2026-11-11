@@ -321,6 +321,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(not (fader.get("_materials") as Dictionary).has(mesh_id)
             and not (room_visibility.get("_original_visibility") as Dictionary).has(floor_id),
             "Fresh sector prunes its replaced mesh and room-visibility cache entries")
+    # The presenter exclusively owns F1's front-wall hiding and its
+    # material fade. Unplugging it restores authored mesh visibility.
+    views.switch_view(0)
+    verify.call(not south_visual.visible,
+        "F1 front wall is hidden by the wall presenter, not demo main script")
+    fader.queue_free()
+    await _frames(tree, 2)
+    verify.call(south_visual.visible
+        and south_visual.get_surface_override_material(0) == original_south,
+        "Removing wall presenter restores original mesh visibility/material")
     tree.current_scene = original_scene
     world.queue_free()
     await _frames(tree, 2)

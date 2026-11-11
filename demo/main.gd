@@ -239,9 +239,5 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
     _help.text = "ACTION-5 // D06 EQUIPMENT + D07 ENCOUNTER DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup / open encounter door | Q: swap | G: drop | R: gun reload | Unassigned actions: Punch/Kick | Door: east arena"
-    var front_wall_mesh := get_node("SouthWall/MeshInstance3D") as MeshInstance3D
-    # The purely horizontal F1 framing hides the foreground wall; F2 must
-    # leave it visible so the independent OuterWallFader can fade it nearby.
-    front_wall_mesh.visible = current.mode != ViewProfileScript.Mode.SIDE
     if not current.is_orbit_mode():
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
