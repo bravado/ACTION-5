@@ -211,7 +211,9 @@ player moves sufficiently back into the arena. The old standalone
 **Continuous camera bounds:** D02's F1/F2/F5 authored profiles clamp
 their camera target to the arena. `demo/world/sector_camera_bounds.gd`
 duplicates those Resources per game instance and computes the *union*
-of the arena and translated dungeon bounds. It never shifts or snaps
+of the arena and dungeon bounds, plus any configured connected sectors.
+Each profile's local X/Z rectangle is transformed at all four corners
+into a union that also supports rotated sectors. It never shifts or snaps
 the camera on crossing. Bounded F2/F5 views maintain fixed heading at
 edges, and the generic isometric rig uses its authored orbit direction
 rather than lag-induced actor look-at to prevent F3 WASD rotation.
@@ -297,7 +299,13 @@ Its independent `LocationPortal` loads
 `demo/world/remote_chamber.tscn` (or can instead target a Marker3D),
 then `LocationManager` repositions the **original player** to the
 arrival point and caches the detached scene instance. The room has a
-return-to-arena marker portal and is CPU-paused when inactive.
+return-to-arena marker portal. When cached inactive, its visibility and
+processing are disabled **and its physics collision layers/masks and
+navigation region/link flags are saved and cleared**, then restored
+on re-entry. Two remote scenes may share the same offset with no
+invisible physical blockers. The original player and inventory are
+never cached or reinitialized. Missing remote arrival markers are
+rejected before caching a bad scene.
 `WorldSession` stops threshold checking only during detached travel.
 Camera bounds change only for the explicit distant jump, not while
 walking between adjacent rooms.
@@ -311,15 +319,18 @@ usual D07 NPC and D08 dropped-equipment/camera regressions still run.
 
 
 **F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
-`lateral_peek_degrees = 12`, with an exponential response of 8.
+`lateral_peek_degrees = 6`, with an exponential response of 8.
+Use **C → Side peek (deg) / Peek response** to edit these independently
+of gameplay state; profile-specific overrides persist and Reset restores
+the shipped 6-degree angle.
 The camera sidesteps left while the player moves right and vice versa,
 holding the last viewing angle when idle. This makes X-normal
 walls/door panels visible without rotating F2 movement: WASD remains
 world-X/Z, and F1/F3/F4/F5 remain untouched. Set the profile angle to
-0 to disable. The `SectorCameraBounds` adapter now translates
-authored local arena+dungeon rectangles to the root's **global**
-X/Z origin; instancing a whole level away from the world origin no
-longer leaves its camera focusing elsewhere.
+0 to disable. The `SectorCameraBounds` adapter unions transformed
+authored rectangles across all configured sectors. Instancing a
+whole level away from the world origin or rotating an added sector
+does not leave the camera clamped to the wrong location.
 
 **Portal label policy:** `demo/interactions/location_portal.gd`
 offers `show_label` and `label_path`. Defaults show a `Label3D`
@@ -327,6 +338,16 @@ child on remote portals; omit the label or call
 `set_label_visible(false)` to hide it without changing E eligibility
 or where the original Player travels. Connected physical doors have
 no labels or scene-transition logic.
+
+**Weapon visibility lifecycle:** `RoomVisibility` observes weapon
+pickup/drop and runtime node-creation events, tracks only loose weapons
+in the connected rooms during physics ticks, and updates their
+visibility if they move across the closed-gate boundary. Once picked up,
+`EquipmentController` owns their visible state. The fallback E pickup
+cannot collect a hidden weapon through a closed gate. Remote-room
+pickups are excluded by their `action5_detached_location` ancestor.
+Old visible-state and material weak references are pruned on fresh
+dungeon replacement to prevent repeated-visit cache growth.
 
 ### Outer perimeter fade without gameplay coupling
 

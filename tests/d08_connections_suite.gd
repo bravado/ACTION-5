@@ -272,6 +272,20 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Second independent PackedScene uses the same portal contract")
     var second := manager.active_scene as Node3D
     var second_floor := second.get_node("Floor") as StaticBody3D
+    var remote_pickup := (load("res://demo/equipment/gun.tscn") as PackedScene
+        ).instantiate() as Node3D
+    remote_pickup.position = Vector3(2, 0.4, 0)
+    second.add_child(remote_pickup)
+    var remote_nav := NavigationLink3D.new()
+    remote_nav.start_position = Vector3(0, 0, 0)
+    remote_nav.end_position = Vector3(2, 0, 0)
+    second.add_child(remote_nav)
+    await _frames(tree, 3)
+    verify.call(remote_pickup.visible
+        and not (stage.get_node("RoomVisibility").get("_ground_weapons") as Dictionary
+            ).has(remote_pickup.get_instance_id())
+        and remote_nav.enabled,
+        "Detached-scene pickup visuals and navigation are not owned by connected-room adapter")
     await _ticks(tree, 2)
     verify.call(second != detached
         and second.global_position.distance_to(detached.global_position) < 0.01
@@ -281,7 +295,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             == second_floor,
         "Overlapping inactive room cannot supply ghost physics to active room")
     verify.call(manager.call("travel_to_marker", player, arena_return)
-        and second_floor.collision_layer == 0
+        and second_floor.collision_layer == 0 and not remote_nav.enabled
         and manager.call("travel_to_scene", player,
             load("res://demo/world/remote_chamber.tscn") as PackedScene,
             NodePath("Arrival")),
@@ -293,6 +307,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and player.get_instance_id() == player_id
         and (equipment.get("inventory") as Array).size() == inventory_count,
         "Returning to first room preserves physics and the original inventory")
+    verify.call(manager.call("travel_to_marker", player, arena_return)
+        and manager.call("travel_to_scene", player, alternate, NodePath("Arrival"))
+        and remote_nav.enabled and remote_pickup.visible,
+        "Cached second scene restores authored navigation and preserves its loose pickup")
+    verify.call(manager.call("travel_to_marker", player, arena_return)
+        and not remote_nav.enabled,
+        "Pausing second scene restores collision and navigation isolation on every visit")
 
     tree.current_scene = original
     stage.queue_free()
