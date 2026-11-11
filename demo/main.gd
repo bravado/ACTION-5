@@ -89,18 +89,18 @@ func _unhandled_input(event: InputEvent) -> void:
         elif event.keycode == KEY_B and not _camera_settings.visible:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
-        elif not _camera_settings.visible:
-            var consumed: bool = false
-            # These actions are registered only in this demo, not the addon.
-            # Rebinding them through InputMap needs no gameplay changes.
-            if event.is_action_pressed(&"demo_interact"):
-                consumed = bool($InteractionInput.try_interact())
-            elif event.is_action_pressed(&"demo_swap"):
-                consumed = bool(_equipment.call("swap_next"))
-            elif event.is_action_pressed(&"demo_drop"):
-                consumed = bool(_equipment.call("drop_current"))
-            if consumed:
-                get_viewport().set_input_as_handled()
+    # The demo's remappable actions accept keyboard, controller and mouse.
+    if _camera_settings.visible or not event.is_pressed():
+        return
+    var consumed: bool = false
+    if event.is_action_pressed(&"demo_interact"):
+        consumed = bool($InteractionInput.try_interact())
+    elif event.is_action_pressed(&"demo_swap"):
+        consumed = bool(_equipment.call("swap_next"))
+    elif event.is_action_pressed(&"demo_drop"):
+        consumed = bool(_equipment.call("drop_current"))
+    if consumed:
+        get_viewport().set_input_as_handled()
 
 
 
