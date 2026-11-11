@@ -153,25 +153,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = exit_node.global_position + Vector3(-1, 0.15, 0)
     player.velocity = Vector3.ZERO
     await _ticks(tree, 4)
-    var ray_from: Vector3 = player.global_position + Vector3(0, 1.0, 0)
-    var ray_to: Vector3 = exit_node.call("get_interaction_point", player)
-    var excluded: Array[RID] = [player.get_rid()]
-    for child in player.find_children("*", "CollisionObject3D", true, false):
-        excluded.append((child as CollisionObject3D).get_rid())
-    var probe := PhysicsRayQueryParameters3D.create(ray_from, ray_to, 1, excluded)
-    probe.collide_with_areas = false
-    var hit: Dictionary = player.get_world_3d().direct_space_state.intersect_ray(probe)
-    print("ACTION5_D09_EXIT_RAY from=", ray_from, " to=", ray_to,
-        " hit=", hit.get("collider"), " at=", hit.get("position"),
-        " player=", player.global_position, " exit=", exit_node.global_position)
-    print("ACTION5_D09_EXIT_DIAG alive=", player.get("alive"),
-        " sector=", session.get("current_sector"),
-        " process=", exit_node.can_process(),
-        " dist=", player.global_position.distance_to(
-            exit_node.call("get_interaction_point", player)),
-        " can_interact=", exit_node.call("can_interact", player),
-        " eligible=", interactor.call("_eligible", player, exit_node),
-        " sight=", interactor.call("_clear_sight", player, exit_node))
+    verify.call(bool(interactor.call("_eligible", player, exit_node)),
+        "D09 EXIT remains in physical reach/line-of-sight on shared F1 lane")
     verify.call(bool(interactor.call("interact", player, exit_node)),
         "D09 exit uses normal physical interaction port")
     verify.call(bool(exit_node.get("complete")) and overlay.get_node("Screen").visible

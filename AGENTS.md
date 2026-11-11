@@ -745,3 +745,9 @@ lateral movement. Focus loss/UI disable must suppress turns and require
 neutral rearming before resumed input. Show the active controls in the
 demo HUD; test F4 yaw with no strafe, A/D with no yaw, and F2 arrows
 continuing to move horizontally.
+
+
+The D09 EXIT marker is at dungeon-local (9, 0, 0), on the F1 Z=0
+playable lane and outside the physical SteepFace traversal obstacle.
+Do not bypass generic Interactor LoS for victory or put the exit
+behind an obstruction impossible to reach in a selected view.
