@@ -88,7 +88,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
     var retro_hint := level.get_node("Hud/RetroDirection") as Label
-    level.get_node("Hud").call("_process", 0.0)
+    level.get_node("Hud").call("_physics_process", 0.0)
     verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
         and retro_hint.text.contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
@@ -128,7 +128,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 8,
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
-    level.get_node("Hud").call("_process", 0.0)
+    level.get_node("Hud").call("_physics_process", 0.0)
     verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
         and retro_hint.text.contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
