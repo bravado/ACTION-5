@@ -176,7 +176,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(portal_label.visible,
         "Remote portal label can be re-enabled without recreating the scene")
     var manager: Node = stage.get_node("LocationManager")
-    player.global_position = portal.global_position + Vector3(0.7, 0.15, 0)
+    var switch := stage.get_node("LightSwitch") as Node3D
+    verify.call(portal.global_position.distance_to(switch.global_position)
+        > 2.0 * float(interactor.get("maximum_distance")),
+        "Detached portal and light switch no longer share interaction range")
+    # This offset was nearer the LightSwitch than the Portal before D09-02.
+    # A real E press here must enter the detached room, not toggle lighting.
+    player.global_position = portal.global_position + Vector3(1.3, 0.15, 0.85)
     player.velocity = Vector3.ZERO
     await _ticks(tree, 3)
     var before_location: Vector3 = player.global_position
@@ -186,8 +192,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(is_instance_valid(detached)
         and detached.scene_file_path == "res://demo/world/remote_chamber.tscn"
         and manager.current_location != &"connected"
-        and session.current_sector == &"remote",
-        "Different-scene portal loads an independent PackedScene in the same persistent world")
+        and session.current_sector == &"remote"
+        and not bool(switch.get("activated")),
+        "Realistic near-portal E enters detached room without toggling the switch")
     verify.call(player.get_instance_id() == player_id
         and (equipment.get("inventory") as Array).size() == inventory_count
         and player.global_position.distance_to(before_location) > 30.0,
