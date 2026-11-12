@@ -127,6 +127,10 @@ script = ExtResource("28_equipment_attacks")
 
 [node name="AimTargetProvider" type="Node" parent="."]
 script = ExtResource("29_gun_aim")
+direction_policy_path = NodePath("../EquippedViewFacing")
+
+[node name="EquippedViewFacing" type="Node" parent="."]
+script = ExtResource("31_equipped_facing")
 
 [node name="GunReloadVisual" type="Node" parent="."]
 script = ExtResource("30_reload_visual")
