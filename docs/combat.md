@@ -291,3 +291,10 @@ D07's camera-independent AI and D08's world interactions consume
 D05 Combat through existing public ports. Future changes must **not**
 add door/restart/pickup branches to CombatController or create a
 second combat timeline for scene transitions.
+
+
+## D09-02 per-weapon view-facing policy
+
+`AttackDefinition.facing_sectors` is applied by CombatController to *all views*. For F5-only Sword/Gun quantization, leave the attack's sectors `Free` and configure an optional `Action5ViewFacingPolicy` on its `WeaponDefinition`. The actor-local `Action5EquippedViewFacing` port returns `get_sectors(view_mode, fallback)` for actor facing, combat input and ranged aim. CombatInputAdapter then supplies the pre-resolved heading to the existing `request_attack(id, direction)` API. Sword uses four cardinal directions in view 5 and continuous headings in view 3; Gun uses eight view-5 directions. Setting a third resource with 16 sectors requires no new gameplay or animation branches.
+
+The local F5 Gun aim provider selects a forward target on the actor's X/Z centerline, while the physical hitscan **still begins at the actual weapon muzzle**, honoring nearer obstacles, team filtering and damage rules. Its emitted visual tracer likewise begins at the muzzle, except for the existing camera-local F4 visual origin. No alternative combat clock, physics solver, stateful direction cache, or Gun-specific actor logic is introduced. See [equipment authoring](equipment.md).
