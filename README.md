@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D08 completed.** The five-view demo now combines camera-independent melee/ranged enemy AI with persistent arena/dungeon traversal, a physical two-sided door, room occlusion, cached remote portals, independent equipment/pickup lifecycles and configurable camera presentation. D08 is visually accepted; **D09 is the next implementation milestone**. The reusable Actor, Combat, Equipment, Animation and Camera cores remain separate from scene-specific world composition.
+> **Project status (November 2026): D01–D08 and D09-01 delivered.** The five-view demo combines camera-independent melee/ranged AI, connected persistent arena/dungeon, physical doors and portals, equipment, responsive HUD, view-local control profiles and a playable EXIT objective. D09-01 native/WebGL2 automated checks passed and the F1 gun trajectory was visually accepted. **Next: D09-02 retro-specific encounter/scrolling**, then developer tooling and release work. The Actor, Combat, Equipment, Animation and Camera cores remain separate from demo world composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
