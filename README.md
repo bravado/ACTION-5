@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D08 and D09-01 delivered.** The five-view demo combines camera-independent melee/ranged AI, connected persistent arena/dungeon, physical doors and portals, equipment, responsive HUD, view-local control profiles and a playable EXIT objective. D09-01 native/WebGL2 automated checks passed and the F1 gun trajectory was visually accepted. **Next: D09-02 retro-specific encounter/scrolling**, then developer tooling and release work. The Actor, Combat, Equipment, Animation and Camera cores remain separate from demo world composition.
+> **Project status (November 2026): D01–D09-02 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun retro directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -96,7 +96,7 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D08, the independent crouch example, and D09-01 are delivered.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D09-02 retro overhead aiming/scrolling, then D10 tools and D11–D12 release work. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D09-02 and the independent crouch example are implemented.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D10 tools, then D11–D12 release work. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
 
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
@@ -298,13 +298,13 @@ Native Linux export/render capture and real WebGL2 browser startup passed
 in [CI / Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
 The side-view trajectory was visually accepted by the project owner.
 A separate prolonged manual playthrough/focus-loss exploration is
-not covered by the automated evidence. D09-02's retro-specific 4/8-way
-encounter and scrolling remain separate.
+not covered by automated evidence. D09-02 adds the independent four-way/
+eight-way retro behavior and scrolling described below.
 
 
 ### D09-02 — Retro overhead combat (view 5)
 
-View **5** keeps the same actor, equipment, collision world and combat clock as views 1–4. The starting arena and the connected dungeon both have a pick-up **Sword**: interact with **E**, attack with configured **LMB/J**, and swap equipment with **Q**. Its D05 melee hitbox uses **four cardinal** headings in view 5 but continuous input heading in view 3. The existing Pistol uses **eight directions** in view 5 and continuous heading in other views. In view 5, **WASD moves** and **arrow keys aim independently** (or use left stick/right stick); view 1–4 controls are unchanged. the camera follows the player through the connected arena/dungeon without teleporting or creating another world. First-person sword presentation is optional and visual-only. Pickups in the dungeon reuse the D08 scene persistence policy.
+View **5** keeps the same actor, equipment, collision world and combat clock as views 1–4. The starting arena and the connected dungeon both have a pick-up **Sword**: interact with **E**, attack with configured **LMB/J**, and swap equipment with **Q**. Its D05 melee hitbox uses **four cardinal** headings in view 5 but continuous input heading in view 3. The existing Pistol uses **eight directions** in view 5 and continuous heading in other views. In view 5, **WASD moves** and **arrow keys aim independently** (or use left stick/right stick); view 1–4 controls are unchanged. The camera follows the player through the connected arena/dungeon without teleporting or creating another world. First-person sword presentation is optional and visual-only. Pickups in the dungeon reuse the D08 scene persistence policy.
 
 To configure another weapon without editing Actor, CombatController, MovementController, AnimationPresenter or Gun: create an `Action5ViewFacingPolicy` resource with `view_mode = 4` and `sector_count = 4`, `8` or another count from 2–32, then add it to `Action5WeaponDefinition.view_facing_policies`. Set its attack's `facing_sectors = Free` so the rule does not affect other views. Wire one `Action5EquippedViewFacing` beside the actor's Equipment component and pass its path to ActorInputAdapter, CombatInputAdapter and ViewAimTargetProvider. On unsupported or unspecified views the fallback is the original free heading. The same policy instance is read on demand, with no cached weapon identity or mutated attack definitions. View-specific direction affects aim selection and visible heading only: the world muzzle still decides hits, obstruction and ammo costs. An actor without the policy retains existing behavior.
 
