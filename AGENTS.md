@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D08 and D09-01 are delivered:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-02 is next.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
+Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D08 and D09-01 are delivered:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-02 is in implementation.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
 
 ## Product invariant
 
@@ -761,3 +761,8 @@ muzzle visuals and wall obstruction. Final D09-01 baseline:
 and [Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
 Owner accepted the F1 trajectory. Do not falsely claim the separate
 20-minute exploratory test based solely on automated smoke evidence.
+
+
+## D09-02 retro combat integration (implementation branch)
+
+D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The existing D08 connected dungeon now holds a Sword pickup through WorldPickup persistence; `tests/d09_retro_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. **No claim of native/WebGL2 pass or manual visuals until latest-head evidence exists.**
