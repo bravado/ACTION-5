@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Action5WeaponDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/equipment/weapon_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://demo/equipment/sword_slash.tres" id="2"]
+[ext_resource type="PackedScene" path="res://demo/equipment/sword_first_person.tscn" id="3"]
+[ext_resource type="Resource" path="res://demo/equipment/retro_sword_facing.tres" id="4"]
+
+[resource]
+script = ExtResource("1")
+weapon_id = &"sword"
+display_name = "Sword"
+socket_id = &"right_hand"
+grip_position = Vector3(0, -0.04, -0.20)
+attacks = Array[Resource]([ExtResource("2")])
+view_facing_policies = Array[Resource]([ExtResource("4")])
+first_person_scene = ExtResource("3")
