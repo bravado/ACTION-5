@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://demo/player.gd" id="1_script"]
 [ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="2_locomotion"]
@@ -32,6 +32,7 @@
 [ext_resource type="Script" path="res://addons/action5/combat/view_aim_target_provider.gd" id="29_gun_aim"]
 [ext_resource type="Script" path="res://addons/action5/animation/gun_reload_visual_adapter.gd" id="30_reload_visual"]
 [ext_resource type="Script" path="res://addons/action5/combat/equipped_view_facing.gd" id="31_equipped_facing"]
+[ext_resource type="Script" path="res://demo/combat/retro_projectile_visual_origin.gd" id="32_retro_tracer"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -121,6 +122,9 @@ script = ExtResource("26_equipment")
 
 [node name="EquipmentVisualAdapter" type="Node" parent="."]
 script = ExtResource("27_equipment_visual")
+
+[node name="ProjectileVisualOrigin" type="Node" parent="."]
+script = ExtResource("32_retro_tracer")
 
 [node name="EquipmentAttackSelector" type="Node" parent="."]
 script = ExtResource("28_equipment_attacks")
