@@ -14,7 +14,7 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 **Number row 1–5** is the primary shortcut on both desktop and Web. F1–F5 is an optional secondary binding, because browsers may reserve function keys. There are five visible in-game selector buttons and configurable gamepad shoulder-button cycling. `Ctrl+1–5` is *not* a supported browser fallback: browsers use Ctrl+number for tab navigation.
 
-Controls are view-local: in F1 W/Up jumps and S/Down holds crouch; in F4 A/D strafes while Left/Right arrows turn. F2/F3/F5 retain directional movement. See [locomotion](locomotion.md). Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reusable movement adapter and control profiles are delivered by D03 and D09-01.
+Controls are view-local: in F1 W/Up jumps and S/Down holds crouch; in F4 A/D strafes while Left/Right arrows turn. F2/F3 retain directional movement; in F5 WASD moves independently of arrow-key aiming (or left/right sticks). See [locomotion](locomotion.md). Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reusable movement adapter and control profiles are delivered by D03 and D09-01.
 
 ## Optional F2 side-wall camera peek (D08)
 
@@ -213,10 +213,18 @@ mapping or any shared Combat/AI code.
 `Action5ViewControlProfile` resource to map global, user-remappable
 InputMap action names onto movement, jump, yaw and optional held-move
 roles. Defaults live in `addons/action5/input/profiles/`:
-`default.tres` for F2/F3/F5, `side.tres` for F1 and
-`first_person.tres` for F4. F1 W/Up jumps and S/Down
+`default.tres` for F2/F3 fallback, `side.tres` for F1 and
+`first_person.tres` for F4. The demo assigns `demo/input/retro_topdown.tres`
+for F5 directly on the `ActorInput` node in `demo/main.tscn`.
+The view-local input profile is scene configuration, not runtime mutation. F1 W/Up jumps and S/Down
 holds crouch instead of moving in world Z; F4 arrows turn the
 existing CameraRig's persistent yaw while A/D continue to strafe.
 The player and camera are never reconstructed by switching views.
 To add per-view controls, author an input profile resource rather
 than branching the Actor, CameraRig or attack component.
+
+## D09-02 retro overhead controls and camera continuity
+
+The shipped retro view is a vertical orthographic camera over the **same connected world**. The existing CameraRig and sector bounds scroll with the player without recreating the actor, enemy state, combat or equipment. In view 5, **WASD moves** and **arrow keys/right stick aim independently**; the left stick still moves. The equipped weapon's optional `Action5ViewFacingPolicy` resource selects quantization (four cardinal Sword headings, eight Gun headings). One actor-local `Action5EquippedViewFacing` provider supplies the actor-facing, attack and target-selection inputs. A sector count of zero selects continuous heading, and absent policies preserve their original fallbacks.
+
+For ranged attacks the F5 aim provider selects a target on the player's forward X/Z centerline at muzzle height. The Gun then fires **from the actual world muzzle** toward that point, respecting nearer walls; its visible tracer likewise starts at the muzzle. In F4, only the tracer can use the separate visible viewmodel barrel tip. The camera never owns ammo, hit resolution or projectile state. See [equipment authoring](equipment.md).
