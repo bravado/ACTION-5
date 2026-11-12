@@ -19,6 +19,7 @@ const ActionContextScript = preload("res://addons/action5/input/action_input_con
 @onready var action_selection_source: Node = (
     get_node_or_null(action_selection_path) if not action_selection_path.is_empty() else null
 )
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 var release_to_rearm: bool = false
 # InputMap sees mouse events even when GUI consumes them. Only an event
