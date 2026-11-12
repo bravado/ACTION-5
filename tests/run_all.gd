@@ -696,6 +696,8 @@ func _run_tests() -> void:
     await d09_suite.run_tests(self, Callable(self, "_check"))
     var side_aim_suite := D09SideAimSuiteScript.new()
     await side_aim_suite.run_tests(self, Callable(self, "_check"))
+    var retro_suite := D09RetroSuiteScript.new()
+    await retro_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at
