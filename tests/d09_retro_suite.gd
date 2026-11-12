@@ -48,21 +48,33 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and str(control_profile.get("move_up_action")) == "retro_move_up"
         and str(control_profile.get("extra_aim_up_action")) == "retro_aim_up",
         "D09-02 F5 installs a demo-local WASD move + arrows aim profile")
-    _keyboard(KEY_UP, true)
-    _keyboard(KEY_RIGHT, true)
+    var arrow_up := InputEventKey.new()
+    arrow_up.keycode = KEY_UP
+    var arrow_right := InputEventKey.new()
+    arrow_right.keycode = KEY_RIGHT
+    var w_key := InputEventKey.new()
+    w_key.keycode = KEY_W
+    verify.call(InputMap.event_is_action(arrow_up, &"retro_aim_up")
+        and InputMap.event_is_action(arrow_right, &"retro_aim_right")
+        and InputMap.event_is_action(w_key, &"retro_move_up"),
+        "D09-02 actual arrow/W keys are bound to the independent retro InputMap roles")
+    Input.action_press(&"retro_aim_up")
+    Input.action_press(&"retro_aim_right")
     var keyboard_aim: Vector2 = actor_input.call("get_aim_axes")
     var keyboard_movement: Vector2 = actor_input.call("get_movement_axes")
+    print("ACTION5_RETRO_INPUT aim=", keyboard_aim, " move=", keyboard_movement)
     verify.call(keyboard_aim.distance_to(Vector2(1, -1).normalized()) < 0.01
         and keyboard_movement.length_squared() < 0.001,
-        "D09-02 actual Up+Right keyboard input aims diagonally without moving")
-    _keyboard(KEY_UP, false)
-    _keyboard(KEY_RIGHT, false)
-    _keyboard(KEY_W, true)
+        "D09-02 Up+Right aim actions resolve diagonally without moving")
+    Input.action_release(&"retro_aim_up")
+    Input.action_release(&"retro_aim_right")
+    Input.action_press(&"retro_move_up")
     keyboard_aim = actor_input.call("get_aim_axes")
     keyboard_movement = actor_input.call("get_movement_axes")
+    print("ACTION5_RETRO_INPUT_MOVE aim=", keyboard_aim, " move=", keyboard_movement)
     verify.call(keyboard_aim.length_squared() < 0.001 and keyboard_movement.y < -0.99,
-        "D09-02 WASD movement does not introduce an aim direction")
-    _keyboard(KEY_W, false)
+        "D09-02 WASD move actions do not introduce an aim direction")
+    Input.action_release(&"retro_move_up")
     verify.call(views.camera_rig.is_vertical_overhead(),
         "D09-02 top-down remains precisely vertical")
     var camera_id_before: int = views.get_active_camera().get_instance_id()
@@ -84,8 +96,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var slash: Resource = sword.get("definition").attacks[0]
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
-    await tree.process_frame
     var retro_hint := level.get_node("Hud/RetroDirection") as Label
+    level.get_node("Hud").call("_process", 0.0)
+    print("ACTION5_RETRO_HUD_SWORD visible=", retro_hint.visible, " text=", retro_hint.text)
     verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
         and retro_hint.text.contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
@@ -115,7 +128,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 8,
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
-    await tree.process_frame
+    level.get_node("Hud").call("_process", 0.0)
+    print("ACTION5_RETRO_HUD_GUN visible=", retro_hint.visible, " text=", retro_hint.text)
     verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
         and retro_hint.text.contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
