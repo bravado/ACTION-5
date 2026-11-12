@@ -168,7 +168,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(presenter.get("visual_origin_provider_path") == NodePath("EquipmentVisualAdapter"),
         "D09-02 tracer uses existing muzzle origin with optional F4 viewmodel")
     var world_muzzle: Vector3 = muzzle.global_position
-    var actor_center: Vector3 = player.global_position
     verify.call(presenter.call("_visual_origin", world_muzzle).is_equal_approx(world_muzzle),
         "D09-02 F5 visually starts at real Gun muzzle, never player body center")
 
