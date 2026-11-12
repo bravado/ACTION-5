@@ -105,11 +105,21 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(f5_sword.distance_to(Vector2.RIGHT) < 0.001
         and f3_sword.distance_to(diagonal) < 0.001,
         "D09-02 same Sword is F5 cardinal and F3 freely aimed")
+    # A real D05 Hurtbox, not just the stored attack heading, must be
+    # struck by the configured cardinal Sword arc in the shared dungeon.
+    var sword_target := level.get_node("NearDummy") as Node3D
+    var sword_health: Node = sword_target.get_node("Health")
+    sword_target.global_position = player.global_position + Vector3(1.25, -0.15, 0.0)
+    sword_health.set("current_health", 100.0)
+    sword_health.set("invulnerability_left", 0)
+    await _ticks(tree, 2)
     verify.call(combat.call("request_attack", slash.attack_id, f5_sword),
         "D09-02 Sword attack enters existing single combat timeline")
     await _ticks(tree, 5)
-    verify.call(combat.get("_active_direction").distance_to(Vector2.RIGHT) < 0.001,
-        "D09-02 active Sword hitbox faces policy-selected cardinal direction")
+    verify.call(combat.get("_active_direction").distance_to(Vector2.RIGHT) < 0.001
+        and is_equal_approx(float(sword_health.get("current_health")),
+            100.0 - float(slash.get("damage"))),
+        "D09-02 four-way Sword actually hits a world Hurtbox once in F5")
     views.switch_view(2)
     verify.call(combat.get("current_id") == slash.attack_id,
         "D09-02 F5 to F3 does not cancel a running Sword swing")
