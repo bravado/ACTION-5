@@ -877,3 +877,11 @@ upper torso. Retuned default `side_center_height` to 1.25 m and kept
 it configurable; no Gun/muzzle physics changed. The new integration
 suite now moves the actual pickup inside range and passes typed RID
 exclusions to aim queries before exercising damage and world blockers.
+
+
+**F1 upper-torso sightline CI:** pinned Godot `make check` passed in
+[run #43135267448](https://github.com/bravado/ACTION-5/actions/runs/43135267448),
+**1,275 assertions / zero failures**. Confirmed F1 hits right/left targets,
+muzzle-based tracer origin and solid wall blocking. The following commit
+requests native/Web `CI / Full E2E` validation; screen-space visual review
+remains a manual acceptance gate.
