@@ -10,6 +10,7 @@ const ActionContextScript = preload("res://addons/action5/input/action_input_con
 ## Replaceable selection policy: same J/K or mouse buttons can choose an
 ## equipped action without importing equipment into this input adapter.
 @export var action_selection_path: NodePath = ^""
+@export var direction_policy_path: NodePath = ^""
 
 @onready var combat: CombatScript = get_node_or_null(combat_path) as CombatScript
 ## Duck-typed provider implementing get_action_input_context().
