@@ -13,6 +13,7 @@ extends CanvasLayer
 
 @onready var status: Label = $Status
 @onready var help: Label = $Help
+@onready var retro_direction: Label = get_node_or_null(^"RetroDirection") as Label
 @onready var views: Node = get_node_or_null(views_path)
 @onready var health: Node = get_node_or_null(health_path)
 @onready var combat: Node = get_node_or_null(combat_path)
@@ -20,6 +21,7 @@ extends CanvasLayer
 @onready var moves: Node = get_node_or_null(moves_path)
 @onready var session: Node = get_node_or_null(session_path)
 @onready var actor_input: Node = get_node_or_null(actor_input_path)
+@onready var direction_policy: Node = get_node_or_null(^"../Player/EquippedViewFacing")
 
 var _weapon: Node
 var _exit: Node
@@ -46,6 +48,7 @@ func _ready() -> void:
     _connect(moves, &"move_changed", _on_move_changed)
     _connect(session, &"sector_changed", _on_sector_changed)
     Input.joy_connection_changed.connect(_on_joy_connection)
+    _sync_retro_direction()
     refresh()
 
 
@@ -155,6 +158,13 @@ func refresh() -> void:
                 str(controls.get("held_move_id")).capitalize(),
                 _binding(controls.get("held_move_action"))
             ]
+        if not str(controls.get("extra_aim_left_action")).is_empty():
+            instructions += " | Independent aim: %s/%s/%s/%s" % [
+                _binding(controls.get("extra_aim_left_action")),
+                _binding(controls.get("extra_aim_right_action")),
+                _binding(controls.get("extra_aim_up_action")),
+                _binding(controls.get("extra_aim_down_action"))
+            ]
         if not str(controls.get("turn_left_action")).is_empty():
             instructions += " | Turn: %s/%s" % [
                 _binding(controls.get("turn_left_action")),
@@ -240,6 +250,7 @@ func command_hints(weapon: Node) -> PackedStringArray:
 
 
 func _on_view_changed(_current: Resource, _previous: Resource) -> void:
+    _sync_retro_direction()
     refresh()
 
 
@@ -289,6 +300,52 @@ func _on_objective_changed() -> void:
 
 func _on_joy_connection(_device: int, _connected: bool) -> void:
     refresh()
+
+
+## A read-only view-local compass. It never changes gameplay direction,
+## timing, ammo, equipment or focus. Only enabled while overhead is active.
+func _sync_retro_direction() -> void:
+    if retro_direction == null:
+        return
+    var retro: bool = is_instance_valid(views) and views.get("current_profile") != null \
+        and int(views.get("current_profile").get("mode")) == 4
+    retro_direction.visible = retro
+    set_process(retro)
+
+
+func _process(_delta: float) -> void:
+    if retro_direction == null or not is_instance_valid(actor_input):
+        return
+    var context: RefCounted = actor_input.call("get_action_input_context")
+    if context == null:
+        return
+    var heading: Vector2 = context.get("facing_world")
+    var sectors: int = 8
+    if is_instance_valid(direction_policy):
+        sectors = int(direction_policy.call("get_sectors", 4, sectors))
+    var current: Node = equipment.get("current_weapon") as Node if is_instance_valid(equipment) else null
+    var definition: Resource = current.get("definition") as Resource if is_instance_valid(current) else null
+    var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
+    var text_line: String = "RETRO | %s | %d-WAY | Heading %s | WASD move / Arrows or right stick aim" % [
+        weapon_name, sectors if sectors >= 2 else 0, _compass_heading(heading)
+    ]
+    if retro_direction.text != text_line:
+        retro_direction.text = text_line
+
+
+func _compass_heading(direction: Vector2) -> String:
+    if direction.length_squared() < 0.001:
+        return "-"
+    var result: String = ""
+    if direction.y < -0.38:
+        result = "N"
+    elif direction.y > 0.38:
+        result = "S"
+    if direction.x > 0.38:
+        result += "E"
+    elif direction.x < -0.38:
+        result += "W"
+    return result if not result.is_empty() else "-"
 
 
 func _exit_tree() -> void:
