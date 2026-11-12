@@ -15,6 +15,7 @@ const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## This is a target-selection port only: Gun still casts from the world muzzle.
 @export_range(0.2, 2.0, 0.05) var side_center_height: float = 1.25
 @export var side_aim_anchor_path: NodePath = ^".."
+@export var direction_policy_path: NodePath = ^""
 
 @onready var context_source: Node = get_node_or_null(context_source_path)
 
