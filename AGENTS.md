@@ -775,3 +775,16 @@ request exit even if headroom temporarily blocks it, focus loss and
 UI-disable must clear stale held state. Keep the locomotion/move FSM
 decoupled from all keys/views. HUD controls must read the active input
 profile rather than contain mode-specific keys.
+
+
+### D09-01 F1 gun aiming contract
+
+Side-view target selection belongs to `ViewAimTargetProvider`, never Gun.
+An orthographic camera-center ray is perpendicular to the F1 X/Y combat
+plane; it cannot be used directly as a horizontal shot. Aim through an
+actor-anchored, configurable center-height sightline toward the left/right
+facing direction, then verify the *actual muzzle-to-target* ray as usual.
+Never auto-damage targets, skip muzzle occlusion or move the gameplay
+muzzle into the FPS-only visual rig. Test both directions, different muzzle
+heights, blocked world geometry, retained projectile/tracer origin and
+camera-free NPC aim to avoid leaks between view-specific policies.

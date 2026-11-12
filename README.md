@@ -300,3 +300,19 @@ movement FSM, camera or weapon code.
 | 5 Retro overhead | Move up | Move down | Move left / right | Move left / right |
 
 The HUD shows the active profile's actions, including dynamic bindings.
+
+
+### D09 side-view gun aim
+
+F4 already uses an actual camera-center aim ray and then resolves physical
+obstruction from the Gun's world muzzle. In an orthographic side view a
+literal center-of-viewport camera ray travels into stage depth (Z), not
+horizontally toward left/right enemies. The F1 view target provider therefore
+uses a **center-height horizontal line of sight** through the shared combat
+lane, at configurable `side_center_height` (default 0.85 above actor root),
+to select a target. The *same physical gun muzzle* then traces toward that
+target to verify obstructions and apply damage. No camera or movement
+branches were added to Gun, Combat, Health, or projectiles, and AI guns
+retain their independent camera-free target provider. See
+`tests/d09_side_aim_suite.gd` for real F1 damage, both facing directions,
+muzzle visuals and solid wall blocking.

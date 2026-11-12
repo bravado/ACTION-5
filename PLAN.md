@@ -858,3 +858,15 @@ transitions, held crouch/release, F4 yaw and standard F2 movement.
 failures in [run #43116927805](https://github.com/bravado/ACTION-5/actions/runs/43116927805).
 The next CI run requests `CI / Full E2E` before acceptance; owner visual
 validation across F1–F5 remains required.
+
+
+### D09-01 side-view gun sightline fix (2026-11-11)
+
+F1 orthographic camera-center rays point through depth, so the side-view
+`ViewAimTargetProvider` now selects horizontally along the shared combat
+lane at configurable target-body center height. The authoritative Gun uses
+its unchanged muzzle ray for near-wall obstruction, damage and the
+projectile hit endpoint. Existing F4 crosshair ray and camera-free NPC
+provider are unchanged. Added real-physics F1 right/left, physical blocked
+shot and tracer-start regression; Godot CI and manual native/Web review
+must confirm the actual render and playability.
