@@ -65,13 +65,7 @@ func _retro_center_target(origin: Vector3, direction: Vector2,
         return origin
     var center := Vector3(actor.global_position.x, origin.y, actor.global_position.z)
     var endpoint := center + Vector3(direction.x, 0.0, direction.y) * maximum_range
-    var query := PhysicsRayQueryParameters3D.create(
-        center, endpoint, camera_target_mask, exclude
-    )
-    query.collide_with_areas = true
-    query.collide_with_bodies = true
-    var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(query)
-    return hit.get("position", endpoint)
+    return _first_centerline_hit(actor.get_world_3d(), center, endpoint, exclude)
 
 
 ## Orthographic side-view center-line selection. A ray through the literal
@@ -93,10 +87,17 @@ func _side_center_target(context: RefCounted, camera: Camera3D,
         horizontal = 1.0
     var begin: Vector3 = actor.global_position + Vector3.UP * side_center_height
     var finish: Vector3 = begin + Vector3.RIGHT * signf(horizontal) * maximum_range
-    var params := PhysicsRayQueryParameters3D.create(
+    return _first_centerline_hit(camera.get_world_3d(), begin, finish, exclude)
+
+
+## F1 and F5 share one read-only centerline selection. The Gun always
+## performs the authoritative muzzle ray afterward (including near walls).
+func _first_centerline_hit(world: World3D, begin: Vector3, finish: Vector3,
+        exclude: Array[RID]) -> Vector3:
+    var query := PhysicsRayQueryParameters3D.create(
         begin, finish, camera_target_mask, exclude
     )
-    params.collide_with_areas = true
-    params.collide_with_bodies = true
-    var selected: Dictionary = camera.get_world_3d().direct_space_state.intersect_ray(params)
-    return selected.get("position", finish)
+    query.collide_with_areas = true
+    query.collide_with_bodies = true
+    var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+    return hit.get("position", finish)
