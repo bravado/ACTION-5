@@ -113,6 +113,20 @@ func get_active_controls() -> ControlProfileScript:
     return default_controls
 
 
+## Keep the right stick active in every view; optional keyboard aim uses
+## exactly the same independent intent port without moving the actor.
+func get_aim_axes(controls: ControlProfileScript = null) -> Vector2:
+    if controls == null:
+        controls = get_active_controls()
+    var aim := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    if controls != null:
+        aim += Vector2(
+            _axis(controls.extra_aim_left_action, controls.extra_aim_right_action),
+            _axis(controls.extra_aim_up_action, controls.extra_aim_down_action)
+        )
+    return aim.limit_length(1.0)
+
+
 func get_movement_axes() -> Vector2:
     var controls: ControlProfileScript = get_active_controls()
     if controls == null:
