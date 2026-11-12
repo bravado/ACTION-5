@@ -465,6 +465,15 @@ offset_bottom = 150.0
 theme_override_font_sizes/font_size = 17
 text = "VIEW 2 / 5 | Beat'em Up"
 
+[node name="RetroDirection" type="Label" parent="Hud"]
+visible = false
+offset_left = 24.0
+offset_top = 210.0
+offset_right = 1255.0
+offset_bottom = 242.0
+theme_override_font_sizes/font_size = 18
+text = "RETRO | Aim with arrow keys or right stick"
+
 [node name="ModeButtons" type="HBoxContainer" parent="Hud"]
 offset_left = 24.0
 offset_top = 157.0
