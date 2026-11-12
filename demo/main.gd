@@ -5,6 +5,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
+const RetroControls = preload("res://demo/input/retro_topdown.tres")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
