@@ -309,7 +309,7 @@ obstruction from the Gun's world muzzle. In an orthographic side view a
 literal center-of-viewport camera ray travels into stage depth (Z), not
 horizontally toward left/right enemies. The F1 view target provider therefore
 uses a **center-height horizontal line of sight** through the shared combat
-lane, at configurable `side_center_height` (default 0.85 above actor root),
+lane, at configurable `side_center_height` (default 1.25 above actor root),
 to select a target. The *same physical gun muzzle* then traces toward that
 target to verify obstructions and apply damage. No camera or movement
 branches were added to Gun, Combat, Health, or projectiles, and AI guns

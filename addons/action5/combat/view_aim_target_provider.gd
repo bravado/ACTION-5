@@ -11,9 +11,9 @@ const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export_flags_3d_physics var camera_target_mask: int = 3
 @export_enum("Free", "4-way", "8-way") var retro_gun_sectors: int = 2
 ## F1 orthographic rays travel into screen depth, not left/right along the
-## side-scroller plane. Use a separate center-height horizontal sight ray.
+## side-scroller plane. Use a separate upper-torso-height horizontal sight ray.
 ## This is a target-selection port only: Gun still casts from the world muzzle.
-@export_range(0.2, 2.0, 0.05) var side_center_height: float = 0.85
+@export_range(0.2, 2.0, 0.05) var side_center_height: float = 1.25
 @export var side_aim_anchor_path: NodePath = ^".."
 
 @onready var context_source: Node = get_node_or_null(context_source_path)

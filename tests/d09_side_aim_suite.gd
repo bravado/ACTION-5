@@ -46,16 +46,20 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         ProfileScript.Mode.SIDE, views.get_active_camera()
     )
     aim.context_source = source
+    # The world pickup starts several metres away; scripted equipment
+    # pickup enforces its ordinary range even in headless tests.
+    gun.global_position = actor.global_position + Vector3(0.3, 0.4, 0.15)
     verify.call(equipment.call("pickup", gun),
         "D09 F1 equips the unchanged physical Gun")
     await _ticks(tree, 5)
     var muzzle := gun.get_node("Muzzle") as Node3D
+    var excludes: Array[RID] = [actor.get_rid()]
     var center_target: Vector3 = aim.call("get_world_target",
-        muzzle.global_position, 60.0, [actor.get_rid()])
-    verify.call(center_target.distance_to(dummy.global_position + Vector3.UP * 0.85) < 0.9,
+        muzzle.global_position, 60.0, excludes)
+    verify.call(center_target.distance_to(dummy.global_position + Vector3.UP * 1.25) < 0.9,
         "D09 F1 camera policy selects enemy body center on the shared 2D lane")
-    verify.call(absf(center_target.y - muzzle.global_position.y) > 0.05,
-        "D09 F1 target elevation differs from the animated weapon muzzle")
+    verify.call(absf(center_target.y - 1.25) < 0.02,
+        "D09 F1 target is upper-torso height instead of arm or floor height")
     var projectile_presenter: Node = gun.get_node("ProjectilePresenter")
     var projectiles: Array[Node3D] = []
     projectile_presenter.projectile_spawned.connect(
@@ -100,9 +104,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         ProfileScript.Mode.SIDE, views.get_active_camera()
     )
     var left_target: Vector3 = aim.call("get_world_target",
-        muzzle.global_position, 60.0, [actor.get_rid()])
+        muzzle.global_position, 60.0, excludes)
     verify.call(left_target.x < actor.global_position.x - 4.0
-        and left_target.distance_to(dummy.global_position + Vector3.UP * 0.85) < 0.9,
+        and left_target.distance_to(dummy.global_position + Vector3.UP * 1.25) < 0.9,
         "D09 F1 center-height sightline respects left-facing aim too")
     old_hp = float(health.get("current_health"))
     verify.call(await _fire(tree, combat)

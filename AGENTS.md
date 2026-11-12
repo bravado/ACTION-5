@@ -788,3 +788,10 @@ Never auto-damage targets, skip muzzle occlusion or move the gameplay
 muzzle into the FPS-only visual rig. Test both directions, different muzzle
 heights, blocked world geometry, retained projectile/tracer origin and
 camera-free NPC aim to avoid leaks between view-specific policies.
+
+
+Keep F1 default side target height at upper-torso level (1.25 above the
+actor root), not the animated hand/muzzle height or a literal
+orthographic camera ray perpendicular to the play plane. Tune the
+exported property for differently sized characters; keep the same
+physical muzzle collision authority and real-gun test fixtures.

@@ -870,3 +870,10 @@ projectile hit endpoint. Existing F4 crosshair ray and camera-free NPC
 provider are unchanged. Added real-physics F1 right/left, physical blocked
 shot and tracer-start regression; Godot CI and manual native/Web review
 must confirm the actual render and playability.
+
+
+**F1 correction:** Initial 0.85 m center ray landed below the intended
+upper torso. Retuned default `side_center_height` to 1.25 m and kept
+it configurable; no Gun/muzzle physics changed. The new integration
+suite now moves the actual pickup inside range and passes typed RID
+exclusions to aim queries before exercising damage and world blockers.
