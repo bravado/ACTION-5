@@ -42,6 +42,8 @@ func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]
     if mode == ProfileScript.Mode.SIDE and is_instance_valid(camera):
         return _side_center_target(context, camera, origin, maximum_range, exclude)
     var sectors: int = retro_gun_sectors * 4 if mode == ProfileScript.Mode.RETRO_TOPDOWN else 0
+    if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+        sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var direction: Vector2 = AimScript.resolve_direction(
         context.get("world_aim"), context.get("facing_world"), mode, camera, sectors
     )
