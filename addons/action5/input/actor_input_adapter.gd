@@ -21,6 +21,8 @@ const FirstPersonControls = preload("res://addons/action5/input/profiles/first_p
 @export_range(0.0, 0.95, 0.05) var aim_deadzone: float = 0.28
 @export_enum("4-way", "8-way") var retro_facing: int = 1
 @export var independent_aim_enabled: bool = true
+## Optional equipped/view facing provider, shared with CombatInput and Gun aim.
+@export var direction_policy_path: NodePath = ^""
 ## F4-only keyboard turning. Turn actions are remappable independently of A/D.
 @export_range(30.0, 360.0, 5.0) var first_person_turn_speed: float = 135.0
 ## Editing or adding a mapping requires only a Resource, not a new view branch.
