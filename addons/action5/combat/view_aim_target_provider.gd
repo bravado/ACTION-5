@@ -18,6 +18,7 @@ const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export var direction_policy_path: NodePath = ^""
 
 @onready var context_source: Node = get_node_or_null(context_source_path)
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 
 func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]) -> Vector3:
