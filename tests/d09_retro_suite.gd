@@ -150,6 +150,76 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 F3 Gun target remains continuous without changing ammo")
     verify.call(gun.get("magazine") == gun.get("magazine_size"),
         "D09-02 view policy never spends ammunition")
+
+    # The overhead tracer must appear centered on the *actor*, not on the
+    # socket mounted to one side of the body. The physical ray and its
+    # impact still originate from that unchanged world Muzzle.
+    var visual_origin: Node = player.get_node("ProjectileVisualOrigin")
+    var presenter: Node = gun.get_node("ProjectilePresenter")
+    verify.call(presenter.get("visual_origin_provider_path") == NodePath("ProjectileVisualOrigin"),
+        "D09-02 Gun projectile subscribes to the actor-local visual-only origin port")
+    var world_muzzle: Vector3 = muzzle.global_position
+    var actor_center: Vector3 = player.global_position
+    var centered: Vector3 = visual_origin.call(
+        "get_projectile_visual_origin", gun, world_muzzle
+    )
+    verify.call(Vector2(centered.x, centered.z).distance_to(
+        Vector2(actor_center.x, actor_center.z)) < 0.001
+        and is_equal_approx(centered.y, world_muzzle.y)
+        and Vector2(world_muzzle.x, world_muzzle.z).distance_to(
+            Vector2(actor_center.x, actor_center.z)) > 0.1,
+        "D09-02 overhead projectile visually starts at player X/Z center, at muzzle height")
+
+    views.switch_view(2)
+    var original_outside: Vector3 = visual_origin.call(
+        "get_projectile_visual_origin", gun, muzzle.global_position
+    )
+    verify.call(original_outside.is_equal_approx(muzzle.global_position),
+        "D09-02 other exterior views still launch from the actual weapon muzzle")
+    views.switch_view(3)
+    var expected_f4: Vector3 = player.get_node("EquipmentVisualAdapter").call(
+        "get_projectile_visual_origin", gun, muzzle.global_position
+    )
+    var observed_f4: Vector3 = visual_origin.call(
+        "get_projectile_visual_origin", gun, muzzle.global_position
+    )
+    verify.call(observed_f4.is_equal_approx(expected_f4)
+        and observed_f4.distance_to(muzzle.global_position) > 0.1,
+        "D09-02 F4 still launches visually from its gripped first-person barrel")
+    views.switch_view(4)
+
+    var recorded_shots: Array[Dictionary] = []
+    var projectiles: Array[Node3D] = []
+    gun.fired.connect(func(impact: Vector3, _did_damage: bool) -> void:
+        recorded_shots.append({
+            "impact": impact, "actor": player.global_position, "muzzle": muzzle.global_position
+        })
+    )
+    presenter.projectile_spawned.connect(func(projectile: Node3D) -> void:
+        projectiles.append(projectile)
+    )
+    source.snapshot = ContextScript.new(true, Vector2(1.0, 0.0), Vector2.LEFT,
+        ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
+    var ammo_before: int = gun.magazine
+    var shots_before: int = gun.shots_fired
+    var requested: bool = combat.call("request_attack", &"gun_fire", Vector2.RIGHT)
+    await _ticks(tree, 8)
+    verify.call(requested and recorded_shots.size() == 1 and projectiles.size() == 1
+        and gun.shots_fired == shots_before + 1 and gun.magazine == ammo_before - 1,
+        "D09-02 real F5 fire still uses one authoritative shot, ammo cost and tracer")
+    if recorded_shots.size() == 1 and projectiles.size() == 1:
+        var shot: Dictionary = recorded_shots[0]
+        var tracer: Node3D = projectiles[0]
+        var visual_start: Vector3 = tracer.get("from_world")
+        var shooter: Vector3 = shot["actor"]
+        var physical_muzzle: Vector3 = shot["muzzle"]
+        verify.call(Vector2(visual_start.x, visual_start.z).distance_to(
+            Vector2(shooter.x, shooter.z)) < 0.002
+            and is_equal_approx(visual_start.y, physical_muzzle.y)
+            and (tracer.get("to_world") as Vector3).is_equal_approx(shot["impact"]),
+            "D09-02 actual rendered tracer starts at player center but ends at real physics impact")
+    else:
+        verify.call(false, "D09-02 actual rendered tracer starts at player center but ends at real physics impact")
     var extra := PolicyScript.new()
     extra.view_mode = ProfileScript.Mode.RETRO_TOPDOWN
     extra.sector_count = 16
