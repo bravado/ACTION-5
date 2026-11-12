@@ -11,6 +11,7 @@ clip_map = {
 "punch": "punch",
 "bat_vertical": "bat_vertical",
 "bat_horizontal": "bat_horizontal",
+"sword_slash": "bat_horizontal",
 "shovel_overhead": "shovel_overhead",
 "kick": "kick",
 "hit": "hit",
