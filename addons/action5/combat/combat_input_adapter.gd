@@ -104,10 +104,14 @@ func _physics_process(_delta: float) -> void:
         if selected == null or combat.get_attack(selected.get("attack_id")) != selected:
             break
         var sectors: int = int(selected.get("facing_sectors"))
+        var sector_count: int = 4 if sectors == 1 else (8 if sectors == 2 else 0)
+        if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+            sector_count = int(direction_policy.call(
+                "get_sectors", context.view_mode, sector_count
+            ))
         var direction: Vector2 = AimScript.resolve_direction(
             context.world_aim, context.facing_world,
-            context.view_mode, context.camera,
-            4 if sectors == 1 else (8 if sectors == 2 else 0)
+            context.view_mode, context.camera, sector_count
         )
         combat.request_attack(selected.get("attack_id"), direction)
         break
