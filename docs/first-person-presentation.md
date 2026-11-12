@@ -234,3 +234,10 @@ actually displayed first-person gun. `EquipmentVisualAdapter` exposes
 a duck-typed visual-origin method only for the active local F4 model.
 A world view, absent model or NPC returns the world origin. This keeps
 both gun muzzle masks and D05 damage deterministic across view changes.
+
+
+## D09-02 Sword and Pistol reload pose resources
+
+The Sword's `sword_first_person.tscn` uses the standard gripped `Action5FirstPersonWeaponViewmodel` and an additional `sword_slash` pose; it does not require a new F4 renderer. Both Pistol variants use `Action5GunFirstPersonViewmodel` and share `gun_reload_grip.tres`. Their reload presentation reads `get_visual_action()` on the real equipped Gun via a visual-only `set_visual_source()` port. A valid `Action5FirstPersonLimbProfile` must begin at normalized `0.0` and end at `1.0`; the final grip returns to the idle position and orientation. The previously invalid 0.8 endpoint was corrected so pose sampling no longer returns an empty dictionary.
+
+`tests/d06_gun_suite.gd` checks mid-reload arm/grip movement, return to idle, the alternate Gun and cancellation on unequip. Reload time, ammo, damage and rejection gates remain in the world Gun, not the viewmodel. Native/WebGL2 smoke and headless assertions complement, but do not replace, inspection of first-person art in the running demo.
