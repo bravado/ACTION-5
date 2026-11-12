@@ -100,7 +100,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     extra.sector_count = 16
     var gun_definition: Resource = gun.get("definition")
     var original_policies: Array = gun_definition.view_facing_policies.duplicate()
-    gun_definition.view_facing_policies = [extra]
+    var alternate_policies: Array[Resource] = [extra]
+    gun_definition.view_facing_policies = alternate_policies
     verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 16,
         "D09-02 third sector count installs through resource config only")
     gun_definition.view_facing_policies = original_policies
