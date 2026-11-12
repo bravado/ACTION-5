@@ -423,3 +423,10 @@ world geometry. Leaving F1 unlocks 3D movement without restoring
 stale pre-switch enemy positions. `tests/d08_camera_sector_suite.gd`
 covers alignment, late spawning, camera switching and physical
 door/health invariants.
+
+
+## D09-02 regression and acceptance checks
+
+`tests/d09_retro_suite.gd` runs through the existing `make check` headless suite. It verifies the real arena/dungeon Sword pickup, four-way F5 heading and **actual Hurtbox damage**, eight-way Gun aiming from a physical muzzle toward the actor's center-forward sightline, the emitted tracer endpoint, control-profile composition, the HUD heading, camera scrolling without recreating the actor and view switching. `tests/d08_world_suite.gd`/`tests/d08_connections_suite.gd` cover the visible light switch and non-overlapping E interaction with the remote portal. `tests/d06_gun_suite.gd` covers the Pistol and Heavy Pistol's F4 reload poses and their existing per-instance reload clocks.
+
+Run `make check` on the final branch and the opt-in native/WebGL2 `CI / Full E2E` tier for changes to the scene, input bindings, aim policies or viewmodel art. The Godot test runner is authoritative for behavior; exported native screenshots and real WebGL2 startup are smoke evidence, **not a substitute for the owner's full 20-minute exploratory playthrough**. The D10 tooling milestone adds optional resource/pose diagnostics, rather than new runtime dependencies in Actor, Combat, Equipment or Camera.
