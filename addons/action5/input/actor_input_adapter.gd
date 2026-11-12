@@ -33,6 +33,7 @@ const FirstPersonControls = preload("res://addons/action5/input/profiles/first_p
 
 @onready var actor: ActorScript = get_node_or_null(actor_path) as ActorScript
 @onready var views: ViewManagerScript = get_node_or_null(view_manager_path) as ViewManagerScript
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 var enabled: bool = true
 var focus_active: bool = true
@@ -205,6 +206,8 @@ func compose_intent(
     ):
         aim = MovementPolicyScript.to_world(Vector2(0.0, -1.0), mode, basis)
     var sectors: int = 4 if retro_facing == 0 else 8
+    if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+        sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var facing := MovementPolicyScript.choose_facing(movement, aim, mode, sectors)
     var intent: IntentScript = IntentScript.new(movement, facing, aim)
     intent.jump_pressed = jump
