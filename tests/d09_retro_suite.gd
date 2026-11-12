@@ -65,8 +65,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     _keyboard(KEY_W, false)
     verify.call(views.camera_rig.is_vertical_overhead(),
         "D09-02 top-down remains precisely vertical")
+    var camera_id_before: int = views.get_active_camera().get_instance_id()
+    var camera_before: Vector3 = views.get_active_camera().global_position
+    var heading_before: Basis = views.get_active_camera().global_basis
     player.global_position = sword.global_position + Vector3(0.25, 0, 0)
     await _ticks(tree, 3)
+    views.camera_rig._snap_next = true
+    views.camera_rig._update_camera(1.0 / 60.0)
+    verify.call(views.get_active_camera().global_position.x - camera_before.x > 15.0
+        and views.get_active_camera().global_basis.is_equal_approx(heading_before)
+        and views.get_active_camera().get_instance_id() == camera_id_before,
+        "D09-02 vertical camera scrolls into connected dungeon without changing heading or identity")
     verify.call(equipment.call("pickup", sword),
         "D09-02 Sword uses existing world pickup/equipment protocol")
     verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 4
