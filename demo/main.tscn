@@ -410,6 +410,7 @@ script = ExtResource("7_actor_input")
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9_combat_input")
 action_selection_path = NodePath("../Player/EquipmentAttackSelector")
+direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="WeaponCommandInput" type="Node" parent="."]
 script = ExtResource("13_weapon_command")
