@@ -1,4 +1,5 @@
 extends CanvasLayer
+const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## D09 demo-only, read-only projection of the existing gameplay components.
 ## No ownership of attack/ammo clocks, equipment, health or camera mode.
 
@@ -10,6 +11,7 @@ extends CanvasLayer
 @export var session_path: NodePath = ^"../WorldSession"
 @export var exit_path: NodePath = ^"../EncounterSector/ExitTerminal"
 @export var actor_input_path: NodePath = ^"../ActorInput"
+@export var direction_policy_path: NodePath = ^"../Player/EquippedViewFacing"
 
 @onready var status: Label = $Status
 @onready var help: Label = $Help
@@ -21,7 +23,7 @@ extends CanvasLayer
 @onready var moves: Node = get_node_or_null(moves_path)
 @onready var session: Node = get_node_or_null(session_path)
 @onready var actor_input: Node = get_node_or_null(actor_input_path)
-@onready var direction_policy: Node = get_node_or_null(^"../Player/EquippedViewFacing")
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 var _weapon: Node
 var _exit: Node
@@ -308,7 +310,7 @@ func _sync_retro_direction() -> void:
     if retro_direction == null:
         return
     var retro: bool = is_instance_valid(views) and views.get("current_profile") != null \
-        and int(views.get("current_profile").get("mode")) == 4
+        and int(views.get("current_profile").get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN
     retro_direction.visible = retro
     set_process(retro)
 
@@ -322,12 +324,14 @@ func _process(_delta: float) -> void:
     var heading: Vector2 = context.get("facing_world")
     var sectors: int = 8
     if is_instance_valid(direction_policy):
-        sectors = int(direction_policy.call("get_sectors", 4, sectors))
+        if direction_policy.has_method("get_sectors"):
+            sectors = int(direction_policy.call("get_sectors", ViewProfileScript.Mode.RETRO_TOPDOWN, sectors))
     var current: Node = equipment.get("current_weapon") as Node if is_instance_valid(equipment) else null
     var definition: Resource = current.get("definition") as Resource if is_instance_valid(current) else null
     var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
-    var text_line: String = "RETRO | %s | %d-WAY | Heading %s | WASD move / Arrows or right stick aim" % [
-        weapon_name, sectors if sectors >= 2 else 0, _compass_heading(heading)
+    var facing_label: String = "%d-WAY" % sectors if sectors >= 2 else "FREE"
+    var text_line: String = "RETRO | %s | %s | Heading %s | WASD move / Arrows or right stick aim" % [
+        weapon_name, facing_label, _compass_heading(heading)
     ]
     if retro_direction.text != text_line:
         retro_direction.text = text_line
