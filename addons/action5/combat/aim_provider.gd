@@ -19,8 +19,9 @@ static func resolve_direction(
     if result.length_squared() < 0.001:
         result = Vector2(0.0, -1.0)
     result = result.normalized()
-    if mode == ViewProfileScript.Mode.RETRO_TOPDOWN and (sectors == 4 or sectors == 8):
-        result = PolicyScript.quantize_facing(result, sectors)
+    if mode == ViewProfileScript.Mode.RETRO_TOPDOWN and sectors >= 2:
+        var step: float = TAU / float(sectors)
+        result = Vector2.RIGHT.rotated(roundf(result.angle() / step) * step).normalized()
     return result
 
 
