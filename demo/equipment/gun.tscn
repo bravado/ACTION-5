@@ -36,7 +36,7 @@ material_override = SubResource("steel")
 
 [node name="ProjectilePresenter" type="Node" parent="."]
 script = ExtResource("4")
-visual_origin_provider_path = NodePath("EquipmentVisualAdapter")
+visual_origin_provider_path = NodePath("ProjectileVisualOrigin")
 debug_events = true
 
 [node name="PickupInteraction" type="Node3D" parent="."]
