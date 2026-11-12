@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-11): D01–D08 completed.** The v0.2 Combat baseline (D04–D07) is stable, and D08 adds a connected persistent arena/dungeon, independent physical gate, opaque closed-room presentation, cached remote-location portals, restart/fresh-entry policies and retained inventory/AI state. D08's Godot regression suite passed **1,212 assertions with zero failures**, and F1–F5 visual acceptance was confirmed by the owner. Browser export validation continues to be enforced by CI. **D09 is the next deliverable**; D10–D12 remain planned. Requirements and release gates below remain authoritative.
+**Status update (2026-11-12): D01–D08 and D09-01 delivered.** The D08 connected arena/dungeon baseline remains stable; D09-01 adds the reference HUD, view-local input profiles, completion/replay, F1/F4 controls and physically blocked side-view gun aiming. Pinned Godot tests passed **1,275 assertions with zero failures**, and native Linux/WebGL2 E2E passed. The owner accepted the updated F1 gun trajectory. **Next: D09-02 retro-specific aim/scrolling**; D10–D12 remain planned. The release and long-play acceptance gates below remain authoritative.
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -730,8 +730,7 @@ D10 opt-in authoring validators, D11 the existing test runner/matrix,
 and D12 demo-independent addon packaging remain separate milestones.
 
 **D06 and D07 handoff complete:** D07 reuses the camera-free aim port
-and the existing combat/equipment interfaces. D08 is the next active
-level-design milestone; do not reopen D06/D07 or introduce a new
+and the existing combat/equipment interfaces. D08 subsequently delivered the connected world; do not reopen D06/D07 or introduce a new
 combat/animation core for level interactions.
 
 
@@ -830,58 +829,39 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
   screenshot and startup gates for subsequent changes.
 
 
-### D09-01 draft handoff (2026-11-11)
+## D09-01 delivered baseline — playable reference and view-local input
 
-Status: Partially complete; quick CI checks passed, manual/native-Web acceptance pending.
-Scope: demo-only HUD, dynamically sourced input help, gated dungeon exit
-and completion/restart overlay; public signals and existing Interactor,
-Health, combat/equipment/view ports; no reusable addon core changes.
-Tests: `tests/d09_reference_suite.gd` registered in `tests/run_all.gd`.
-`make check`: **PASS** in pinned Godot CI run #43116927805 (1,266 assertions,
-zero failures). Native/WebGL2 export and smoke, actual start-to-exit run,
-and 20-minute visual/focus exploratory run: **NOT YET VERIFIED**. Do not close
-issue or merge based on headless regression tests alone. Follow-up: D09-02 retro top-down encounter and view policy.
+D09-01 composes the existing D08 arena and dungeon into a playable
+start-to-EXIT flow. The physical east gate, enemy Health events and
+Interactor ports remain authoritative; the demo-local `reference_exit`
+and victory overlay only present objective and completion. Player,
+weapons, scene state and camera are not duplicated.
 
+`demo/ui/reference_hud.gd` observes the public ViewManager, Health,
+Combat, Equipment, MovementController, weapon and InputMap ports.
+`Action5ViewControlProfile` resources assign remappable InputMap
+action names to per-view roles; F1 W/Up jumps, S/Down holds crouch
+and side movement stays horizontal. F4 Left/Right arrows turn at
+135°/s by default, and A/D strafe. F2/F3/F5 retain normal 2D
+directional input. Movement core, FSM, camera and combat continue
+to consume generic intent or look deltas; HUD does not own game state.
 
-### D09-01 input mapping revision (2026-11-11)
+Gun targeting stays outside Gun: F4 resolves a true center-camera ray,
+while F1 chooses a horizontal line along the 2D combat lane at
+configurable 1.25-unit upper-torso height. All actual shots still
+trace from their world muzzle to the selected world point, preserving
+wall obstruction, damage and projectile origin. Camera-free AI
+retains its independent target provider.
 
-Side view uses W/Up to jump and S/Down as hold-to-crouch (with crouch-walk
-while A/D moves). The per-view `Action5ViewControlProfile` data resource
-also encodes the earlier F4 turn-versus-strafe distinction. InputMap
-physical bindings remain remappable, while action roles are selected by
-view profile; no keys or view branches are added to the Actor, movement
-FSM, camera or combat subsystems. D09 test suite covers all view
-transitions, held crouch/release, F4 yaw and standard F2 movement.
+**Verification:** Pinned Godot 4.7.2 headless tests
+(`tests/d09_reference_suite.gd`, `tests/d09_side_aim_suite.gd`
+and existing D01–D08 suites) passed **1,275 assertions, 0 failures**:
+[CI / Checks](https://github.com/bravado/ACTION-5/actions/runs/43135267448).
+Linux export and native render capture, Web export and real WebGL2
+browser startup passed [CI / Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
+The project owner visually accepted the corrected F1 trajectory.
+Do not confuse automated screenshots with completion of the separately
+specified 20-minute exploratory native/Web run.
 
-
-**Input mapping validation:** CI / Checks passed with 1,266 assertions, zero
-failures in [run #43116927805](https://github.com/bravado/ACTION-5/actions/runs/43116927805).
-The next CI run requests `CI / Full E2E` before acceptance; owner visual
-validation across F1–F5 remains required.
-
-
-### D09-01 side-view gun sightline fix (2026-11-11)
-
-F1 orthographic camera-center rays point through depth, so the side-view
-`ViewAimTargetProvider` now selects horizontally along the shared combat
-lane at configurable target-body center height. The authoritative Gun uses
-its unchanged muzzle ray for near-wall obstruction, damage and the
-projectile hit endpoint. Existing F4 crosshair ray and camera-free NPC
-provider are unchanged. Added real-physics F1 right/left, physical blocked
-shot and tracer-start regression; Godot CI and manual native/Web review
-must confirm the actual render and playability.
-
-
-**F1 correction:** Initial 0.85 m center ray landed below the intended
-upper torso. Retuned default `side_center_height` to 1.25 m and kept
-it configurable; no Gun/muzzle physics changed. The new integration
-suite now moves the actual pickup inside range and passes typed RID
-exclusions to aim queries before exercising damage and world blockers.
-
-
-**F1 upper-torso sightline CI:** pinned Godot `make check` passed in
-[run #43135267448](https://github.com/bravado/ACTION-5/actions/runs/43135267448),
-**1,275 assertions / zero failures**. Confirmed F1 hits right/left targets,
-muzzle-based tracer origin and solid wall blocking. The following commit
-requests native/Web `CI / Full E2E` validation; screen-space visual review
-remains a manual acceptance gate.
+**Next work:** D09-02 retro 4/8-way encounter behavior and scrolling,
+then D10 diagnostics/authoring, D11–D12 packaging and distribution.

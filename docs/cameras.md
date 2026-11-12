@@ -4,9 +4,9 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 ## Camera modes and default inputs
 
-| Key | Profile resource | Camera framing | D02 demo movement |
+| Key | Profile resource | Camera framing | Current movement |
 |---|---|---|---|
-| **1** | `side.tres` | Fixed horizontal, orthographic XY side view (Mario / Altered Beast). Looking along world −Z, no downward tilt | X only; Z lane policy formalized in D03 |
+| **1** | `side.tres` | Fixed horizontal, orthographic XY side view (Mario / Altered Beast). Looking along world −Z, no downward tilt | X only, W/Up jump, S/Down hold crouch; shared Z lane |
 | **2** | `beatemup.tres` | Low, close orthographic arcade brawler (Streets of Rage / Golden Axe), default zoom 7; optional gentle side peek toward vertical walls | World X/Z (never camera-relative) |
 | **3** | `isometric.tres` | **One orthographic, adjustable isometric/shoulder profile.** Zoom out for inclined dungeon view; zoom in for camera close above the shoulder | Camera/screen-relative X/Z |
 | **4** | `first_person.tres` | Eye-level perspective, yaw/pitch mouse look, local mesh hidden | Camera-relative X/Z |
@@ -14,7 +14,7 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 **Number row 1–5** is the primary shortcut on both desktop and Web. F1–F5 is an optional secondary binding, because browsers may reserve function keys. There are five visible in-game selector buttons and configurable gamepad shoulder-button cycling. `Ctrl+1–5` is *not* a supported browser fallback: browsers use Ctrl+number for tab navigation.
 
-Use **WASD/arrows** for diagnostic movement. Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reference movement adapter is intentionally temporary: the authoritative reusable locomotion and aiming policies are in D03.
+Controls are view-local: in F1 W/Up jumps and S/Down holds crouch; in F4 A/D strafes while Left/Right arrows turn. F2/F3/F5 retain directional movement. See [locomotion](locomotion.md). Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reusable movement adapter and control profiles are delivered by D03 and D09-01.
 
 ## Optional F2 side-wall camera peek (D08)
 
@@ -126,15 +126,16 @@ D02 regression tests cover switching all **five** modes 20 times, preserving act
 GitHub CI runs Godot 4.7.2 headless tests, a native Linux export, Web export with Chromium WebGL2 startup and number-key/selector smoke checks. Evidence artifacts include `native-view-1.png` through `native-view-5.png`, `native-isometric-shoulder.png`, `native-isometric-settings.png`, corresponding five Web views and camera UI evidence. See the CI workflow and retained evidence artifacts for the
 current camera and browser test matrix.
 
-**D02 boundary:** the actor remains a simple placeholder. Full jumping, reusable action intents, facing/aim policies, combat and animations are *not* delivered until D03–D07. D02 must pass review before D03 work starts.
+**Historical D02 boundary:** the initial camera milestone preceded reusable actor intents (D03), animation (D04), combat (D05) and equipment/AI (D06–D07); all are now delivered.
 
 
 ## D06-02 view aim versus world muzzle (D06-02)
 
 The view-specific `Action5ViewAimTargetProvider` reads the existing
 `ActionInputContext`: F4 uses the center Camera3D ray to find a target,
-F1–F3 use unquantized world aim/facing, F5 can apply 8-way quantization
-only in this provider. In every mode a **separate** world-space ray from
+F1 resolves a horizontal X/Y combat-lane upper-torso target at configurable
+1.25-unit height, F2/F3 use continuous world aim/facing, and F5 can
+apply 8-way quantization only in this provider. In every mode a **separate** world-space ray from
 the gun's physical Muzzle to that target enforces obstruction. A visible
 projectile/tracer is created in the world scene from the resolved hit and
 never follows the camera or F4-only model. The camera-free NPC provider
@@ -205,3 +206,17 @@ collisions remain. Returning to F2–F5 restores unrestricted 3D
 navigation, without moving enemies back to stale positions.
 This scene adapter does not change CameraRig orientation, input
 mapping or any shared Combat/AI code.
+
+## D09-01 view-local input and persistent yaw
+
+`Action5ActorInputAdapter` resolves the active
+`Action5ViewControlProfile` resource to map global, user-remappable
+InputMap action names onto movement, jump, yaw and optional held-move
+roles. Defaults live in `addons/action5/input/profiles/`:
+`default.tres` for F2/F3/F5, `side.tres` for F1 and
+`first_person.tres` for F4. F1 W/Up jumps and S/Down
+holds crouch instead of moving in world Z; F4 arrows turn the
+existing CameraRig's persistent yaw while A/D continue to strafe.
+The player and camera are never reconstructed by switching views.
+To add per-view controls, author an input profile resource rather
+than branching the Actor, CameraRig or attack component.

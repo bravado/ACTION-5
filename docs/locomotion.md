@@ -6,7 +6,9 @@ ACTION-5 runs **one authoritative `CharacterBody3D`** for all five perspectives.
 
 | Keyboard | Action |
 |---|---|
-| **WASD / arrows** | Move; view-relative in isometric/first-person/overhead, world-X/Z in brawler, X-only in side-scroller |
+| **F1: W/Up and S/Down** | Jump and hold crouch; A/D or Left/Right moves horizontally along the shared Z lane |
+| **F2/F3/F5: WASD / arrows** | Normal stage/screen-relative movement |
+| **F4: W/S or Up/Down** | Move forward/back; A/D strafes; Left/Right arrows turn (135°/s default) |
 | **Space** | Jump (grounded, coyote time and buffered input) |
 | **Shift** | Run while held |
 | **Alt** | Dodge move component (directional burst) |
@@ -23,6 +25,7 @@ Gamepad: left stick moves, right stick optionally aims/faces independently, A ju
 
 - **`Action5MoveIntent`** — camera-independent, world-space movement/aim/facing/action data, plus generic `requested_moves: Array[StringName]` (no `is_sliding`/`is_wall_running` flags), all ground-plane vectors in world X/Z. The active camera mode does not travel with the intent.
 - **`Action5MovementPolicy`** — stateless direction projection and 4-/8-way facing quantization helpers. Godot's `Input.get_vector()` supplies the configured radial deadzone, so no second deadzone implementation is needed.
+- **`Action5ViewControlProfile`** — data-only per-view mapping from global InputMap action names to movement, jump, yaw and optional held registered moves. F1 and F4 override F2/F3/F5 defaults; more profiles need no gameplay branches.
 - **`Action5ActorInputAdapter`** — samples `InputMap` before the locomotion physics tick (`process_physics_priority = -100`), creates intents and dispatches them to the actor. It owns window-focus loss/recovery, controller disconnect and neutralization after disconnect. The demo only calls `set_enabled()` when the camera settings UI opens or closes; repeated calls with the same value do nothing, and disabled input is not cleared on every physics tick.
 - **`Action5Actor`** — one 3D player with alive/enabled state; forwards intents to locomotion but does not cache duplicate movement state or read raw keys.
 - **`Action5Locomotion`** — the **only physics solver and authoritative intent holder** (`desired`), applying `move_and_slide`, movement/gravity/jump, acceleration/braking, floor snap and slope bounds. Its parent is a `CharacterBody3D`. Disabling controls/focus clears this authoritative intent; move components never write the body's velocity directly.
@@ -89,7 +92,7 @@ View switches do not overwrite current velocity or change position; F1 stops fut
 ## Run and verify
 
 ```bash
-make run    # auto-import; WASD, Space, Ctrl crouch and 1–5 views
+make run    # auto-import; 1–5 views, HUD lists active per-view controls
 make test   # headless D01–D04 + crouch/movement regression suites
 make build  # Linux + Web export
 make serve-web
@@ -104,7 +107,9 @@ CI verifies the Godot import/test/negative-test matrix, exported Linux executabl
 The `Crouch` and `CrouchWalk` nodes under
 `demo/player.tscn → Locomotion/MovementController/Moves` use the same
 `Action5CrouchMove` script with two configured move IDs. Press **Ctrl**
-(or gamepad **R3**) to toggle a crouched stance. Moving while crouched
+(or gamepad **R3**) to toggle a crouched stance. In F1,
+hold **S/Down** to crouch and release to stand, including crouch-walk
+while moving horizontally; other views retain S/Down movement. Moving while crouched
 walks at 2.2 world units/s and plays the separate looping `crouch_walk`
 animation; releasing movement returns to `crouch` idle. Press again
 to stand, provided there is headroom.

@@ -1,12 +1,13 @@
 # D06 equipment authoring and implementation state
 
-**Status (November 2026): D05–D08 completed.**
+**Status (November 2026): D05–D08 and D09-01 delivered.**
 D06-01 established Bat/Shovel and the reusable Equipment lifecycle;
 D06-02 added Guns, world-muzzle hits, reload and visual tracers;
 D07 added camera-independent NPCs using the same Equipment/Combat ports.
 D08 adds persistent inventory, cached-location travel, single-path
-weapon pickup and a location-scoped drop parent. D09 extends those
-components without changing shared equipment internals. See [AI authoring](ai.md) and
+weapon pickup and a location-scoped drop parent. D09-01 adds
+view-specific target selection and a reactive ammo/weapon HUD without
+changing shared equipment internals. See [AI authoring](ai.md) and
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
@@ -28,8 +29,10 @@ the physical origin; the F4 camera-anchored GunF4 is presentation only.
 ActionInputContext into a world-space destination. F4 traces through the
 center of Camera3D; the independent physical trace ALWAYS runs from the
 world Muzzle to this target, excluding the owner body's collision objects.
-Other views use world aim/facing, with retro F5 optionally quantized to
-8 sectors by the aim policy alone. No gun-specific camera checks and no
+In F1 the same provider selects an upper-torso target along the shared
+2D horizontal combat lane (default 1.25 units above actor root), rather
+than tracing a camera ray into depth or firing at hand height. F2/F3
+use world aim/facing; retro F5 may quantize to 8 sectors by policy alone. No gun-specific camera checks and no
 retro quantization in its AttackDefinition. A nearer layer-1 wall takes
 precedence over a layer-2 Hurtbox. A valid active shot consumes one bullet
 even when a wall blocks its target; a dry/invalid/cancelled request does not.

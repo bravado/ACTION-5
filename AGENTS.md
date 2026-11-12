@@ -721,77 +721,43 @@ door physics. Cover F1/F2 switches, AI/HP persistence, and optional
 detached-location behavior in D08 suites.
 
 
-## D09-01 reference demo (pending verification)
+## D09-01 delivered architecture and extension rules
 
-`demo/ui/reference_hud.gd` owns read-only status/help and observes public
-ViewManager/Health/CombatController/Equipment/weapon/InputMap state.
-No UI state in addon or repeated always-on physics HUD layout updates.
-`demo/interactions/reference_exit.gd` is a scene-specific Interactor
-target, gated by real enemies' Health. Completion UI remains independent
-of gameplay authority. Do not add weapon-name branches or couple D09-02
-retro policy to the HUD. Run the D09 suite, native/web exports and manual
-scenario before considering the feature ready for merge.
+- `demo/ui/reference_hud.gd` is the only owner of demo help/status
+  formatting. Subscribe to gameplay signals; do not reproduce HUD
+  polling/refresh handlers in `demo/main.gd`, nor move HUD logic into
+  the addon. Display bindings from the active control profile and
+  InputMap, actions from AttackDefinitions and optional ammo/command
+  data from the equipped weapon (including the unarmed fallback).
+- `addons/action5/input/view_control_profile.gd` maps InputMap
+  action names to view-local roles. F2/F3/F5 use default.tres;
+  F1 and F4 each have an override. Add per-view controls by authoring
+  another resource, not hardcoding keys/view cases in Actor, Combat,
+  MovementController or CameraRig. F1 W/Up jumps, S/Down holds crouch
+  (with crouch-walk); Space jumps, Ctrl toggles. F4 arrow Left/Right
+  turns, while A/D remains strafe. Focus loss/disabled UI must clear
+  held input and require neutral rearming.
+- `Action5ViewAimTargetProvider` alone owns the camera/view-to-world
+  target policy. In orthographic F1, literal screen-center camera ray
+  points through Z, so select an upper-torso-height horizontal sightline
+  (default `side_center_height = 1.25`) along the combat lane.
+  F4 still uses the camera-center ray; camera-free NPCs use their own
+  target provider. **Never** bypass Gun's authoritative world-muzzle
+  obstruction, damage resolution, or the visual-only projectile origin.
+- `demo/interactions/reference_exit.gd` is a scene-specific
+  Interactor target gated by existing NPC Health; the EXIT at dungeon
+  local (9, 0, 0) is physically reachable on F1 Z=0, outside the
+  SteepFace traversal obstacle. Victory overlay only observes the
+  completion signal and reloads the current scene. D09-02 retro
+  encounter policy stays separate.
 
-
-### D09-01 F4 keyboard yaw and sidestep
-
-Keep keyboard rotation in the reusable ActorInputAdapter via the
-CameraRig `apply_yaw_delta()` look port and existing facing intent; do
-not rotate Actor transforms directly or add hardcoded keys to Combat,
-Equipment or CameraRig. Default arrow Left/Right actions are
-`actor_turn_left`/`actor_turn_right`, separate from WASD and
-left-stick strafe. Other views continue to use horizontal arrows as
-lateral movement. Focus loss/UI disable must suppress turns and require
-neutral rearming before resumed input. Show the active controls in the
-demo HUD; test F4 yaw with no strafe, A/D with no yaw, and F2 arrows
-continuing to move horizontally.
-
-
-The D09 EXIT marker is at dungeon-local (9, 0, 0), on the F1 Z=0
-playable lane and outside the physical SteepFace traversal obstacle.
-Do not bypass generic Interactor LoS for victory or put the exit
-behind an obstruction impossible to reach in a selected view.
-
-
-## D09-01 view-local input mapping
-
-`addons/action5/input/view_control_profile.gd` is a pure data Resource:
-its InputMap action names assign horizontal/vertical movement, optional
-extra horizontal directions, look yaw, jump, alternate jump and a held
-registered move ID for ONE view. The ActorInputAdapter has one fallback
-profile (F2/F3/F5) and configurable overrides (F1/F4); resolve by view
-mode, not physical key comparison. Add new per-view bindings by editing
-or assigning an input-profile `.tres`, **not** by adding another
-`if view ==...` block to Actor, Combat, Camera, or InputAdapter.
-InputMap stays globally remappable; the profile maps those actions to
-different roles. F1 W/Up is a jump edge and S/Down is hold-to-crouch;
-Space remains jump, Ctrl keeps its existing toggle, and left/right
-remain lateral. F4 Left/Right turns; A/D strafes. F2/F3/F5 preserve
-normal WASD/arrow movement.
-
-Held move requests are owned by the input adapter only when it initiated
-them. A repeated physics tick must not toggle crouch, release must
-request exit even if headroom temporarily blocks it, focus loss and
-UI-disable must clear stale held state. Keep the locomotion/move FSM
-decoupled from all keys/views. HUD controls must read the active input
-profile rather than contain mode-specific keys.
-
-
-### D09-01 F1 gun aiming contract
-
-Side-view target selection belongs to `ViewAimTargetProvider`, never Gun.
-An orthographic camera-center ray is perpendicular to the F1 X/Y combat
-plane; it cannot be used directly as a horizontal shot. Aim through an
-actor-anchored, configurable center-height sightline toward the left/right
-facing direction, then verify the *actual muzzle-to-target* ray as usual.
-Never auto-damage targets, skip muzzle occlusion or move the gameplay
-muzzle into the FPS-only visual rig. Test both directions, different muzzle
-heights, blocked world geometry, retained projectile/tracer origin and
-camera-free NPC aim to avoid leaks between view-specific policies.
-
-
-Keep F1 default side target height at upper-torso level (1.25 above the
-actor root), not the animated hand/muzzle height or a literal
-orthographic camera ray perpendicular to the play plane. Tune the
-exported property for differently sized characters; keep the same
-physical muzzle collision authority and real-gun test fixtures.
+**Regression contract:** Run pinned `make check` and the real
+Linux/WebGL2 E2E workflow for changes touching camera, controls,
+combat sightlines, equipment or overlays. `tests/d09_reference_suite.gd`
+covers inputs, HUD, completion, view switches and focus rearming;
+`tests/d09_side_aim_suite.gd` covers physical F1 gun hits both ways,
+muzzle visuals and wall obstruction. Final D09-01 baseline:
+[CI / Checks, 1,275/1,275](https://github.com/bravado/ACTION-5/actions/runs/43135267448)
+and [Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
+Owner accepted the F1 trajectory. Do not falsely claim the separate
+20-minute exploratory test based solely on automated smoke evidence.
