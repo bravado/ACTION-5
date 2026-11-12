@@ -46,8 +46,6 @@ func _ready() -> void:
     _connect(moves, &"move_changed", _on_move_changed)
     _connect(session, &"sector_changed", _on_sector_changed)
     Input.joy_connection_changed.connect(_on_joy_connection)
-    _sync_weapon()
-    _sync_exit()
     refresh()
 
 
@@ -262,7 +260,6 @@ func _on_attack_registered(_definition: Resource) -> void:
 
 
 func _on_equipment_event(_item: Node3D) -> void:
-    _sync_weapon()
     refresh()
 
 
@@ -271,7 +268,6 @@ func _on_move_changed(_previous: StringName, _current: StringName) -> void:
 
 
 func _on_sector_changed(_previous: StringName, _current: StringName) -> void:
-    _sync_exit()
     refresh()
 
 

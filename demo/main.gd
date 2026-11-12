@@ -12,7 +12,6 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _input: InputAdapterScript = $ActorInput
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _combat: Node = $Player/CombatController
-@onready var _health: Node = $Player/Health
 @onready var _equipment: Node = $Player/Equipment
 
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
@@ -24,7 +23,6 @@ func _ready() -> void:
     _moves.move_changed.connect(_on_move_changed)
     _combat.attack_started.connect(_on_attack_started)
     _combat.attack_hit.connect(_on_attack_hit)
-    _health.health_changed.connect(_on_health_changed)
     _equipment.weapon_picked_up.connect(_on_weapon_picked_up)
     _equipment.weapon_equipped.connect(_on_weapon_equipped)
     _equipment.weapon_dropped.connect(_on_weapon_dropped)
@@ -60,7 +58,6 @@ func _toggle_camera_settings() -> void:
     if _camera_settings.visible:
         _camera_settings.call("refresh_controls")
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-    $Hud.refresh()
     _release_ui_focus()
 
 
@@ -128,8 +125,6 @@ func _on_weapon_equipped(weapon: Node3D) -> void:
     print("ACTION5_WEAPON_EQUIPPED id=", definition.get("weapon_id"),
         " meshes=", weapon.call("get_world_meshes").size(),
         " f4_visual=", int(f4_visual != null))
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
 
 
 func _on_weapon_dropped(weapon: Node3D) -> void:
@@ -141,20 +136,8 @@ func _on_weapon_dropped(weapon: Node3D) -> void:
         _refresh_status(_views.current_profile)
 
 
-func _on_health_changed(_value: float, _previous: float) -> void:
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-
-
 func _on_move_changed(previous: StringName, current: StringName) -> void:
     print("ACTION5_MOVE_CHANGED previous=%s current=%s" % [previous, current])
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-
-
-## Legacy demo smoke hook; D09 HUD owns all read-only projection.
-func _refresh_status(_profile: ViewProfileScript) -> void:
-    $Hud.refresh()
 
 
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
@@ -162,7 +145,6 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         return
     # Remove stale GUI focus left by view buttons or camera sliders.
     _release_ui_focus()
-    _refresh_status(current)
     # Demo instrumentation (not gameplay): browser CI verifies the imported
     # rig and attachment survive local F3/F4 rendering policy changes.
     var fps: Node = _player.get_node_or_null("FirstPersonPresenter")

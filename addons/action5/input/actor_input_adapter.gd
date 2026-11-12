@@ -40,7 +40,6 @@ var _first_person_entry_look_revision: int = 0
 ## Track ONLY hold-move requests initiated by this adapter. A move activated
 ## by a different binding (e.g. Ctrl toggle) must not be released by S.
 var _held_move_requested: bool = false
-var _held_move_owned: bool = false
 var _held_move_id: StringName = &""
 var _held_move_variants: Array[StringName] = []
 
@@ -162,17 +161,15 @@ func _apply_held_move(controls: ControlProfileScript, intent: IntentScript) -> v
         and _pressed(controls.held_move_action)
     if wants_hold:
         # Another component's toggle stance is not owned by this hold.
-        if not _held_move_requested and not _held_move_owned:
+        if not _held_move_requested:
             if _held_move_variants.has(actor.locomotion.move_controller.active_id):
                 return
             _held_move_id = controls.held_move_id
             _held_move_variants = controls.held_move_variants.duplicate()
-        if _held_move_requested and _held_move_active():
-            _held_move_owned = true
         if not _held_move_active():
             intent.request_move(_held_move_id)
             _held_move_requested = true
-    elif _held_move_requested or _held_move_owned:
+    elif _held_move_requested:
         if _held_move_active():
             # Request every tick until a blocked headroom probe can stand.
             intent.request_move(_held_move_id)
@@ -182,7 +179,6 @@ func _apply_held_move(controls: ControlProfileScript, intent: IntentScript) -> v
 
 func _reset_held_move() -> void:
     _held_move_requested = false
-    _held_move_owned = false
     _held_move_id = &""
     _held_move_variants.clear()
 
@@ -258,8 +254,6 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         return
     if current.mode == ViewProfileScript.Mode.FIRST_PERSON:
         _first_person_entry_look_revision = views.camera_rig.look_input_revision
-    # The previously held role must be released when its view changes. If
-    # crouch is currently blocked by a ceiling, retry standing on later ticks.
     if current.mode == ViewProfileScript.Mode.SIDE:
         actor.enter_side_view()
     else:
