@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Action5ViewControlProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/input/view_control_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+view_mode = 4
+move_up_action = &"retro_move_up"
+move_down_action = &"retro_move_down"
+extra_aim_left_action = &"retro_aim_left"
+extra_aim_right_action = &"retro_aim_right"
+extra_aim_up_action = &"retro_aim_up"
+extra_aim_down_action = &"retro_aim_down"
