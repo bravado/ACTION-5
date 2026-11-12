@@ -138,88 +138,116 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
     var muzzle := gun.get_node("Muzzle") as Node3D
     var excludes: Array[RID] = []
+    # With target collision excluded, the aim point must lie on the
+    # player's centerline, not on the parallel line from the hand muzzle.
+    var original_target_mask: int = int(aim.get("camera_target_mask"))
+    aim.set("camera_target_mask", 0)
     var target: Vector3 = aim.call("get_world_target", muzzle.global_position, 40.0, excludes)
-    verify.call(Vector2(target.x - muzzle.global_position.x,
-        target.z - muzzle.global_position.z).normalized().distance_to(f5_gun) < 0.001,
-        "D09-02 physical Gun aim uses the same F5 eight-way policy")
+    var from_actor: Vector2 = Vector2(
+        target.x - player.global_position.x, target.z - player.global_position.z
+    )
+    verify.call(from_actor.normalized().distance_to(f5_gun) < 0.001
+        and is_equal_approx(target.y, muzzle.global_position.y)
+        and absf(from_actor.length() - 40.0) < 0.001,
+        "D09-02 Gun aim selects F5 forward player-center line at muzzle height")
     source.snapshot = ContextScript.new(true, diagonal, Vector2.LEFT,
         ProfileScript.Mode.ISOMETRIC, views.get_active_camera())
     target = aim.call("get_world_target", muzzle.global_position, 40.0, excludes)
     verify.call(Vector2(target.x - muzzle.global_position.x,
         target.z - muzzle.global_position.z).normalized().distance_to(diagonal) < 0.001,
-        "D09-02 F3 Gun target remains continuous without changing ammo")
+        "D09-02 F3 Gun target remains continuous from the physical muzzle")
+    aim.set("camera_target_mask", original_target_mask)
     verify.call(gun.get("magazine") == gun.get("magazine_size"),
         "D09-02 view policy never spends ammunition")
 
-    # The overhead tracer must appear centered on the *actor*, not on the
-    # socket mounted to one side of the body. The physical ray and its
-    # impact still originate from that unchanged world Muzzle.
-    var visual_origin: Node = player.get_node("ProjectileVisualOrigin")
+    # The tracer must originate at the physical gun, while the forward
+    # sightline originates from the actor's horizontal center. Test both
+    # through the real active-phase shot and the existing projectile visual.
     var presenter: Node = gun.get_node("ProjectilePresenter")
-    verify.call(presenter.get("visual_origin_provider_path") == NodePath("ProjectileVisualOrigin"),
-        "D09-02 Gun projectile subscribes to the actor-local visual-only origin port")
+    var world_visual: Node = player.get_node("EquipmentVisualAdapter")
+    verify.call(presenter.get("visual_origin_provider_path") == NodePath("EquipmentVisualAdapter"),
+        "D09-02 tracer uses existing muzzle origin with optional F4 viewmodel")
     var world_muzzle: Vector3 = muzzle.global_position
     var actor_center: Vector3 = player.global_position
-    var centered: Vector3 = visual_origin.call(
-        "get_projectile_visual_origin", gun, world_muzzle
-    )
-    verify.call(Vector2(centered.x, centered.z).distance_to(
-        Vector2(actor_center.x, actor_center.z)) < 0.001
-        and is_equal_approx(centered.y, world_muzzle.y)
-        and Vector2(world_muzzle.x, world_muzzle.z).distance_to(
-            Vector2(actor_center.x, actor_center.z)) > 0.1,
-        "D09-02 overhead projectile visually starts at player X/Z center, at muzzle height")
+    verify.call(presenter.call("_visual_origin", world_muzzle).is_equal_approx(world_muzzle),
+        "D09-02 F5 visually starts at real Gun muzzle, never player body center")
 
     views.switch_view(2)
-    var original_outside: Vector3 = visual_origin.call(
-        "get_projectile_visual_origin", gun, muzzle.global_position
-    )
-    verify.call(original_outside.is_equal_approx(muzzle.global_position),
-        "D09-02 other exterior views still launch from the actual weapon muzzle")
+    verify.call(presenter.call("_visual_origin", muzzle.global_position).is_equal_approx(
+        muzzle.global_position),
+        "D09-02 F3 still launches from the physical weapon muzzle")
     views.switch_view(3)
-    var expected_f4: Vector3 = player.get_node("EquipmentVisualAdapter").call(
+    var expected_f4: Vector3 = world_visual.call(
         "get_projectile_visual_origin", gun, muzzle.global_position
     )
-    var observed_f4: Vector3 = visual_origin.call(
-        "get_projectile_visual_origin", gun, muzzle.global_position
-    )
-    verify.call(observed_f4.is_equal_approx(expected_f4)
-        and observed_f4.distance_to(muzzle.global_position) > 0.1,
-        "D09-02 F4 still launches visually from its gripped first-person barrel")
+    verify.call(presenter.call("_visual_origin", muzzle.global_position).is_equal_approx(expected_f4)
+        and expected_f4.distance_to(muzzle.global_position) > 0.1,
+        "D09-02 F4 still launches from its gripped first-person barrel")
     views.switch_view(4)
+
+    # Isolate a target on the exact forward centerline using an opt-in layer.
+    # Hitscan is still from the Gun muzzle and must select the target from
+    # the actor-centered F5 sightline rather than the offset muzzle lane.
+    var sight_target := StaticBody3D.new()
+    sight_target.name = "RetroCenterlineTarget"
+    sight_target.collision_layer = 4
+    sight_target.collision_mask = 0
+    var sight_shape := CollisionShape3D.new()
+    var sight_box := BoxShape3D.new()
+    sight_box.size = Vector3(1.0, 1.5, 1.0)
+    sight_shape.shape = sight_box
+    sight_target.add_child(sight_shape)
+    level.add_child(sight_target)
+    sight_target.global_position = Vector3(
+        player.global_position.x + 5.0, muzzle.global_position.y, player.global_position.z
+    )
+    aim.set("camera_target_mask", 4)
+    var original_ray_mask: int = int(gun.get("ray_mask"))
+    gun.set("ray_mask", 4)
+    await _ticks(tree, 3)
+    source.snapshot = ContextScript.new(true, Vector2.RIGHT, Vector2.LEFT,
+        ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
+    var chosen_center_target: Vector3 = aim.call(
+        "get_world_target", muzzle.global_position, 40.0, excludes
+    )
+    verify.call(absf(chosen_center_target.z - player.global_position.z) < 0.01
+        and chosen_center_target.x > player.global_position.x + 3.5,
+        "D09-02 physical F5 aim picks target in front of player center")
 
     var recorded_shots: Array[Dictionary] = []
     var projectiles: Array[Node3D] = []
     gun.fired.connect(func(impact: Vector3, _did_damage: bool) -> void:
         recorded_shots.append({
-            "impact": impact, "actor": player.global_position, "muzzle": muzzle.global_position
+            "impact": impact, "muzzle": muzzle.global_position
         })
     )
     presenter.projectile_spawned.connect(func(projectile: Node3D) -> void:
         projectiles.append(projectile)
     )
-    source.snapshot = ContextScript.new(true, Vector2(1.0, 0.0), Vector2.LEFT,
-        ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
     var ammo_before: int = gun.magazine
     var shots_before: int = gun.shots_fired
     var requested: bool = combat.call("request_attack", &"gun_fire", Vector2.RIGHT)
     await _ticks(tree, 8)
     verify.call(requested and recorded_shots.size() == 1 and projectiles.size() == 1
         and gun.shots_fired == shots_before + 1 and gun.magazine == ammo_before - 1,
-        "D09-02 real F5 fire still uses one authoritative shot, ammo cost and tracer")
+        "D09-02 real F5 fire still uses one hit ray, ammo cost and visible tracer")
     if recorded_shots.size() == 1 and projectiles.size() == 1:
         var shot: Dictionary = recorded_shots[0]
         var tracer: Node3D = projectiles[0]
         var visual_start: Vector3 = tracer.get("from_world")
-        var shooter: Vector3 = shot["actor"]
         var physical_muzzle: Vector3 = shot["muzzle"]
-        verify.call(Vector2(visual_start.x, visual_start.z).distance_to(
-            Vector2(shooter.x, shooter.z)) < 0.002
-            and is_equal_approx(visual_start.y, physical_muzzle.y)
-            and (tracer.get("to_world") as Vector3).is_equal_approx(shot["impact"]),
-            "D09-02 actual rendered tracer starts at player center but ends at real physics impact")
+        var impact: Vector3 = shot["impact"]
+        verify.call(visual_start.distance_to(physical_muzzle) < 0.002
+            and (tracer.get("to_world") as Vector3).is_equal_approx(impact)
+            and absf(impact.z - sight_target.global_position.z) < 0.5
+            and impact.x > player.global_position.x + 3.5,
+            "D09-02 real F5 tracer leaves Gun muzzle and converges toward center-front hit")
     else:
-        verify.call(false, "D09-02 actual rendered tracer starts at player center but ends at real physics impact")
+        verify.call(false, "D09-02 real F5 tracer leaves Gun muzzle and converges toward center-front hit")
+    gun.set("ray_mask", original_ray_mask)
+    aim.set("camera_target_mask", original_target_mask)
+    sight_target.queue_free()
+    await _ticks(tree, 2)
     var extra := PolicyScript.new()
     extra.view_mode = ProfileScript.Mode.RETRO_TOPDOWN
     extra.sector_count = 16
