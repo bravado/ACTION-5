@@ -12,13 +12,6 @@ func _ticks(tree: SceneTree, amount: int) -> void:
         await tree.physics_frame
 
 
-func _keyboard(key: Key, pressed: bool) -> void:
-    var event := InputEventKey.new()
-    event.keycode = key
-    event.pressed = pressed
-    Input.parse_input_event(event)
-
-
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var scene := load("res://demo/main.tscn") as PackedScene
     verify.call(scene != null, "D09-02 shared retro world loads")
