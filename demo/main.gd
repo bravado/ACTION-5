@@ -5,7 +5,6 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
-const RetroControls = preload("res://demo/input/retro_topdown.tres")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
@@ -30,9 +29,6 @@ func _ready() -> void:
     # Compose the scene's optional world-drop policy; Equipment never
     # references LocationManager or a specific PackedScene itself.
     _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
-    # The demo owns its keyboard twin-stick mapping; addon input keeps
-    # right-stick aiming and arbitrary view-local bindings declarative.
-    _input.view_controls.append(RetroControls)
     _register_demo_actions()
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
