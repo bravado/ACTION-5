@@ -450,10 +450,41 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     source.snapshot = ContextScript.new(true, Vector2(0, -1),
         Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
 
+    # A real F4 reload must drive valid visual poses from the Gun's own
+    # command progress. This is not a CombatController attack animation.
+    views.switch_view(3)
+    await _ticks(tree, 2)
+    var reload_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var reload_clip: Resource = reload_model.get("reload_profile") if is_instance_valid(reload_model) else null
+    var idle_clip: Resource = reload_model.get("grip_profile") if is_instance_valid(reload_model) else null
+    verify.call(reload_clip != null and reload_clip.valid()
+        and idle_clip != null and idle_clip.valid()
+        and (reload_clip.sample(0.0)["extremity"] as Vector3).is_equal_approx(
+            idle_clip.sample(0.0)["extremity"])
+        and (reload_clip.sample(1.0)["extremity"] as Vector3).is_equal_approx(
+            idle_clip.sample(0.0)["extremity"]),
+        "F4 gun reload has valid 0-to-1 pose track returning to the idle grip")
     # Reload has a separate weapon-command timeline, not a combat action.
     verify.call(gun.request_weapon_command(&"weapon_reload") and gun.reload_left > 0,
         "Reload uses per-weapon command rather than an attack ID")
     var reload_before: int = gun.reload_left
+    await _ticks(tree, 32)
+    world_visual.call("refresh_presentation")
+    var mid_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var mid_arm: Node = mid_model.get("arm") as Node if is_instance_valid(mid_model) else null
+    var mid_pose: Dictionary = mid_arm.get("current_pose") if is_instance_valid(mid_arm) else {}
+    var idle_pose: Dictionary = idle_clip.sample(0.0) if idle_clip != null else {}
+    verify.call(gun.reload_left < reload_before and gun.reload_left > 0
+        and not gun.get_visual_action().is_empty()
+        and is_instance_valid(mid_model) and mid_model.get("visual_source") == gun
+        and float(mid_model.get("pose_progress")) > 0.15
+        and float(mid_model.get("pose_progress")) < 0.9
+        and not mid_pose.is_empty() and not idle_pose.is_empty()
+        and (mid_pose["extremity"] as Vector3).distance_to(
+            idle_pose["extremity"]) > 0.15
+        and (mid_model.get_node("Grip") as Node3D).position.distance_to(
+            mid_pose["extremity"]) < 0.001,
+        "Active F4 reload visibly lowers the gripped weapon from Gun reload ticks")
     for view in [2, 3, 4, 0, 1]:
         views.switch_view(view)
         await _ticks(tree, 4)
@@ -465,6 +496,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, gun.reload_left + 1)
     verify.call(gun.magazine == 8 and gun.reserve == 32 - (8 - baseline_magazine)
         and gun.reload_left == 0, "Reload completes exactly once, up to magazine/reserve limits")
+    views.switch_view(3)
+    await _ticks(tree, 2)
+    world_visual.call("refresh_presentation")
+    var restored_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var restored_arm: Node = restored_model.get("arm") as Node if is_instance_valid(restored_model) else null
+    var restored_pose: Dictionary = restored_arm.get("current_pose") if is_instance_valid(restored_arm) else {}
+    verify.call(is_instance_valid(restored_model) and gun.get_visual_action().is_empty()
+        and not restored_pose.is_empty() and not idle_pose.is_empty()
+        and (restored_pose["extremity"] as Vector3).distance_to(
+            idle_pose["extremity"]) < 0.002,
+        "F4 reload ends at the resting Gun pose, without a stuck reload overlay")
     verify.call(not gun.request_weapon_command(&"weapon_reload"),
         "Full magazine cannot reload or waste reserve")
 
@@ -552,8 +594,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and visuals_before_dry == initial_variant_magazine,
         "Dry active attack cannot fire, damage or spawn a fake projectile")
     await _ticks(tree, 30)
+    views.switch_view(3)
+    await _ticks(tree, 2)
+    var alt_model: Node3D = world_visual.get("_viewmodel") as Node3D
+    var alt_reload_clip: Resource = alt_model.get("reload_profile") if is_instance_valid(alt_model) else null
+    verify.call(alt_reload_clip != null and alt_reload_clip.valid(),
+        "Alternate Gun reuses the same valid F4 reload pose resource")
     verify.call(variant.request_weapon_command(&"weapon_alt_reload"),
         "Alternate gun accepts its own configured reload command")
+    await _ticks(tree, 34)
+    world_visual.call("refresh_presentation")
+    var alt_arm: Node = alt_model.get("arm") as Node if is_instance_valid(alt_model) else null
+    var alt_pose: Dictionary = alt_arm.get("current_pose") if is_instance_valid(alt_arm) else {}
+    verify.call(variant.reload_left > 0 and is_instance_valid(alt_model)
+        and alt_model.get("visual_source") == variant
+        and not alt_pose.is_empty()
+        and (alt_pose["extremity"] as Vector3).distance_to(
+            idle_pose["extremity"]) > 0.15,
+        "Alternate F4 Gun visually animates reload from its own reload timer")
     var variant_ammo: int = variant.magazine
     equipment.drop_current()
     await _ticks(tree, 1)
