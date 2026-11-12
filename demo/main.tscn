@@ -381,7 +381,7 @@ script = ExtResource("20_pickup")
 weapon_path = NodePath("../GunPickup")
 
 [node name="LightSwitch" type="Node3D" parent="." groups=["action5_interactable"]]
-position = Vector3(-9.0, 0, 1.0)
+position = Vector3(-5.5, 0, 4.3)
 script = ExtResource("21_switch")
 
 [node name="Light" type="OmniLight3D" parent="LightSwitch"]
