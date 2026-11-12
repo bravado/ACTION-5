@@ -10,4 +10,5 @@ display_name = "Pistol"
 socket_id = &"right_hand"
 grip_position = Vector3(0, 0, -0.13)
 attacks = Array[Resource]([ExtResource("2")])
+view_facing_policies = Array[Resource]([ExtResource("4")])
 first_person_scene = ExtResource("3")
