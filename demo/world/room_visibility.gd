@@ -24,7 +24,8 @@ extends Node
     ^"../EncounterSector/Roof",
     ^"../EncounterSector/TraversalFixture",
     ^"../EncounterSector/DungeonFillLight",
-    ^"../EncounterSector/DungeonCombatLight"
+    ^"../EncounterSector/DungeonCombatLight",
+    ^"../EncounterSector/ExitTerminal"
 ]
 
 @onready var session: Node = get_node_or_null(session_path)

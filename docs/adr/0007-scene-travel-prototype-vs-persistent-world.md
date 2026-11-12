@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (D08 persistent-world architecture)
 - **Date:** 2026-11-10
-- **Related:** D07 AI foundation, D08 issue #16, D09 reference scenario
+- **Related:** D07 AI foundation, D08 issue #16, delivered D09-01 reference scenario
 
 ## Context
 

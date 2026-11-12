@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D08 are complete:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI in the shared encounter, and D08 supplies the persistent arena/dungeon, physical gates, scene-specific visibility, retained inventory and optional remote portals. **D09 is next.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
+Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D08 and D09-01 are delivered:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-02 is next.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
 
 ## Product invariant
 
@@ -284,7 +284,7 @@ D07 (#15) were completed as separate subsequent deliverables.
 
 ## Starting task
 
-**D01–D08 are complete; D09 is the next implementation focus.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
+**D01–D08 and D09-01 are delivered; D09-02 is the next implementation focus.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
 ## D06-02 gun extension (merged via D06-02)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
@@ -501,9 +501,9 @@ physical ceiling collider or tie rendering to combat/navigation.
 Regress full-viewport anchors, view/sector changes, no mouse blocking
 and physical collision in `tests/d08_world_suite.gd`. Keep local
 fill lights subtle so the scene isn't washed out.
-D08 is part of the implemented scene-composition baseline. D09 must
-extend the reference scenario without reopening the shared movement,
-combat or animation cores.
+D08 and D09-01 are part of the implemented scene-composition baseline.
+D09-02 must add retro-specific behavior without reopening the shared
+movement, combat or animation cores.
 
 The D07 merged baseline passed 1,018/1,018 pinned Godot assertions and
 native/Linux plus real WebGL2 Full E2E on GitHub Actions run
@@ -719,3 +719,45 @@ collision exceptions until separated, so the D07 navigation-through-
 door regression still passes. No exception may remove player/world/
 door physics. Cover F1/F2 switches, AI/HP persistence, and optional
 detached-location behavior in D08 suites.
+
+
+## D09-01 delivered architecture and extension rules
+
+- `demo/ui/reference_hud.gd` is the only owner of demo help/status
+  formatting. Subscribe to gameplay signals; do not reproduce HUD
+  polling/refresh handlers in `demo/main.gd`, nor move HUD logic into
+  the addon. Display bindings from the active control profile and
+  InputMap, actions from AttackDefinitions and optional ammo/command
+  data from the equipped weapon (including the unarmed fallback).
+- `addons/action5/input/view_control_profile.gd` maps InputMap
+  action names to view-local roles. F2/F3/F5 use default.tres;
+  F1 and F4 each have an override. Add per-view controls by authoring
+  another resource, not hardcoding keys/view cases in Actor, Combat,
+  MovementController or CameraRig. F1 W/Up jumps, S/Down holds crouch
+  (with crouch-walk); Space jumps, Ctrl toggles. F4 arrow Left/Right
+  turns, while A/D remains strafe. Focus loss/disabled UI must clear
+  held input and require neutral rearming.
+- `Action5ViewAimTargetProvider` alone owns the camera/view-to-world
+  target policy. In orthographic F1, literal screen-center camera ray
+  points through Z, so select an upper-torso-height horizontal sightline
+  (default `side_center_height = 1.25`) along the combat lane.
+  F4 still uses the camera-center ray; camera-free NPCs use their own
+  target provider. **Never** bypass Gun's authoritative world-muzzle
+  obstruction, damage resolution, or the visual-only projectile origin.
+- `demo/interactions/reference_exit.gd` is a scene-specific
+  Interactor target gated by existing NPC Health; the EXIT at dungeon
+  local (9, 0, 0) is physically reachable on F1 Z=0, outside the
+  SteepFace traversal obstacle. Victory overlay only observes the
+  completion signal and reloads the current scene. D09-02 retro
+  encounter policy stays separate.
+
+**Regression contract:** Run pinned `make check` and the real
+Linux/WebGL2 E2E workflow for changes touching camera, controls,
+combat sightlines, equipment or overlays. `tests/d09_reference_suite.gd`
+covers inputs, HUD, completion, view switches and focus rearming;
+`tests/d09_side_aim_suite.gd` covers physical F1 gun hits both ways,
+muzzle visuals and wall obstruction. Final D09-01 baseline:
+[CI / Checks, 1,275/1,275](https://github.com/bravado/ACTION-5/actions/runs/43135267448)
+and [Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
+Owner accepted the F1 trajectory. Do not falsely claim the separate
+20-minute exploratory test based solely on automated smoke evidence.

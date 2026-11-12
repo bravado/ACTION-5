@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D08 completed.** The five-view demo now combines camera-independent melee/ranged enemy AI with persistent arena/dungeon traversal, a physical two-sided door, room occlusion, cached remote portals, independent equipment/pickup lifecycles and configurable camera presentation. D08 is visually accepted; **D09 is the next implementation milestone**. The reusable Actor, Combat, Equipment, Animation and Camera cores remain separate from scene-specific world composition.
+> **Project status (November 2026): D01–D08 and D09-01 delivered.** The five-view demo combines camera-independent melee/ranged AI, connected persistent arena/dungeon, physical doors and portals, equipment, responsive HUD, view-local control profiles and a playable EXIT objective. D09-01 native/WebGL2 automated checks passed and the F1 gun trajectory was visually accepted. **Next: D09-02 retro-specific encounter/scrolling**, then developer tooling and release work. The Actor, Combat, Equipment, Animation and Camera cores remain separate from demo world composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -77,7 +77,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, then walk with WASD or arrow keys. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Bat horizontal strike, otherwise Kick unless assigned by equipment); gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while F1/F2/F3/F5 use three dedicated skinned world weapon animations (Bat vertical, Bat horizontal, Shovel overhead) and all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, using the view-specific movement and attack mappings below. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Bat horizontal strike, otherwise Kick unless assigned by equipment); gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while F1/F2/F3/F5 use three dedicated skinned world weapon animations (Bat vertical, Bat horizontal, Shovel overhead) and all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 
@@ -96,13 +96,13 @@ The milestone mapping is maintained by [the idempotent roadmap synchronization w
 
 ## Working on ACTION-5
 
-Development is incremental. **D01–D08 and the independent crouch example are complete.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D09 reference scenario and retro aim/scrolling. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
+Development is incremental. **D01–D08, the independent crouch example, and D09-01 are delivered.** The core now supports Bat/Shovel and two independently configured Guns, a camera-independent enemy encounter, physical same-world door traversal, inventory preservation and explicit cached remote-scene travel. New features should reuse the existing actor, movement, animation, combat, equipment, AI and camera ports rather than introducing parallel subsystems. **Next:** D09-02 retro overhead aiming/scrolling, then D10 tools and D11–D12 release work. Follow [AGENTS.md](AGENTS.md), [AI authoring](docs/ai.md), [the movement authoring guide](docs/adding-moves.md) and [PLAN.md](PLAN.md).
 
 
 Run the current five-view demo with **Godot 4.7.2** and GNU Make. All commands automatically import resources and refresh Godot's generated script registry before launching, testing, or exporting:
 
 ```bash
-make run          # Import, run (1–5 view; WASD move; Space jump; Shift run; Alt dodge)
+make run          # Import and run; 1–5 select view; HUD shows view-specific input
 make test         # Import, then run headless Godot tests
 make check        # Same asset + Godot checks as PR CI (requires Node.js)
 make editor       # Import, then open the Godot editor
@@ -244,3 +244,59 @@ in **all three** F1 areas (arena, dungeon and remote chamber), leaving
 rear scenery and solid collision intact. F4 first-person and F5
 top-down walls remain opaque; proximity opacity only applies to the
 other eligible views. Neither the door frame nor its collider disappears.
+
+
+## D09-01 — Playable reference scenario
+
+`make run` starts the same persistent arena/dungeon and player used by D08.
+Follow the HUD objective, use the physical east gate, defeat the dungeon
+enemies, then interact with the unlocked **EXIT** marker to show the victory
+screen. **Play Again** restarts the reference scene; the separate death
+overlay still offers **Restart**. A remote portal demonstrates cached
+location travel. The HUD observes public ViewManager, Health, Combat,
+MovementController, Equipment and weapon state; it shows active view,
+HP, attack, equipment/ammo/reload and commands, and obtains help labels
+from InputMap, active view-control resources and AttackDefinitions.
+
+### Default controls by view
+
+| View | W / ↑ | S / ↓ | A / D | ← / → |
+|---|---|---|---|---|
+| 1 — Side-scroller | Jump | Hold crouch | Move left/right | Move left/right |
+| 2 — Beat'em Up | Move up stage | Move down stage | Move left/right | Move left/right |
+| 3 — Isometric/shoulder | Forward | Backward | Move left/right | Move left/right |
+| 4 — First person | Forward | Backward | Strafe | Turn |
+| 5 — Retro top-down | Move up | Move down | Move left/right | Move left/right |
+
+**Space** also jumps in every view; **Ctrl** toggles crouch and Shift
+runs. F1 S/Down holds crouch, including crouch-walk while moving;
+F4 arrow turning defaults to 135°/s while A/D remain strafing. The
+`Action5ViewControlProfile` resources in
+`addons/action5/input/profiles/` map globally remappable InputMap
+actions onto view-local roles. New view-specific bindings require
+a new/edited profile resource, not branches in Actor, Combat or Camera.
+See [locomotion](docs/locomotion.md) and [cameras](docs/cameras.md).
+
+### Gun targeting and physical correctness
+
+F4 selects its target through the screen-center Camera3D ray.
+F1's orthographic center ray points through Z depth, so the F1 aim
+provider instead selects a horizontal target along the shared X/Y
+combat lane at configurable **1.25-unit upper-torso height**
+(`Action5ViewAimTargetProvider.side_center_height`). The
+**world-space muzzle** still casts the authoritative collision ray;
+walls block damage and the tracer starts at the actual muzzle
+(or the F4 visual-only grip). Camera-free NPCs use their independent
+world-target provider. See [equipment](docs/equipment.md) and
+`tests/d09_side_aim_suite.gd`.
+
+### Verification
+
+Pinned Godot 4.7.2 headless suite passed **1,275 assertions, zero
+failures** in [CI / Checks](https://github.com/bravado/ACTION-5/actions/runs/43135267448).
+Native Linux export/render capture and real WebGL2 browser startup passed
+in [CI / Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
+The side-view trajectory was visually accepted by the project owner.
+A separate prolonged manual playthrough/focus-loss exploration is
+not covered by the automated evidence. D09-02's retro-specific 4/8-way
+encounter and scrolling remain separate.

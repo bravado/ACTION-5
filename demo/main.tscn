@@ -1,4 +1,4 @@
-[gd_scene load_steps=59 format=3]
+[gd_scene load_steps=61 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -32,6 +32,8 @@
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
 [ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
 [ext_resource type="Script" path="res://demo/world/side_lane_controller.gd" id="31_side_lane"]
+[ext_resource type="Script" path="res://demo/ui/reference_hud.gd" id="32_hud"]
+[ext_resource type="PackedScene" path="res://demo/ui/victory_overlay.tscn" id="33_victory"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(28, 0.4, 18)
@@ -435,28 +437,29 @@ mouse_filter = 2
 color = Color(0.12, 0.18, 0.26, 0.18)
 
 [node name="Hud" type="CanvasLayer" parent="."]
+script = ExtResource("32_hud")
 
 [node name="Help" type="Label" parent="Hud"]
 offset_left = 24.0
 offset_top = 18.0
 offset_right = 1160.0
-offset_bottom = 106.0
-theme_override_font_sizes/font_size = 20
-text = "ACTION-5 // PERSISTENT WORLD\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: attack | RMB/K: secondary\nE: pickup/door/switch | Q: swap | G: drop | R: reload"
+offset_bottom = 120.0
+theme_override_font_sizes/font_size = 16
+text = "ACTION-5 | Loading controls from InputMap..."
 
 [node name="Status" type="Label" parent="Hud"]
 offset_left = 24.0
-offset_top = 107.0
-offset_right = 1160.0
-offset_bottom = 135.0
+offset_top = 122.0
+offset_right = 1260.0
+offset_bottom = 150.0
 theme_override_font_sizes/font_size = 17
 text = "VIEW 2 / 5 | Beat'em Up"
 
 [node name="ModeButtons" type="HBoxContainer" parent="Hud"]
 offset_left = 24.0
-offset_top = 146.0
+offset_top = 157.0
 offset_right = 1150.0
-offset_bottom = 190.0
+offset_bottom = 201.0
 theme_override_constants/separation = 8
 
 [node name="Mode1" type="Button" parent="Hud/ModeButtons"]
@@ -487,9 +490,9 @@ text = "5 · RETRO TOP-DOWN"
 [node name="SettingsToggle" type="Button" parent="Hud"]
 focus_mode = 0
 offset_left = 1031.0
-offset_top = 145.0
+offset_top = 156.0
 offset_right = 1255.0
-offset_bottom = 191.0
+offset_bottom = 202.0
 text = "Camera Settings [C]"
 
 [node name="CameraSettings" type="PanelContainer" parent="Hud"]
@@ -501,6 +504,8 @@ offset_bottom = 650.0
 script = ExtResource("6_settings")
 
 [node name="DeathOverlay" parent="." instance=ExtResource("17_death")]
+
+[node name="VictoryOverlay" parent="." instance=ExtResource("33_victory")]
 
  
 

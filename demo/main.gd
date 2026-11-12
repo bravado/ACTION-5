@@ -12,12 +12,8 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _input: InputAdapterScript = $ActorInput
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _combat: Node = $Player/CombatController
-@onready var _health: Node = $Player/Health
 @onready var _equipment: Node = $Player/Equipment
 
-var _combat_was_active: bool = false
-@onready var _status: Label = $Hud/Status
-@onready var _help: Label = $Hud/Help
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _settings_toggle: Button = $Hud/SettingsToggle
@@ -27,13 +23,13 @@ func _ready() -> void:
     _moves.move_changed.connect(_on_move_changed)
     _combat.attack_started.connect(_on_attack_started)
     _combat.attack_hit.connect(_on_attack_hit)
-    _health.health_changed.connect(_on_health_changed)
     _equipment.weapon_picked_up.connect(_on_weapon_picked_up)
     _equipment.weapon_equipped.connect(_on_weapon_equipped)
     _equipment.weapon_dropped.connect(_on_weapon_dropped)
     # Compose the scene's optional world-drop policy; Equipment never
     # references LocationManager or a specific PackedScene itself.
     _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
+    _register_demo_actions()
     _settings_toggle.pressed.connect(_toggle_camera_settings)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
@@ -90,19 +86,20 @@ func _unhandled_input(event: InputEvent) -> void:
         elif event.keycode == KEY_B and not _camera_settings.visible:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
-        elif not _camera_settings.visible:
-            var consumed: bool = false
-            match event.keycode:
-                KEY_E:
-                    # Authored, dynamic and dropped weapons use the same
-                    # physical line-of-sight and range policy as doors.
-                    consumed = bool($InteractionInput.try_interact())
-                KEY_Q:
-                    consumed = bool(_equipment.call("swap_next"))
-                KEY_G:
-                    consumed = bool(_equipment.call("drop_current"))
-            if consumed:
-                get_viewport().set_input_as_handled()
+    # The demo's remappable actions accept keyboard, controller and mouse.
+    if event is InputEventKey and event.echo:
+        return
+    if _camera_settings.visible or not event.is_pressed():
+        return
+    var consumed: bool = false
+    if event.is_action_pressed(&"demo_interact"):
+        consumed = bool($InteractionInput.try_interact())
+    elif event.is_action_pressed(&"demo_swap"):
+        consumed = bool(_equipment.call("swap_next"))
+    elif event.is_action_pressed(&"demo_drop"):
+        consumed = bool(_equipment.call("drop_current"))
+    if consumed:
+        get_viewport().set_input_as_handled()
 
 
 
@@ -128,8 +125,6 @@ func _on_weapon_equipped(weapon: Node3D) -> void:
     print("ACTION5_WEAPON_EQUIPPED id=", definition.get("weapon_id"),
         " meshes=", weapon.call("get_world_meshes").size(),
         " f4_visual=", int(f4_visual != null))
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
 
 
 func _on_weapon_dropped(weapon: Node3D) -> void:
@@ -137,61 +132,10 @@ func _on_weapon_dropped(weapon: Node3D) -> void:
     var adapter: Node = _player.get_node("EquipmentVisualAdapter")
     print("ACTION5_WEAPON_DROPPED id=", definition.get("weapon_id"),
         " f4_visual=", int(adapter.get("_viewmodel") != null))
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-
-
-## Avoid laying out the HUD 60 times/sec while idle: software WebGL2
-## rendering is CPU-bound and should not slow actual physics/movement.
-func _physics_process(_delta: float) -> void:
-    # A world can lose its player in scripted death/teardown scenarios.
-    # HUD instrumentation is optional and must not dereference a freed
-    # actor or one of its deleted Health/Combat/Equipment children.
-    if not is_instance_valid(_player) or not is_instance_valid(_combat) \
-            or not is_instance_valid(_equipment):
-        set_physics_process(false)
-        return
-    var active: bool = _combat.get("current_attack") != null
-    if (active or _combat_was_active) and _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-    var held: Node = _equipment.get("current_weapon") as Node
-    if is_instance_valid(held) and held.has_method("get_ammo_status")             and _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-    _combat_was_active = active
-
-
-func _on_health_changed(_value: float, _previous: float) -> void:
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
 
 
 func _on_move_changed(previous: StringName, current: StringName) -> void:
     print("ACTION5_MOVE_CHANGED previous=%s current=%s" % [previous, current])
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
-
-
-func _refresh_status(profile: ViewProfileScript) -> void:
-    var health: Node = _player.get_node_or_null("Health")
-    var hp: int = ceili(float(health.get("current_health"))) if health != null else 0
-    var action_label: String = str(_combat.get("current_id"))
-    if action_label.is_empty():
-        action_label = "none"
-    var next_text: String = "VIEW %d / 5 | %s | Move %s | HP %d | Attack %s %s [%d] | Switches %d" % [
-        _views.active_index + 1, profile.display_name, _moves.active_id, hp,
-        action_label, _combat.get("phase"), _combat.get("elapsed_ticks"), _views.switch_count
-    ]
-    var held: Node3D = _equipment.get("current_weapon") as Node3D
-    if held != null:
-        var item_definition: Resource = held.get("definition")
-        next_text += " | Weapon " + str(item_definition.get("display_name"))
-        if held.has_method("get_ammo_status"):
-            var ammo: Dictionary = held.call("get_ammo_status")
-            next_text += " | Ammo %d/%d" % [ammo["magazine"], ammo["reserve"]]
-            if ammo["reloading"]:
-                next_text += " | Reload %d" % ammo["reload_left"]
-    if _status.text != next_text:
-        _status.text = next_text
 
 
 func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) -> void:
@@ -199,7 +143,6 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
         return
     # Remove stale GUI focus left by view buttons or camera sliders.
     _release_ui_focus()
-    _refresh_status(current)
     # Demo instrumentation (not gameplay): browser CI verifies the imported
     # rig and attachment survive local F3/F4 rendering policy changes.
     var fps: Node = _player.get_node_or_null("FirstPersonPresenter")
@@ -238,6 +181,20 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.disabled = i == _views.active_index
-    _help.text = "ACTION-5 // D06 EQUIPMENT + D07 ENCOUNTER DEMO\n1–5: views | WASD: move | Space: jump | Shift: run | LMB/J: weapon or punch | RMB/K: Bat horizontal / Kick\nE: pickup / open encounter door | Q: swap | G: drop | R: gun reload | Unassigned actions: Punch/Kick | Door: east arena"
     if not current.is_orbit_mode():
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Only the reference scene owns these optional remappable interactions.
+func _register_demo_actions() -> void:
+    var bindings: Dictionary = {
+        &"demo_interact": KEY_E, &"demo_swap": KEY_Q, &"demo_drop": KEY_G
+    }
+    for action in bindings:
+        if not InputMap.has_action(action):
+            InputMap.add_action(action)
+        if not InputMap.action_get_events(action).is_empty():
+            continue
+        var event := InputEventKey.new()
+        event.keycode = bindings[action]
+        InputMap.action_add_event(action, event)

@@ -20,7 +20,7 @@ solver, or special-case camera view.
 |---|---|
 | Eligibility, duration, direction, speed, collision/stance changes, interruption, cleanup | A new `Action5Move` subclass |
 | Exclusive movement states and arbitration | Existing `Action5MovementController`, automatically registering `Moves` child nodes |
-| Keyboard/gamepad actions | Component's `action_name` and default binding; existing input adapter and `InputMap` |
+| Keyboard/gamepad actions | Component's `action_name` and default binding, InputMap; optional view-local role via `Action5ViewControlProfile` |
 | Physical motion, gravity, jumping, sliding against the world | `Action5MoveContext` commands applied by existing `Action5Locomotion` |
 | Visible movement clip(s) | Authored `AnimationPlayer` clips plus `SkeletonProfile.clip_map` |
 | F4 camera eye height for a stance | Optional `EyeHeightPresenter.move_offsets` configuration and actor-local `EyeOffset` |
@@ -120,7 +120,10 @@ an active move. `unregister_move(id)` leaves the Node attached, and
 The input adapter discovers `action_name` from registered moves,
 installs `default_key` and optional `default_gamepad_button` only
 if the existing `InputMap` action has **no** bindings, and uses
-`Input.is_action_just_pressed`. User remappings take precedence.
+`Input.is_action_just_pressed`. User remappings take precedence. View-specific keys belong in an
+`Action5ViewControlProfile` resource, not a branch in the movement
+component. For example, F1 maps S/Down to a held `crouch` request
+without changing `Action5CrouchMove` or its Ctrl toggle.
 Never read raw input from the move. To make a move internal/state-only,
 configure `action_name = &""`, `default_key = 0` and
 `default_gamepad_button = -1`. For example, `CrouchWalk` is another

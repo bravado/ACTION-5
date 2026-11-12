@@ -67,7 +67,7 @@ per-instance ammo/reload fields. An NPC uses the same Gun scene with
 decision component alone chooses target, navigation and D05 attack requests.
 Never import `demo/` from reusable `addons/action5/` scripts.
 
-## Handoff to future issues
+## Original milestone handoff (D07–D09-01 now delivered)
 
 - **D07 (#15):** AI FSM + navigation are separate intent/action producers.
   Reuse the camera-free target provider, existing D05 Combat and actor-local
@@ -78,8 +78,10 @@ Never import `demo/` from reusable `addons/action5/` scripts.
   *world muzzle* ray whether or not the local camera hides a roof. A simple
   separate `interact(actor)` consumer should replace demo-only pickup keys;
   do not extend core equipment with door IDs.
-- **D09 (#17–18):** HUD reads existing weapon/attack/command state; F5
-  4-/8-way policy belongs in an injected view aim/selection policy. Keep
+- **D09-01 (#17, delivered):** HUD reads existing weapon/attack/command
+  state; F1 uses the upper-torso horizontal target provider and F4 retains
+  the camera-center ray. **D09-02 (#18, next)** owns retro F5
+  4-/8-way selection and scrolling policy. Keep
   AttackDefinition.facing_sectors at Free when only F5 is quantized, because
   the current CombatController also applies that field in F1–F4.
 - **D10 (#19):** opt-in validators can check Muzzle path, available world
@@ -193,9 +195,9 @@ producer per NPC, not a new combat/gun framework; the shipped
 `Action5ActorTargetAimProvider` already supplies world points. D07
 should test target death/loss, two simultaneous enemies, body-first
 hit receivers, wall collision and camera switching. A missing target
-must fail closed without reusing the player's camera. Other milestones
-retain their distinct D08 world interactions, D09 view policy/HUD,
-D10 diagnostics, D11 full test matrix and D12 clean addon packaging.
+must fail closed without reusing the player's camera. D08 world interactions and D09-01 HUD/view targeting are delivered.
+D09-02 retro-specific policy, D10 diagnostics, D11 full test matrix
+and D12 clean addon packaging remain separate.
 
 **Outcome:** no further code refactor is justified as a D06-02 merge
 prerequisite. Optional D07 profiling and test-fixture consolidation

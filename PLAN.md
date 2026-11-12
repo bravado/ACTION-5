@@ -3,7 +3,7 @@
 
 **Version:** 1.0 planning baseline  
 **Date:** 2026-11-05  
-**Status update (2026-11-11): D01–D08 completed.** The v0.2 Combat baseline (D04–D07) is stable, and D08 adds a connected persistent arena/dungeon, independent physical gate, opaque closed-room presentation, cached remote-location portals, restart/fresh-entry policies and retained inventory/AI state. D08's Godot regression suite passed **1,212 assertions with zero failures**, and F1–F5 visual acceptance was confirmed by the owner. Browser export validation continues to be enforced by CI. **D09 is the next deliverable**; D10–D12 remain planned. Requirements and release gates below remain authoritative.
+**Status update (2026-11-12): D01–D08 and D09-01 delivered.** The D08 connected arena/dungeon baseline remains stable; D09-01 adds the reference HUD, view-local input profiles, completion/replay, F1/F4 controls and physically blocked side-view gun aiming. Pinned Godot tests passed **1,275 assertions with zero failures**, and native Linux/WebGL2 E2E passed. The owner accepted the updated F1 gun trajectory. **Next: D09-02 retro-specific aim/scrolling**; D10–D12 remain planned. The release and long-play acceptance gates below remain authoritative.
 **Audience:** Autonomous coding agent(s), code reviewers, project owner  
 **Primary goal:** Build an MIT-licensed reusable Godot addon and a playable reference game that supports five instant-switchable control/camera perspectives in the same persistent 3D world.
 
@@ -730,8 +730,7 @@ D10 opt-in authoring validators, D11 the existing test runner/matrix,
 and D12 demo-independent addon packaging remain separate milestones.
 
 **D06 and D07 handoff complete:** D07 reuses the camera-free aim port
-and the existing combat/equipment interfaces. D08 is the next active
-level-design milestone; do not reopen D06/D07 or introduce a new
+and the existing combat/equipment interfaces. D08 subsequently delivered the connected world; do not reopen D06/D07 or introduce a new
 combat/animation core for level interactions.
 
 
@@ -805,9 +804,9 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 
 `WorldSession` detects physical sector transitions, preloads nearby NPC physics, preserves live enemy state on ordinary revisits and supports an explicit destination-only fresh/restore policy. The `Action5Interactor` handles doors, switches, portals and prefab-local weapon pickups with real range and line-of-sight validation. An optional `LocationPortal` loads a cached environment PackedScene without duplicating Player, equipment or camera. Disabled remote locations are isolated by Godot `DISABLE_MODE_REMOVE` for collision objects and explicit navigation state handling. A location-owned drop-parent provider resolves the active world at drop time.
 
-`RoomVisibility` independently handles connected-room occlusion, NPC and loose-item presentation, while `OuterWallFader` owns F1 foreground hiding and proximity transparency. The roof tint is a full-viewport presentation-only overlay; its separate physics ceiling remains authoritative. `SectorCameraBounds` merges transformed bounds of connected sectors without adding room names or movement transforms to the camera core. F2 lateral peek defaults to configurable 6°. All five views retain consistent facing and WASD semantics.
+`RoomVisibility` independently handles connected-room occlusion, NPC and loose-item presentation, while `OuterWallFader` owns F1 foreground hiding and proximity transparency. The roof tint is a full-viewport presentation-only overlay; its separate physics ceiling remains authoritative. `SectorCameraBounds` merges transformed bounds of connected sectors without adding room names or movement transforms to the camera core. F2 lateral peek defaults to configurable 6°. All five views retain consistent facing with view-specific control profiles.
 
-**D08 verification:** Godot integration tests cover physical doors, retained AI awareness, two overlapping cached remote environments, pickup/drop/restoration, non-default physics disabling, F1/F2 wall rendering and camera continuity. Latest pre-merge checks: **1,212 assertions, zero failures**, with owner F1–F5 visual acceptance on November 11, 2026. Native/WebGL2 exports remain under automated CI; a failing installation of browser dependencies is infrastructure evidence, not proof of a gameplay regression. D09 should build a playable reference scenario and view-specific retro aim/scrolling on these existing ports, without a new scene/persistence framework.
+**D08 verification:** Godot integration tests cover physical doors, retained AI awareness, two overlapping cached remote environments, pickup/drop/restoration, non-default physics disabling, F1/F2 wall rendering and camera continuity. Latest pre-merge checks: **1,212 assertions, zero failures**, with owner F1–F5 visual acceptance on November 11, 2026. Native/WebGL2 exports remain under automated CI; a failing installation of browser dependencies is infrastructure evidence, not proof of a gameplay regression. D09-01 has delivered the playable reference on these existing ports; D09-02 will add retro-specific aim/scrolling without a new scene or persistence framework.
 
 ### D08 outer-wall visibility and F2 camera comfort
 
@@ -828,3 +827,41 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 - [x] Owner verified F1/F2/F3/F5 near-wall rendering and F4 opaque
   walls on November 11, 2026; maintain automated native/WebGL2
   screenshot and startup gates for subsequent changes.
+
+
+## D09-01 delivered baseline — playable reference and view-local input
+
+D09-01 composes the existing D08 arena and dungeon into a playable
+start-to-EXIT flow. The physical east gate, enemy Health events and
+Interactor ports remain authoritative; the demo-local `reference_exit`
+and victory overlay only present objective and completion. Player,
+weapons, scene state and camera are not duplicated.
+
+`demo/ui/reference_hud.gd` observes the public ViewManager, Health,
+Combat, Equipment, MovementController, weapon and InputMap ports.
+`Action5ViewControlProfile` resources assign remappable InputMap
+action names to per-view roles; F1 W/Up jumps, S/Down holds crouch
+and side movement stays horizontal. F4 Left/Right arrows turn at
+135°/s by default, and A/D strafe. F2/F3/F5 retain normal 2D
+directional input. Movement core, FSM, camera and combat continue
+to consume generic intent or look deltas; HUD does not own game state.
+
+Gun targeting stays outside Gun: F4 resolves a true center-camera ray,
+while F1 chooses a horizontal line along the 2D combat lane at
+configurable 1.25-unit upper-torso height. All actual shots still
+trace from their world muzzle to the selected world point, preserving
+wall obstruction, damage and projectile origin. Camera-free AI
+retains its independent target provider.
+
+**Verification:** Pinned Godot 4.7.2 headless tests
+(`tests/d09_reference_suite.gd`, `tests/d09_side_aim_suite.gd`
+and existing D01–D08 suites) passed **1,275 assertions, 0 failures**:
+[CI / Checks](https://github.com/bravado/ACTION-5/actions/runs/43135267448).
+Linux export and native render capture, Web export and real WebGL2
+browser startup passed [CI / Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963).
+The project owner visually accepted the corrected F1 trajectory.
+Do not confuse automated screenshots with completion of the separately
+specified 20-minute exploratory native/Web run.
+
+**Next work:** D09-02 retro 4/8-way encounter behavior and scrolling,
+then D10 diagnostics/authoring, D11–D12 packaging and distribution.

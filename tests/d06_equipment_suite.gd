@@ -41,16 +41,18 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for tick in range(2):
         await tree.physics_frame
 
-    # The camera switch rewrites help text; D06 controls must not revert
-    # to the older D05-only caption after entering a different view.
+    # D09 projects current InputMap and registered AttackDefinitions instead
+    # of hardcoded weapon, command, or obsolete demo help strings.
     var controls: Label = level.get_node("Hud/Help") as Label
-    verify.call(controls.text.contains("D06 EQUIPMENT")
-        and controls.text.contains("E: pickup")
-        and controls.text.contains("Q: swap")
-        and controls.text.contains("Unassigned actions: Punch/Kick")
-        and not controls.text.contains("F: swing")
-        and controls.text.contains("G: drop"),
-        "D06 HUD help lists equipment controls after a camera switch")
+    verify.call(controls.text.contains("ACTION-5")
+        and controls.text.contains("Interact: E")
+        and controls.text.contains("Swap: Q")
+        and controls.text.contains("Drop: G")
+        and controls.text.contains("Actions:")
+        and controls.text.contains("Punch")
+        and controls.text.contains("Kick")
+        and not controls.text.contains("F: swing"),
+        "D06 equipment help remains discoverable after camera switch")
 
     var socket: Node3D = animation.call("get_socket", &"right_hand") as Node3D
     var starting_shadows: int = fps.world_visual_shadows.size()
