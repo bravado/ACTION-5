@@ -55,7 +55,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     Input.action_press(&"retro_aim_right")
     var keyboard_aim: Vector2 = actor_input.call("get_aim_axes")
     var keyboard_movement: Vector2 = actor_input.call("get_movement_axes")
-    print("ACTION5_RETRO_INPUT aim=", keyboard_aim, " move=", keyboard_movement)
     verify.call(keyboard_aim.distance_to(Vector2(1, -1).normalized()) < 0.01
         and keyboard_movement.length_squared() < 0.001,
         "D09-02 Up+Right aim actions resolve diagonally without moving")
@@ -64,7 +63,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     Input.action_press(&"retro_move_up")
     keyboard_aim = actor_input.call("get_aim_axes")
     keyboard_movement = actor_input.call("get_movement_axes")
-    print("ACTION5_RETRO_INPUT_MOVE aim=", keyboard_aim, " move=", keyboard_movement)
     verify.call(keyboard_aim.length_squared() < 0.001 and keyboard_movement.y < -0.99,
         "D09-02 WASD move actions do not introduce an aim direction")
     Input.action_release(&"retro_move_up")
@@ -91,7 +89,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 Sword registers an unquantized D05 melee attack")
     var retro_hint := level.get_node("Hud/RetroDirection") as Label
     level.get_node("Hud").call("_process", 0.0)
-    print("ACTION5_RETRO_HUD_SWORD visible=", retro_hint.visible, " text=", retro_hint.text)
     verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
         and retro_hint.text.contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
@@ -132,7 +129,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
     level.get_node("Hud").call("_process", 0.0)
-    print("ACTION5_RETRO_HUD_GUN visible=", retro_hint.visible, " text=", retro_hint.text)
     verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
         and retro_hint.text.contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
