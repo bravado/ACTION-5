@@ -132,8 +132,6 @@ func _on_weapon_dropped(weapon: Node3D) -> void:
     var adapter: Node = _player.get_node("EquipmentVisualAdapter")
     print("ACTION5_WEAPON_DROPPED id=", definition.get("weapon_id"),
         " f4_visual=", int(adapter.get("_viewmodel") != null))
-    if _views.current_profile != null:
-        _refresh_status(_views.current_profile)
 
 
 func _on_move_changed(previous: StringName, current: StringName) -> void:
