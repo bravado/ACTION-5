@@ -75,7 +75,7 @@ func _physics_process(_delta: float) -> void:
         return
 
     var controls: ControlProfileScript = get_active_controls()
-    var axes: Vector2 = get_movement_axes()
+    var axes: Vector2 = get_movement_axes(controls)
     var aim_axes: Vector2 = get_aim_axes(controls)
     var turn_axis: float = _axis(controls.turn_left_action, controls.turn_right_action)
     if require_neutral:
@@ -127,8 +127,9 @@ func get_aim_axes(controls: ControlProfileScript = null) -> Vector2:
     return aim.limit_length(1.0)
 
 
-func get_movement_axes() -> Vector2:
-    var controls: ControlProfileScript = get_active_controls()
+func get_movement_axes(controls: ControlProfileScript = null) -> Vector2:
+    if controls == null:
+        controls = get_active_controls()
     if controls == null:
         return Vector2.ZERO
     var axes: Vector2
