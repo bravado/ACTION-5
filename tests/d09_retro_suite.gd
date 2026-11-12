@@ -88,6 +88,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
     var retro_hint := level.get_node("Hud/RetroDirection") as Label
+    verify.call(level.get_node("Hud").is_physics_processing(),
+        "D09-02 overhead compass updates only on fixed physics ticks")
     level.get_node("Hud").call("_physics_process", 0.0)
     verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
         and retro_hint.text.contains("4-WAY"),
@@ -255,6 +257,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
     var extra := PolicyScript.new()
     extra.view_mode = ProfileScript.Mode.RETRO_TOPDOWN
+    extra.sector_count = 16
+    verify.call(extra.valid(), "D09-02 independently authored 16-way policy validates")
+    extra.sector_count = 33
+    verify.call(not extra.valid(),
+        "D09-02 runtime-assigned sector counts above 32 fail validation")
+    extra.sector_count = 1
+    verify.call(not extra.valid(),
+        "D09-02 one-sector invalid configuration fails validation")
+    extra.sector_count = 0
+    verify.call(extra.valid(),
+        "D09-02 zero sectors explicitly supports continuous aim")
     extra.sector_count = 16
     var gun_definition: Resource = gun.get("definition")
     var original_policies: Array = gun_definition.view_facing_policies.duplicate()
