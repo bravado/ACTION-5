@@ -865,3 +865,8 @@ specified 20-minute exploratory native/Web run.
 
 **Next work:** D09-02 retro 4/8-way encounter behavior and scrolling,
 then D10 diagnostics/authoring, D11–D12 packaging and distribution.
+
+
+## D09-02 implementation handoff (issue #18)
+
+**Status:** implementation branch, validation pending. **Branch:** `feat/d09-02-retro-overhead`. Existing connected arena+dungeon and camera bounds are reused for scrolling. Add-on changes are limited to a declarative per-weapon view-facing Resource, a small actor-local lookup, and optional input/aim source paths; existing D05/D06 combat, locomotion and presentation cores are not specialized for the demo Sword. `demo/equipment/sword.*` and `demo/world/encounter_sector.tscn` compose the Sword encounter, with the same D08 scene-state machinery. `tests/d09_retro_suite.gd` exercises heading, pickup, scene and view swaps; it is registered into `tests/run_all.gd`. **Tests executed:** not locally run (Godot 4.7.2 unavailable in this execution environment); CI/native/WebGL2 and 20-minute exploratory runs remain explicit gates, not presumed passes. **Next:** verify Checks and Full E2E on this branch, inspect F5 sword visuals and dungeon scrolling, then review for merge; follow with D10-01. See issue #18 and the implementation PR for acceptance evidence.
