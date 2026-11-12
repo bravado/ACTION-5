@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D08 and D09-01 are delivered:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-02 is in implementation.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
+Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D09-02 are implemented:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **Next: D10 opt-in diagnostics and validators.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
 
 ## Product invariant
 
@@ -284,7 +284,7 @@ D07 (#15) were completed as separate subsequent deliverables.
 
 ## Starting task
 
-**D01–D08 and D09-01 are delivered; D09-02 is the next implementation focus.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
+**D01–D09-02 are implemented; D10 tooling is the next development focus.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
 ## D06-02 gun extension (merged via D06-02)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
@@ -501,9 +501,9 @@ physical ceiling collider or tie rendering to combat/navigation.
 Regress full-viewport anchors, view/sector changes, no mouse blocking
 and physical collision in `tests/d08_world_suite.gd`. Keep local
 fill lights subtle so the scene isn't washed out.
-D08 and D09-01 are part of the implemented scene-composition baseline.
-D09-02 must add retro-specific behavior without reopening the shared
-movement, combat or animation cores.
+D08–D09-02 are part of the implemented scene-composition baseline.
+Future D10 diagnostics must inspect, not rewrite, the shared movement,
+combat, camera, equipment or animation cores.
 
 The D07 merged baseline passed 1,018/1,018 pinned Godot assertions and
 native/Linux plus real WebGL2 Full E2E on GitHub Actions run
@@ -749,7 +749,7 @@ detached-location behavior in D08 suites.
   local (9, 0, 0) is physically reachable on F1 Z=0, outside the
   SteepFace traversal obstacle. Victory overlay only observes the
   completion signal and reloads the current scene. D09-02 retro
-  encounter policy stays separate.
+  encounter policy is an optional resource-based view/weapon integration.
 
 **Regression contract:** Run pinned `make check` and the real
 Linux/WebGL2 E2E workflow for changes touching camera, controls,
@@ -763,9 +763,9 @@ Owner accepted the F1 trajectory. Do not falsely claim the separate
 20-minute exploratory test based solely on automated smoke evidence.
 
 
-## D09-02 retro combat integration (implementation branch)
+## D09-02 retro combat integration (implemented)
 
-D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena and existing D08 connected dungeon hold Sword pickups through WorldPickup persistence. F5 demo uses a view-local control resource with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_retro_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. **No claim of native/WebGL2 pass or manual visuals until latest-head evidence exists.**
+D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena and existing D08 connected dungeon hold Sword pickups through WorldPickup persistence. F5 demo assigns `demo/input/retro_topdown.tres` in `demo/main.tscn`, with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_retro_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. Pinned CI/Full E2E validate the implementation; the complete owner exploratory playthrough remains a separate manual acceptance gate.
 
 - D09-02 top-down Gun correction: **do not start projectiles at the actor's center**. Both demo Guns reuse the existing `EquipmentVisualAdapter` origin (physical weapon muzzle except optional F4 barrel-tip). Only the actor-local `Action5ViewAimTargetProvider` selects F5 target along the player's X/Z center-forward line. It first resolves a reachable target/obstacle on that line, then `Action5Gun` still casts the authoritative ray from the real muzzle to that point. Do not give `Action5Gun`, `CombatController`, `ProjectileVisual` or the projectile presenter new view branches. `tests/d09_retro_suite.gd` verifies centerline target selection, real muzzle-origin emitted tracer, physical hit, ammo and F3/F4 fallbacks.
 
