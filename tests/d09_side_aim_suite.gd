@@ -103,6 +103,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         true, Vector2.ZERO, Vector2.LEFT,
         ProfileScript.Mode.SIDE, views.get_active_camera()
     )
+    # Sync a moved physics Area3D before querying its broadphase; the shot
+    # itself already waits for physics ticks, but this assertion didn't.
+    await _ticks(tree, 2)
     var left_target: Vector3 = aim.call("get_world_target",
         muzzle.global_position, 60.0, excludes)
     verify.call(left_target.x < actor.global_position.x - 4.0
