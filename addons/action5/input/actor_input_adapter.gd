@@ -76,7 +76,7 @@ func _physics_process(_delta: float) -> void:
 
     var controls: ControlProfileScript = get_active_controls()
     var axes: Vector2 = get_movement_axes()
-    var aim_axes := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    var aim_axes: Vector2 = get_aim_axes(controls)
     var turn_axis: float = _axis(controls.turn_left_action, controls.turn_right_action)
     if require_neutral:
         if axes.length_squared() > 0.001 or aim_axes.length_squared() > 0.001 \
