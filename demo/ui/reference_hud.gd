@@ -312,10 +312,12 @@ func _sync_retro_direction() -> void:
     var retro: bool = is_instance_valid(views) and views.get("current_profile") != null \
         and int(views.get("current_profile").get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN
     retro_direction.visible = retro
-    set_process(retro)
+    # The facing snapshot updates on the physics clock, not each render frame.
+    # This bounds HUD allocation work on high-refresh native/WebGL2 displays.
+    set_physics_process(retro)
 
 
-func _process(_delta: float) -> void:
+func _physics_process(_delta: float) -> void:
     if retro_direction == null or not is_instance_valid(actor_input):
         return
     var context: RefCounted = actor_input.call("get_action_input_context")
