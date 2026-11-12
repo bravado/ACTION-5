@@ -406,6 +406,7 @@ script = ExtResource("5_input")
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
+direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9_combat_input")
