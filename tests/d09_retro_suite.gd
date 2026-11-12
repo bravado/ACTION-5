@@ -12,6 +12,13 @@ func _ticks(tree: SceneTree, amount: int) -> void:
         await tree.physics_frame
 
 
+func _keyboard(key: Key, pressed: bool) -> void:
+    var event := InputEventKey.new()
+    event.keycode = key
+    event.pressed = pressed
+    Input.parse_input_event(event)
+
+
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var scene := load("res://demo/main.tscn") as PackedScene
     verify.call(scene != null, "D09-02 shared retro world loads")
@@ -29,12 +36,33 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var sword := level.get_node("EncounterSector/SwordPickup") as Node3D
     var gun := level.get_node("GunPickup") as Node3D
     var aim: Node = player.get_node("AimTargetProvider")
-    level.get_node("ActorInput").call("set_enabled", false)
+    var actor_input: Node = level.get_node("ActorInput")
+    actor_input.call("set_enabled", false)
     verify.call(sword != null and sword.get("definition").valid(),
         "D09-02 dungeon contains a configured physical Sword pickup")
     verify.call(policy != null and gun != null and aim != null,
         "D09-02 gun and sword share one optional input-facing policy")
     views.switch_view(4)
+    var control_profile: Resource = actor_input.call("get_active_controls")
+    verify.call(control_profile != null
+        and str(control_profile.get("move_up_action")) == "retro_move_up"
+        and str(control_profile.get("extra_aim_up_action")) == "retro_aim_up",
+        "D09-02 F5 installs a demo-local WASD move + arrows aim profile")
+    _keyboard(KEY_UP, true)
+    _keyboard(KEY_RIGHT, true)
+    var keyboard_aim: Vector2 = actor_input.call("get_aim_axes")
+    var keyboard_movement: Vector2 = actor_input.call("get_movement_axes")
+    verify.call(keyboard_aim.distance_to(Vector2(1, -1).normalized()) < 0.01
+        and keyboard_movement.length_squared() < 0.001,
+        "D09-02 actual Up+Right keyboard input aims diagonally without moving")
+    _keyboard(KEY_UP, false)
+    _keyboard(KEY_RIGHT, false)
+    _keyboard(KEY_W, true)
+    keyboard_aim = actor_input.call("get_aim_axes")
+    keyboard_movement = actor_input.call("get_movement_axes")
+    verify.call(keyboard_aim.length_squared() < 0.001 and keyboard_movement.y < -0.99,
+        "D09-02 WASD movement does not introduce an aim direction")
+    _keyboard(KEY_W, false)
     verify.call(views.camera_rig.is_vertical_overhead(),
         "D09-02 top-down remains precisely vertical")
     player.global_position = sword.global_position + Vector3(0.25, 0, 0)
@@ -47,6 +75,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var slash: Resource = sword.get("definition").attacks[0]
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
+    await tree.process_frame
+    var retro_hint := level.get_node("Hud/RetroDirection") as Label
+    verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
+        and retro_hint.text.contains("4-WAY"),
+        "D09-02 live overhead HUD identifies the equipped four-way Sword")
     var diagonal := Vector2(1, -0.5).normalized()
     var f5_sword: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
         ProfileScript.Mode.RETRO_TOPDOWN, null,
@@ -72,6 +105,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(equipment.call("pickup", gun), "D09-02 existing Gun equips after Sword")
     verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 8,
         "D09-02 Gun has independent eight-way F5 configuration")
+    views.switch_view(4)
+    await tree.process_frame
+    verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
+        and retro_hint.text.contains("8-WAY"),
+        "D09-02 same HUD shows eight sectors with Gun without restarting actor")
     var f5_gun: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
         ProfileScript.Mode.RETRO_TOPDOWN, null,
         policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN))
