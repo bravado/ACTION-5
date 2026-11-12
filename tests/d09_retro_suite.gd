@@ -83,7 +83,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     source.snapshot = ContextScript.new(true, diagonal, Vector2.LEFT,
         ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
     var muzzle := gun.get_node("Muzzle") as Node3D
-    var target: Vector3 = aim.call("get_world_target", muzzle.global_position, 40.0, [])
+    var excludes: Array[RID] = []
+    var target: Vector3 = aim.call("get_world_target", muzzle.global_position, 40.0, excludes)
     verify.call(Vector2(target.x - muzzle.global_position.x,
         target.z - muzzle.global_position.z).normalized().distance_to(f5_gun) < 0.001,
         "D09-02 physical Gun aim uses the same F5 eight-way policy")
