@@ -22,7 +22,7 @@
 [ext_resource type="Script" path="res://demo/world/world_session.gd" id="18_session"]
 [ext_resource type="Script" path="res://addons/action5/interactions/interactor.gd" id="19_interactor"]
 [ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="20_pickup"]
-[ext_resource type="Script" path="res://demo/interactions/world_switch.gd" id="21_switch"]
+[ext_resource type="PackedScene" path="res://demo/interactions/light_switch.tscn" id="21_switch"]
 [ext_resource type="Script" path="res://demo/world/sector_camera_bounds.gd" id="22_bounds"]
 [ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="23_roof_overlay"]
 [ext_resource type="Script" path="res://demo/interactions/door_acquisition_filter.gd" id="24_gate_sensor"]
@@ -388,14 +388,8 @@ weapon_path = NodePath("../GunPickup")
 script = ExtResource("20_pickup")
 weapon_path = NodePath("../SwordPickup")
 
-[node name="LightSwitch" type="Node3D" parent="." groups=["action5_interactable"]]
+[node name="LightSwitch" parent="." instance=ExtResource("21_switch")]
 position = Vector3(-5.5, 0, 4.3)
-script = ExtResource("21_switch")
-
-[node name="Light" type="OmniLight3D" parent="LightSwitch"]
-position = Vector3(0, 2.0, 0)
-visible = false
-omni_range = 5.0
 
 [node name="ViewManager" type="Node" parent="."]
 script = ExtResource("3_manager")
