@@ -1,4 +1,4 @@
-[gd_scene load_steps=61 format=3]
+[gd_scene load_steps=62 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://demo/equipment/shovel.tscn" id="11_shovel"]
 
 [ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
+[ext_resource type="PackedScene" path="res://demo/equipment/sword.tscn" id="34_sword"]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
 [ext_resource type="Script" path="res://demo/interactions/world_door.gd" id="14_door"]
 [ext_resource type="PackedScene" path="res://demo/world/encounter_sector.tscn" id="15_encounter"]
@@ -252,6 +253,9 @@ position = Vector3(-1.4, 0.45, 1.0)
 [node name="GunPickup" parent="." instance=ExtResource("12_gun")]
 position = Vector3(3.0, 0.45, 3.0)
 
+[node name="SwordPickup" parent="." instance=ExtResource("34_sword")]
+position = Vector3(0, 0.45, -3.2)
+
 [node name="NearDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(2.1, 0.0, -2.0)
 
@@ -379,6 +383,10 @@ weapon_path = NodePath("../ShovelPickup")
 [node name="GunPickupWorldState" type="Node3D" parent="."]
 script = ExtResource("20_pickup")
 weapon_path = NodePath("../GunPickup")
+
+[node name="SwordPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("20_pickup")
+weapon_path = NodePath("../SwordPickup")
 
 [node name="LightSwitch" type="Node3D" parent="." groups=["action5_interactable"]]
 position = Vector3(-5.5, 0, 4.3)
