@@ -30,6 +30,11 @@ var _notice_timer: Timer
 var _help_panel: PanelContainer
 var _help_text: Label
 var _gameplay_visible: bool = true
+var _reticle: Label
+var _reticle_requested: bool = false
+var _health_footer: Label
+var _health_critical: bool = false
+var _player_state: String = ""
 
 
 func _ready() -> void:
@@ -39,6 +44,7 @@ func _ready() -> void:
     _build_top()
     _build_interaction()
     _build_notification()
+    _build_reticle()
     _build_help()
     _notice_timer = Timer.new()
     _notice_timer.one_shot = true
@@ -53,6 +59,7 @@ func set_gameplay_visible(value: bool) -> void:
     _gameplay_visible = value
     for node in _gameplay_nodes:
         node.visible = value
+    _reticle.visible = value and _reticle_requested
     # Contextual hints and ephemeral notices also respect full hide.
     if value:
         _interaction_panel.visible = not _interaction.text.is_empty()
@@ -86,7 +93,27 @@ func set_health(current: float, maximum: float) -> void:
     _health_bar.max_value = max_hp
     _health_bar.value = clampf(current, 0.0, max_hp)
     _hp_text.text = "%d / %d" % [ceili(current), ceili(maximum)]
-    _health_bar.modulate = Color("#FFB0A9") if current <= max_hp * 0.25 else Color.WHITE
+    _health_critical = current <= max_hp * 0.25
+    _health_bar.modulate = Color("#FFB0A9") if _health_critical else Color.WHITE
+    _render_player_state()
+
+
+func set_player_state(value: String) -> void:
+    _player_state = value
+    _render_player_state()
+
+
+func _render_player_state() -> void:
+    if _health_critical:
+        _health_footer.text = "LOW HEALTH   ·   H HUD / F6 HELP"
+    else:
+        _health_footer.text = _player_state if not _player_state.is_empty() \
+            else "H · HUD    F6 · HELP"
+
+
+func set_reticle(value: bool) -> void:
+    _reticle_requested = value
+    _reticle.visible = value and _gameplay_visible
 
 
 func set_equipment(name: String, icon: Texture2D, ammo: Dictionary,
@@ -189,7 +216,8 @@ func _build_health() -> void:
     fill.bg_color = Color("#A82F45")
     _health_bar.add_theme_stylebox_override("fill", fill)
     stack.add_child(_health_bar)
-    stack.add_child(_label("H · HUD    F6 · HELP", 11, MUTED))
+    _health_footer = _label("H · HUD    F6 · HELP", 11, MUTED)
+    stack.add_child(_health_footer)
 
 
 func _build_equipment() -> void:
@@ -255,6 +283,22 @@ func _build_notification() -> void:
     _notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _notification_panel.add_child(_notification)
     _notification_panel.hide()
+
+
+func _build_reticle() -> void:
+    _reticle = _label("+", 24, GOLD)
+    _reticle.name = "AimReticle"
+    _reticle.anchor_left = 0.5
+    _reticle.anchor_right = 0.5
+    _reticle.anchor_top = 0.5
+    _reticle.anchor_bottom = 0.5
+    _reticle.offset_left = -9
+    _reticle.offset_top = -15
+    _reticle.offset_right = 9
+    _reticle.offset_bottom = 15
+    _reticle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    add_child(_reticle)
+    _reticle.hide()
 
 
 func _build_help() -> void:

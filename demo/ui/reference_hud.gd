@@ -243,7 +243,17 @@ func refresh() -> void:
         float(health.get("max_health")) if is_instance_valid(health) else 1.0)
     display.set_equipment(weapon_name, icon, ammo, next_name,
         _binding(&"demo_swap") if not next_name.is_empty() else "",
-        " · ".join(commands))
+        " · ".join(commands) if not commands.is_empty() else " · ".join(actions))
+    display.set_reticle(not ammo.is_empty()
+        and int(profile.get("mode")) == ViewProfileScript.Mode.FIRST_PERSON)
+    var activity: String = ""
+    if attack != "none":
+        activity = "ATTACK  ·  " + attack.replace("_", " ").to_upper()
+    elif is_instance_valid(moves):
+        var movement: String = str(moves.get("active_id"))
+        if movement != "grounded" and not movement.is_empty():
+            activity = movement.replace("_", " ").to_upper()
+    display.set_player_state(activity)
     _update_reload_timer()
 
 

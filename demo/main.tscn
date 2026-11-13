@@ -522,10 +522,12 @@ text = "Camera Settings [C]"
 
 [node name="CameraSettings" type="PanelContainer" parent="Hud"]
 visible = false
-offset_left = 910.0
-offset_top = 204.0
-offset_right = 1254.0
-offset_bottom = 650.0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -363.0
+offset_top = 82.0
+offset_right = -18.0
+offset_bottom = 638.0
 script = ExtResource("6_settings")
 
 [node name="DeathOverlay" parent="." instance=ExtResource("17_death")]

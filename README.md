@@ -22,9 +22,9 @@ It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawle
 
 All modes use **one shared 3D scene and authoritative player actor**. Camera changes never recreate actors, reset combat or change world physics. Isometric and over-the-shoulder are **two zoom levels of mode 3**, not two selectable modes.
 
-**Camera tuning:** Press **C** or click **Camera Settings** to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
+**Camera tuning:** Press **C** (or use the Camera Settings button inside **F6 Help**) to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
 
-**Camera controls:** Press **1–5** on native or Web. F1–F5 are optional alternate bindings (browsers can reserve function keys). Five clickable mode buttons and gamepad shoulder-button cycling are also available. See [camera documentation](docs/cameras.md).
+**Camera controls:** Press **1–5** on native or Web. F1–F5 are optional alternate bindings (browsers can reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering the gameplay screen; gamepad shoulder-button cycling is also available. See [camera documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 
@@ -317,3 +317,10 @@ The arena light switch is the labelled **LIGHT SWITCH [E]** console on the south
 **First-person Gun reload (view 4):** Press **R** with the Pistol equipped after firing at least one round (Heavy Pistol uses **T**). The gripped Gun and arm should lower/tilt during the per-weapon reload countdown, then return to the idle grip as ammunition refills. The shared `gun_reload_grip.tres` animation must contain valid pose keys spanning **0.0 to 1.0**; an endpoint at 0.8 silently invalidates its pose sampling. This F4 animation is presentation-only; ammo, command timing and cancellation stay with the Gun, and both Gun variants reuse the same authored reload profile.
 
 **D09-02 F1 arena-to-exit traversal:** The arena Gun pickup is authored at `Z = 1.0`, matching the Bat/Shovel row so a player locked to the F1 `Z = 0` lane can collect it with **E**. The dungeon's central Obstacle is **1.1 m tall** (matching mesh and collision, resting on the floor), permitting the normal grounded jump and horizontal movement in F1 to cross it and reach the physical EXIT. No view-specific collision bypass, teleport or movement tuning is required. The reference suite performs a real F1 Gun pickup and a physics-driven running jump to the exit.
+
+
+### D09-03 — Iron Reliquary HUD (PR #38, in progress)
+
+The reference HUD uses the same two bottom-corner panels in F1–F5: **health on the left**, **equipped weapon, ammo/actions and smaller next-item name on the right**. The center stays clear; optional icons come from weapon definition resources. **Q** swaps to the next carried item with the normal Equipment controller (the small label previews the next item and follows remapped controls). **H** completely shows/hides gameplay HUD chrome without changing gameplay. **F6** opens the keyboard/gamepad-help and clickable camera-selector panel; **C** opens camera settings. Interaction prompts are selected by the same Interactor as pressing E. A small first-person aim reticle only appears when a gun is equipped.
+
+This design is based on the original *Iron Reliquary* Diablo / Symphony of the Night visual direction. It contains no copied game artwork, and its icons are original minimal SVGs. CI/native/Web screenshot and manual release gates are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37).

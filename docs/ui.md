@@ -1,0 +1,53 @@
+# ACTION-5 Iron Reliquary — UI appearance and asset inventory
+
+This document describes **D09-03** and its intentionally demo-local skin.
+The UI design borrows only broad material and layout inspiration from
+late-1990s action RPGs such as Diablo and Symphony of the Night. It does not
+contain artwork, logos, backgrounds, icons, fonts or UI screenshots copied
+from those commercial games.
+
+## Original assets
+
+All assets in the following paths were created for ACTION-5 as original,
+minimal vector illustrations in this contribution. They are covered by
+the repository's MIT license:
+
+| File | Content |
+| --- | --- |
+| `demo/ui/icons/bat.svg` | Stylized wooden bat |
+| `demo/ui/icons/shovel.svg` | Stylized shovel |
+| `demo/ui/icons/gun.svg` | Stylized pistol |
+| `demo/ui/iron_frame.tres` | Original dark-metal / antique-gold panel skin |
+
+The demo uses the built-in Godot font fallback and built-in Control widgets.
+There are **no third-party fonts, textures or UI libraries** to attribute.
+
+## Layout / interaction contract
+
+- `demo/ui/iron_reliquary.tscn` is the **single reusable viewport HUD**
+  for F1–F5. `iron_reliquary.gd` builds small fixed-anchor status and
+  equipment panels with an open middle gap and event-only presentation.
+- `reference_hud.gd` is the demo-specific read-only adapter. It observes
+  Health, Combat, Equipment, ViewManager, Interactor and InputMap. Never
+  place health, ammo, reload or interaction decision logic in the UI layer.
+- A weapon may optionally provide `Action5WeaponDefinition.hud_icon`.
+  Null/missing icons show a neutral generic glyph; no game core depends on
+  these textures.
+- Bottom-right panel shows the **active item prominently** and the
+  **next item in EquipmentController.swap_next() order** in a smaller label.
+  The `demo_swap` key hint comes from InputMap (Q by default).
+- `hud_toggle` (H by default) hides gameplay HUD chrome without mutating
+  gameplay or affecting death/victory and help. `hud_help` (F6 by default)
+  opens the controls and camera-selector overlay; C opens camera settings.
+- Interaction prompts use `Action5Interactor.get_target(actor)`; exactly
+  the same query selects the target for E interactions. Demo interactables
+  can optionally implement `get_interaction_label(actor)`.
+- Use 4:3/16:9 verification in native/Web at 720p and 1080p, including
+  HUD hidden/visible, input focus, reloading, equip swap and scene travel.
+
+## Extension guidance
+
+Games can substitute a completely different skin and HUD without changing
+`addons/action5/` gameplay components. Future inventory, profiles, leveling,
+save games and quests belong in independent addons such as `bravado/game`,
+not this demo's presentation logic.

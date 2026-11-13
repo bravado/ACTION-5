@@ -35,6 +35,7 @@ func _ready() -> void:
     _hud.help_visibility_changed.connect(_on_hud_help_visibility_changed)
     _hud.view_requested.connect(_on_mode_button_pressed)
     _hud.settings_requested.connect(_toggle_camera_settings)
+    _camera_settings.add_theme_stylebox_override("panel", preload("res://demo/ui/iron_frame.tres"))
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
     _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())

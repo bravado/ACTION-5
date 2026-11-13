@@ -78,7 +78,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     hud.call("refresh")
     verify.call(display.get("_weapon_icon").texture != null,
         "D09-03 weapon image uses optional definition icon")
-    hud.call("set_hud_visible", false)
+    views.call("switch_view", 3)
+    hud.call("refresh")
+    verify.call(display.get_node("AimReticle").visible,
+        "D09-03 first-person gun displays contextual centered reticle")
+    views.call("switch_view", 1)
+    verify.call(not display.get_node("AimReticle").visible,
+        "D09-03 aim reticle does not obstruct beat-em-up melee")
+    var hide_key := InputEventKey.new()
+    hide_key.keycode = KEY_H
+    hide_key.pressed = true
+    hud.call("_unhandled_input", hide_key)
     verify.call(not hp_panel.visible and not equip_panel.visible
         and not display.get_node("ObjectivePanel").visible,
         "D09-03 H hidden mode removes gameplay chrome")
@@ -94,7 +104,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(display.get_node("HelpPanel").visible and not hp_panel.visible,
         "D09-03 help remains accessible while gameplay HUD hidden")
     hud.call("set_help_open", false)
-    hud.call("set_hud_visible", true)
+    hud.call("_unhandled_input", hide_key)
     verify.call(hp_panel.visible and equip_panel.visible
         and is_equal_approx(hp_bar.value, 42.0),
         "D09-03 HUD returns with latest state")
