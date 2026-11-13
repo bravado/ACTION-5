@@ -30,6 +30,7 @@ var _notification_panel: PanelContainer
 var _notice_timer: Timer
 var _help_panel: PanelContainer
 var _help_text: Label
+var _view_selector: HBoxContainer
 var _gameplay_visible: bool = true
 var _reticle: Label
 var _reticle_requested: bool = false
@@ -321,18 +322,9 @@ func _build_help() -> void:
     var layout := _stack(_help_panel)
     layout.mouse_filter = Control.MOUSE_FILTER_PASS
     layout.add_child(_label("IRON RELIQUARY  ·  CONTROLS  [F6 TO CLOSE]", 18, GOLD))
-    var selector := HBoxContainer.new()
-    selector.add_theme_constant_override("separation", 6)
-    layout.add_child(selector)
-    var titles := ["1 · SIDE", "2 · BEAT", "3 · ISO", "4 · FIRST", "5 · RETRO"]
-    for i in range(titles.size()):
-        var button := Button.new()
-        button.text = titles[i]
-        button.custom_minimum_size = Vector2(116, 36)
-        button.add_theme_color_override("font_color", GOLD)
-        button.add_theme_stylebox_override("normal", FRAME)
-        button.pressed.connect(_request_view.bind(i))
-        selector.add_child(button)
+    _view_selector = HBoxContainer.new()
+    _view_selector.add_theme_constant_override("separation", 6)
+    layout.add_child(_view_selector)
     var camera := Button.new()
     camera.text = "CAMERA SETTINGS [C]"
     camera.add_theme_color_override("font_color", GOLD)
@@ -347,6 +339,20 @@ func _build_help() -> void:
     _help_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     scroll.add_child(_help_text)
     _help_panel.hide()
+
+
+## Buttons follow the same mapping as the numeric shortcuts.
+func set_view_choices(choices: Array[Dictionary]) -> void:
+    for child in _view_selector.get_children():
+        child.queue_free()
+    for choice in choices:
+        var button := Button.new()
+        button.text = str(choice.get("label", ""))
+        button.custom_minimum_size = Vector2(116, 36)
+        button.add_theme_color_override("font_color", GOLD)
+        button.add_theme_stylebox_override("normal", FRAME)
+        button.pressed.connect(_request_view.bind(int(choice.get("index", -1))))
+        _view_selector.add_child(button)
 
 
 func _request_view(index: int) -> void:

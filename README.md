@@ -24,7 +24,7 @@ All modes use **one shared 3D scene and authoritative player actor**. Camera cha
 
 **Camera tuning:** Press **C** (or use the Camera Settings button inside **F6 Help**) to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
 
-**Camera controls:** Press **1–5** on native or Web. F1–F5 are optional alternate bindings (browsers can reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering the gameplay screen; gamepad shoulder-button cycling is also available. See [camera documentation](docs/cameras.md).
+**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering gameplay; gamepad shoulder-button cycling is also available. The internal camera-profile array keeps its established ordering; only the input shortcuts are remapped. See [camera documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 
@@ -34,7 +34,7 @@ All modes use **one shared 3D scene and authoritative player actor**. Camera cha
 - **Combat:** attack timelines in fixed physics ticks; collision shapes for hitboxes/hurtboxes; damage, stun, knockback, hit filtering and debugging tools.
 - **Weapons:** unarmed punches/kicks, bat, shovel and gun; equipment sockets, pickup/drop, melee sweeps, ammo/reload and correct muzzle-to-target occlusion.
 - **Enemies and world:** basic combat AI, navigation, doors, pickups, triggers, destructible props, arena and dungeon environments.
-- **Reference game:** a playable demonstration with all five perspectives, melee and ranged enemies, and a retro top-down encounter.
+- **Reference game:** a playable demonstration with all five perspectives, melee and ranged enemies, and a Top-Down encounter.
 - **Tools and delivery:** debugging overlays, resource validation, automated tests, browser export and Windows/Linux/macOS native builds.
 
 ### Deliberately not in the initial scope
@@ -324,3 +324,6 @@ The arena light switch is the labelled **LIGHT SWITCH [E]** console on the south
 The reference HUD uses the same two bottom-corner panels in F1–F5: **health on the left**, **equipped weapon, ammo/actions and smaller next-item name on the right**. The center stays clear; optional icons come from weapon definition resources. **Q** swaps to the next carried item with the normal Equipment controller (the small label previews the next item and follows remapped controls). **H** completely shows/hides gameplay HUD chrome without changing gameplay. **F6** opens the keyboard/gamepad-help and clickable camera-selector panel; **C** opens camera settings. Interaction prompts are selected by the same Interactor as pressing E. A small first-person aim reticle only appears when a gun is equipped.
 
 This design is based on the original *Iron Reliquary* Diablo / Symphony of the Night visual direction. It contains no copied game artwork, and its icons are original minimal SVGs. CI/native/Web screenshot and manual release gates are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37).
+
+
+**D09-03 camera shortcut update:** Input `1` selects First-Person and `4` selects Side-Scroller; `2` and `3` retain Beat 'em Up and Isometric, and `5` selects **Top-Down**. F6 view buttons, displayed view labels and help shortcuts reflect the same mapping rather than hardcoded indices. This affects input mapping, not actor/camera state or persistent per-profile settings.

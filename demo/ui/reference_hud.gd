@@ -4,6 +4,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## No ownership of attack/ammo clocks, equipment, health or camera mode.
 
 @export var views_path: NodePath = ^"../ViewManager"
+@export var view_input_path: NodePath = ^"../ViewInput"
 @export var health_path: NodePath = ^"../Player/Health"
 @export var combat_path: NodePath = ^"../Player/CombatController"
 @export var equipment_path: NodePath = ^"../Player/Equipment"
@@ -22,6 +23,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @onready var interactor: Node = get_node_or_null(interactor_path)
 @onready var player: Node3D = get_node_or_null(player_path) as Node3D
 @onready var views: Node = get_node_or_null(views_path)
+@onready var view_input: Node = get_node_or_null(view_input_path)
 @onready var health: Node = get_node_or_null(health_path)
 @onready var combat: Node = get_node_or_null(combat_path)
 @onready var equipment: Node = get_node_or_null(equipment_path)
@@ -43,6 +45,7 @@ signal settings_requested
 
 func _ready() -> void:
     _register_hud_actions()
+    _configure_view_choices()
     display.help_visibility_changed.connect(_on_help_visibility_changed)
     display.view_requested.connect(_on_view_requested)
     display.settings_requested.connect(_on_settings_requested)
@@ -156,13 +159,19 @@ func refresh() -> void:
     if not _last_objective.is_empty() and _last_objective != objective:
         display.notify(objective)
     _last_objective = objective
-    display.set_view("F%d · %s" % [int(views.get("active_index")) + 1,
+    display.set_view("%d · %s" % [_shortcut_number(int(views.get("active_index"))),
         str(profile.get("display_name")).to_upper()])
     var instructions: String = "ACTION-5 | " + objective
     var view_hints := PackedStringArray()
-    for i in range((views.get("profiles") as Array).size()):
-        var item: Resource = (views.get("profiles") as Array)[i] as Resource
-        view_hints.append("%s %s" % [_binding(StringName("view_" + str(i + 1))), str(item.get("display_name"))])
+    for slot in range((views.get("profiles") as Array).size()):
+        var index: int = _profile_index_for_shortcut(slot)
+        if index < 0:
+            continue
+        var item: Resource = (views.get("profiles") as Array)[index] as Resource
+        view_hints.append("%s %s" % [
+            _binding(StringName("view_" + str(slot + 1))),
+            str(item.get("display_name"))
+        ])
     instructions += "\nViews: " + "  ·  ".join(view_hints) + " | Controller: " + _binding(&"view_previous") + "/" + _binding(&"view_next")
     var controls: Resource = null
     if is_instance_valid(actor_input):
@@ -278,6 +287,41 @@ func _next_weapon_name() -> String:
         return ""
     var definition: Resource = next.get("definition") as Resource
     return str(definition.get("display_name")) if definition != null else next.name
+
+
+## The input adapter is the single source of shortcut-to-profile ordering.
+## The HUD only formats the selected action and builds presentation buttons.
+func _profile_index_for_shortcut(slot: int) -> int:
+    if is_instance_valid(view_input) and view_input.has_method("profile_index_for_shortcut"):
+        return int(view_input.call("profile_index_for_shortcut", slot))
+    return slot
+
+
+func _shortcut_number(index: int) -> int:
+    if is_instance_valid(view_input) and view_input.has_method("shortcut_for_profile_index"):
+        return int(view_input.call("shortcut_for_profile_index", index)) + 1
+    return index + 1
+
+
+func _configure_view_choices() -> void:
+    if not is_instance_valid(views):
+        return
+    var choices: Array[Dictionary] = []
+    var profiles: Array = views.get("profiles") as Array
+    for slot in range(profiles.size()):
+        var index: int = _profile_index_for_shortcut(slot)
+        if index < 0 or index >= profiles.size():
+            continue
+        var profile: Resource = profiles[index] as Resource
+        var short_name: String = str(profile.get("display_name")).get_slice(" / ", 0)
+        if short_name.contains("-") and short_name != "Top-Down":
+            short_name = short_name.get_slice("-", 0)
+        short_name = short_name.get_slice(" ", 0).to_upper()
+        choices.append({
+            "index": index,
+            "label": "%d · %s" % [slot + 1, short_name]
+        })
+    display.set_view_choices(choices)
 
 
 func _register_hud_actions() -> void:
@@ -507,13 +551,13 @@ func _physics_process(_delta: float) -> void:
     var definition: Resource = current.get("definition") as Resource if is_instance_valid(current) else null
     var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
     var facing_label: String = "%d-WAY" % sectors if sectors >= 2 else "FREE"
-    var text_line: String = "RETRO | %s | %s | Heading %s | WASD move / Arrows or right stick aim" % [
+    var text_line: String = "TOP-DOWN | %s | %s | Heading %s | WASD move / Arrows or right stick aim" % [
         weapon_name, facing_label, _compass_heading(heading)
     ]
     if retro_direction.text != text_line:
         retro_direction.text = text_line
     if _hud_visible:
-        display.set_view("F5 · RETRO TOP-DOWN | %s %s" % [
+        display.set_view("%d · TOP-DOWN | %s %s" % [_shortcut_number(int(views.get("active_index"))),
             facing_label, _compass_heading(heading)
         ])
 

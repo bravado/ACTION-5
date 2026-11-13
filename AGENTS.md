@@ -783,3 +783,17 @@ D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinit
 - `hud_toggle` (default H) hides gameplay HUD/notifications/prompts but never changes actor input, health, aiming, equipment, world state or death/victory UI. `hud_help` (default F6) opens the help overlay and uses existing demo input gating; keep it independent of HUD visibility. The old Status/Help/RetroDirection labels are diagnostic compatibility only, not a second visible HUD.
 - Any optional interaction prompt must query `Action5Interactor.get_target()`, the **same selection algorithm** as `try_interact()`. Interactable labels are optional demo-local display ports, not arbitrary type checks in the Interactor or HUD. Keep selection/line-of-sight authoritative.
 - Provide real headless test coverage for HUD view/layout/visibility stability, equipment/Q swap, missing icon data, and interaction parity. Use the pinned Godot 4.7.2 checks and explicit native/Web visual verification before review.
+
+
+### Camera shortcut mapping update (D09-03 / PR #38)
+
+Use numeric **1 First-Person, 2 Beat 'em Up, 3 Isometric / Third-Person,
+4 Side-Scroller, 5 Top-Down** in all user-facing UI and help. The
+ViewManager's stable internal indices remain side=0, beat=1, iso=2,
+first=3, top=4; do not reorder them or migrate saved camera overrides.
+The `ViewInput.shortcut_profile_indices` map (`[3,1,2,0,4]` in the
+demo scene) is the *sole* shortcut-order authority. The HUD queries it
+for its compact active-view label and F6 button order. Keep default
+identity mapping for users embedding Action5ViewInput without this array.
+Retain the `retro_topdown` resource identifier and enum for backward
+compatibility, but call the visible mode **Top-Down**.

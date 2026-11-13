@@ -51,3 +51,15 @@ Games can substitute a completely different skin and HUD without changing
 `addons/action5/` gameplay components. Future inventory, profiles, leveling,
 save games and quests belong in independent addons such as `bravado/game`,
 not this demo's presentation logic.
+
+
+## Camera shortcut labels (D09-03 adjustment)
+
+The demo's primary shortcuts are **1 First-Person, 2 Beat 'em Up,
+3 Isometric / Third-Person, 4 Side-Scroller, 5 Top-Down**. The input
+adapter owns the mapping `[3, 1, 2, 0, 4]` for the ViewManager's stable
+internal profile indices. `reference_hud.gd` queries the adapter for
+numeric labels and the F6 help selector, so the game does not maintain an
+independent map of shortcuts. The last profile's in-game display name is
+**Top-Down**, even though its existing resource/enum retains the legacy
+`retro_topdown` identifier for compatibility.

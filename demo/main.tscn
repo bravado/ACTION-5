@@ -410,6 +410,7 @@ current = true
 
 [node name="ViewInput" type="Node" parent="."]
 script = ExtResource("5_input")
+shortcut_profile_indices = PackedInt32Array(3, 1, 2, 0, 4)
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
@@ -489,7 +490,7 @@ theme_override_constants/separation = 8
 [node name="Mode1" type="Button" parent="Hud/ModeButtons"]
 focus_mode = 0
 custom_minimum_size = Vector2(142, 44)
-text = "1 · SIDE-SCROLLER"
+text = "4 · SIDE-SCROLLER"
 
 [node name="Mode2" type="Button" parent="Hud/ModeButtons"]
 focus_mode = 0
@@ -504,12 +505,12 @@ text = "3 · ISO / 3RD PERSON"
 [node name="Mode4" type="Button" parent="Hud/ModeButtons"]
 focus_mode = 0
 custom_minimum_size = Vector2(142, 44)
-text = "4 · FIRST-PERSON"
+text = "1 · FIRST-PERSON"
 
 [node name="Mode5" type="Button" parent="Hud/ModeButtons"]
 focus_mode = 0
 custom_minimum_size = Vector2(142, 44)
-text = "5 · RETRO TOP-DOWN"
+text = "5 · TOP-DOWN"
 
 [node name="SettingsToggle" type="Button" parent="Hud"]
 visible = false

@@ -42,6 +42,19 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-03 one gameplay HUD replaces visible diagnostic wall")
     verify.call((display.get("_ammo_text") as Label).text == "PUNCH · KICK",
         "D09-03 compact unarmed actions omit verbose gamepad control descriptions")
+    var input_adapter: Node = stage.get_node("ViewInput")
+    var selector := display.get("_view_selector") as HBoxContainer
+    var expected_labels := ["1 · FIRST", "2 · BEAT",
+        "3 · ISOMETRIC", "4 · SIDE", "5 · TOP-DOWN"]
+    var expected_indices := [3, 1, 2, 0, 4]
+    verify.call(selector.get_child_count() == 5,
+        "D09-03 F6 help exposes exactly five input-mapped view choices")
+    for slot in range(5):
+        var button := selector.get_child(slot) as Button
+        verify.call(button.text == expected_labels[slot]
+            and int(input_adapter.call("profile_index_for_shortcut", slot)) ==
+                expected_indices[slot],
+            "D09-03 selector %d label matches input adapter mapping" % (slot + 1))
     var health_pos: Vector2 = hp_panel.position
     var equip_pos: Vector2 = equip_panel.position
     verify.call(hp_panel.anchor_left == 0.0 and equip_panel.anchor_right == 1.0
@@ -52,7 +65,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         await _frames(tree, 2)
         verify.call(hp_panel.position.is_equal_approx(health_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
-            and display.get("_view").text.begins_with("F%d" % (i + 1)),
+            and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
     health.current_health = 74.0
     health.health_changed.emit(74.0, 100.0)

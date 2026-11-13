@@ -10,6 +10,9 @@ const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 @export var bind_number_keys: bool = true
 @export var bind_function_keys: bool = true
 @export var bind_controller_cycle: bool = true
+## Optional zero-based profile index for each view_1..view_5 shortcut.
+## Empty preserves identity order for every existing addon consumer.
+@export var shortcut_profile_indices: PackedInt32Array = PackedInt32Array()
 
 var manager: ViewManagerScript
 ## Capturing the pointer may generate one synthetic warp-motion event in
@@ -26,7 +29,39 @@ func _ready() -> void:
     if manager == null:
         push_error("ACTION5: ViewInput needs a ViewManager")
         return
+    if not _shortcut_mapping_valid():
+        push_error("ACTION5: shortcut_profile_indices must be a permutation of 0..4")
+        shortcut_profile_indices = PackedInt32Array()
     _register_default_actions()
+
+
+func _shortcut_mapping_valid() -> bool:
+    if shortcut_profile_indices.is_empty():
+        return true
+    if shortcut_profile_indices.size() != 5:
+        return false
+    var seen := {}
+    for index in shortcut_profile_indices:
+        if index < 0 or index >= manager.profiles.size() or seen.has(index):
+            return false
+        seen[index] = true
+    return true
+
+
+## Numeric shortcut slot is 0-based; view_1 maps slot 0, etc.
+func profile_index_for_shortcut(slot: int) -> int:
+    if manager == null or slot < 0 or slot >= manager.profiles.size():
+        return -1
+    return slot if shortcut_profile_indices.is_empty() else shortcut_profile_indices[slot]
+
+
+func shortcut_for_profile_index(index: int) -> int:
+    if manager == null:
+        return -1
+    for slot in range(manager.profiles.size()):
+        if profile_index_for_shortcut(slot) == index:
+            return slot
+    return -1
 
 
 func _register_default_actions() -> void:
@@ -65,7 +100,7 @@ func _unhandled_input(event: InputEvent) -> void:
         return
     for i in range(5):
         if event.is_action_pressed("view_" + str(i + 1)):
-            manager.switch_view(i)
+            manager.switch_view(profile_index_for_shortcut(i))
             get_viewport().set_input_as_handled()
             return
     if event.is_action_pressed("view_previous"):

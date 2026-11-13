@@ -116,7 +116,7 @@ func _run_tests() -> void:
         _check(manager.profiles.size() == 5, "Exactly five camera profiles")
         var expected_names := [
             "Side-Scroller", "Beat 'em Up", "Isometric / Third-Person",
-            "First-Person", "Retro Top-Down"
+            "First-Person", "Top-Down"
         ]
         for index in range(5):
             _check(manager.profiles[index].display_name == expected_names[index],
@@ -324,13 +324,24 @@ func _run_tests() -> void:
             var key_five := InputEventKey.new()
             key_five.keycode = KEY_5
             key_five.pressed = true
+            var key_four := InputEventKey.new()
+            key_four.keycode = KEY_4
+            key_four.pressed = true
             _check(InputMap.event_is_action(key_one, &"view_1")
+                and InputMap.event_is_action(key_four, &"view_4")
                 and InputMap.event_is_action(key_five, &"view_5"),
-                "Number keys 1 and 5 are primary view bindings")
+                "Number keys 1, 4 and 5 remain primary view bindings")
+            _check(input_adapter.profile_index_for_shortcut(0) == 3
+                and input_adapter.profile_index_for_shortcut(3) == 0
+                and input_adapter.shortcut_for_profile_index(3) == 0
+                and input_adapter.shortcut_for_profile_index(0) == 3,
+                "Input mapping swaps shortcuts 1/4 without reordering camera profiles")
             input_adapter._unhandled_input(key_five)
             _check(manager.active_index == 4, "Key 5 selects retro top-down")
             input_adapter._unhandled_input(key_one)
-            _check(manager.active_index == 0, "Key 1 selects side-scroller")
+            _check(manager.active_index == 3, "Key 1 selects first-person")
+            input_adapter._unhandled_input(key_four)
+            _check(manager.active_index == 0, "Key 4 selects side-scroller")
             _check(manager.cycle_view(-1) and manager.active_index == 4,
                 "Camera cycle wraps backward F1 to F5")
             _check(manager.cycle_view(1) and manager.active_index == 0,

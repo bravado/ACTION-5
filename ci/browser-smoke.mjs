@@ -220,7 +220,7 @@ try {
   // F2 click position to a different F4 click position. That generates a
   // synthetic-look delta and can pitch the camera into the empty sky.
   await page.mouse.move(640, 360);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
   const beforeF4Attack = combatStarts.length;
@@ -314,7 +314,7 @@ try {
   await checkShovelInput('k', 'kick', 'F2 Shovel K');
 
   await page.mouse.move(640, 360);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(450);
   const beforeShovelF4 = combatStarts.length;
   await page.mouse.down({ button: 'left' });
@@ -410,7 +410,7 @@ try {
   // F4 always shows the articulated arm, which punches. Kick adds a
   // lower-framed leg without the obsolete tool. Input
   // remains real keyboard events; no script bridge or synthetic pose.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(400);
   const f4NoAttack = await page.screenshot();
 
@@ -516,7 +516,7 @@ try {
 
   // Movement extension: compare standing/crouched first-person views
   // through real browser input, then validate the independent F3 animations.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(600);
   const standingEye = await page.screenshot({
     path: 'build/evidence/web-f4-eye-standing.png', fullPage: true,
@@ -528,7 +528,7 @@ try {
   const crouchIdle = await page.screenshot({
     path: 'build/evidence/web-crouch-idle.png', fullPage: true,
   });
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(650);
   const loweredEye = await page.screenshot({
     path: 'build/evidence/web-f4-eye-crouched.png', fullPage: true,
@@ -541,7 +541,7 @@ try {
   await page.waitForTimeout(300);
   // Capture the exact side silhouette too: isometric screenshots alone can
   // hide whether knees are in front of or behind the hips.
-  await page.keyboard.press('1');
+  await page.keyboard.press('4');
   await page.waitForTimeout(400);
   await page.screenshot({
     path: 'build/evidence/web-crouch-side-idle.png', fullPage: true,
@@ -557,7 +557,7 @@ try {
   const crouchWalk = await page.screenshot({
     path: 'build/evidence/web-crouch-walk.png', fullPage: true,
   });
-  await page.keyboard.press('1');
+  await page.keyboard.press('4');
   await page.waitForTimeout(400);
   await page.screenshot({
     path: 'build/evidence/web-crouch-side-walk.png', fullPage: true,
@@ -595,7 +595,7 @@ try {
 
   // The articulated resting F4 arm stays present during jumping; the
   // old fake forearm and training tool are never instantiated.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(550);
   const f4Standing = await page.screenshot({
     path: 'build/evidence/web-f4-arm-standing.png', fullPage: true,
@@ -753,13 +753,13 @@ try {
   await page.keyboard.down('d');
   await page.waitForTimeout(420);
   await page.keyboard.up('d');
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(200);
   await page.keyboard.press('2');
   await page.waitForTimeout(150);
   await page.keyboard.down('w');
   await page.waitForTimeout(450);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(350);
   await page.keyboard.down('Shift');
   let nearWallZ = Number.NaN;
@@ -769,7 +769,7 @@ try {
     // diagnostics; no test-only teleport or browser-to-Godot bridge.
     await page.keyboard.press('3');
     await page.waitForTimeout(170);
-    await page.keyboard.press('4');
+    await page.keyboard.press('1');
     await page.waitForTimeout(250);
     const report = [...rigViews].reverse().find(line =>
       line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
@@ -785,7 +785,7 @@ try {
   const thirdPersonNearWall = await page.screenshot({
     path: 'build/evidence/web-f3-near-wall.png', fullPage: true,
   });
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   const firstPersonNearWall = await page.screenshot({
     path: 'build/evidence/web-f4-near-wall.png', fullPage: true,
@@ -843,7 +843,7 @@ try {
     errors.push('D06-02 browser E-key did not pick up the independent Gun: ' +
       weaponEvents.slice(beforeGun).join(' | '));
   }
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   await page.screenshot({
     path: 'build/evidence/web-d06-gun-f4-idle.png', fullPage: true,

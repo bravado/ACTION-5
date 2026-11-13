@@ -893,3 +893,16 @@ The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/
 - The data source is an event-driven read-only adapter, never another inventory, combat clock, aim controller or health authority. Optional `WeaponDefinition.hud_icon` adds pure presentation metadata.
 - Contextual prompts use a read-only `Interactor.get_target(actor)` path shared with actual interaction selection, plus optional `get_interaction_label(actor)` on each interactable; do not guess nearby targets in UI.
 - Requirements/acceptance are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37). CI/native/Web exploratory checks and actual visual approval remain gates before marking D09-03 delivered.
+
+
+### D09-03 input mapping refinement (PR #38)
+
+The owner selected **1 First-Person, 2 Beat 'em Up, 3 Isometric / Third-Person,
+4 Side-Scroller, 5 Top-Down** for demo shortcuts. This is an explicit
+`Action5ViewInput.shortcut_profile_indices` permutation
+`[3,1,2,0,4]`, not a reorder of the ViewManager's five profile resources.
+Existing gameplay physics, camera settings identities and per-profile
+saved overrides remain unchanged. HUD labels, F6 mode buttons, InputMap
+hints, README/camera instructions, Godot tests and real-Web browser
+keyboard smoke must agree. Existing internal `RETRO_TOPDOWN` identifiers
+remain for compatibility, while the in-game label is simply **Top-Down**.
