@@ -24,7 +24,7 @@ All modes use **one shared 3D scene and authoritative player actor**. Camera cha
 
 **Camera tuning:** Press **C** (or use the Camera Settings button inside **F6 Help**) to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
 
-**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering gameplay; gamepad shoulder-button cycling is also available. The internal camera-profile array keeps its established ordering; only the input shortcuts are remapped. See [camera documentation](docs/cameras.md).
+**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering gameplay; gamepad shoulder-button cycling follows the same numbered order. The internal camera-profile array keeps its established ordering; only the input shortcuts are remapped. See [camera documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 

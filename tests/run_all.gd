@@ -340,6 +340,10 @@ func _run_tests() -> void:
             _check(manager.active_index == 4, "Key 5 selects retro top-down")
             input_adapter._unhandled_input(key_one)
             _check(manager.active_index == 3, "Key 1 selects first-person")
+            _check(input_adapter.cycle_shortcut_view(1) and manager.active_index == 1,
+                "Camera shortcut next from key 1 selects key 2 beat-em-up")
+            _check(input_adapter.cycle_shortcut_view(-1) and manager.active_index == 3,
+                "Camera shortcut previous from key 2 returns to key 1 first-person")
             input_adapter._unhandled_input(key_four)
             _check(manager.active_index == 0, "Key 4 selects side-scroller")
             _check(manager.cycle_view(-1) and manager.active_index == 4,

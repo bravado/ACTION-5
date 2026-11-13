@@ -64,6 +64,18 @@ func shortcut_for_profile_index(index: int) -> int:
     return -1
 
 
+## Next/previous view follows the configured shortcut order, not the
+## internal profile array order. With an empty map this matches cycle_view().
+func cycle_shortcut_view(direction: int) -> bool:
+    if manager == null or manager.profiles.is_empty():
+        return false
+    var current_slot: int = shortcut_for_profile_index(manager.active_index)
+    if current_slot < 0:
+        return false
+    var next_slot: int = posmod(current_slot + direction, manager.profiles.size())
+    return manager.switch_view(profile_index_for_shortcut(next_slot))
+
+
 func _register_default_actions() -> void:
     for i in range(5):
         var action := StringName("view_" + str(i + 1))
@@ -104,10 +116,10 @@ func _unhandled_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
             return
     if event.is_action_pressed("view_previous"):
-        manager.cycle_view(-1)
+        cycle_shortcut_view(-1)
         get_viewport().set_input_as_handled()
     elif event.is_action_pressed("view_next"):
-        manager.cycle_view(1)
+        cycle_shortcut_view(1)
         get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion:
         if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
