@@ -35,7 +35,9 @@ func _on_view_changed(_current: Resource, _previous: Resource) -> void:
 
 func _on_node_added(candidate: Node) -> void:
     if candidate is Action5VisibilityTarget:
-        call_deferred("_register_target", weakref(candidate))
+        # PackedScene children and resources already exist by node_added;
+        # register immediately so a same-tick sector reset is visible.
+        _register_target(candidate)
 
 
 func _register_target(candidate: Variant) -> void:
