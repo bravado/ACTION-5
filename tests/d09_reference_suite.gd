@@ -181,6 +181,34 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _frames(tree, 2)
     verify.call(status.text.contains("Unarmed"), "D09 ammo fields vanish when unarmed")
 
+    # F1 locks the player to Z=0. The authored arena Gun must be in the
+    # same physical pickup row as the Bat/Shovel, not stranded at Z=3.
+    views.switch_view(0)
+    var arena_gun := stage.get_node("GunPickup") as Node3D
+    var arena_bat := stage.get_node("BatPickup") as Node3D
+    var arena_shovel := stage.get_node("ShovelPickup") as Node3D
+    var lane_z: float = float(stage.get_node("SideLaneController").get("connected_lane_z"))
+    verify.call(is_equal_approx(arena_gun.position.z, arena_bat.position.z)
+        and is_equal_approx(arena_gun.position.z, arena_shovel.position.z)
+        and absf(arena_gun.position.z - lane_z) <= 1.0,
+        "D09 F1 Gun stays in the same physically reachable pickup row as Bat/Shovel")
+    player.global_position = stage.to_global(Vector3(arena_gun.position.x, 0.15, lane_z))
+    player.velocity = Vector3.ZERO
+    await _ticks(tree, 5)
+    var gun_interaction: Node3D = arena_gun.get_node("PickupInteraction") as Node3D
+    verify.call(absf(player.global_position.z - stage.to_global(
+        Vector3(0.0, 0.0, lane_z)).z) < 0.08
+        and bool(interactor.call("_eligible", player, gun_interaction)),
+        "D09 F1 Gun pickup is eligible from the locked side lane with real line of sight")
+    var press_e := InputEventKey.new()
+    press_e.keycode = KEY_E
+    press_e.pressed = true
+    stage.call("_unhandled_input", press_e)
+    verify.call(equipment.get("current_weapon") == arena_gun,
+        "D09 F1 E actually picks up arena Gun without leaving the side-scroller plane")
+    verify.call(equipment.call("drop_current"),
+        "D09 dropping the F1 Gun still uses the standard equipment lifecycle")
+
     verify.call(session.call("travel_to", player, &"encounter"),
         "D09 scripted entry retains the shared actor")
     await _ticks(tree, 5)
@@ -195,9 +223,49 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
                 enemy_health.died.emit(player)
     await _ticks(tree, 3)
     verify.call(exit_node.call("is_unlocked"), "D09 defeated NPCs unlock scene exit")
-    player.global_position = exit_node.global_position + Vector3(-1, 0.15, 0)
+
+    # Traverse the real 2D X/Y dungeon lane, jumping over the central
+    # obstacle rather than teleporting to the EXIT. The world geometry,
+    # collision shape, jump speed, gravity and lane controller all participate.
+    views.switch_view(0)
+    var block := room.get_node("Obstacle") as StaticBody3D
+    var block_shape := block.get_node("CollisionShape3D").shape as BoxShape3D
+    var block_mesh := block.get_node("Mesh").mesh as BoxMesh
+    var block_top: float = block.global_position.y + block_shape.size.y * 0.5
+    var takeoff_height: float = player.global_position.y
+    verify.call(block_shape.size.is_equal_approx(block_mesh.size)
+        and block_top < 1.4 and block_top > 0.8,
+        "D09 lowered dungeon block has matching visual and physical geometry")
+    player.global_position = room.to_global(Vector3(-3.8, 0.15, 0.0))
     player.velocity = Vector3.ZERO
-    await _ticks(tree, 4)
+    await _ticks(tree, 8)
+    takeoff_height = player.global_position.y
+    verify.call(player.is_on_floor(), "D09 F1 player starts the obstacle jump grounded")
+    Input.action_press(&"actor_run")
+    Input.action_press(&"move_right")
+    Input.action_press(&"move_up")
+    await _ticks(tree, 2)
+    Input.action_release(&"move_up")
+    var peak_height: float = player.global_position.y
+    var cleared_block: bool = false
+    var stayed_in_lane: bool = true
+    for frame in range(160):
+        await tree.physics_frame
+        peak_height = maxf(peak_height, player.global_position.y)
+        var progress: Vector3 = room.to_local(player.global_position)
+        stayed_in_lane = stayed_in_lane and absf(progress.z) < 0.12
+        if progress.x > block.position.x + block_shape.size.x * 0.5 + 0.4:
+            cleared_block = true
+        if progress.x >= 8.0:
+            break
+    Input.action_release(&"move_right")
+    Input.action_release(&"actor_run")
+    await _ticks(tree, 18)
+    var final_progress: Vector3 = room.to_local(player.global_position)
+    verify.call(cleared_block and stayed_in_lane
+        and peak_height - takeoff_height > block_top + 0.1
+        and final_progress.x > 7.0 and final_progress.x < 10.5,
+        "D09 real F1 jump clears central block and runs to the EXIT without teleporting")
     verify.call(bool(interactor.call("_eligible", player, exit_node)),
         "D09 EXIT remains in physical reach/line-of-sight on shared F1 lane")
     verify.call(bool(interactor.call("interact", player, exit_node)),
