@@ -670,49 +670,31 @@ visuals, and wall/door collision is independent of visibility.
 Prune WeakRef visibility/material entries after fresh scene resets,
 and restore original flags when removing the adapter.
 
-Only OuterWallFader owns F1 foreground-wall mesh hiding, F2/F3 fade
-and F4/F5 opaque rendering. Both `action5_outer_wall` and
-`action5_side_hidden_wall` must tag camera-facing foreground walls
-in the arena, dungeon and detached rooms. The group is on the
-StaticBody3D, but only direct MeshInstance3D children are hidden;
-colliders, opaque door panels and room-root visibility stay authoritative.
-View switches and fresh sector replacement must apply the new policy,
-and original mesh visibility/material/shadows return on teardown.
-Do not reintroduce a wall visibility writer in demo/main.gd.
-SectorCameraBounds handles any number of configured, rotated connected
-sector transforms by merging world-space bounds; never add room names
-or specific movements to the core camera, Actor, AI or Combat. The
-two-room visibility adapter is deliberately a demo-level composition,
-not a new speculative generic framework.
+Camera-dependent geometry visibility belongs to one
+`Action5VisibilityController`, using `Action5VisibilityTarget` and
+read-only `Action5VisibilityPolicy` resources in
+`addons/action5/world/`. A target may wrap any authored Node3D, including
+nested Blender/GLB meshes, modular PackedScenes or a GridMap. Multiple
+targets must not claim the same visual. For long walls prefer a
+CollisionShape3D BoxShape3D footprint; otherwise the controller measures
+mesh bounds. F1 hides opted-in foreground visuals; F2/F3 can alpha-fade
+perimeter meshes; FPS and top-down remain opaque in the supplied demo
+policies. A GridMap can be hidden/shown as a group, but per-cell fade is
+unsupported: separate visual groups or author independent mesh scenes.
+Physical collision, door barriers, projectile obstruction, navigation and
+room-root visibility must not depend on opacity.
 
-### D08 proximity transparency: only outer walls
-
-`demo/world/outer_wall_fader.gd` fades **only explicitly tagged**
-`action5_outer_wall` StaticBody3D nodes, using the physical
-CollisionShape3D footprint rather than distance to a long wall's
-center. Arena/dungeon/remote chamber perimeter walls opt into the
-group, including camera-front `SouthWall`. The interior
-`PillarA`/`PillarB`, obstacle, east shared partition sections,
-visible door frame, BarrierMesh and any NavigationLink3D are never
-tagged. Fade starts 3.8 units from the wall and reaches 20% material
-opacity at 1.1 units; original surface override and cast shadows
-are restored at full distance and when the presenter exits. F1
-hides only camera-foreground meshes tagged `action5_side_hidden_wall`
-while preserving their collision; F4 and F5 keep all exterior
-walls opaque. The F2 direction-sensitive peek remains configurable
-and defaults to 6°.
-
-**Web compatibility:** NEVER substitute
-`GeometryInstance3D.transparency` for this effect. That property is
-ignored by Godot's Compatibility/WebGL2 renderer. Duplicate
-`StandardMaterial3D` once per wall mesh, use
-`BaseMaterial3D.TRANSPARENCY_ALPHA` only when close, and reuse the
-cached material to avoid repeated shader/resource allocation. Do
-not alter room-root visibility owned by RoomVisibility, physical
-collision, enemy discovery/LoS, navigation, or any shared material
-resource. The single opt-in front mesh belongs to OuterWallFader. Extend D08 camera integration tests for proximity
-alpha, F1 arena/dungeon/remote foreground hiding, restored materials,
-nonfading interior walls, opaque F4/F5 and detached scene path.
+Register targets only on scene insertion, cache per-surface duplicated
+StandardMaterial3D for WebGL2 Compatibility, restore exact material
+overrides/shadows and authored mesh visibility on teardown, and prune
+freed scenes without retaining references. Non-StandardMaterial surfaces
+must remain unchanged by fading, without affecting collision or crashes.
+The old `demo/world/outer_wall_fader.gd` is removed: do not reintroduce
+a second visual owner or write mesh visibility inside demo/main.gd.
+`RoomVisibility` remains a separate demo room-composition policy.
+Extend `tests/world_visibility_suite.gd` and D08 integration suites
+when geometry authoring, level lifetime or view policy changes.
+See [level authoring](docs/level-authoring.md) for author workflows.
 
 
 ### D08 F1 actor plane

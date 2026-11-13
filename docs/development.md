@@ -368,36 +368,29 @@ dungeon replacement. SceneTree node-added events are filtered to
 pickup-group nodes *before* deferral: spawning unrelated effects or
 enemy meshes no longer queues extra pickup callbacks.
 
-### Outer perimeter fade without gameplay coupling
+### Editor-authored levels and camera-only visibility
 
-The D08 `demo/world/outer_wall_fader.gd` presenter monitors the
-player's horizontal distance to authored **outer wall**
-CollisionShape3D box footprints. Only `action5_outer_wall` members
-fade. When the actor approaches within 3.8 units, the wall mesh
-transitions toward 20% opacity, reaching that value at 1.1 units.
-The bottom/front `SouthWall` in the arena and dungeon is the main
-visibility improvement; other exterior bounds in those rooms and the
-remote chamber opt in using the same group. The same presenter owns
-F1 foreground-wall hiding using the opt-in
-`action5_side_hidden_wall` group on the same perimeter StaticBody3D.
-Arena, dungeon (including fresh-entry replacement), and cached remote
-SouthWall meshes hide in F1; rear walls, door frame/barrier and
-colliders remain. The presenter restores authored mesh visibility on
-view switch and teardown. `main.gd` never writes wall mesh
-visibility. **Both F4 and F5 remain opaque**, immediately restoring
-unmodified original surface materials after F2/F3 fading. Near/far
-thresholds, minimum opacity, response rate and both opaque-view flags
-remain exported settings.
+ACTION-5 accepts any 3D `PackedScene` composed in Godot: GridMap-painted
+tiles, modular prefabs, Blender/GLB imports and ordinary mesh instances can
+coexist in one world. Level format does not alter Actor, camera, AI or
+equipment semantics. See [level authoring](level-authoring.md) for scene
+contracts, mesh/GLB wrappers, navigation baking and configuration.
 
-Use a cached alpha-enabled **duplicate** of each wall's existing
-StandardMaterial3D surface material and restore the original override
-when far; generic GeometryInstance3D transparency does not work
-with WebGL2 Compatibility. The original opaque resources are never
-mutated; no rendering change touches a StaticBody3D, CollisionShape3D,
-NavigationLink3D, scene-room visibility, or NPC/Gun line of sight.
-Shared boundary walls and the solid door must **not** opt in.
-`tests/d08_camera_sector_suite.gd` exercises material opacity,
-restoration and no collision changes in all relevant modes.
+The generic addon `Action5VisibilityController` drives only opted-in
+`Action5VisibilityTarget` visuals from shared
+`Action5VisibilityPolicy` resources. It replaces the former demo-only
+`OuterWallFader`. The reference arena, instanced encounter and detached
+chamber use `demo/world/visibility/{outer_wall,foreground_wall}.tres`:
+F2/F3 fade near exterior walls, side mode hides designated foreground
+meshes, FPS and top-down stay opaque. Renderer-compatible per-surface
+StandardMaterial3D copies preserve authored overrides and shadows;
+GridMaps support whole-map hide/show, not per-cell alpha fade. No collision,
+NavigationLink3D, actor line of sight or door state changes.
+
+RoomVisibility retains scene-level room occlusion, separate from per-view
+mesh presentation. `tests/world_visibility_suite.gd` covers imported-style
+nested mesh and GridMap behavior; D08 suites retain arena, dungeon,
+remote, restart and five-mode regression coverage.
 
 
 ### F1 shared combat lane (D08)

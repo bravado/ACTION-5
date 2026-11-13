@@ -1,4 +1,8 @@
-[gd_scene load_steps=66 format=3]
+[gd_scene load_steps=69 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/world/visibility_target.gd" id="90_visibility_target"]
+[ext_resource type="Resource" path="res://demo/world/visibility/outer_wall.tres" id="91_outer_visibility"]
+[ext_resource type="Resource" path="res://demo/world/visibility/foreground_wall.tres" id="92_front_visibility"]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -34,7 +38,7 @@
 [ext_resource type="Script" path="res://demo/world/location_manager.gd" id="27_location_manager"]
 [ext_resource type="Script" path="res://demo/interactions/location_portal.gd" id="28_location_portal"]
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
-[ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
+[ext_resource type="Script" path="res://addons/action5/world/visibility_controller.gd" id="30_outer_wall_fader"]
 [ext_resource type="Script" path="res://demo/world/side_lane_controller.gd" id="31_side_lane"]
 [ext_resource type="Script" path="res://demo/ui/hud_adapter.gd" id="32_hud_adapter"]
 [ext_resource type="PackedScene" path="res://demo/ui/hud.tscn" id="34_hud_scene"]
@@ -150,7 +154,7 @@ shape = SubResource("BoxShape3D_floor")
 [node name="ArenaNavigation" type="NavigationRegion3D" parent="."]
 script = ExtResource("26_arena_nav")
 
-[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="NorthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, -9)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="NorthWall"]
@@ -160,7 +164,7 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("BoxShape3D_wallX")
 
-[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
+[node name="SouthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, 9)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SouthWall"]
@@ -170,7 +174,7 @@ surface_material_override/0 = SubResource("Material_wall")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
 shape = SubResource("BoxShape3D_wallX")
 
-[node name="WestWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="WestWall" type="StaticBody3D" parent="."]
 position = Vector3(-14, 1.5, 0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WestWall"]
@@ -462,8 +466,20 @@ script = ExtResource("22_bounds")
 [node name="RoomVisibility" type="Node" parent="."]
 script = ExtResource("25_room_visibility")
 
-[node name="OuterWallFader" type="Node" parent="."]
+[node name="VisibilityController" type="Node" parent="."]
 script = ExtResource("30_outer_wall_fader")
 
 [node name="SideLaneController" type="Node" parent="."]
 script = ExtResource("31_side_lane")
+
+[node name="VisibilityTarget" type="Node" parent="NorthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="SouthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("92_front_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="WestWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")

@@ -67,6 +67,16 @@ Online multiplayer, rollback netcode, full RPG inventory/economy, procedural dun
 
 A fixed combat tick does **not** imply deterministic rollback/network simulation.
 
+## 3D level authoring and visibility
+
+Levels can mix Godot GridMap, modular scene instances and imported Blender/GLB
+geometry. No tile system is required by the runtime. Optional
+`VisibilityTarget` nodes with editable `VisibilityPolicy` resources control
+which visual meshes fade or hide per view; the shared 3D collision, AI,
+weapons, doors and world state are unaffected. See
+[editor level authoring](docs/level-authoring.md) for the supported workflow,
+examples, GridMap limitations and renderer considerations.
+
 ## Planned project layout
 
 ```text
