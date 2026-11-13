@@ -40,6 +40,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not stage.get_node("Hud/Status").visible
         and hp_panel.visible and equip_panel.visible,
         "D09-03 one gameplay HUD replaces visible diagnostic wall")
+    verify.call((display.get("_ammo_text") as Label).text == "PUNCH · KICK",
+        "D09-03 compact unarmed actions omit verbose gamepad control descriptions")
     var health_pos: Vector2 = hp_panel.position
     var equip_pos: Vector2 = equip_panel.position
     verify.call(hp_panel.anchor_left == 0.0 and equip_panel.anchor_right == 1.0

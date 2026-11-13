@@ -239,11 +239,18 @@ func refresh() -> void:
         and _weapon.has_method("get_ammo_status") else {}
     var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
     var next_name: String = _next_weapon_name()
+    # Short action names belong in the compact weapon panel. Detailed
+    # keyboard/gamepad combinations live in F6 Help, not a clipped HUD line.
+    var short_actions := PackedStringArray()
+    for hint in actions:
+        var text_hint: String = hint
+        var bracket: int = text_hint.find(" [")
+        short_actions.append((text_hint.substr(0, bracket) if bracket >= 0 else text_hint).to_upper())
     display.set_health(float(health.get("current_health")) if is_instance_valid(health) else 0.0,
         float(health.get("max_health")) if is_instance_valid(health) else 1.0)
     display.set_equipment(weapon_name, icon, ammo, next_name,
         _binding(&"demo_swap") if not next_name.is_empty() else "",
-        " · ".join(commands) if not commands.is_empty() else " · ".join(actions))
+        " · ".join(short_actions))
     display.set_reticle(not ammo.is_empty()
         and int(profile.get("mode")) == ViewProfileScript.Mode.FIRST_PERSON)
     var activity: String = ""
