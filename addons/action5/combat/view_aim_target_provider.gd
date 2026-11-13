@@ -15,8 +15,10 @@ const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 ## This is a target-selection port only: Gun still casts from the world muzzle.
 @export_range(0.2, 2.0, 0.05) var side_center_height: float = 1.25
 @export var side_aim_anchor_path: NodePath = ^".."
+@export var direction_policy_path: NodePath = ^""
 
 @onready var context_source: Node = get_node_or_null(context_source_path)
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 
 func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]) -> Vector3:
@@ -40,10 +42,30 @@ func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]
     if mode == ProfileScript.Mode.SIDE and is_instance_valid(camera):
         return _side_center_target(context, camera, origin, maximum_range, exclude)
     var sectors: int = retro_gun_sectors * 4 if mode == ProfileScript.Mode.RETRO_TOPDOWN else 0
+    if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+        sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var direction: Vector2 = AimScript.resolve_direction(
         context.get("world_aim"), context.get("facing_world"), mode, camera, sectors
     )
+    if mode == ProfileScript.Mode.RETRO_TOPDOWN:
+        return _retro_center_target(origin, direction, maximum_range, exclude)
     return origin + Vector3(direction.x, 0.0, direction.y) * maximum_range
+
+
+## F5: select the first target on the player's forward *centerline*,
+## instead of tracing a parallel lane offset by the hand-mounted muzzle.
+## Gun still casts its authoritative hitscan from the physical Muzzle to
+## this point. This is the same two-stage aiming principle as F1/F4 and
+## cannot bypass an intervening wall or another object nearer the gun.
+## Use the muzzle's Y for an overhead horizontal shot, not the floor.
+func _retro_center_target(origin: Vector3, direction: Vector2,
+        maximum_range: float, exclude: Array[RID]) -> Vector3:
+    var actor := get_node_or_null(side_aim_anchor_path) as Node3D
+    if not is_instance_valid(actor) or maximum_range <= 0.0:
+        return origin
+    var center := Vector3(actor.global_position.x, origin.y, actor.global_position.z)
+    var endpoint := center + Vector3(direction.x, 0.0, direction.y) * maximum_range
+    return _first_centerline_hit(actor.get_world_3d(), center, endpoint, exclude)
 
 
 ## Orthographic side-view center-line selection. A ray through the literal
@@ -65,10 +87,17 @@ func _side_center_target(context: RefCounted, camera: Camera3D,
         horizontal = 1.0
     var begin: Vector3 = actor.global_position + Vector3.UP * side_center_height
     var finish: Vector3 = begin + Vector3.RIGHT * signf(horizontal) * maximum_range
-    var params := PhysicsRayQueryParameters3D.create(
+    return _first_centerline_hit(camera.get_world_3d(), begin, finish, exclude)
+
+
+## F1 and F5 share one read-only centerline selection. The Gun always
+## performs the authoritative muzzle ray afterward (including near walls).
+func _first_centerline_hit(world: World3D, begin: Vector3, finish: Vector3,
+        exclude: Array[RID]) -> Vector3:
+    var query := PhysicsRayQueryParameters3D.create(
         begin, finish, camera_target_mask, exclude
     )
-    params.collide_with_areas = true
-    params.collide_with_bodies = true
-    var selected: Dictionary = camera.get_world_3d().direct_space_state.intersect_ray(params)
-    return selected.get("position", finish)
+    query.collide_with_areas = true
+    query.collide_with_bodies = true
+    var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+    return hit.get("position", finish)

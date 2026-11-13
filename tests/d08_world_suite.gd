@@ -336,14 +336,33 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # Player and NPC/script callers share the exact same component contract.
     var interactor := stage.get_node("Interactor")
     var switch := stage.get_node("LightSwitch") as Node3D
+    var switch_label := switch.get_node_or_null("Label3D") as Label3D
+    var switch_off := switch.get_node_or_null("IndicatorOff") as MeshInstance3D
+    var switch_on := switch.get_node_or_null("IndicatorOn") as MeshInstance3D
+    verify.call(switch.get_node_or_null("Pedestal") is MeshInstance3D
+        and switch.get_node_or_null("Console") is MeshInstance3D
+        and switch_label != null and switch_label.visible and switch_label.no_depth_test
+        and switch_label.text.contains("[E]")
+        and switch_off != null and switch_off.visible
+        and switch_on != null and not switch_on.visible,
+        "Switch has a persistent visible console, labelled E prompt and OFF beacon")
     var scripted_actor := Node3D.new()
     scripted_actor.name = "ScriptedNPC"
     stage.add_child(scripted_actor)
     scripted_actor.global_position = switch.global_position + Vector3(1.0, 0, 0)
     await _physics_frames(tree)
     verify.call(interactor.interact(scripted_actor, switch)
-        and switch.activated and switch.get_node("Light").visible,
-        "Scripted/NPC interaction activates the independent second interactable type")
+        and switch.activated and switch.get_node("Light").visible
+        and switch_on.visible and not switch_off.visible and switch_label.text.contains("ON"),
+        "Switch E interaction lights the room and updates its visible ON beacon")
+    await _physics_frames(tree)
+    verify.call(interactor.interact(scripted_actor, switch)
+        and not switch.activated and not switch.get_node("Light").visible
+        and switch_off.visible and not switch_on.visible and switch_label.text.contains("OFF"),
+        "Switch E toggles the light off and restores the visible OFF beacon")
+    await _physics_frames(tree)
+    verify.call(interactor.interact(scripted_actor, switch),
+        "Switch can be activated again without rebuilding the visual fixture")
     await _physics_frames(tree)
     scripted_actor.global_position = switch.global_position + Vector3(10, 0, 0)
     verify.call(not interactor.interact(scripted_actor, switch),

@@ -9,6 +9,8 @@ class_name Action5WeaponDefinition
 @export var grip_position: Vector3 = Vector3.ZERO
 @export var grip_rotation_degrees: Vector3 = Vector3.ZERO
 @export var attacks: Array[Resource] = []
+## Optional weapon-authored direction overrides by view.
+@export var view_facing_policies: Array[Resource] = []
 @export var first_person_scene: PackedScene
 
 

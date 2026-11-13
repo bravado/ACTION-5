@@ -341,3 +341,10 @@ AI target decisions, physical range/LoS, damage or Gun first-hit rays.
 D07 and D08 are implemented parts of the shared project baseline.
 See [AI authoring](ai.md) for composition and the established
 world-interaction boundary.
+
+
+## D09-02 Sword clip and F4 reload validation
+
+The demo Sword registers the action key `sword_slash` in the existing `SkeletonProfile.clip_map`, currently mapped to the reusable lateral Bat clip on the reference rig. This is a presentation mapping only: the Sword's melee timing, hitbox and four-way F5 facing are provided by its attack resource and view-facing policy. A new artist-authored Sword clip can replace the mapping without edits to CombatController, AnimationPresenter or the movement FSM.
+
+The F4 Sword uses its own `sword_slash_grip.tres` pose resource, while both Pistols use `gun_reload_grip.tres`. All `Action5FirstPersonLimbProfile` keyframes must start at 0 and end at 1. The Gun's normalized reload pose is sampled from its existing tick countdown, returning to idle on completion; the F4 viewmodel never controls ammo or reload completion. The gun suite verifies these resource/pose contracts.

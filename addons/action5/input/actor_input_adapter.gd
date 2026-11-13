@@ -21,6 +21,8 @@ const FirstPersonControls = preload("res://addons/action5/input/profiles/first_p
 @export_range(0.0, 0.95, 0.05) var aim_deadzone: float = 0.28
 @export_enum("4-way", "8-way") var retro_facing: int = 1
 @export var independent_aim_enabled: bool = true
+## Optional equipped/view facing provider, shared with CombatInput and Gun aim.
+@export var direction_policy_path: NodePath = ^""
 ## F4-only keyboard turning. Turn actions are remappable independently of A/D.
 @export_range(30.0, 360.0, 5.0) var first_person_turn_speed: float = 135.0
 ## Editing or adding a mapping requires only a Resource, not a new view branch.
@@ -31,6 +33,7 @@ const FirstPersonControls = preload("res://addons/action5/input/profiles/first_p
 
 @onready var actor: ActorScript = get_node_or_null(actor_path) as ActorScript
 @onready var views: ViewManagerScript = get_node_or_null(view_manager_path) as ViewManagerScript
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 var enabled: bool = true
 var focus_active: bool = true
@@ -72,8 +75,8 @@ func _physics_process(_delta: float) -> void:
         return
 
     var controls: ControlProfileScript = get_active_controls()
-    var axes: Vector2 = get_movement_axes()
-    var aim_axes := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    var axes: Vector2 = get_movement_axes(controls)
+    var aim_axes: Vector2 = get_aim_axes(controls)
     var turn_axis: float = _axis(controls.turn_left_action, controls.turn_right_action)
     if require_neutral:
         if axes.length_squared() > 0.001 or aim_axes.length_squared() > 0.001 \
@@ -110,8 +113,23 @@ func get_active_controls() -> ControlProfileScript:
     return default_controls
 
 
-func get_movement_axes() -> Vector2:
-    var controls: ControlProfileScript = get_active_controls()
+## Keep the right stick active in every view; optional keyboard aim uses
+## exactly the same independent intent port without moving the actor.
+func get_aim_axes(controls: ControlProfileScript = null) -> Vector2:
+    if controls == null:
+        controls = get_active_controls()
+    var aim := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", aim_deadzone)
+    if controls != null:
+        aim += Vector2(
+            _axis(controls.extra_aim_left_action, controls.extra_aim_right_action),
+            _axis(controls.extra_aim_up_action, controls.extra_aim_down_action)
+        )
+    return aim.limit_length(1.0)
+
+
+func get_movement_axes(controls: ControlProfileScript = null) -> Vector2:
+    if controls == null:
+        controls = get_active_controls()
     if controls == null:
         return Vector2.ZERO
     var axes: Vector2
@@ -203,6 +221,8 @@ func compose_intent(
     ):
         aim = MovementPolicyScript.to_world(Vector2(0.0, -1.0), mode, basis)
     var sectors: int = 4 if retro_facing == 0 else 8
+    if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+        sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var facing := MovementPolicyScript.choose_facing(movement, aim, mode, sectors)
     var intent: IntentScript = IntentScript.new(movement, facing, aim)
     intent.jump_pressed = jump

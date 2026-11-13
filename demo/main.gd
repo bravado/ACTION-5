@@ -188,7 +188,10 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
 ## Only the reference scene owns these optional remappable interactions.
 func _register_demo_actions() -> void:
     var bindings: Dictionary = {
-        &"demo_interact": KEY_E, &"demo_swap": KEY_Q, &"demo_drop": KEY_G
+        &"demo_interact": KEY_E, &"demo_swap": KEY_Q, &"demo_drop": KEY_G,
+        &"retro_move_up": KEY_W, &"retro_move_down": KEY_S,
+        &"retro_aim_left": KEY_LEFT, &"retro_aim_right": KEY_RIGHT,
+        &"retro_aim_up": KEY_UP, &"retro_aim_down": KEY_DOWN
     }
     for action in bindings:
         if not InputMap.has_action(action):

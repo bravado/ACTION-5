@@ -10,6 +10,7 @@ const ActionContextScript = preload("res://addons/action5/input/action_input_con
 ## Replaceable selection policy: same J/K or mouse buttons can choose an
 ## equipped action without importing equipment into this input adapter.
 @export var action_selection_path: NodePath = ^""
+@export var direction_policy_path: NodePath = ^""
 
 @onready var combat: CombatScript = get_node_or_null(combat_path) as CombatScript
 ## Duck-typed provider implementing get_action_input_context().
@@ -18,6 +19,7 @@ const ActionContextScript = preload("res://addons/action5/input/action_input_con
 @onready var action_selection_source: Node = (
     get_node_or_null(action_selection_path) if not action_selection_path.is_empty() else null
 )
+@onready var direction_policy: Node = get_node_or_null(direction_policy_path)
 
 var release_to_rearm: bool = false
 # InputMap sees mouse events even when GUI consumes them. Only an event
@@ -102,10 +104,14 @@ func _physics_process(_delta: float) -> void:
         if selected == null or combat.get_attack(selected.get("attack_id")) != selected:
             break
         var sectors: int = int(selected.get("facing_sectors"))
+        var sector_count: int = 4 if sectors == 1 else (8 if sectors == 2 else 0)
+        if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+            sector_count = int(direction_policy.call(
+                "get_sectors", context.view_mode, sector_count
+            ))
         var direction: Vector2 = AimScript.resolve_direction(
             context.world_aim, context.facing_world,
-            context.view_mode, context.camera,
-            4 if sectors == 1 else (8 if sectors == 2 else 0)
+            context.view_mode, context.camera, sector_count
         )
         combat.request_attack(selected.get("attack_id"), direction)
         break

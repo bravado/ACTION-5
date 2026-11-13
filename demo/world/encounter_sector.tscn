@@ -1,10 +1,12 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://demo/ai/ranged_enemy.tscn" id="3"]
 [ext_resource type="Script" path="res://demo/world/traversal_fixture.gd" id="6"]
 [ext_resource type="Script" path="res://demo/interactions/reference_exit.gd" id="7_exit"]
+[ext_resource type="PackedScene" path="res://demo/equipment/sword.tscn" id="8_sword"]
+[ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="9_pickup"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -12,11 +14,13 @@ size = Vector3(24, 0.4, 16)
 [sub_resource type="BoxMesh" id="floor_mesh"]
 size = Vector3(24, 0.4, 16)
 
+; A 1.1m obstacle remains substantial but is jumpable in F1 (6.3m/s takeoff).
+; Keep collision and visuals identical; the base remains at floor Y=0.
 [sub_resource type="BoxShape3D" id="obstacle_shape"]
-size = Vector3(3, 2.5, 3)
+size = Vector3(3, 1.1, 3)
 
 [sub_resource type="BoxMesh" id="obstacle_mesh"]
-size = Vector3(3, 2.5, 3)
+size = Vector3(3, 1.1, 3)
 
 [sub_resource type="StandardMaterial3D" id="obstacle_color"]
 albedo_color = Color(0.4, 0.45, 0.55, 1)
@@ -53,7 +57,7 @@ shape = SubResource("floor_shape")
 mesh = SubResource("floor_mesh")
 
 [node name="Obstacle" type="StaticBody3D" parent="."]
-position = Vector3(0, 1.25, 0)
+position = Vector3(0, 0.55, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Obstacle"]
 shape = SubResource("obstacle_shape")
@@ -63,6 +67,13 @@ mesh = SubResource("obstacle_mesh")
 surface_material_override/0 = SubResource("obstacle_color")
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+
+[node name="SwordPickup" parent="." instance=ExtResource("8_sword")]
+position = Vector3(1.8, 0.45, -3.5)
+
+[node name="SwordPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("9_pickup")
+weapon_path = NodePath("../SwordPickup")
 
 [node name="Melee" parent="." instance=ExtResource("2")]
 position = Vector3(-5, 0.15, 0)

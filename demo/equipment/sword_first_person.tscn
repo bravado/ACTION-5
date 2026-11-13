@@ -1,0 +1,26 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/animation/first_person_weapon_viewmodel.gd" id="1"]
+[ext_resource type="Resource" path="res://demo/equipment/bat_horizontal_grip.tres" id="2"]
+[ext_resource type="Resource" path="res://demo/equipment/sword_slash_grip.tres" id="3"]
+
+[sub_resource type="BoxMesh" id="blade"]
+size = Vector3(0.13, 0.04, 1.25)
+
+[sub_resource type="BoxMesh" id="handle"]
+size = Vector3(0.11, 0.12, 0.35)
+
+[node name="SwordF4" type="Node3D"]
+script = ExtResource("1")
+grip_profile = ExtResource("2")
+action_profiles = Array[Resource]([ExtResource("3")])
+
+[node name="Grip" type="Node3D" parent="."]
+
+[node name="Handle" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -0.18)
+mesh = SubResource("handle")
+
+[node name="Blade" type="MeshInstance3D" parent="Grip"]
+position = Vector3(0, 0, -0.94)
+mesh = SubResource("blade")

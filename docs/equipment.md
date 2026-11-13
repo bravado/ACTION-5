@@ -1,13 +1,13 @@
 # D06 equipment authoring and implementation state
 
-**Status (November 2026): D05–D08 and D09-01 delivered.**
+**Status (November 2026): D05–D09-02 implemented.**
 D06-01 established Bat/Shovel and the reusable Equipment lifecycle;
 D06-02 added Guns, world-muzzle hits, reload and visual tracers;
 D07 added camera-independent NPCs using the same Equipment/Combat ports.
 D08 adds persistent inventory, cached-location travel, single-path
-weapon pickup and a location-scoped drop parent. D09-01 adds
-view-specific target selection and a reactive ammo/weapon HUD without
-changing shared equipment internals. See [AI authoring](ai.md) and
+weapon pickup and a location-scoped drop parent. D09 adds
+view-specific target selection, a reactive ammo/weapon HUD and resource-driven
+F5 Sword/Gun directional combat without changing shared equipment internals. See [AI authoring](ai.md) and
 [ADR-0006](adr/0006-authoritative-gun-and-projectile-visuals.md).
 
 ## D06-02 hitscan gun (Godot, native/WebGL2 and manual visuals verified)
@@ -32,7 +32,7 @@ world Muzzle to this target, excluding the owner body's collision objects.
 In F1 the same provider selects an upper-torso target along the shared
 2D horizontal combat lane (default 1.25 units above actor root), rather
 than tracing a camera ray into depth or firing at hand height. F2/F3
-use world aim/facing; retro F5 may quantize to 8 sectors by policy alone. No gun-specific camera checks and no
+use world aim/facing; retro F5 uses the equipped weapon's direction policy and selects targets along the player's forward centerline. No gun-specific camera checks and no
 retro quantization in its AttackDefinition. A nearer layer-1 wall takes
 precedence over a layer-2 Hurtbox. A valid active shot consumes one bullet
 even when a wall blocks its target; a dry/invalid/cancelled request does not.
@@ -89,6 +89,8 @@ reload events for the world skinned reload clip (if authored). F4 selects a
 camera-space reload grip; its visual pose cannot finish the reload.
 The world reload adapter only clears an upper-body clip when it actually
 owns that clip, preventing unintended cancellation of another action.
+The F4 reload-grip profile must span normalized time 0.0–1.0 and return
+to idle; the per-Gun countdown remains authoritative.
 
 **Extension:** Copy the Gun scene/resource pair, author a new unique
 AttackDefinition (use_melee_hit_query=false, facing_sectors=Free, own
@@ -440,3 +442,11 @@ unchanged. The integration fixture constructs a real layer-1
 the ray), then checks enemy damage, wall blocking, friendly rejection
 and a disabled Hurtbox. This remains an actor-neutral component
 contract suitable for D07 AI.
+
+## D09-02 Sword, direction resources and F5 targeting
+
+`demo/equipment/sword.tres` defines an ordinary Sword with its own D05 attack, physical pickup, world animation key and optional F4 gripped viewmodel. Its `sword_slash` has `facing_sectors = Free`, because attack-global quantization would also affect F1–F4. Instead, a weapon lists optional `Action5ViewFacingPolicy` resources (`view_mode = 4` for F5, `sector_count = 4`, `8`, `0` for free, or another valid 2–32 value) in `Action5WeaponDefinition.view_facing_policies`. Sword uses four headings; Pistol uses eight. One actor-local `Action5EquippedViewFacing` queries the current weapon definition on demand through `get_sectors(view_mode, fallback)`, without caching or mutating shared data.
+
+Configure the optional policy NodePath on ActorInputAdapter, CombatInputAdapter and ViewAimTargetProvider. This aligns actor-facing, melee attack request and Gun target selection without editing Actor, CombatController, MovementController, AnimationPresenter or Gun. F1–F4 keep their existing behavior; NPCs can omit the policy. The demo F5 keyboard profile (WASD move, arrow keys/right stick independent aim) is authored in `demo/input/retro_topdown.tres` and assigned on the ActorInput scene node.
+
+F5 selects a target on the actor's forward X/Z centerline. The Gun still fires **from its actual world muzzle** and the visual tracer begins at that muzzle, ending at the physical impact rather than appearing in the player body. Wall obstruction, Hurtboxes, damage, ammo and the fire timeline are unchanged; the separate F4 barrel-tip visual remains. Both Gun variants use the corrected `gun_reload_grip.tres` normalized 0–1 profile, driven solely by the existing Gun reload countdown. See [camera controls](cameras.md), [combat](combat.md), and [first-person presentation](first-person-presentation.md).

@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="Action5WeaponDefinition" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="Action5WeaponDefinition" load_steps=5 format=3]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_definition.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/gun_fire.tres" id="2"]
 [ext_resource type="PackedScene" path="res://demo/equipment/gun_first_person.tscn" id="3"]
+[ext_resource type="Resource" path="res://demo/equipment/retro_gun_facing.tres" id="4"]
 [resource]
 script = ExtResource("1")
 weapon_id = &"gun"
@@ -9,4 +10,5 @@ display_name = "Pistol"
 socket_id = &"right_hand"
 grip_position = Vector3(0, 0, -0.13)
 attacks = Array[Resource]([ExtResource("2")])
+view_facing_policies = Array[Resource]([ExtResource("4")])
 first_person_scene = ExtResource("3")

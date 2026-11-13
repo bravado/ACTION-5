@@ -48,7 +48,7 @@ static func to_world(axes: Vector2, mode: int, camera_basis: Basis) -> Vector2:
 static func quantize_facing(direction: Vector2, sectors: int) -> Vector2:
     if not direction.is_finite() or direction.length_squared() <= EPSILON_SQ:
         return Vector2.ZERO
-    if sectors != 4 and sectors != 8:
+    if sectors < 2:
         return direction.normalized()
     var step: float = TAU / float(sectors)
     var angle: float = roundf(direction.angle() / step) * step

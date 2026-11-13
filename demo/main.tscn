@@ -1,4 +1,4 @@
-[gd_scene load_steps=61 format=3]
+[gd_scene load_steps=65 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -7,12 +7,16 @@
 [ext_resource type="Script" path="res://addons/action5/camera/view_input.gd" id="5_input"]
 [ext_resource type="Script" path="res://addons/action5/camera/camera_settings_panel.gd" id="6_settings"]
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="7_actor_input"]
+[ext_resource type="Resource" path="res://addons/action5/input/profiles/side.tres" id="35_side_controls"]
+[ext_resource type="Resource" path="res://addons/action5/input/profiles/first_person.tres" id="36_first_person_controls"]
+[ext_resource type="Resource" path="res://demo/input/retro_topdown.tres" id="37_retro_controls"]
 [ext_resource type="PackedScene" path="res://demo/combat/training_target.tscn" id="8_target"]
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
 [ext_resource type="PackedScene" path="res://demo/equipment/bat.tscn" id="10_bat"]
 [ext_resource type="PackedScene" path="res://demo/equipment/shovel.tscn" id="11_shovel"]
 
 [ext_resource type="PackedScene" path="res://demo/equipment/gun.tscn" id="12_gun"]
+[ext_resource type="PackedScene" path="res://demo/equipment/sword.tscn" id="34_sword"]
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_command_input_adapter.gd" id="13_weapon_command"]
 [ext_resource type="Script" path="res://demo/interactions/world_door.gd" id="14_door"]
 [ext_resource type="PackedScene" path="res://demo/world/encounter_sector.tscn" id="15_encounter"]
@@ -21,7 +25,7 @@
 [ext_resource type="Script" path="res://demo/world/world_session.gd" id="18_session"]
 [ext_resource type="Script" path="res://addons/action5/interactions/interactor.gd" id="19_interactor"]
 [ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="20_pickup"]
-[ext_resource type="Script" path="res://demo/interactions/world_switch.gd" id="21_switch"]
+[ext_resource type="PackedScene" path="res://demo/interactions/light_switch.tscn" id="21_switch"]
 [ext_resource type="Script" path="res://demo/world/sector_camera_bounds.gd" id="22_bounds"]
 [ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="23_roof_overlay"]
 [ext_resource type="Script" path="res://demo/interactions/door_acquisition_filter.gd" id="24_gate_sensor"]
@@ -250,7 +254,11 @@ position = Vector3(1.4, 0.45, 1.0)
 position = Vector3(-1.4, 0.45, 1.0)
 
 [node name="GunPickup" parent="." instance=ExtResource("12_gun")]
-position = Vector3(3.0, 0.45, 3.0)
+; Keep F1 pickup within its fixed Z=0 lane, matching Bat/Shovel at Z=1.
+position = Vector3(3.0, 0.45, 1.0)
+
+[node name="SwordPickup" parent="." instance=ExtResource("34_sword")]
+position = Vector3(0, 0.45, -3.2)
 
 [node name="NearDummy" parent="." instance=ExtResource("8_target")]
 position = Vector3(2.1, 0.0, -2.0)
@@ -380,14 +388,12 @@ weapon_path = NodePath("../ShovelPickup")
 script = ExtResource("20_pickup")
 weapon_path = NodePath("../GunPickup")
 
-[node name="LightSwitch" type="Node3D" parent="." groups=["action5_interactable"]]
-position = Vector3(-9.0, 0, 1.0)
-script = ExtResource("21_switch")
+[node name="SwordPickupWorldState" type="Node3D" parent="."]
+script = ExtResource("20_pickup")
+weapon_path = NodePath("../SwordPickup")
 
-[node name="Light" type="OmniLight3D" parent="LightSwitch"]
-position = Vector3(0, 2.0, 0)
-visible = false
-omni_range = 5.0
+[node name="LightSwitch" parent="." instance=ExtResource("21_switch")]
+position = Vector3(-5.5, 0, 4.3)
 
 [node name="ViewManager" type="Node" parent="."]
 script = ExtResource("3_manager")
@@ -406,10 +412,13 @@ script = ExtResource("5_input")
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
+view_controls = Array[Resource]([ExtResource("35_side_controls"), ExtResource("36_first_person_controls"), ExtResource("37_retro_controls")])
+direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="CombatInput" type="Node" parent="."]
 script = ExtResource("9_combat_input")
 action_selection_path = NodePath("../Player/EquipmentAttackSelector")
+direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="WeaponCommandInput" type="Node" parent="."]
 script = ExtResource("13_weapon_command")
@@ -454,6 +463,15 @@ offset_right = 1260.0
 offset_bottom = 150.0
 theme_override_font_sizes/font_size = 17
 text = "VIEW 2 / 5 | Beat'em Up"
+
+[node name="RetroDirection" type="Label" parent="Hud"]
+visible = false
+offset_left = 24.0
+offset_top = 210.0
+offset_right = 1255.0
+offset_bottom = 242.0
+theme_override_font_sizes/font_size = 18
+text = "RETRO | Aim with arrow keys or right stick"
 
 [node name="ModeButtons" type="HBoxContainer" parent="Hud"]
 offset_left = 24.0
