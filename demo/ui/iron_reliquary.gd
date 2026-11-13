@@ -4,6 +4,8 @@ extends Control
 ## A single anchored layout is used by every view and viewport aspect ratio.
 
 signal help_visibility_changed(open: bool)
+signal view_requested(index: int)
+signal settings_requested
 
 const FRAME: StyleBoxFlat = preload("res://demo/ui/iron_frame.tres")
 const IVORY := Color("#E9DFC9")
@@ -187,7 +189,7 @@ func _build_health() -> void:
     fill.bg_color = Color("#A82F45")
     _health_bar.add_theme_stylebox_override("fill", fill)
     stack.add_child(_health_bar)
-    stack.add_child(_label("ACTION-5 · PLAYER", 11, MUTED))
+    stack.add_child(_label("H · HUD    F6 · HELP", 11, MUTED))
 
 
 func _build_equipment() -> void:
@@ -262,6 +264,23 @@ func _build_help() -> void:
     var layout := _stack(_help_panel)
     layout.mouse_filter = Control.MOUSE_FILTER_PASS
     layout.add_child(_label("IRON RELIQUARY  ·  CONTROLS  [F6 TO CLOSE]", 18, GOLD))
+    var selector := HBoxContainer.new()
+    selector.add_theme_constant_override("separation", 6)
+    layout.add_child(selector)
+    var titles := ["1 · SIDE", "2 · BEAT", "3 · ISO", "4 · FIRST", "5 · RETRO"]
+    for i in range(titles.size()):
+        var button := Button.new()
+        button.text = titles[i]
+        button.custom_minimum_size = Vector2(116, 36)
+        button.add_theme_color_override("font_color", GOLD)
+        button.add_theme_stylebox_override("normal", FRAME)
+        button.pressed.connect(_request_view.bind(i))
+        selector.add_child(button)
+    var camera := Button.new()
+    camera.text = "CAMERA SETTINGS [C]"
+    camera.add_theme_color_override("font_color", GOLD)
+    camera.pressed.connect(func() -> void: settings_requested.emit())
+    layout.add_child(camera)
     var scroll := ScrollContainer.new()
     scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
     scroll.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -271,3 +290,7 @@ func _build_help() -> void:
     _help_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     scroll.add_child(_help_text)
     _help_panel.hide()
+
+
+func _request_view(index: int) -> void:
+    view_requested.emit(index)

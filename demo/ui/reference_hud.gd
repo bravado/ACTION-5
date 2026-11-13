@@ -37,11 +37,15 @@ var _interaction_timer: Timer
 var _hud_visible: bool = true
 var _last_objective: String = ""
 signal help_visibility_changed(open: bool)
+signal view_requested(index: int)
+signal settings_requested
 
 
 func _ready() -> void:
     _register_hud_actions()
     display.help_visibility_changed.connect(_on_help_visibility_changed)
+    display.view_requested.connect(_on_view_requested)
+    display.settings_requested.connect(_on_settings_requested)
     _interaction_timer = Timer.new()
     _interaction_timer.wait_time = 0.14
     _interaction_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
@@ -307,6 +311,14 @@ func is_help_open() -> bool:
 
 func _on_help_visibility_changed(open: bool) -> void:
     help_visibility_changed.emit(open)
+
+
+func _on_view_requested(index: int) -> void:
+    view_requested.emit(index)
+
+
+func _on_settings_requested() -> void:
+    settings_requested.emit()
 
 
 func _refresh_interaction() -> void:

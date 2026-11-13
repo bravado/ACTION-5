@@ -126,8 +126,12 @@ try {
     errors.push('Right-click in gameplay did not trigger Kick');
   }
   const beforeHudClick = combatStarts.length;
-  await page.mouse.click(94, 169);
-  await page.waitForTimeout(400);
+  await page.keyboard.press('F6'); // on-demand Iron Reliquary controls
+  await page.waitForTimeout(220);
+  await page.mouse.click(350, 169); // SIDE in the new controls panel
+  await page.waitForTimeout(250);
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(250);
   if (combatStarts.length !== beforeHudClick) {
     errors.push('Clicking a HUD view button unexpectedly activated Punch');
   }
@@ -662,10 +666,13 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1');
 
-  // The on-screen view selector is a mandatory browser fallback.
-  // A D02 Button spans x=24..166 and y=146..190 in the 1280x720 demo.
-  await page.mouse.click(94, 169);
-  await page.waitForTimeout(500);
+  // The view selector remains available in the toggleable F6 help overlay.
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(220);
+  await page.mouse.click(350, 169);
+  await page.waitForTimeout(220);
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(350);
   const buttonPng = await page.screenshot({
     path: 'build/evidence/web-selector-view-1.png',
     fullPage: true,
@@ -680,8 +687,8 @@ try {
   await page.keyboard.press('2');
   await page.waitForTimeout(500);
   const collapsed = createHash('sha256').update(await page.screenshot()).digest('hex');
-  // SettingsToggle is at x=1031..1255, y=145..191 on the reference viewport.
-  await page.mouse.click(1130, 168);
+  // Camera settings use the existing C action; no persistent large top bar.
+  await page.keyboard.press('c');
   await page.waitForTimeout(350);
   const openPng = await page.screenshot({
     path: 'build/evidence/web-camera-settings.png',
@@ -699,9 +706,12 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   // Reproduce the user-reported focus bug with *real* canvas events.
-  // Clicking mode 3, pressing 2, and then jumping must not re-activate 3.
-  await page.mouse.click(391, 169);
+  // Selecting view 3 via F6, pressing 2, then jumping must not reactivate 3.
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(220);
+  await page.mouse.click(590, 169);
   await page.waitForTimeout(200);
+  await page.keyboard.press('F6');
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const cameraCountBeforeSpace = cameraChanges.length;
@@ -715,7 +725,7 @@ try {
     errors.push('Space activated previously clicked camera button');
   }
   // Likewise Camera Settings must not reopen when Space is pressed after C.
-  await page.mouse.click(1130, 168);
+  await page.keyboard.press('c');
   await page.waitForTimeout(200);
   await page.keyboard.press('c');
   await page.waitForTimeout(200);
