@@ -618,9 +618,19 @@ All demo weapon prefabs install a lightweight optional
 `PickupInteraction` child; the only E path for static, new or dropped
 weapons is `Action5Interactor` with distance and physical LoS.
 Never reintroduce a direct Equipment pickup fallback in main.gd:
-nearby items behind real walls would be collectable. Authored
-`WorldPickup` wrappers now hold spawn/reset state only and must not
-delete weapons relocated into other cached environments.
+nearby items behind real walls would be collectable. The scene-local `PickupSpawns` adapter registers authored pickup paths,
+captures availability per spawn, and resets only available world instances;
+never delete equipped items or weapons moved to other cached environments.
+The reusable Equipment and Interactor components must not know about spawn state.
+To add a pickup: instance an `Action5Weapon` PackedScene with the
+`action5_weapon_pickup` root group and prefab-local
+`PickupInteraction` child; for an arena spawn that must reset, append
+its relative NodePath to the existing `PickupSpawns.pickup_paths`.
+The root group is for room-visibility tracking; the child is what
+registers `action5_interactable` and makes E available. Do not add
+weapon-specific wrapper nodes or register encounter-sector pickups
+with the arena adapter: fresh dungeon entry recreates the whole
+encounter scene. See [pickup authoring](docs/adding-pickups.md).
 `Action5Interactor` skips inactive scene descendants, and
 `LocationPortal` also refuses direct interactions while paused.
 
@@ -765,7 +775,7 @@ Owner accepted the F1 trajectory. Do not falsely claim the separate
 
 ## D09-02 retro combat integration (implemented)
 
-D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena and existing D08 connected dungeon hold Sword pickups through WorldPickup persistence. F5 demo assigns `demo/input/top_down.tres` in `demo/main.tscn`, with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_top_down_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. Pinned CI/Full E2E validate the implementation; the complete owner exploratory playthrough remains a separate manual acceptance gate.
+D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena uses the generic PickupSpawns reset adapter for Sword and other authored pickups; the D08 connected dungeon retains its own sector lifecycle. F5 demo assigns `demo/input/top_down.tres` in `demo/main.tscn`, with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_top_down_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. Pinned CI/Full E2E validate the implementation; the complete owner exploratory playthrough remains a separate manual acceptance gate.
 
 - D09-02 top-down Gun correction: **do not start projectiles at the actor's center**. Both demo Guns reuse the existing `EquipmentVisualAdapter` origin (physical weapon muzzle except optional F4 barrel-tip). Only the actor-local `Action5ViewAimTargetProvider` selects F5 target along the player's X/Z center-forward line. It first resolves a reachable target/obstacle on that line, then `Action5Gun` still casts the authoritative ray from the real muzzle to that point. Do not give `Action5Gun`, `CombatController`, `ProjectileVisual` or the projectile presenter new view branches. `tests/d09_top_down_suite.gd` verifies centerline target selection, real muzzle-origin emitted tracer, physical hit, ammo and F3/F4 fallbacks.
 

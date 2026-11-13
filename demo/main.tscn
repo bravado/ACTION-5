@@ -24,7 +24,7 @@
 [ext_resource type="PackedScene" path="res://demo/ui/death_overlay.tscn" id="17_death"]
 [ext_resource type="Script" path="res://demo/world/world_session.gd" id="18_session"]
 [ext_resource type="Script" path="res://addons/action5/interactions/interactor.gd" id="19_interactor"]
-[ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="20_pickup"]
+[ext_resource type="Script" path="res://demo/world/pickup_spawns.gd" id="20_pickup"]
 [ext_resource type="PackedScene" path="res://demo/interactions/light_switch.tscn" id="21_switch"]
 [ext_resource type="Script" path="res://demo/world/sector_camera_bounds.gd" id="22_bounds"]
 [ext_resource type="Script" path="res://demo/interactions/roof_visibility.gd" id="23_roof_overlay"]
@@ -377,21 +377,9 @@ no_depth_test = true
 [node name="Interactor" type="Node" parent="."]
 script = ExtResource("19_interactor")
 
-[node name="BatPickupWorldState" type="Node3D" parent="."]
+[node name="PickupSpawns" type="Node" parent="."]
 script = ExtResource("20_pickup")
-weapon_path = NodePath("../BatPickup")
-
-[node name="ShovelPickupWorldState" type="Node3D" parent="."]
-script = ExtResource("20_pickup")
-weapon_path = NodePath("../ShovelPickup")
-
-[node name="GunPickupWorldState" type="Node3D" parent="."]
-script = ExtResource("20_pickup")
-weapon_path = NodePath("../GunPickup")
-
-[node name="SwordPickupWorldState" type="Node3D" parent="."]
-script = ExtResource("20_pickup")
-weapon_path = NodePath("../SwordPickup")
+pickup_paths = Array[NodePath]([NodePath("../BatPickup"), NodePath("../ShovelPickup"), NodePath("../GunPickup"), NodePath("../SwordPickup")])
 
 [node name="LightSwitch" parent="." instance=ExtResource("21_switch")]
 position = Vector3(-5.5, 0, 4.3)
