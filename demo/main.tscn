@@ -254,7 +254,8 @@ position = Vector3(1.4, 0.45, 1.0)
 position = Vector3(-1.4, 0.45, 1.0)
 
 [node name="GunPickup" parent="." instance=ExtResource("12_gun")]
-position = Vector3(3.0, 0.45, 3.0)
+; Keep F1 pickup within its fixed Z=0 lane, matching Bat/Shovel at Z=1.
+position = Vector3(3.0, 0.45, 1.0)
 
 [node name="SwordPickup" parent="." instance=ExtResource("34_sword")]
 position = Vector3(0, 0.45, -3.2)
