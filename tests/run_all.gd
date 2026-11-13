@@ -507,7 +507,7 @@ func _run_tests() -> void:
         _check(manager.camera_rig.get_isometric_close_factor() < 0.01
             and absf(manager.current_profile.orthographic_size - 17.0) < 0.01,
             "Reset restores a wide isometric view")
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(not settings.visible and actor_input.enabled,
             "Closing settings restores the independent UI input gate")
         player.call("set_move_intent", Vector2.RIGHT)
@@ -517,10 +517,10 @@ func _run_tests() -> void:
             "Input adapter alone clears movement on focus loss; UI gate stays enabled")
         # Closing the settings panel while unfocused must not bypass the
         # adapter's focus gate, even though the demo enables its UI gate.
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(settings.visible and not actor_input.enabled,
             "Opening settings disables input independently of window focus")
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(not settings.visible and actor_input.enabled
             and not actor_input.focus_active,
             "Closing settings while unfocused cannot restore gameplay input")
