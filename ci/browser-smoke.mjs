@@ -69,6 +69,24 @@ try {
   if (hashes.size < 5) {
     errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–5');
   }
+  // Verify the user's numeric shortcut order using actual browser keyboard
+  // events and runtime camera logs, not merely different screenshots.
+  for (const [key, index, mode] of [
+    ['1', 4, 'First-Person'],
+    ['4', 1, 'Side-Scroller'],
+    ['5', 5, 'Top-Down'],
+  ]) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(280);
+    const lastChange = cameraChanges.at(-1) || '';
+    if (!lastChange.includes('index=' + index) ||
+        !lastChange.includes('mode=' + mode)) {
+      errors.push('Key ' + key + ' must select ' + mode +
+        ' (internal profile ' + index + '): ' + lastChange);
+    }
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_SHORTCUTS_OK 1=first-person 4=side-scroller 5=top-down');
   if (!rigViews.some(line => line.includes('view=3 body_hidden=0 rig=1 tool=1')) ||
       !rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
         line.includes('viewmodel=1'))) {
@@ -126,8 +144,12 @@ try {
     errors.push('Right-click in gameplay did not trigger Kick');
   }
   const beforeHudClick = combatStarts.length;
-  await page.mouse.click(94, 169);
-  await page.waitForTimeout(400);
+  await page.keyboard.press('F6'); // on-demand HUD controls
+  await page.waitForTimeout(220);
+  await page.mouse.click(350, 169); // SIDE in the new controls panel
+  await page.waitForTimeout(250);
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(250);
   if (combatStarts.length !== beforeHudClick) {
     errors.push('Clicking a HUD view button unexpectedly activated Punch');
   }
@@ -216,7 +238,7 @@ try {
   // F2 click position to a different F4 click position. That generates a
   // synthetic-look delta and can pitch the camera into the empty sky.
   await page.mouse.move(640, 360);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'build/evidence/web-d06-f4-equipped.png', fullPage: true });
   const beforeF4Attack = combatStarts.length;
@@ -310,7 +332,7 @@ try {
   await checkShovelInput('k', 'kick', 'F2 Shovel K');
 
   await page.mouse.move(640, 360);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(450);
   const beforeShovelF4 = combatStarts.length;
   await page.mouse.down({ button: 'left' });
@@ -406,7 +428,7 @@ try {
   // F4 always shows the articulated arm, which punches. Kick adds a
   // lower-framed leg without the obsolete tool. Input
   // remains real keyboard events; no script bridge or synthetic pose.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(400);
   const f4NoAttack = await page.screenshot();
 
@@ -512,7 +534,7 @@ try {
 
   // Movement extension: compare standing/crouched first-person views
   // through real browser input, then validate the independent F3 animations.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(600);
   const standingEye = await page.screenshot({
     path: 'build/evidence/web-f4-eye-standing.png', fullPage: true,
@@ -524,7 +546,7 @@ try {
   const crouchIdle = await page.screenshot({
     path: 'build/evidence/web-crouch-idle.png', fullPage: true,
   });
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(650);
   const loweredEye = await page.screenshot({
     path: 'build/evidence/web-f4-eye-crouched.png', fullPage: true,
@@ -537,7 +559,7 @@ try {
   await page.waitForTimeout(300);
   // Capture the exact side silhouette too: isometric screenshots alone can
   // hide whether knees are in front of or behind the hips.
-  await page.keyboard.press('1');
+  await page.keyboard.press('4');
   await page.waitForTimeout(400);
   await page.screenshot({
     path: 'build/evidence/web-crouch-side-idle.png', fullPage: true,
@@ -553,7 +575,7 @@ try {
   const crouchWalk = await page.screenshot({
     path: 'build/evidence/web-crouch-walk.png', fullPage: true,
   });
-  await page.keyboard.press('1');
+  await page.keyboard.press('4');
   await page.waitForTimeout(400);
   await page.screenshot({
     path: 'build/evidence/web-crouch-side-walk.png', fullPage: true,
@@ -591,7 +613,7 @@ try {
 
   // The articulated resting F4 arm stays present during jumping; the
   // old fake forearm and training tool are never instantiated.
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(550);
   const f4Standing = await page.screenshot({
     path: 'build/evidence/web-f4-arm-standing.png', fullPage: true,
@@ -662,10 +684,13 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1');
 
-  // The on-screen view selector is a mandatory browser fallback.
-  // A D02 Button spans x=24..166 and y=146..190 in the 1280x720 demo.
-  await page.mouse.click(94, 169);
-  await page.waitForTimeout(500);
+  // The view selector remains available in the toggleable F6 help overlay.
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(220);
+  await page.mouse.click(350, 169);
+  await page.waitForTimeout(220);
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(350);
   const buttonPng = await page.screenshot({
     path: 'build/evidence/web-selector-view-1.png',
     fullPage: true,
@@ -680,8 +705,8 @@ try {
   await page.keyboard.press('2');
   await page.waitForTimeout(500);
   const collapsed = createHash('sha256').update(await page.screenshot()).digest('hex');
-  // SettingsToggle is at x=1031..1255, y=145..191 on the reference viewport.
-  await page.mouse.click(1130, 168);
+  // Camera settings use the existing C action; no persistent large top bar.
+  await page.keyboard.press('c');
   await page.waitForTimeout(350);
   const openPng = await page.screenshot({
     path: 'build/evidence/web-camera-settings.png',
@@ -699,9 +724,12 @@ try {
   }
   if (errors.length) throw Error(errors.join('\\n'));
   // Reproduce the user-reported focus bug with *real* canvas events.
-  // Clicking mode 3, pressing 2, and then jumping must not re-activate 3.
-  await page.mouse.click(391, 169);
+  // Selecting view 3 via F6, pressing 2, then jumping must not reactivate 3.
+  await page.keyboard.press('F6');
+  await page.waitForTimeout(220);
+  await page.mouse.click(590, 169);
   await page.waitForTimeout(200);
+  await page.keyboard.press('F6');
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const cameraCountBeforeSpace = cameraChanges.length;
@@ -715,7 +743,7 @@ try {
     errors.push('Space activated previously clicked camera button');
   }
   // Likewise Camera Settings must not reopen when Space is pressed after C.
-  await page.mouse.click(1130, 168);
+  await page.keyboard.press('c');
   await page.waitForTimeout(200);
   await page.keyboard.press('c');
   await page.waitForTimeout(200);
@@ -743,13 +771,13 @@ try {
   await page.keyboard.down('d');
   await page.waitForTimeout(420);
   await page.keyboard.up('d');
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(200);
   await page.keyboard.press('2');
   await page.waitForTimeout(150);
   await page.keyboard.down('w');
   await page.waitForTimeout(450);
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(350);
   await page.keyboard.down('Shift');
   let nearWallZ = Number.NaN;
@@ -759,7 +787,7 @@ try {
     // diagnostics; no test-only teleport or browser-to-Godot bridge.
     await page.keyboard.press('3');
     await page.waitForTimeout(170);
-    await page.keyboard.press('4');
+    await page.keyboard.press('1');
     await page.waitForTimeout(250);
     const report = [...rigViews].reverse().find(line =>
       line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
@@ -775,7 +803,7 @@ try {
   const thirdPersonNearWall = await page.screenshot({
     path: 'build/evidence/web-f3-near-wall.png', fullPage: true,
   });
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   const firstPersonNearWall = await page.screenshot({
     path: 'build/evidence/web-f4-near-wall.png', fullPage: true,
@@ -799,24 +827,24 @@ try {
   await page.reload({ waitUntil: 'load', timeout: 90_000 });
   await page.waitForTimeout(7000);
   await page.keyboard.press('2');
-  // Render-heavy WebGL2 machines do not simulate an exact travel distance
-  // per wall-clock millisecond. Progress toward the actual gun pickup using
-  // successive real WASD edges; do not assume one fixed sleep reaches it.
+  // The Gun is on the same starting row as the Bat (x=3, z=1).
+  // Move along +X in small real input steps. Previous diagonal D+S
+  // movement could overshoot the Gun's Z lane after picking up the Bat,
+  // making this test fail even though the E interaction was valid.
+  // Small steps tolerate variable WebGL2 frame rates without teleporting
+  // the actor, injecting a test-only bridge or weakening pickup assertions.
   const beforeGun = weaponEvents.length;
   for (let attempt = 0; attempt < 9; attempt++) {
     await page.keyboard.down('d');
-    await page.keyboard.down('s');
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(230);
     await page.keyboard.up('d');
-    await page.keyboard.up('s');
-    await page.waitForTimeout(180);
+    await page.waitForTimeout(140);
     await page.keyboard.press('e', { delay: 110 });
-    await page.waitForTimeout(220);
+    await page.waitForTimeout(240);
     if (weaponEvents.slice(beforeGun).some(line =>
         line.includes('ACTION5_WEAPON_PICKUP id=gun'))) break;
-    // Preserve the first Bat pickup in inventory while approaching the
-    // Gun. Dropping Bat here would move it in front of the actor and
-    // repeatedly make it the closest item again.
+    // An earlier E may legitimately pick up the Bat; keep it in inventory
+    // and continue toward the Gun with subsequent real movement presses.
   }
   if (weaponEvents.slice(beforeGun).some(line =>
       line.includes('ACTION5_WEAPON_PICKUP id=gun')) &&
@@ -833,7 +861,7 @@ try {
     errors.push('D06-02 browser E-key did not pick up the independent Gun: ' +
       weaponEvents.slice(beforeGun).join(' | '));
   }
-  await page.keyboard.press('4');
+  await page.keyboard.press('1');
   await page.waitForTimeout(500);
   await page.screenshot({
     path: 'build/evidence/web-d06-gun-f4-idle.png', fullPage: true,

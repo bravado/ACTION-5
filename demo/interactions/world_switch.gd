@@ -18,6 +18,10 @@ func can_interact(actor: Node3D) -> bool:
     return is_instance_valid(actor)
 
 
+func get_interaction_label(_actor: Node3D) -> String:
+    return "Turn light off" if activated else "Turn light on"
+
+
 func interact(actor: Node3D) -> bool:
     if not can_interact(actor):
         return false

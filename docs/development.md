@@ -66,7 +66,7 @@ make run RUN_ARGS="--headless --quit-after 20"
 
 ## D02: unified isometric / shoulder camera
 
-**Five modes, one world:** 1 side-scroller; 2 beat'em up; 3 isometric/over-the-shoulder (one camera resource); 4 first person; 5 retro overhead.
+**Five modes, one world:** 1 side-scroller; 2 beat'em up; 3 isometric/over-the-shoulder (one camera resource); 4 first person; 5 Top-Down.
 
 In mode **3**, press **C** to open the camera settings panel. Decrease orthographic zoom from the wide default of 17 toward 4 to transition continuously into the over-the-shoulder composition. Camera collision, left/right shoulder offset, pitch, follow distance and look-ahead are editable in the same mode. Settings are stored in `user://action5_camera_settings.cfg` by named profile IDs; the older six-slot file is migrated automatically.
 
@@ -335,7 +335,7 @@ detached scene travel with the same inventory/actor identity. The
 usual D07 NPC and D08 dropped-equipment/camera regressions still run.
 
 
-**F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
+**F2 side-wall reveal (D08):** `beat_em_up.tres` sets the optional
 `lateral_peek_degrees = 6`, with an exponential response of 8.
 Use **C → Side peek (deg) / Peek response** to edit these independently
 of gameplay state; profile-specific overrides persist and Reset restores
@@ -427,6 +427,6 @@ door/health invariants.
 
 ## D09-02 regression and acceptance checks
 
-`tests/d09_retro_suite.gd` runs through the existing `make check` headless suite. It verifies the real arena/dungeon Sword pickup, four-way F5 heading and **actual Hurtbox damage**, eight-way Gun aiming from a physical muzzle toward the actor's center-forward sightline, the emitted tracer endpoint, control-profile composition, the HUD heading, camera scrolling without recreating the actor and view switching. `tests/d08_world_suite.gd`/`tests/d08_connections_suite.gd` cover the visible light switch and non-overlapping E interaction with the remote portal. `tests/d06_gun_suite.gd` covers the Pistol and Heavy Pistol's F4 reload poses and their existing per-instance reload clocks.
+`tests/d09_top_down_suite.gd` runs through the existing `make check` headless suite. It verifies the real arena/dungeon Sword pickup, four-way F5 heading and **actual Hurtbox damage**, eight-way Gun aiming from a physical muzzle toward the actor's center-forward sightline, the emitted tracer endpoint, control-profile composition, the HUD heading, camera scrolling without recreating the actor and view switching. `tests/d08_world_suite.gd`/`tests/d08_connections_suite.gd` cover the visible light switch and non-overlapping E interaction with the remote portal. `tests/d06_gun_suite.gd` covers the Pistol and Heavy Pistol's F4 reload poses and their existing per-instance reload clocks.
 
 Run `make check` on the final branch and the opt-in native/WebGL2 `CI / Full E2E` tier for changes to the scene, input bindings, aim policies or viewmodel art. The Godot test runner is authoritative for behavior; exported native screenshots and real WebGL2 startup are smoke evidence, **not a substitute for the owner's full 20-minute exploratory playthrough**. The D10 tooling milestone adds optional resource/pose diagnostics, rather than new runtime dependencies in Actor, Combat, Equipment or Camera.

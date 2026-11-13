@@ -9,10 +9,10 @@ const INPUTS = [
 ]
 const PROFILES = [
     "res://addons/action5/views/side.tres",
-    "res://addons/action5/views/beatemup.tres",
+    "res://addons/action5/views/beat_em_up.tres",
     "res://addons/action5/views/isometric.tres",
     "res://addons/action5/views/first_person.tres",
-    "res://addons/action5/views/retro_topdown.tres",
+    "res://addons/action5/views/top_down.tres",
 ]
 
 
@@ -45,6 +45,17 @@ func _same_movement(a: Array[Vector2], b: Array[Vector2], tolerance: float = 0.0
 
 
 func run_tests(tree: SceneTree, verify: Callable) -> void:
+    # Resource paths are descriptive; camera profile indices and saved keys stay stable.
+    verify.call(ResourceLoader.exists("res://addons/action5/views/top_down.tres"), "Resource exists: addons/action5/views/top_down.tres")
+    verify.call(ResourceLoader.exists("res://addons/action5/views/beat_em_up.tres"), "Resource exists: addons/action5/views/beat_em_up.tres")
+    verify.call(ResourceLoader.exists("res://demo/input/top_down.tres"), "Resource exists: demo/input/top_down.tres")
+    verify.call(ResourceLoader.exists("res://demo/equipment/gun_top_down_facing.tres"), "Resource exists: demo/equipment/gun_top_down_facing.tres")
+    verify.call(ResourceLoader.exists("res://demo/equipment/sword_top_down_facing.tres"), "Resource exists: demo/equipment/sword_top_down_facing.tres")
+    verify.call(not ResourceLoader.exists("res://addons/action5/views/retro_topdown.tres"), "Obsolete resource path removed: addons/action5/views/retro_topdown.tres")
+    verify.call(not ResourceLoader.exists("res://addons/action5/views/beatemup.tres"), "Obsolete resource path removed: addons/action5/views/beatemup.tres")
+    verify.call(not ResourceLoader.exists("res://demo/input/retro_topdown.tres"), "Obsolete resource path removed: demo/input/retro_topdown.tres")
+    verify.call(not ResourceLoader.exists("res://demo/equipment/retro_gun_facing.tres"), "Obsolete resource path removed: demo/equipment/retro_gun_facing.tres")
+    verify.call(not ResourceLoader.exists("res://demo/equipment/retro_sword_facing.tres"), "Obsolete resource path removed: demo/equipment/retro_sword_facing.tres")
     var original_scene: Node = tree.current_scene
     var world := (load("res://demo/main.tscn") as PackedScene).instantiate() as Node3D
     # Keep world-space collision and camera checks away from other suites.
@@ -75,7 +86,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and dungeon.global_basis.z.distance_to(world.global_basis.z) < 0.001,
         "Dungeon starts exactly at arena east edge: no gap, no rotated axes")
     verify.call(is_instance_valid(bounds_adapter) and views.profiles.size() == 5
-        and views.profiles[1] != load("res://addons/action5/views/beatemup.tres"),
+        and views.profiles[1] != load("res://addons/action5/views/beat_em_up.tres"),
         "Connected-world camera bounds use private profile instances")
 
     for index in range(5):

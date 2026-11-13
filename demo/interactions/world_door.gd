@@ -48,6 +48,10 @@ func can_interact(actor: Node3D) -> bool:
     )
 
 
+func get_interaction_label(_actor: Node3D) -> String:
+    return "Close door" if open else "Open door"
+
+
 func interact(actor: Node3D) -> bool:
     if not can_interact(actor):
         return false

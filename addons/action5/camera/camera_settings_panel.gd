@@ -6,7 +6,10 @@ class_name Action5CameraSettingsPanel
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
-const PROFILE_IDS = ["side", "beatemup", "isometric", "first_person", "retro_topdown"]
+const PROFILE_IDS = ["side", "beat_em_up", "isometric", "first_person", "top_down"]
+# Previous on-disk names are read once; subsequent saves use PROFILE_IDS.
+const LEGACY_PROFILE_IDS = ["side", "beatemup", "isometric", "first_person", "retro_topdown"]
+const SETTINGS_SCHEMA = 3
 
 const FIELDS = [
     {"key": "orthographic_size", "label": "Zoom", "min": 4.0, "max": 28.0, "step": 0.25},
@@ -151,7 +154,7 @@ func _field_visible(key: String, profile: ViewProfileScript) -> bool:
         "orthographic_size":
             return profile.orthographic
         "fixed_height", "fixed_distance", "lateral_peek_degrees", "lateral_peek_response":
-            return profile.mode == ViewProfileScript.Mode.BEATEMUP
+            return profile.mode == ViewProfileScript.Mode.BEAT_EM_UP
         "chase_distance", "close_chase_distance", "pitch", "close_pitch_degrees", "shoulder_offset", "shoulder_lift", "aim_ahead":
             return profile.mode == ViewProfileScript.Mode.ISOMETRIC
         "field_of_view":
@@ -289,7 +292,8 @@ func _load_preferences() -> void:
     if config.load(preferences_path) != OK:
         return
 
-    var current_schema: bool = int(config.get_value("meta", "schema", 1)) >= 2
+    var schema: int = int(config.get_value("meta", "schema", 1))
+    var current_schema: bool = schema >= 2
     for i in range(_manager.profiles.size()):
         var profile: ViewProfileScript = _manager.profiles[i]
         var section: String = "profile_" + PROFILE_IDS[i]
@@ -300,6 +304,8 @@ func _load_preferences() -> void:
             if i >= 3:
                 old_slot += 1
             section = "view_%d" % old_slot
+        elif schema < SETTINGS_SCHEMA:
+            section = "profile_" + LEGACY_PROFILE_IDS[i]
 
         for field in FIELDS:
             var key: String = field["key"]
@@ -332,6 +338,7 @@ func _load_preferences() -> void:
                 if raw is float or raw is int:
                     var new_key: String = legacy_map[old_key]
                     _write_value(isometric, new_key, _clamped(new_key, float(raw)))
+    if schema < SETTINGS_SCHEMA:
         _save_preferences()
 
     _manager.camera_rig.refresh_settings()
@@ -341,7 +348,7 @@ func _save_preferences() -> void:
     if not save_user_settings:
         return
     var config := ConfigFile.new()
-    config.set_value("meta", "schema", 2)
+    config.set_value("meta", "schema", SETTINGS_SCHEMA)
     for i in range(_manager.profiles.size()):
         var section: String = "profile_" + PROFILE_IDS[i]
         var profile: ViewProfileScript = _manager.profiles[i]

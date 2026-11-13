@@ -29,10 +29,10 @@ func _ready() -> void:
     if profiles.is_empty():
         for path in [
             "res://addons/action5/views/side.tres",
-            "res://addons/action5/views/beatemup.tres",
+            "res://addons/action5/views/beat_em_up.tres",
             "res://addons/action5/views/isometric.tres",
             "res://addons/action5/views/first_person.tres",
-            "res://addons/action5/views/retro_topdown.tres",
+            "res://addons/action5/views/top_down.tres",
         ]:
             profiles.append(load(path) as ViewProfileScript)
     if profiles.size() != 5:

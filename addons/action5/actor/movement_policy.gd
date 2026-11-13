@@ -12,7 +12,7 @@ static func to_world(axes: Vector2, mode: int, camera_basis: Basis) -> Vector2:
     var sanitized: Vector2 = axes.limit_length(1.0)
     if mode == ViewProfileScript.Mode.SIDE:
         return Vector2(sanitized.x, 0.0)
-    if mode == ViewProfileScript.Mode.BEATEMUP:
+    if mode == ViewProfileScript.Mode.BEAT_EM_UP:
         return sanitized
 
     # Camera screen-right always supplies the lateral axis.
@@ -23,9 +23,9 @@ static func to_world(axes: Vector2, mode: int, camera_basis: Basis) -> Vector2:
         lateral = lateral.normalized()
 
     var forward: Vector2
-    if mode == ViewProfileScript.Mode.RETRO_TOPDOWN:
+    if mode == ViewProfileScript.Mode.TOP_DOWN:
         # At exact vertical pitch camera-forward projects to zero.
-        # Camera screen-up points toward world -Z in the retro profile.
+        # Camera screen-up points toward world -Z in the top-down profile.
         forward = Vector2(camera_basis.y.x, camera_basis.y.z)
     elif mode == ViewProfileScript.Mode.ISOMETRIC:
         # Screen-up is stable at the wide isometric view, but can shrink
@@ -59,13 +59,13 @@ static func choose_facing(
     move_world: Vector2,
     aim_world: Vector2,
     view_mode: int,
-    retro_sectors: int = 8
+    top_down_sectors: int = 8
 ) -> Vector2:
     var desired: Vector2 = aim_world if aim_world.length_squared() > EPSILON_SQ else move_world
     if desired.length_squared() <= EPSILON_SQ:
         return Vector2.ZERO
     if view_mode == ViewProfileScript.Mode.SIDE:
         return Vector2(signf(desired.x), 0.0) if absf(desired.x) > 0.01 else Vector2.ZERO
-    if view_mode == ViewProfileScript.Mode.RETRO_TOPDOWN:
-        return quantize_facing(desired, retro_sectors)
+    if view_mode == ViewProfileScript.Mode.TOP_DOWN:
+        return quantize_facing(desired, top_down_sectors)
     return desired.normalized()

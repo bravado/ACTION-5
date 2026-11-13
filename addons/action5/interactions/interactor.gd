@@ -18,9 +18,10 @@ var _last_frame: int = -1
 var _last_target_id: int = 0
 
 
-func try_interact(actor: Node3D) -> bool:
+## Read-only target query shared by HUD prompts and E interactions.
+func get_target(actor: Node3D) -> Node3D:
     if not _valid_actor(actor):
-        return false
+        return null
     var closest: Node3D
     var best: float = maximum_distance * maximum_distance
     for member in get_tree().get_nodes_in_group(candidate_group):
@@ -31,7 +32,12 @@ func try_interact(actor: Node3D) -> bool:
         if squared <= best:
             closest = item
             best = squared
-    return interact(actor, closest) if closest != null else false
+    return closest
+
+
+func try_interact(actor: Node3D) -> bool:
+    var target: Node3D = get_target(actor)
+    return interact(actor, target) if target != null else false
 
 
 ## The explicit target path is usable by an NPC/script without InputMap.

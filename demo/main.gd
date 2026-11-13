@@ -14,9 +14,8 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _combat: Node = $Player/CombatController
 @onready var _equipment: Node = $Player/Equipment
 
-@onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
-@onready var _settings_toggle: Button = $Hud/SettingsToggle
+@onready var _hud: Node = $Hud
 
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
@@ -30,13 +29,13 @@ func _ready() -> void:
     # references LocationManager or a specific PackedScene itself.
     _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
     _register_demo_actions()
-    _settings_toggle.pressed.connect(_toggle_camera_settings)
+    _hud.help_visibility_changed.connect(_on_hud_help_visibility_changed)
+    _hud.view_requested.connect(_on_mode_button_pressed)
+    _hud.settings_requested.connect(_toggle_camera_settings)
+    _camera_settings.add_theme_stylebox_override("panel", preload("res://demo/ui/panel_frame.tres"))
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
-    _input.set_enabled(not _camera_settings.visible)
-    for i in range(5):
-        var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
-        button.pressed.connect(_on_mode_button_pressed.bind(i))
+    _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())
     _on_view_changed(_views.current_profile, null)
 
 
@@ -54,6 +53,8 @@ func _on_mode_button_pressed(index: int) -> void:
 
 
 func _toggle_camera_settings() -> void:
+    if _hud.is_help_open():
+        _hud.set_help_open(false)
     _camera_settings.visible = not _camera_settings.visible
     if _camera_settings.visible:
         _camera_settings.call("refresh_controls")
@@ -65,8 +66,15 @@ func _on_camera_settings_visibility_changed() -> void:
     # This also handles the Close button inside the settings panel.
     _release_ui_focus()
     # Only the panel's UI gate is owned here; the adapter owns window focus.
-    _input.set_enabled(not _camera_settings.visible)
+    _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())
     print("ACTION5_CAMERA_SETTINGS_VISIBLE ", "open" if _camera_settings.visible else "closed")
+
+
+func _on_hud_help_visibility_changed(open: bool) -> void:
+    _input.set_enabled(not open and not _camera_settings.visible)
+    if open:
+        Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+    _release_ui_focus()
 
 
 func _release_ui_focus() -> void:
@@ -89,7 +97,7 @@ func _unhandled_input(event: InputEvent) -> void:
     # The demo's remappable actions accept keyboard, controller and mouse.
     if event is InputEventKey and event.echo:
         return
-    if _camera_settings.visible or not event.is_pressed():
+    if _camera_settings.visible or _hud.is_help_open() or not event.is_pressed():
         return
     var consumed: bool = false
     if event.is_action_pressed(&"demo_interact"):
@@ -178,9 +186,6 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
             _player.global_position.z,
             int(arm_in_view),
         ])
-    for i in range(5):
-        var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
-        button.disabled = i == _views.active_index
     if not current.is_orbit_mode():
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -189,9 +194,9 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
 func _register_demo_actions() -> void:
     var bindings: Dictionary = {
         &"demo_interact": KEY_E, &"demo_swap": KEY_Q, &"demo_drop": KEY_G,
-        &"retro_move_up": KEY_W, &"retro_move_down": KEY_S,
-        &"retro_aim_left": KEY_LEFT, &"retro_aim_right": KEY_RIGHT,
-        &"retro_aim_up": KEY_UP, &"retro_aim_down": KEY_DOWN
+        &"top_down_move_up": KEY_W, &"top_down_move_down": KEY_S,
+        &"top_down_aim_left": KEY_LEFT, &"top_down_aim_right": KEY_RIGHT,
+        &"top_down_aim_up": KEY_UP, &"top_down_aim_down": KEY_DOWN
     }
     for action in bindings:
         if not InputMap.has_action(action):

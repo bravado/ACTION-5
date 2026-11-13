@@ -50,13 +50,13 @@ func _capture() -> void:
             if not _save_image(output_dir.path_join("native-isometric-shoulder.png")):
                 quit(1)
                 return
-            (scene.get_node("Hud/SettingsToggle") as Button).pressed.emit()
+            scene.call("_toggle_camera_settings")
             await process_frame
             await RenderingServer.frame_post_draw
             if not _save_image(output_dir.path_join("native-isometric-settings.png")):
                 quit(1)
                 return
-            (scene.get_node("Hud/SettingsToggle") as Button).pressed.emit()
+            scene.call("_toggle_camera_settings")
             settings.call("reset_current_camera")
 
     # VT-12 visual evidence: the F4 eye camera must remain clear even

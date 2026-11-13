@@ -25,15 +25,19 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var player := stage.get_node("Player") as CharacterBody3D
     var views: Node = stage.get_node("ViewManager")
     var hud: Node = stage.get_node("Hud")
-    var status := stage.get_node("Hud/Status") as Label
-    var help := stage.get_node("Hud/Help") as Label
+    var display := stage.get_node("Hud/Display") as Control
+    var hp_text := display.get("_hp_text") as Label
+    var weapon_text := display.get("_weapon_title") as Label
+    var ammo_text := display.get("_ammo_text") as Label
+    var view_text := display.get("_view") as Label
+    var help := display.get("_help_text") as Label
     var equipment: Node = player.get_node("Equipment")
     var health: Node = player.get_node("Health")
     var session: Node = stage.get_node("WorldSession")
     var exit_node := stage.get_node("EncounterSector/ExitTerminal") as Node3D
     var interactor: Node = stage.get_node("Interactor")
     var overlay: Node = stage.get_node("VictoryOverlay")
-    verify.call(status.text.contains("HP") and status.text.contains("Unarmed"),
+    verify.call(hp_text.text.contains("100 / 100") and weapon_text.text == "Unarmed",
         "D09 HUD reads real unarmed Health and Equipment state")
     verify.call(help.text.contains("Find the east gate") and help.text.contains("Actions:")
         and help.text.contains("Views:"), "D09 objective, views and help are visible")
@@ -148,7 +152,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for i in range(5):
         views.switch_view(i)
         hud.call("refresh")
-        verify.call(status.text.contains("VIEW %d / 5" % (i + 1))
+        verify.call(view_text.text.begins_with("%d" % ([4, 2, 3, 1, 5][i]))
             and player.get_instance_id() == actor_id,
             "D09 view %d HUD never replaces the actor" % (i + 1))
     var old_jump: Array = InputMap.action_get_events(&"actor_jump")
@@ -169,17 +173,17 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     gun.global_position = player.global_position + Vector3(1, 0, 0)
     verify.call(equipment.call("pickup", gun), "D09 alternate gun uses normal pickup")
     await _frames(tree, 2)
-    verify.call(status.text.contains("Heavy Pistol") and status.text.contains("Ammo 3/12")
+    verify.call(weapon_text.text.contains("Heavy Pistol") and ammo_text.text.contains("03 / 12")
         and help.text.contains("Weapon Alt Reload") and help.text.contains("T"),
         "D09 alternate gun ammo and configured command appear without HUD branches")
     verify.call(int((gun.call("get_ammo_status") as Dictionary).get("magazine")) == 3,
         "D09 HUD reading ammo does not mutate it")
     health.set("current_health", 71.0)
     health.health_changed.emit(71.0, 100.0)
-    verify.call(status.text.contains("HP 71"), "D09 Health signal refreshes HUD")
+    verify.call(hp_text.text.contains("71 / 100"), "D09 Health signal refreshes HUD")
     verify.call(equipment.call("drop_current"), "D09 normal controller drops equipment")
     await _frames(tree, 2)
-    verify.call(status.text.contains("Unarmed"), "D09 ammo fields vanish when unarmed")
+    verify.call(weapon_text.text == "Unarmed", "D09 ammo fields vanish when unarmed")
 
     # F1 locks the player to Z=0. The authored arena Gun must be in the
     # same physical pickup row as the Bat/Shovel, not stranded at Z=3.

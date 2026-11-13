@@ -168,16 +168,16 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(fps_dir.is_finite() and fps_dir.length() > 0.99,
         "F4 fallback resolves a finite camera-based attack direction")
     var four: Vector2 = AimScript.resolve_direction(
-        Vector2(0.8, -0.4), Vector2.ZERO, ViewProfileScript.Mode.RETRO_TOPDOWN, null, 4
+        Vector2(0.8, -0.4), Vector2.ZERO, ViewProfileScript.Mode.TOP_DOWN, null, 4
     )
     var eight: Vector2 = AimScript.resolve_direction(
-        Vector2(0.8, -0.4), Vector2.ZERO, ViewProfileScript.Mode.RETRO_TOPDOWN, null, 8
+        Vector2(0.8, -0.4), Vector2.ZERO, ViewProfileScript.Mode.TOP_DOWN, null, 8
     )
     verify.call(four == Vector2.RIGHT and eight != four
         and eight.length() > 0.99,
         "F5 configurable cardinal/diagonal combat facing leaves world movement independent")
     verify.call(not AimScript.resolve_direction(
-        Vector2(INF, 0), Vector2.ZERO, ViewProfileScript.Mode.BEATEMUP
+        Vector2(INF, 0), Vector2.ZERO, ViewProfileScript.Mode.BEAT_EM_UP
     ).is_zero_approx(), "Bad aim input falls back to a finite direction")
 
     actor.set_alive(true)
@@ -197,7 +197,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     substitute_source.name = "MockActionInputContext"
     level.add_child(substitute_source)
     substitute_source.set("snapshot", ActionContextScript.new(
-        true, Vector2.RIGHT, Vector2.UP, ViewProfileScript.Mode.BEATEMUP,
+        true, Vector2.RIGHT, Vector2.UP, ViewProfileScript.Mode.BEAT_EM_UP,
         views.get_active_camera()
     ))
     input.context_source = substitute_source
@@ -214,7 +214,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     # A provider that denies input, or a missing provider, must fail closed
     # and never replay a held attack when the real source comes back.
     substitute_source.set("snapshot", ActionContextScript.new(
-        false, Vector2.RIGHT, Vector2.UP, ViewProfileScript.Mode.BEATEMUP,
+        false, Vector2.RIGHT, Vector2.UP, ViewProfileScript.Mode.BEAT_EM_UP,
         views.get_active_camera()
     ))
     Input.action_press(&"actor_kick")

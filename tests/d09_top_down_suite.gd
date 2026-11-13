@@ -14,7 +14,7 @@ func _ticks(tree: SceneTree, amount: int) -> void:
 
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var scene := load("res://demo/main.tscn") as PackedScene
-    verify.call(scene != null, "D09-02 shared retro world loads")
+    verify.call(scene != null, "D09-02 shared Top-Down world loads")
     if scene == null:
         return
     var level := scene.instantiate() as Node3D
@@ -38,8 +38,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     views.switch_view(4)
     var control_profile: Resource = actor_input.call("get_active_controls")
     verify.call(control_profile != null
-        and str(control_profile.get("move_up_action")) == "retro_move_up"
-        and str(control_profile.get("extra_aim_up_action")) == "retro_aim_up",
+        and str(control_profile.get("move_up_action")) == "top_down_move_up"
+        and str(control_profile.get("extra_aim_up_action")) == "top_down_aim_up",
         "D09-02 F5 installs a demo-local WASD move + arrows aim profile")
     var arrow_up := InputEventKey.new()
     arrow_up.keycode = KEY_UP
@@ -47,25 +47,25 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     arrow_right.keycode = KEY_RIGHT
     var w_key := InputEventKey.new()
     w_key.keycode = KEY_W
-    verify.call(InputMap.event_is_action(arrow_up, &"retro_aim_up")
-        and InputMap.event_is_action(arrow_right, &"retro_aim_right")
-        and InputMap.event_is_action(w_key, &"retro_move_up"),
-        "D09-02 actual arrow/W keys are bound to the independent retro InputMap roles")
-    Input.action_press(&"retro_aim_up")
-    Input.action_press(&"retro_aim_right")
+    verify.call(InputMap.event_is_action(arrow_up, &"top_down_aim_up")
+        and InputMap.event_is_action(arrow_right, &"top_down_aim_right")
+        and InputMap.event_is_action(w_key, &"top_down_move_up"),
+        "D09-02 actual arrow/W keys are bound to the independent Top-Down InputMap roles")
+    Input.action_press(&"top_down_aim_up")
+    Input.action_press(&"top_down_aim_right")
     var keyboard_aim: Vector2 = actor_input.call("get_aim_axes")
     var keyboard_movement: Vector2 = actor_input.call("get_movement_axes")
     verify.call(keyboard_aim.distance_to(Vector2(1, -1).normalized()) < 0.01
         and keyboard_movement.length_squared() < 0.001,
         "D09-02 Up+Right aim actions resolve diagonally without moving")
-    Input.action_release(&"retro_aim_up")
-    Input.action_release(&"retro_aim_right")
-    Input.action_press(&"retro_move_up")
+    Input.action_release(&"top_down_aim_up")
+    Input.action_release(&"top_down_aim_right")
+    Input.action_press(&"top_down_move_up")
     keyboard_aim = actor_input.call("get_aim_axes")
     keyboard_movement = actor_input.call("get_movement_axes")
     verify.call(keyboard_aim.length_squared() < 0.001 and keyboard_movement.y < -0.99,
         "D09-02 WASD move actions do not introduce an aim direction")
-    Input.action_release(&"retro_move_up")
+    Input.action_release(&"top_down_move_up")
     verify.call(views.camera_rig.is_vertical_overhead(),
         "D09-02 top-down remains precisely vertical")
     var camera_id_before: int = views.get_active_camera().get_instance_id()
@@ -81,23 +81,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 vertical camera scrolls into connected dungeon without changing heading or identity")
     verify.call(equipment.call("pickup", sword),
         "D09-02 Sword uses existing world pickup/equipment protocol")
-    verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 4
+    verify.call(policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN) == 4
         and policy.call("get_sectors", ProfileScript.Mode.ISOMETRIC) == 0,
         "D09-02 Sword policy restricts only F5 to four directions")
     var slash: Resource = sword.get("definition").attacks[0]
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
-    var retro_hint := level.get_node("Hud/RetroDirection") as Label
+    var display := level.get_node("Hud/Display") as Control
+    var view_label := display.get("_view") as Label
+    var weapon_label := display.get("_weapon_title") as Label
     verify.call(level.get_node("Hud").is_physics_processing(),
         "D09-02 overhead compass updates only on fixed physics ticks")
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
-        and retro_hint.text.contains("4-WAY"),
+    verify.call(weapon_label.text.contains("Sword") and view_label.text.contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
     var diagonal := Vector2(1, -0.5).normalized()
     var f5_sword: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
-        ProfileScript.Mode.RETRO_TOPDOWN, null,
-        policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN))
+        ProfileScript.Mode.TOP_DOWN, null,
+        policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN))
     var f3_sword: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
         ProfileScript.Mode.ISOMETRIC, null,
         policy.call("get_sectors", ProfileScript.Mode.ISOMETRIC))
@@ -127,23 +128,22 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     gun.global_position = player.global_position + Vector3(0.3, 0.35, 0.2)
     await _ticks(tree, 3)
     verify.call(equipment.call("pickup", gun), "D09-02 existing Gun equips after Sword")
-    verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 8,
+    verify.call(policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN) == 8,
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
-        and retro_hint.text.contains("8-WAY"),
+    verify.call(weapon_label.text.contains("Pistol") and view_label.text.contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
     var f5_gun: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
-        ProfileScript.Mode.RETRO_TOPDOWN, null,
-        policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN))
+        ProfileScript.Mode.TOP_DOWN, null,
+        policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN))
     verify.call(f5_gun.distance_to(Vector2(1, -1).normalized()) < 0.001,
         "D09-02 diagonal Gun aim quantizes to eight sectors")
     var source := ContextSourceScript.new()
     level.add_child(source)
     aim.context_source = source
     source.snapshot = ContextScript.new(true, diagonal, Vector2.LEFT,
-        ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
+        ProfileScript.Mode.TOP_DOWN, views.get_active_camera())
     var muzzle := gun.get_node("Muzzle") as Node3D
     var excludes: Array[RID] = []
     # With target collision excluded, the aim point must lie on the
@@ -196,7 +196,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # Hitscan is still from the Gun muzzle and must select the target from
     # the actor-centered F5 sightline rather than the offset muzzle lane.
     var sight_target := StaticBody3D.new()
-    sight_target.name = "RetroCenterlineTarget"
+    sight_target.name = "TopDownCenterlineTarget"
     sight_target.collision_layer = 4
     sight_target.collision_mask = 0
     var sight_shape := CollisionShape3D.new()
@@ -213,7 +213,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     gun.set("ray_mask", 4)
     await _ticks(tree, 3)
     source.snapshot = ContextScript.new(true, Vector2.RIGHT, Vector2.LEFT,
-        ProfileScript.Mode.RETRO_TOPDOWN, views.get_active_camera())
+        ProfileScript.Mode.TOP_DOWN, views.get_active_camera())
     var chosen_center_target: Vector3 = aim.call(
         "get_world_target", muzzle.global_position, 40.0, excludes
     )
@@ -256,7 +256,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     sight_target.queue_free()
     await _ticks(tree, 2)
     var extra := PolicyScript.new()
-    extra.view_mode = ProfileScript.Mode.RETRO_TOPDOWN
+    extra.view_mode = ProfileScript.Mode.TOP_DOWN
     extra.sector_count = 16
     verify.call(extra.valid(), "D09-02 independently authored 16-way policy validates")
     extra.sector_count = 33
@@ -273,10 +273,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var original_policies: Array = gun_definition.view_facing_policies.duplicate()
     var alternate_policies: Array[Resource] = [extra]
     gun_definition.view_facing_policies = alternate_policies
-    verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 16,
+    verify.call(policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN) == 16,
         "D09-02 third sector count installs through resource config only")
     gun_definition.view_facing_policies = original_policies
-    verify.call(policy.call("get_sectors", ProfileScript.Mode.RETRO_TOPDOWN) == 8,
+    verify.call(policy.call("get_sectors", ProfileScript.Mode.TOP_DOWN) == 8,
         "D09-02 restoring policy does not leave cached direction")
     var actor_id: int = player.get_instance_id()
     var camera_id: int = views.get_active_camera().get_instance_id()
@@ -284,6 +284,6 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         views.switch_view(mode)
     verify.call(player.get_instance_id() == actor_id
         and views.get_active_camera().get_instance_id() == camera_id,
-        "D09-02 retro transitions retain one world actor and camera")
+        "D09-02 Top-Down transitions retain one world actor and camera")
     level.queue_free()
     await tree.process_frame

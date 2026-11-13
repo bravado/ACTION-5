@@ -87,17 +87,17 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     # The adapter uses Input.get_vector() for Godot's built-in radial deadzone.
     # The pure projection layer still rejects invalid and oversized vectors.
     verify.call(PolicyScript.to_world(Vector2(INF, 0.0),
-        ViewProfileScript.Mode.BEATEMUP, Basis.IDENTITY).is_zero_approx(),
+        ViewProfileScript.Mode.BEAT_EM_UP, Basis.IDENTITY).is_zero_approx(),
         "Non-finite input is rejected by world-space movement projection")
     verify.call(PolicyScript.to_world(Vector2(3.0, 4.0),
-        ViewProfileScript.Mode.BEATEMUP, Basis.IDENTITY).length() <= 1.001,
+        ViewProfileScript.Mode.BEAT_EM_UP, Basis.IDENTITY).length() <= 1.001,
         "World-space movement projection caps input magnitude")
 
     var basis: Basis = Basis.IDENTITY
     verify.call(PolicyScript.to_world(Vector2(0.6, 0.8), ViewProfileScript.Mode.SIDE, basis)
         .is_equal_approx(Vector2(0.6, 0.0)),
         "Side view ignores stage depth and preserves horizontal magnitude")
-    verify.call(PolicyScript.to_world(Vector2(0.6, 0.8), ViewProfileScript.Mode.BEATEMUP, basis)
+    verify.call(PolicyScript.to_world(Vector2(0.6, 0.8), ViewProfileScript.Mode.BEAT_EM_UP, basis)
         .is_equal_approx(Vector2(0.6, 0.8)),
         "Brawler world-X/Z movement preserves normalized input")
     verify.call(PolicyScript.to_world(Vector2(1.0, 0.0),
@@ -109,10 +109,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     manager.switch_view(4)
     var overhead: Basis = manager.get_active_camera().global_basis
-    var up: Vector2 = PolicyScript.to_world(Vector2.UP, ViewProfileScript.Mode.RETRO_TOPDOWN, overhead)
-    var down: Vector2 = PolicyScript.to_world(Vector2.DOWN, ViewProfileScript.Mode.RETRO_TOPDOWN, overhead)
-    var left: Vector2 = PolicyScript.to_world(Vector2.LEFT, ViewProfileScript.Mode.RETRO_TOPDOWN, overhead)
-    var right: Vector2 = PolicyScript.to_world(Vector2.RIGHT, ViewProfileScript.Mode.RETRO_TOPDOWN, overhead)
+    var up: Vector2 = PolicyScript.to_world(Vector2.UP, ViewProfileScript.Mode.TOP_DOWN, overhead)
+    var down: Vector2 = PolicyScript.to_world(Vector2.DOWN, ViewProfileScript.Mode.TOP_DOWN, overhead)
+    var left: Vector2 = PolicyScript.to_world(Vector2.LEFT, ViewProfileScript.Mode.TOP_DOWN, overhead)
+    var right: Vector2 = PolicyScript.to_world(Vector2.RIGHT, ViewProfileScript.Mode.TOP_DOWN, overhead)
     verify.call(up.is_finite() and up.y < -0.99 and absf(up.x) < 0.01,
         "Exact-vertical F5 screen-up maps to world -Z")
     verify.call(down.is_finite() and down.y > 0.99,
@@ -131,12 +131,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(PolicyScript.quantize_facing(Vector2.ZERO, 4) == Vector2.ZERO,
         "Neutral input never forces a new facing direction")
 
-    adapter.retro_facing = 0
+    adapter.top_down_facing = 0
     var four: MoveIntentScript = adapter.compose_intent(Vector2(0.6, 0.8))
     verify.call(four.world_move.distance_to(Vector2(0.6, 0.8)) < 0.01
         and four.face_world.distance_to(Vector2.DOWN) < 0.0001,
         "F5 four-way facing quantization never changes actual movement")
-    adapter.retro_facing = 1
+    adapter.top_down_facing = 1
     var eight: MoveIntentScript = adapter.compose_intent(Vector2(0.6, 0.8))
     verify.call(eight.face_world.distance_to(Vector2(1, 1).normalized()) < 0.01
         and eight.world_move.is_equal_approx(four.world_move),

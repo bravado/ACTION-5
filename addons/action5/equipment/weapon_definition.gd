@@ -5,6 +5,8 @@ class_name Action5WeaponDefinition
 
 @export var weapon_id: StringName = &""
 @export var display_name: String = ""
+## Optional HUD metadata, independent of weapon and combat functionality.
+@export var hud_icon: Texture2D
 @export var socket_id: StringName = &"right_hand"
 @export var grip_position: Vector3 = Vector3.ZERO
 @export var grip_rotation_degrees: Vector3 = Vector3.ZERO

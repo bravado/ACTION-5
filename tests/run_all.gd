@@ -21,7 +21,8 @@ const D08CameraSectorSuiteScript = preload("res://tests/d08_camera_sector_suite.
 const D08ConnectionsSuiteScript = preload("res://tests/d08_connections_suite.gd")
 const D09ReferenceSuiteScript = preload("res://tests/d09_reference_suite.gd")
 const D09SideAimSuiteScript = preload("res://tests/d09_side_aim_suite.gd")
-const D09RetroSuiteScript = preload("res://tests/d09_retro_suite.gd")
+const D09TopDownSuiteScript = preload("res://tests/d09_top_down_suite.gd")
+const D09HudSuiteScript = preload("res://tests/d09_hud_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 ## Self-contained headless test runner. Exit 0 only when all assertions pass.
@@ -90,8 +91,8 @@ func _run_tests() -> void:
         "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
-    _check(level.get_node_or_null("Hud/Help") is Label,
-        "D01 help text is visible in the scene")
+    _check(level.get_node_or_null("Hud/Display/HelpPanel/Content/Scroll/HelpText") is Label,
+        "D01 on-demand help is authored in the scene")
 
     if player != null:
         _check(player.get_node_or_null("CollisionShape3D") is CollisionShape3D,
@@ -115,7 +116,7 @@ func _run_tests() -> void:
         _check(manager.profiles.size() == 5, "Exactly five camera profiles")
         var expected_names := [
             "Side-Scroller", "Beat 'em Up", "Isometric / Third-Person",
-            "First-Person", "Retro Top-Down"
+            "First-Person", "Top-Down"
         ]
         for index in range(5):
             _check(manager.profiles[index].display_name == expected_names[index],
@@ -125,7 +126,7 @@ func _run_tests() -> void:
             "One persistent Camera3D across all five views")
         _check(manager.profiles[2].mode == ViewProfileScript.Mode.ISOMETRIC
             and manager.profiles[3].mode == ViewProfileScript.Mode.FIRST_PERSON
-            and manager.profiles[4].mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+            and manager.profiles[4].mode == ViewProfileScript.Mode.TOP_DOWN,
             "Mode 3 is shared isometric/shoulder, 4 is FPS, 5 retro top-down")
         var player_id: int = player.get_instance_id()
         var camera_id: int = manager.get_active_camera().get_instance_id()
@@ -146,7 +147,7 @@ func _run_tests() -> void:
             "Switches do not teleport the player")
 
         manager.switch_view(4)
-        _check(manager.current_profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.TOP_DOWN,
             "F5 is dedicated NES-style overhead profile")
         _check(manager.camera_rig.is_vertical_overhead(),
             "F5 camera is precisely vertical")
@@ -307,14 +308,14 @@ func _run_tests() -> void:
         _check(not InputMap.has_action(&"view_6"),
             "No unused sixth camera action registered")
 
-        var side_button := level.get_node("Hud/ModeButtons/Mode1") as Button
+        var selector := level.get_node("Hud/Display/HelpPanel/Content/ViewSelector") as HBoxContainer
+        var side_button := selector.get_child(3) as Button
         side_button.pressed.emit()
-        _check(manager.active_index == 0, "Camera selector button chooses F1")
-        _check((level.get_node("Hud/Status") as Label).text.contains("VIEW 1 / 5"),
-            "HUD displays five-mode index and active camera")
-        _check(level.get_node_or_null("Hud/ModeButtons/Mode5") is Button
-            and level.get_node_or_null("Hud/ModeButtons/Mode6") == null,
-            "HUD exposes exactly five view-selection buttons")
+        _check(manager.active_index == 0, "Real F6 selector chooses side-scroller")
+        _check((level.get_node("Hud/Display") as Control).get("_view").text.begins_with("4"),
+            "HUD displays remapped shortcut and active camera")
+        _check(selector.get_child_count() == 5,
+            "HUD has exactly five F6 view buttons")
 
         if input_adapter != null:
             var key_one := InputEventKey.new()
@@ -323,13 +324,28 @@ func _run_tests() -> void:
             var key_five := InputEventKey.new()
             key_five.keycode = KEY_5
             key_five.pressed = true
+            var key_four := InputEventKey.new()
+            key_four.keycode = KEY_4
+            key_four.pressed = true
             _check(InputMap.event_is_action(key_one, &"view_1")
+                and InputMap.event_is_action(key_four, &"view_4")
                 and InputMap.event_is_action(key_five, &"view_5"),
-                "Number keys 1 and 5 are primary view bindings")
+                "Number keys 1, 4 and 5 remain primary view bindings")
+            _check(input_adapter.profile_index_for_shortcut(0) == 3
+                and input_adapter.profile_index_for_shortcut(3) == 0
+                and input_adapter.shortcut_for_profile_index(3) == 0
+                and input_adapter.shortcut_for_profile_index(0) == 3,
+                "Input mapping swaps shortcuts 1/4 without reordering camera profiles")
             input_adapter._unhandled_input(key_five)
             _check(manager.active_index == 4, "Key 5 selects retro top-down")
             input_adapter._unhandled_input(key_one)
-            _check(manager.active_index == 0, "Key 1 selects side-scroller")
+            _check(manager.active_index == 3, "Key 1 selects first-person")
+            _check(input_adapter.cycle_shortcut_view(1) and manager.active_index == 1,
+                "Camera shortcut next from key 1 selects key 2 beat-em-up")
+            _check(input_adapter.cycle_shortcut_view(-1) and manager.active_index == 3,
+                "Camera shortcut previous from key 2 returns to key 1 first-person")
+            input_adapter._unhandled_input(key_four)
+            _check(manager.active_index == 0, "Key 4 selects side-scroller")
             _check(manager.cycle_view(-1) and manager.active_index == 4,
                 "Camera cycle wraps backward F1 to F5")
             _check(manager.cycle_view(1) and manager.active_index == 0,
@@ -354,9 +370,8 @@ func _run_tests() -> void:
             "F2 brawler uses close arcade-scale framing")
 
         var settings := level.get_node("Hud/CameraSettings")
-        var toggle := level.get_node("Hud/SettingsToggle") as Button
         player.call("set_move_intent", Vector2.RIGHT)
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(settings.visible, "Camera settings panel can be opened")
         _check(not actor_input.enabled
             and player_locomotion.desired.world_move.is_zero_approx(),
@@ -386,7 +401,7 @@ func _run_tests() -> void:
         var peek_config := ConfigFile.new()
         _check(peek_config.load(settings.preferences_path) == OK
             and absf(float(peek_config.get_value(
-                "profile_beatemup", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
+                "profile_beat_em_up", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
             "F2 lateral peek override is persisted under its stable profile ID")
         settings.call("reset_current_camera")
         _check(absf(manager.current_profile.lateral_peek_degrees - 6.0) < 0.01,
@@ -394,7 +409,7 @@ func _run_tests() -> void:
         var reset_peek_config := ConfigFile.new()
         _check(reset_peek_config.load(settings.preferences_path) == OK
             and not reset_peek_config.has_section_key(
-                "profile_beatemup", "lateral_peek_degrees"),
+                "profile_beat_em_up", "lateral_peek_degrees"),
             "Reset removes F2 peek overrides so future defaults remain editable")
 
         # First-person's boolean Y-axis setting is a per-profile checkbox,
@@ -483,16 +498,16 @@ func _run_tests() -> void:
         var config := ConfigFile.new()
         _check(config.load(settings.preferences_path) == OK,
             "Per-mode camera overrides are saved")
-        _check(int(config.get_value("meta", "schema", 0)) == 2
+        _check(int(config.get_value("meta", "schema", 0)) == 3
             and absf(float(config.get_value("profile_isometric", "orthographic_size", 0.0)) - 6.25) < 0.01,
             "Saved zoom belongs to the stable isometric profile ID")
-        _check(not config.has_section_key("profile_retro_topdown", "fixed_distance"),
+        _check(not config.has_section_key("profile_top_down", "fixed_distance"),
             "Mode 5 overhead cannot inherit F2 camera depth")
         settings.call("reset_current_camera")
         _check(manager.camera_rig.get_isometric_close_factor() < 0.01
             and absf(manager.current_profile.orthographic_size - 17.0) < 0.01,
             "Reset restores a wide isometric view")
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(not settings.visible and actor_input.enabled,
             "Closing settings restores the independent UI input gate")
         player.call("set_move_intent", Vector2.RIGHT)
@@ -502,10 +517,10 @@ func _run_tests() -> void:
             "Input adapter alone clears movement on focus loss; UI gate stays enabled")
         # Closing the settings panel while unfocused must not bypass the
         # adapter's focus gate, even though the demo enables its UI gate.
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(settings.visible and not actor_input.enabled,
             "Opening settings disables input independently of window focus")
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(not settings.visible and actor_input.enabled
             and not actor_input.focus_active,
             "Closing settings while unfocused cannot restore gameplay input")
@@ -550,9 +565,36 @@ func _run_tests() -> void:
             "Old retro view 6 preferences migrated to new view 5")
         var migrated := ConfigFile.new()
         _check(migrated.load(settings.preferences_path) == OK
-            and int(migrated.get_value("meta", "schema", 0)) == 2
+            and int(migrated.get_value("meta", "schema", 0)) == 3
             and migrated.has_section_key("profile_isometric", "shoulder_offset"),
             "Migrated settings are saved in stable five-mode schema")
+        # Schema 2 used legacy profile section names. Migrate those values
+        # without changing their camera or resetting user preferences.
+        settings.preferences_path = "user://action5_named_profile_migration_test.cfg"
+        var named_old := ConfigFile.new()
+        named_old.set_value("meta", "schema", 2)
+        named_old.set_value("profile_beatemup", "lateral_peek_degrees", 3.5)
+        named_old.set_value("profile_retro_topdown", "orthographic_size", 12.25)
+        _check(named_old.save(settings.preferences_path) == OK,
+            "Legacy schema-2 profile-name fixture saved")
+        settings.call("_load_preferences")
+        _check(absf(manager.profiles[1].lateral_peek_degrees - 3.5) < 0.01
+            and absf(manager.profiles[4].orthographic_size - 12.25) < 0.01,
+            "Old Beat 'em Up and Top-Down overrides survive the identifier migration")
+        var named_new := ConfigFile.new()
+        _check(named_new.load(settings.preferences_path) == OK
+            and int(named_new.get_value("meta", "schema", 0)) == 3
+            and named_new.has_section_key("profile_beat_em_up", "lateral_peek_degrees")
+            and named_new.has_section_key("profile_top_down", "orthographic_size")
+            and not named_new.has_section("profile_beatemup")
+            and not named_new.has_section("profile_retro_topdown"),
+            "Schema-2 sections migrate atomically to descriptive schema-3 names")
+        manager.profiles[1].lateral_peek_degrees = 6.0
+        manager.profiles[4].orthographic_size = 15.5
+        settings.call("_load_preferences")
+        _check(absf(manager.profiles[1].lateral_peek_degrees - 3.5) < 0.01
+            and absf(manager.profiles[4].orthographic_size - 12.25) < 0.01,
+            "Schema-3 saved overrides reload without legacy sections")
         settings.save_user_settings = false
         for index in range(5):
             manager.switch_view(index)
@@ -591,15 +633,15 @@ func _run_tests() -> void:
 
     # Regression: clicking a camera/menu button must never steal Space from
     # actor_jump. This used to re-select the previously focused camera.
-    var ui_buttons := level.get_node("Hud/ModeButtons") as HBoxContainer
-    var settings_button := level.get_node("Hud/SettingsToggle") as Button
+    var hud := level.get_node("Hud")
+    var ui_buttons := level.get_node("Hud/Display/HelpPanel/Content/ViewSelector") as HBoxContainer
+    var settings_button := level.get_node("Hud/Display/HelpPanel/Content/CameraSettings") as Button
     var settings_panel := level.get_node("Hud/CameraSettings") as PanelContainer
     for i in range(5):
-        var mode_button := ui_buttons.get_node("Mode" + str(i + 1)) as Button
-        _check(mode_button.focus_mode == Control.FOCUS_NONE,
-            "View selector %d never captures Space-to-jump focus" % (i + 1))
-    _check(settings_button.focus_mode == Control.FOCUS_NONE,
-        "Camera Settings toggle never captures Space-to-jump focus")
+        _check((ui_buttons.get_child(i) as Button).focus_mode != Control.FOCUS_NONE,
+            "F6 view button %d remains keyboard-navigable" % (i + 1))
+    hud.call("set_help_open", true)
+    _check(not level.get_node("ActorInput").enabled, "Opening help gates gameplay")
     settings_button.pressed.emit()
     var reset_button := settings_panel.find_child("ResetCamera", true, false) as Button
     var close_button := settings_panel.find_child("CloseSettings", true, false) as Button
@@ -616,12 +658,15 @@ func _run_tests() -> void:
     _check(not settings_panel.visible
         and root.gui_get_focus_owner() != slider,
         "Closing camera settings releases slider focus")
-    var previously_clicked := ui_buttons.get_node("Mode3") as Button
-    previously_clicked.pressed.emit()
+    var previously_clicked := ui_buttons.get_child(2) as Button
+    hud.call("set_help_open", true)
     previously_clicked.grab_focus()
     await process_frame
+    _check(root.gui_get_focus_owner() == previously_clicked,
+        "F6 view button can receive keyboard focus")
+    hud.call("set_help_open", false)
     _check(root.gui_get_focus_owner() != previously_clicked,
-        "Clicked view button cannot retain keyboard focus")
+        "Closing F6 releases selector focus before gameplay")
     var views := level.get_node("ViewManager") as ViewManagerScript
     views.switch_view(1)
     var count_before_space: int = views.switch_count
@@ -637,9 +682,10 @@ func _run_tests() -> void:
     await process_frame
     _check(views.active_index == 1 and views.switch_count == count_before_space,
         "Space after switching with 1–5 cannot activate previous view")
+    hud.call("set_help_open", true)
     settings_button.pressed.emit()
     settings_button.grab_focus()
-    settings_button.pressed.emit()
+    level.call("_toggle_camera_settings")
     var count_after_settings: int = views.switch_count
     Input.parse_input_event(space_down)
     await physics_frame
@@ -696,8 +742,10 @@ func _run_tests() -> void:
     await d09_suite.run_tests(self, Callable(self, "_check"))
     var side_aim_suite := D09SideAimSuiteScript.new()
     await side_aim_suite.run_tests(self, Callable(self, "_check"))
-    var retro_suite := D09RetroSuiteScript.new()
-    await retro_suite.run_tests(self, Callable(self, "_check"))
+    var top_down_suite := D09TopDownSuiteScript.new()
+    await top_down_suite.run_tests(self, Callable(self, "_check"))
+    var hud_suite := D09HudSuiteScript.new()
+    await hud_suite.run_tests(self, Callable(self, "_check"))
 
     level.queue_free()
     # Flush Godot's deferred deletion queue before inspecting ResourceDB at

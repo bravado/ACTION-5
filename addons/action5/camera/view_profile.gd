@@ -4,13 +4,13 @@ class_name Action5ViewProfile
 
 enum Mode {
     SIDE,
-    BEATEMUP,
+    BEAT_EM_UP,
     ISOMETRIC,
     FIRST_PERSON,
-    RETRO_TOPDOWN,
+    TOP_DOWN,
 }
 
-@export var mode: Mode = Mode.BEATEMUP
+@export var mode: Mode = Mode.BEAT_EM_UP
 @export var display_name: String = "Beat'em Up"
 @export var fixed_offset: Vector3 = Vector3(0.0, 10.0, 13.0)
 ## Optional arcade camera peek: lateral body velocity changes only the
@@ -53,4 +53,4 @@ func is_orbit_mode() -> bool:
 
 
 func is_overhead() -> bool:
-    return mode == Mode.RETRO_TOPDOWN
+    return mode == Mode.TOP_DOWN

@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D09-02 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun retro directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
+> **Project status (November 2026): D01–D09-02 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun Top-Down directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -18,13 +18,13 @@ It targets side-scrolling beat'em ups, arcade brawlers, isometric dungeon crawle
 | **2** | Beat'em up | Close, shallow-angle orthographic framing and X/Z ground movement | *Streets of Rage*, *Golden Axe* |
 | **3** | Isometric / over-the-shoulder | **One adjustable orthographic profile:** zoom out for a tilted dungeon view, zoom in for close shoulder framing; mouse orbit and camera-relative movement | Dungeon crawlers and third-person action |
 | **4** | First person | Eye-level perspective, mouse look, crosshair aiming | First-person action |
-| **5** | Retro top-down | True overhead orthographic, configurable four-/eight-way facing and attacks | *The Legend of Zelda*, *Commando* |
+| **5** | Top-Down | True overhead orthographic, configurable four-/eight-way facing and attacks | *The Legend of Zelda*, *Commando* |
 
 All modes use **one shared 3D scene and authoritative player actor**. Camera changes never recreate actors, reset combat or change world physics. Isometric and over-the-shoulder are **two zoom levels of mode 3**, not two selectable modes.
 
-**Camera tuning:** Press **C** or click **Camera Settings** to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
+**Camera tuning:** Press **C** (or use the Camera Settings button inside **F6 Help**) to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
 
-**Camera controls:** Press **1–5** on native or Web. F1–F5 are optional alternate bindings (browsers can reserve function keys). Five clickable mode buttons and gamepad shoulder-button cycling are also available. See [camera documentation](docs/cameras.md).
+**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five clickable mode buttons are available in **F6 Help** instead of covering gameplay; gamepad shoulder-button cycling follows the same numbered order. The internal camera-profile array keeps its established ordering; only the input shortcuts are remapped. See [camera documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 
@@ -34,7 +34,7 @@ All modes use **one shared 3D scene and authoritative player actor**. Camera cha
 - **Combat:** attack timelines in fixed physics ticks; collision shapes for hitboxes/hurtboxes; damage, stun, knockback, hit filtering and debugging tools.
 - **Weapons:** unarmed punches/kicks, bat, shovel and gun; equipment sockets, pickup/drop, melee sweeps, ammo/reload and correct muzzle-to-target occlusion.
 - **Enemies and world:** basic combat AI, navigation, doors, pickups, triggers, destructible props, arena and dungeon environments.
-- **Reference game:** a playable demonstration with all five perspectives, melee and ranged enemies, and a retro top-down encounter.
+- **Reference game:** a playable demonstration with all five perspectives, melee and ranged enemies, and a Top-Down encounter.
 - **Tools and delivery:** debugging overlays, resource validation, automated tests, browser export and Windows/Linux/macOS native builds.
 
 ### Deliberately not in the initial scope
@@ -266,7 +266,7 @@ from InputMap, active view-control resources and AttackDefinitions.
 | 2 — Beat'em Up | Move up stage | Move down stage | Move left/right | Move left/right |
 | 3 — Isometric/shoulder | Forward | Backward | Move left/right | Move left/right |
 | 4 — First person | Forward | Backward | Strafe | Turn |
-| 5 — Retro top-down | Move up | Move down | Move left/right | Move left/right |
+| 5 — Top-Down | Move up | Move down | Move left/right | Move left/right |
 
 **Space** also jumps in every view; **Ctrl** toggles crouch and Shift
 runs. F1 S/Down holds crouch, including crouch-walk while moving;
@@ -299,16 +299,16 @@ in [CI / Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43135511963)
 The side-view trajectory was visually accepted by the project owner.
 A separate prolonged manual playthrough/focus-loss exploration is
 not covered by automated evidence. D09-02 adds the independent four-way/
-eight-way retro behavior and scrolling described below.
+eight-way Top-Down behavior and scrolling described below.
 
 
-### D09-02 — Retro overhead combat (view 5)
+### D09-02 — Top-Down combat (view 5)
 
 View **5** keeps the same actor, equipment, collision world and combat clock as views 1–4. The starting arena and the connected dungeon both have a pick-up **Sword**: interact with **E**, attack with configured **LMB/J**, and swap equipment with **Q**. Its D05 melee hitbox uses **four cardinal** headings in view 5 but continuous input heading in view 3. The existing Pistol uses **eight directions** in view 5 and continuous heading in other views. In view 5, **WASD moves** and **arrow keys aim independently** (or use left stick/right stick); view 1–4 controls are unchanged. The camera follows the player through the connected arena/dungeon without teleporting or creating another world. First-person sword presentation is optional and visual-only. Pickups in the dungeon reuse the D08 scene persistence policy.
 
 To configure another weapon without editing Actor, CombatController, MovementController, AnimationPresenter or Gun: create an `Action5ViewFacingPolicy` resource with `view_mode = 4` and `sector_count = 4`, `8` or another count from 2–32, then add it to `Action5WeaponDefinition.view_facing_policies`. Set its attack's `facing_sectors = Free` so the rule does not affect other views. Wire one `Action5EquippedViewFacing` beside the actor's Equipment component and pass its path to ActorInputAdapter, CombatInputAdapter and ViewAimTargetProvider. On unsupported or unspecified views the fallback is the original free heading. The same policy instance is read on demand, with no cached weapon identity or mutated attack definitions. View-specific direction affects aim selection and visible heading only: the world muzzle still decides hits, obstruction and ammo costs. An actor without the policy retains existing behavior.
 
-Regression: `make check` runs `tests/d09_retro_suite.gd` with the shared headless runner; full Linux/WebGL2 smoke is opt-in via the repository's Full E2E workflow. A manual complete encounter and the separate 20-minute exploratory acceptance still require owner verification.
+Regression: `make check` runs `tests/d09_top_down_suite.gd` with the shared headless runner; full Linux/WebGL2 smoke is opt-in via the repository's Full E2E workflow. A manual complete encounter and the separate 20-minute exploratory acceptance still require owner verification.
 
 The arena light switch is the labelled **LIGHT SWITCH [E]** console on the southwest side of the starting map, near the low step (world X = -5.5, Z = 4.3). It has a permanent pedestal and bright amber **OFF** / green **ON** indicator even when its room light is disabled. Use E within interaction distance to toggle the room light; the separate detached-room portal remains near the western wall at X = -11.5, Z = 0. Neither prop should compete for the same E press.
 
@@ -317,3 +317,25 @@ The arena light switch is the labelled **LIGHT SWITCH [E]** console on the south
 **First-person Gun reload (view 4):** Press **R** with the Pistol equipped after firing at least one round (Heavy Pistol uses **T**). The gripped Gun and arm should lower/tilt during the per-weapon reload countdown, then return to the idle grip as ammunition refills. The shared `gun_reload_grip.tres` animation must contain valid pose keys spanning **0.0 to 1.0**; an endpoint at 0.8 silently invalidates its pose sampling. This F4 animation is presentation-only; ammo, command timing and cancellation stay with the Gun, and both Gun variants reuse the same authored reload profile.
 
 **D09-02 F1 arena-to-exit traversal:** The arena Gun pickup is authored at `Z = 1.0`, matching the Bat/Shovel row so a player locked to the F1 `Z = 0` lane can collect it with **E**. The dungeon's central Obstacle is **1.1 m tall** (matching mesh and collision, resting on the floor), permitting the normal grounded jump and horizontal movement in F1 to cross it and reach the physical EXIT. No view-specific collision bypass, teleport or movement tuning is required. The reference suite performs a real F1 Gun pickup and a physics-driven running jump to the exit.
+
+
+### D09-03 — HUD (PR #38, ready for review)
+
+The reference HUD uses the same compact, declarative Godot scene layout across all views: **Vitality (health) at the top-left**, **Objective at the bottom-left**, and **equipped weapon, ammo/actions and smaller next-item name at the bottom-right**. The center stays clear; optional icons come from weapon definition resources. **Q** swaps to the next carried item with the normal Equipment controller (the small label previews the next item and follows remapped controls). **H** completely shows/hides gameplay HUD chrome without changing gameplay. **F6** opens the keyboard/gamepad-help and clickable camera-selector panel; **C** opens camera settings. Interaction prompts are selected by the same Interactor as pressing E. A small first-person aim reticle only appears when a gun is equipped.
+
+The original PS1-style design draws on the compact status readability of Diablo and Castlevania: Symphony of the Night. It contains no copied game artwork, and its icons are original minimal SVGs. CI/native/Web screenshot and manual release gates are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37).
+
+
+**D09-03 camera shortcut update:** Input `1` selects First-Person and `4` selects Side-Scroller; `2` and `3` retain Beat 'em Up and Isometric, and `5` selects **Top-Down**. F6 view buttons, displayed view labels and help shortcuts reflect the same mapping rather than hardcoded indices. This affects input mapping, not actor/camera state or persistent per-profile settings.
+
+### Resource naming (D09-03)
+
+New resource files use plain, descriptive `snake_case` names. The
+Top-Down camera and input profiles are `addons/action5/views/top_down.tres`
+and `demo/input/top_down.tres`; the Beat 'em Up camera profile is
+`addons/action5/views/beat_em_up.tres`. The Gun and Sword four/eight-way
+profiles are `demo/equipment/gun_top_down_facing.tres` and
+`demo/equipment/sword_top_down_facing.tres`. These **replace**, rather than
+alias, the prior filenames. Existing external scenes referencing the prior
+paths should update them. Internal mode enum and persisted camera settings
+keys remain unchanged so gameplay/input behavior and preferences are not reset.

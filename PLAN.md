@@ -19,7 +19,7 @@ Build **one 3D gameplay simulation**, not five games and not five renderers. All
 | 2 (F2 alternate) | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
 | 3 (F3 alternate) | Isometric / shoulder | One orthographic profile, zoomable from wide tilted dungeon to close shoulder framing | X/Z, screen/camera-relative | Cursor target, lock-on or shoulder look-ahead |
 | 4 (F4 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
-| 5 (F5 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
+| 5 (F5 alternate) | Top-Down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
 
 **Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F4), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–5 as the primary mapping**; F1–F5 remain optional alternate mappings. Web additionally requires a five-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
 
@@ -162,7 +162,7 @@ EquipmentComponent.weapon_equipped(weapon_id)
 
 **F4 First person:** perspective eye/character anchor; mouse yaw/pitch with vertical limits; camera forward projected onto X/Z for locomotion; world-space crosshair ray target; locally hide head and optionally use an arms/weapon viewmodel. Maintain shared combat timing and authoritative muzzle/projectile trajectory.
 
-**F5 Retro top-down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
+**F5 Top-Down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
 
 **Camera transitions:** Move target camera transform smoothly when possible. For orthographic <-> perspective projection changes, allow an instantaneous projection cut with short optional fade; do not promise seamless mathematical projection interpolation. Camera must avoid geometry intersections; expensive dual-viewport blending is NOT required for 1.0.
 
@@ -837,7 +837,7 @@ Interactor ports remain authoritative; the demo-local `reference_exit`
 and victory overlay only present objective and completion. Player,
 weapons, scene state and camera are not duplicated.
 
-`demo/ui/reference_hud.gd` observes the public ViewManager, Health,
+`demo/ui/hud_adapter.gd` observes the public ViewManager, Health,
 Combat, Equipment, MovementController, weapon and InputMap ports.
 `Action5ViewControlProfile` resources assign remappable InputMap
 action names to per-view roles; F1 W/Up jumps, S/Down holds crouch
@@ -869,11 +869,11 @@ specified 20-minute exploratory native/Web run.
 
 **Implementation state:** D09-02 is integrated into the reusable addon and reference demo. The same actor, camera, world physics, CombatController, Equipment lifecycle, animation channels and scene-state system serve all five views. The demo provides a Sword pickup in the arena and connected dungeon. Its D05 melee attack has `facing_sectors = Free`; an optional `Action5ViewFacingPolicy` on its weapon definition supplies F5-only four-way direction. The Pistol has an independent eight-way F5 policy. One actor-local `Action5EquippedViewFacing` exposes a duck-typed `get_sectors(view_mode, fallback)` to ActorInputAdapter, CombatInputAdapter and ViewAimTargetProvider, so the actor, combat timeline and Gun do not branch on weapon IDs or F5. A third 16-way policy is replaceable via resources alone.
 
-**Input and environment:** F5 uses the declarative `demo/input/retro_topdown.tres` assigned on `demo/main.tscn`: WASD travels, arrows/right stick aim independently; the other views retain their bindings. The vertical camera follows the existing arena/dungeon bounds, with no second scene or player. The HUD shows weapon, heading and 4-/8-way setting. The arena light switch has a visible labelled pedestal and state indicator, separated from the remote-room portal's E interaction range.
+**Input and environment:** F5 uses the declarative `demo/input/top_down.tres` assigned on `demo/main.tscn`: WASD travels, arrows/right stick aim independently; the other views retain their bindings. The vertical camera follows the existing arena/dungeon bounds, with no second scene or player. The HUD shows weapon, heading and 4-/8-way setting. The arena light switch has a visible labelled pedestal and state indicator, separated from the remote-room portal's E interaction range.
 
 **Physical targeting and presentation:** The local F5 provider selects the first target on the player's forward horizontal centerline at the world-muzzle height. The existing Gun then fires *from its actual world muzzle* toward that point, stopping on nearer obstructions; the tracer also starts at that muzzle and ends at the resolved hit. F4 retains a visual-only gripped barrel-tip origin. Both Pistol variants have a validated normalized 0–1 F4 reload pose driven by the existing Gun reload countdown. None of these features alters world-muzzle authority, ammo accounting, attack-clock timing, physical Hurtboxes or NPC aim.
 
-**Automated evidence:** `tests/d09_retro_suite.gd` covers pickups, shared actor/camera, F5/F3 aiming, F5 physical Gun targeting and tracer, configurable 16-way policy, view switching, HUD and input. The D08 interaction regressions cover portal/switch isolation. `tests/d06_gun_suite.gd` checks valid F4 reload animation, live arm/grip movement, restored idle pose and alternate Gun. Pinned Godot [reviewed Checks (1,319/1,319 assertions, zero failures)](https://github.com/bravado/ACTION-5/actions/runs/43279273262) passed after the declarative input and shared centerline-ray refactors, including a real Sword-to-Hurtbox hit. [Native Linux/WebGL2 Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43272386374) passed on the prior implementation baseline; rerun it on the reviewed head before merging, and run merge-commit CI again.
+**Automated evidence:** `tests/d09_top_down_suite.gd` covers pickups, shared actor/camera, F5/F3 aiming, F5 physical Gun targeting and tracer, configurable 16-way policy, view switching, HUD and input. The D08 interaction regressions cover portal/switch isolation. `tests/d06_gun_suite.gd` checks valid F4 reload animation, live arm/grip movement, restored idle pose and alternate Gun. Pinned Godot [reviewed Checks (1,319/1,319 assertions, zero failures)](https://github.com/bravado/ACTION-5/actions/runs/43279273262) passed after the declarative input and shared centerline-ray refactors, including a real Sword-to-Hurtbox hit. [Native Linux/WebGL2 Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43272386374) passed on the prior implementation baseline; rerun it on the reviewed head before merging, and run merge-commit CI again.
 
 **Separate acceptance gate:** Native/WebGL2 startup/render smoke and headless assertions are not proof of an owner-approved 20-minute exploratory playthrough (including F1–F5 camera changes, focus loss/rearm, Sword and Gun combat, doors, dungeon, F4 reload and exit). Keep that sign-off explicitly pending until performed. Follow with D10-01; do not conflate a completed implementation milestone with the final manual release gate.
 
@@ -882,3 +882,61 @@ specified 20-minute exploratory native/Web run.
 **Second review / performance closure (2026-11-12):** ActorInputAdapter resolves each active view-control profile only once per physics tick and passes it to both movement and aim input readers. The optional F5 HUD compass refreshes at fixed physics-tick cadence only while F5 is active (rather than once per rendered frame), avoiding needless allocation on high-refresh displays. Action5ViewFacingPolicy.valid() enforces the documented 0 or 2–32 sector range even when assigned programmatically; the suite exercises valid 0/16 sectors and invalid 1/33. These changes do not introduce stateful direction caches, alter the firing clock or raycast frequency, or couple CameraRig and Gun. Final pinned Checks/native/WebGL2 Full E2E are the review gates. [full-e2e]
 
 **D09-02 side-scroller accessibility follow-up (2026-11-12):** The arena Gun pickup is now at Z=1.0, matching Bat/Shovel and reachable through the default F1 Z=0 side lane. The dungeon's central block is 1.1 m high with coincident BoxMesh/BoxShape and floor-aligned center Y=0.55; the normal 6.3 m/s jump and movement traverse it without a gameplay/physics bypass. [Checks #43340690231](https://github.com/bravado/ACTION-5/actions/runs/43340690231) passed **1,331/1,331** assertions, including an actual F1 E pickup, grounded jump over the collision block and run to the EXIT. Verify the final native/WebGL2 smoke and owner visuals before squash merge. [full-e2e]
+
+
+## D09-03 — HUD (PR #38, ready for review)
+
+The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **HUD** inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
+
+- One fixed HUD scene across F1–F5: Vitality top-left, Objective bottom-left, active weapon/next-item name and `Q`/InputMap swap hint bottom-right, with an unobstructed bottom-center gap.
+- Full gameplay HUD show/hide with remappable `hud_toggle` (H by default), independent of actor/combat/equipment state; help via `hud_help` (F6). Outcome overlays remain usable.
+- The data source is an event-driven read-only adapter, never another inventory, combat clock, aim controller or health authority. Optional `WeaponDefinition.hud_icon` adds pure presentation metadata.
+- Contextual prompts use a read-only `Interactor.get_target(actor)` path shared with actual interaction selection, plus optional `get_interaction_label(actor)` on each interactable; do not guess nearby targets in UI.
+- Requirements/acceptance are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37). CI/native/Web exploratory checks and actual visual approval remain gates before marking D09-03 delivered.
+
+
+### D09-03 input mapping refinement (PR #38)
+
+The owner selected **1 First-Person, 2 Beat 'em Up, 3 Isometric / Third-Person,
+4 Side-Scroller, 5 Top-Down** for demo shortcuts. This is an explicit
+`Action5ViewInput.shortcut_profile_indices` permutation
+`[3,1,2,0,4]`, not a reorder of the ViewManager's five profile resources.
+Existing gameplay physics, camera settings identities and per-profile
+saved overrides remain unchanged. HUD labels, F6 mode buttons, InputMap
+hints, README/camera instructions, Godot tests and real-Web browser
+keyboard smoke must agree. View enum identifiers `BEAT_EM_UP` and `TOP_DOWN` now align with the
+resource names. The in-game label remains **Top-Down**, and existing
+saved camera preferences migrate to schema 3.
+
+### D09-03 approved HUD panel placement
+
+The HUD layout now places **Vitality/HP top-left**, **Objective bottom-left**, and **Equipment bottom-right** (its secondary item/Q label stays in the same equipment panel). This supersedes earlier D09-03 descriptions of bottom-left HP. Preserve the gap between bottom panels, H hide/show, and a single identical layout for all five views. This is a presentation-only repositioning, with no core gameplay dependencies.
+
+
+### D09-03 decoupling review follow-up (PR #38)
+
+The architecture review's seven findings are addressed together:
+Equipment owns next-weapon and side-effect-free pickup-eligibility queries;
+the HUD no longer duplicates either selection policy. Obsolete invisible
+UI/test hooks are removed in favor of the real F6 selector, HUD panels and C
+camera settings. The compact presentation is authored declaratively in a
+Godot scene, avoiding hundreds of lines of procedural layout code. The HUD
+adapter handles HP, movement and reload updates narrowly and only refreshes
+stable help/commands on relevant events. One presenter visibility flag and
+remappable H/F6 hints complete the separation. All gameplay remains in the
+existing Action5 components; native/Web review and CI still gate acceptance.
+
+### D09-03 resource path alignment (PR #38)
+
+The remaining profile and directional-facing `.tres` assets were renamed
+to plain descriptive names: `views/beat_em_up.tres`, `views/top_down.tres`,
+`demo/input/top_down.tres`, `gun_top_down_facing.tres` and
+`sword_top_down_facing.tres`. No view order, combat policies, weapon
+definitions or gameplay signals change. Public enum members are now
+`ViewProfile.Mode.BEAT_EM_UP` and `ViewProfile.Mode.TOP_DOWN`;
+view-local InputMap actions use `top_down_*`. Camera preferences use
+schema-3 sections `profile_beat_em_up` and `profile_top_down`, with
+automatic migration from the legacy schema-2 names.
+All source and scene references plus the resource-loading regression suite
+must use the renamed assets; owners of external scenes must change any old
+hardcoded paths.

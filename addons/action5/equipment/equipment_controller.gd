@@ -29,7 +29,9 @@ var _world_parents: Dictionary = {}
 var _relocating: Dictionary = {}
 
 
-func pickup(weapon: WeaponScript) -> bool:
+## Pure eligibility query. WeaponPickupInteraction and pickup() share this
+## authoritative preflight; pickup still validates at transaction time.
+func can_pickup(weapon: WeaponScript) -> bool:
     var actor := get_parent() as Node3D
     if actor == null or not is_instance_valid(weapon) or weapon.is_queued_for_deletion() \
             or weapon.definition == null:
@@ -40,9 +42,19 @@ func pickup(weapon: WeaponScript) -> bool:
         return false
     if inventory.size() >= max_items or weapon.global_position.distance_to(actor.global_position) > pickup_radius:
         return false
-    var origin := weapon.get_parent() as Node3D
-    if origin == null or not _can_register(weapon):
+    if not weapon.is_inside_tree() or not (weapon.get_parent() is Node3D) \
+            or not _can_register(weapon):
         return false
+    # The first pickup auto-equips, so the target mount must be available.
+    if current_weapon == null and _mount_for(weapon) == null:
+        return false
+    return true
+
+
+func pickup(weapon: WeaponScript) -> bool:
+    if not can_pickup(weapon):
+        return false
+    var origin := weapon.get_parent() as Node3D
     _world_parents[weapon] = origin
     weapon.equipment_owner = self
     inventory.append(weapon)
@@ -80,10 +92,8 @@ func _equip_weapon(weapon: WeaponScript, notify: bool) -> bool:
         return true
     if not _can_register(weapon):
         return false
-    var mount: Node3D = null
-    if is_instance_valid(mount_source) and mount_source.has_method("get_mount"):
-        mount = mount_source.call("get_mount", weapon.definition.socket_id) as Node3D
-    if not is_instance_valid(mount) or mount.is_queued_for_deletion():
+    var mount: Node3D = _mount_for(weapon)
+    if mount == null:
         return false
     # Transaction boundary: stage ALL new registrations while the old
     # weapon, attack clock, visual and signals remain untouched. Partial
@@ -105,17 +115,25 @@ func _equip_weapon(weapon: WeaponScript, notify: bool) -> bool:
     return true
 
 
-func swap_next() -> bool:
+## This policy is shared by the swap command and read-only UI preview.
+## Invalid inventory selections do not advertise a nonexistent next item.
+func get_next_weapon() -> WeaponScript:
     if inventory.is_empty():
-        return false
+        return null
     if current_weapon == null:
-        return equip(inventory[0])
+        return inventory[0] if is_instance_valid(inventory[0]) else null
     if inventory.size() < 2:
-        return false
-    var current_index: int = inventory.find(current_weapon)
-    if current_index < 0:
-        return false
-    return equip(inventory[(current_index + 1) % inventory.size()])
+        return null
+    var index: int = inventory.find(current_weapon)
+    if index < 0:
+        return null
+    var next: WeaponScript = inventory[(index + 1) % inventory.size()]
+    return next if is_instance_valid(next) and not next.is_queued_for_deletion() else null
+
+
+func swap_next() -> bool:
+    var next: WeaponScript = get_next_weapon()
+    return equip(next) if next != null else false
 
 
 func drop_current() -> bool:
@@ -171,6 +189,13 @@ func _stow_current() -> void:
     _move_weapon(previous, self)
     previous.visible = false
     previous.is_equipped = false
+
+
+func _mount_for(weapon: WeaponScript) -> Node3D:
+    if not is_instance_valid(mount_source) or not mount_source.has_method("get_mount"):
+        return null
+    var mount: Node3D = mount_source.call("get_mount", weapon.definition.socket_id) as Node3D
+    return mount if is_instance_valid(mount) and not mount.is_queued_for_deletion() else null
 
 
 func _can_register(weapon: WeaponScript) -> bool:

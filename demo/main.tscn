@@ -1,4 +1,4 @@
-[gd_scene load_steps=65 format=3]
+[gd_scene load_steps=66 format=3]
 
 [ext_resource type="Script" path="res://demo/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://demo/player.tscn" id="2_player"]
@@ -9,7 +9,7 @@
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="7_actor_input"]
 [ext_resource type="Resource" path="res://addons/action5/input/profiles/side.tres" id="35_side_controls"]
 [ext_resource type="Resource" path="res://addons/action5/input/profiles/first_person.tres" id="36_first_person_controls"]
-[ext_resource type="Resource" path="res://demo/input/retro_topdown.tres" id="37_retro_controls"]
+[ext_resource type="Resource" path="res://demo/input/top_down.tres" id="37_top_down_controls"]
 [ext_resource type="PackedScene" path="res://demo/combat/training_target.tscn" id="8_target"]
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
 [ext_resource type="PackedScene" path="res://demo/equipment/bat.tscn" id="10_bat"]
@@ -36,7 +36,8 @@
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
 [ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
 [ext_resource type="Script" path="res://demo/world/side_lane_controller.gd" id="31_side_lane"]
-[ext_resource type="Script" path="res://demo/ui/reference_hud.gd" id="32_hud"]
+[ext_resource type="Script" path="res://demo/ui/hud_adapter.gd" id="32_hud_adapter"]
+[ext_resource type="PackedScene" path="res://demo/ui/hud.tscn" id="34_hud_scene"]
 [ext_resource type="PackedScene" path="res://demo/ui/victory_overlay.tscn" id="33_victory"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
@@ -409,10 +410,11 @@ current = true
 
 [node name="ViewInput" type="Node" parent="."]
 script = ExtResource("5_input")
+shortcut_profile_indices = PackedInt32Array(3, 1, 2, 0, 4)
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
-view_controls = Array[Resource]([ExtResource("35_side_controls"), ExtResource("36_first_person_controls"), ExtResource("37_retro_controls")])
+view_controls = Array[Resource]([ExtResource("35_side_controls"), ExtResource("36_first_person_controls"), ExtResource("37_top_down_controls")])
 direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="CombatInput" type="Node" parent="."]
@@ -446,79 +448,18 @@ mouse_filter = 2
 color = Color(0.12, 0.18, 0.26, 0.18)
 
 [node name="Hud" type="CanvasLayer" parent="."]
-script = ExtResource("32_hud")
+script = ExtResource("32_hud_adapter")
 
-[node name="Help" type="Label" parent="Hud"]
-offset_left = 24.0
-offset_top = 18.0
-offset_right = 1160.0
-offset_bottom = 120.0
-theme_override_font_sizes/font_size = 16
-text = "ACTION-5 | Loading controls from InputMap..."
-
-[node name="Status" type="Label" parent="Hud"]
-offset_left = 24.0
-offset_top = 122.0
-offset_right = 1260.0
-offset_bottom = 150.0
-theme_override_font_sizes/font_size = 17
-text = "VIEW 2 / 5 | Beat'em Up"
-
-[node name="RetroDirection" type="Label" parent="Hud"]
-visible = false
-offset_left = 24.0
-offset_top = 210.0
-offset_right = 1255.0
-offset_bottom = 242.0
-theme_override_font_sizes/font_size = 18
-text = "RETRO | Aim with arrow keys or right stick"
-
-[node name="ModeButtons" type="HBoxContainer" parent="Hud"]
-offset_left = 24.0
-offset_top = 157.0
-offset_right = 1150.0
-offset_bottom = 201.0
-theme_override_constants/separation = 8
-
-[node name="Mode1" type="Button" parent="Hud/ModeButtons"]
-focus_mode = 0
-custom_minimum_size = Vector2(142, 44)
-text = "1 · SIDE-SCROLLER"
-
-[node name="Mode2" type="Button" parent="Hud/ModeButtons"]
-focus_mode = 0
-custom_minimum_size = Vector2(142, 44)
-text = "2 · BEAT 'EM UP"
-
-[node name="Mode3" type="Button" parent="Hud/ModeButtons"]
-focus_mode = 0
-custom_minimum_size = Vector2(142, 44)
-text = "3 · ISO / 3RD PERSON"
-
-[node name="Mode4" type="Button" parent="Hud/ModeButtons"]
-focus_mode = 0
-custom_minimum_size = Vector2(142, 44)
-text = "4 · FIRST-PERSON"
-
-[node name="Mode5" type="Button" parent="Hud/ModeButtons"]
-focus_mode = 0
-custom_minimum_size = Vector2(142, 44)
-text = "5 · RETRO TOP-DOWN"
-
-[node name="SettingsToggle" type="Button" parent="Hud"]
-focus_mode = 0
-offset_left = 1031.0
-offset_top = 156.0
-offset_right = 1255.0
-offset_bottom = 202.0
-text = "Camera Settings [C]"
+[node name="Display" parent="Hud" instance=ExtResource("34_hud_scene")]
 
 [node name="CameraSettings" type="PanelContainer" parent="Hud"]
 visible = false
-offset_left = 910.0
-offset_top = 204.0
-offset_right = 1254.0
-offset_bottom = 650.0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -363.0
+offset_top = 82.0
+offset_right = -18.0
+offset_bottom = 638.0
 script = ExtResource("6_settings")
 
 [node name="DeathOverlay" parent="." instance=ExtResource("17_death")]
