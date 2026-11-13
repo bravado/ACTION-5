@@ -9,6 +9,12 @@ func _frames(tree: SceneTree, count: int = 3) -> void:
 func run_tests(tree: SceneTree, verify: Callable) -> void:
     var packed := load("res://demo/main.tscn") as PackedScene
     verify.call(packed != null, "D09-03 playable scene loads")
+    verify.call(ResourceLoader.exists("res://demo/ui/hud.tscn")
+        and ResourceLoader.exists("res://demo/ui/hud.gd")
+        and ResourceLoader.exists("res://demo/ui/panel_frame.tres")
+        and ResourceLoader.exists("res://demo/ui/hud_adapter.gd")
+        and not ResourceLoader.exists("res://demo/ui/iron_reliquary.tscn"),
+        "D09-03 HUD resources have stable descriptive filenames")
     if packed == null:
         return
     var stage := packed.instantiate() as Node3D
@@ -19,7 +25,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var equipment: Node = player.get_node("Equipment")
     var views: Node = stage.get_node("ViewManager")
     var hud: Node = stage.get_node("Hud")
-    var display := stage.get_node("Hud/Reliquary") as Control
+    var display := stage.get_node("Hud/Display") as Control
     var health := player.get_node("Health")
     var hp_panel := display.get_node("HealthPanel") as PanelContainer
     var equip_panel := display.get_node("EquipmentPanel") as PanelContainer

@@ -91,7 +91,7 @@ func _run_tests() -> void:
         "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
-    _check(level.get_node_or_null("Hud/Reliquary/HelpPanel/Content/Scroll/HelpText") is Label,
+    _check(level.get_node_or_null("Hud/Display/HelpPanel/Content/Scroll/HelpText") is Label,
         "D01 on-demand help is authored in the scene")
 
     if player != null:
@@ -308,11 +308,11 @@ func _run_tests() -> void:
         _check(not InputMap.has_action(&"view_6"),
             "No unused sixth camera action registered")
 
-        var selector := level.get_node("Hud/Reliquary/HelpPanel/Content/ViewSelector") as HBoxContainer
+        var selector := level.get_node("Hud/Display/HelpPanel/Content/ViewSelector") as HBoxContainer
         var side_button := selector.get_child(3) as Button
         side_button.pressed.emit()
         _check(manager.active_index == 0, "Real F6 selector chooses side-scroller")
-        _check((level.get_node("Hud/Reliquary") as Control).get("_view").text.begins_with("4"),
+        _check((level.get_node("Hud/Display") as Control).get("_view").text.begins_with("4"),
             "HUD displays remapped shortcut and active camera")
         _check(selector.get_child_count() == 5,
             "HUD has exactly five F6 view buttons")
@@ -607,8 +607,8 @@ func _run_tests() -> void:
     # Regression: clicking a camera/menu button must never steal Space from
     # actor_jump. This used to re-select the previously focused camera.
     var hud := level.get_node("Hud")
-    var ui_buttons := level.get_node("Hud/Reliquary/HelpPanel/Content/ViewSelector") as HBoxContainer
-    var settings_button := level.get_node("Hud/Reliquary/HelpPanel/Content/CameraSettings") as Button
+    var ui_buttons := level.get_node("Hud/Display/HelpPanel/Content/ViewSelector") as HBoxContainer
+    var settings_button := level.get_node("Hud/Display/HelpPanel/Content/CameraSettings") as Button
     var settings_panel := level.get_node("Hud/CameraSettings") as PanelContainer
     for i in range(5):
         _check((ui_buttons.get_child(i) as Button).focus_mode != Control.FOCUS_NONE,

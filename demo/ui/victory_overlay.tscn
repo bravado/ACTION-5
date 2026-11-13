@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://demo/ui/victory_overlay.gd" id="1"]
 
-[ext_resource type="StyleBox" path="res://demo/ui/iron_frame.tres" id="2_frame"]
+[ext_resource type="StyleBox" path="res://demo/ui/panel_frame.tres" id="2_frame"]
 
 [node name="VictoryOverlay" type="CanvasLayer"]
 layer = 30

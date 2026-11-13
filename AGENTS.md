@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D09-02 are implemented:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-03 Iron Reliquary is in progress on PR #38; next review its HUD/UI regressions, then D10 opt-in diagnostics and validators.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
+Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D09-02 are implemented:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-03 HUD is ready for review on PR #38; pending manual visual acceptance, then D10 opt-in diagnostics and validators.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
 
 ## Product invariant
 
@@ -723,7 +723,7 @@ detached-location behavior in D08 suites.
 
 ## D09-01 delivered architecture and extension rules
 
-- `demo/ui/reference_hud.gd` is the only owner of demo help/status
+- `demo/ui/hud_adapter.gd` is the only owner of demo help/status
   formatting. Subscribe to gameplay signals; do not reproduce HUD
   polling/refresh handlers in `demo/main.gd`, nor move HUD logic into
   the addon. Display bindings from the active control profile and
@@ -776,9 +776,9 @@ D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinit
 **D09-02 demo geometry accessibility:** Keep the arena Gun aligned with the Bat/Shovel pickup row at `Z = 1.0`, within the connected side-lane's `Z = 0` interaction range. In `demo/world/encounter_sector.tscn`, the central `Obstacle` uses matched 1.1 m tall BoxMesh/BoxShape with center `Y = 0.55` so its bottom stays on the floor and the existing side-scroller jump can clear it. Preserve the full collision (do not disable barriers, change jump speed or teleport past it). `tests/d09_reference_suite.gd` verifies a real F1 E pickup and a physically simulated F1 jump/run over the obstacle to the unlocked EXIT. Keep these adjustments scene-local, never in addon locomotion or equipment.
 
 
-## D09-03 Iron Reliquary UI contract (PR #38, in progress)
+## D09-03 HUD contract (PR #38, ready for review)
 
-- Render one stable, fixed HUD across all five camera modes. The authored layout in `demo/ui/iron_reliquary.tscn` places Vitality top-left, Objective bottom-left and Equipment bottom-right. Its presentation script never owns gameplay state; `reference_hud.gd` adapts authoritative Health, CombatController, Equipment, Interactor, ViewManager, session and InputMap state.
+- Render one stable, fixed HUD across all five camera modes. The authored layout in `demo/ui/hud.tscn` places Vitality top-left, Objective bottom-left and Equipment bottom-right. Its presentation script never owns gameplay state; `hud_adapter.gd` adapts authoritative Health, CombatController, Equipment, Interactor, ViewManager, session and InputMap state.
 - Objective and equipment panels leave a clear bottom-center gap; no bottom full-width bar. Optional `Action5WeaponDefinition.hud_icon` textures never affect combat. The smaller item label reads `EquipmentController.get_next_weapon()` (the same policy as `swap_next()`) and the live `demo_swap` binding (default Q).
 - `hud_toggle` (default H) hides gameplay HUD/notifications/prompts but never changes actor input, health, aiming, equipment, world state or death/victory UI. `hud_help` (default F6) opens the help overlay and uses existing demo input gating; keep it independent of HUD visibility. The old Status/Help/RetroDirection and ModeButtons UI nodes were removed; F6 help and the real HUD replace them.
 - Any optional interaction prompt must query `Action5Interactor.get_target()`, the **same selection algorithm** as `try_interact()`. Interactable labels are optional demo-local display ports, not arbitrary type checks in the Interactor or HUD. Keep selection/line-of-sight authoritative.
@@ -810,8 +810,8 @@ for next-item preview and Q swap, and `can_pickup(weapon)` as the
 side-effect-free eligibility query that both pickup() and world interaction
 advertising call. Revalidate on the actual pickup transaction.
 
-Static Iron Reliquary panel nodes, positions, text defaults, styleboxes and
-help/notification timers now live in `demo/ui/iron_reliquary.tscn`; its
+Static HUD panel nodes, positions, text defaults, styleboxes and
+help/notification timers now live in `demo/ui/hud.tscn`; its
 GDScript merely projects values. Do not restore invisible legacy
 `Hud/Status`, `Hud/Help`, `Hud/ModeButtons` or `Hud/RetroDirection`
 compatibility nodes. Update tests to operate on the real HUD presenter.
@@ -820,3 +820,19 @@ may read, not mirror, its state. Refreshed help/shortcut data is generated
 only on relevant events, explicit refresh and help opening; HP, movement
 and ammunition updates have narrow handlers. Short H/F6 prompts must
 reflect actual remapped InputMap actions.
+
+### Resource filename conventions
+
+New scenes, scripts, resources and visual assets **must use short, plain,
+descriptive lowercase snake_case names** that describe their role, not a
+branding concept, art direction or milestone. For the current UI:
+`demo/ui/hud.tscn` is the reusable scene, `demo/ui/hud.gd` its presenter,
+`demo/ui/hud_adapter.gd` the demo-only gameplay observer and
+`demo/ui/panel_frame.tres` the shared panel style. The scene instance node is
+`Hud/Display`; outcome overlays keep functional names such as
+`death_overlay.tscn` and `victory_overlay.tscn`. Prefer the same conventions
+for future resources (e.g. `inventory.tscn`, `health_bar.tscn`) rather than
+inventing named UI themes. **Never rename an existing public asset path solely
+for style** when other consumers may depend on it; legacy names such as
+`addons/action5/views/retro_topdown.tres` require a separately planned,
+backward-compatible migration, while the visible mode remains `Top-Down`.

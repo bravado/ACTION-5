@@ -837,7 +837,7 @@ Interactor ports remain authoritative; the demo-local `reference_exit`
 and victory overlay only present objective and completion. Player,
 weapons, scene state and camera are not duplicated.
 
-`demo/ui/reference_hud.gd` observes the public ViewManager, Health,
+`demo/ui/hud_adapter.gd` observes the public ViewManager, Health,
 Combat, Equipment, MovementController, weapon and InputMap ports.
 `Action5ViewControlProfile` resources assign remappable InputMap
 action names to per-view roles; F1 W/Up jumps, S/Down holds crouch
@@ -884,9 +884,9 @@ specified 20-minute exploratory native/Web run.
 **D09-02 side-scroller accessibility follow-up (2026-11-12):** The arena Gun pickup is now at Z=1.0, matching Bat/Shovel and reachable through the default F1 Z=0 side lane. The dungeon's central block is 1.1 m high with coincident BoxMesh/BoxShape and floor-aligned center Y=0.55; the normal 6.3 m/s jump and movement traverse it without a gameplay/physics bypass. [Checks #43340690231](https://github.com/bravado/ACTION-5/actions/runs/43340690231) passed **1,331/1,331** assertions, including an actual F1 E pickup, grounded jump over the collision block and run to the EXIT. Verify the final native/WebGL2 smoke and owner visuals before squash merge. [full-e2e]
 
 
-## D09-03 — Iron Reliquary UI in progress (PR #38)
+## D09-03 — HUD (PR #38, ready for review)
 
-The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **Iron Reliquary** HUD inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
+The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **HUD** inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
 
 - One fixed HUD scene across F1–F5: Vitality top-left, Objective bottom-left, active weapon/next-item name and `Q`/InputMap swap hint bottom-right, with an unobstructed bottom-center gap.
 - Full gameplay HUD show/hide with remappable `hud_toggle` (H by default), independent of actor/combat/equipment state; help via `hud_help` (F6). Outcome overlays remain usable.
@@ -909,7 +909,7 @@ remain for compatibility, while the in-game label is simply **Top-Down**.
 
 ### D09-03 approved HUD panel placement
 
-The Iron Reliquary layout now places **Vitality/HP top-left**, **Objective bottom-left**, and **Equipment bottom-right** (its secondary item/Q label stays in the same equipment panel). This supersedes earlier D09-03 descriptions of bottom-left HP. Preserve the gap between bottom panels, H hide/show, and a single identical layout for all five views. This is a presentation-only repositioning, with no core gameplay dependencies.
+The HUD layout now places **Vitality/HP top-left**, **Objective bottom-left**, and **Equipment bottom-right** (its secondary item/Q label stays in the same equipment panel). This supersedes earlier D09-03 descriptions of bottom-left HP. Preserve the gap between bottom panels, H hide/show, and a single identical layout for all five views. This is a presentation-only repositioning, with no core gameplay dependencies.
 
 
 ### D09-03 decoupling review follow-up (PR #38)

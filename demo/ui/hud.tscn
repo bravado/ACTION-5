@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://demo/ui/iron_reliquary.gd" id="1_script"]
-[ext_resource type="StyleBoxFlat" path="res://demo/ui/iron_frame.tres" id="2_frame"]
+[ext_resource type="Script" path="res://demo/ui/hud.gd" id="1_script"]
+[ext_resource type="StyleBoxFlat" path="res://demo/ui/panel_frame.tres" id="2_frame"]
 
 [sub_resource type="StyleBoxFlat" id="BarBackground"]
 bg_color = Color(0.047, 0.043, 0.071, 1)
@@ -9,7 +9,7 @@ bg_color = Color(0.047, 0.043, 0.071, 1)
 [sub_resource type="StyleBoxFlat" id="BarFill"]
 bg_color = Color(0.659, 0.184, 0.271, 1)
 
-[node name="Reliquary" type="Control"]
+[node name="Display" type="Control"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -260,7 +260,7 @@ theme_override_constants/separation = 4
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
 theme_override_font_sizes/font_size = 18
-text = "IRON RELIQUARY  ·  CONTROLS"
+text = "HUD · CONTROLS"
 
 [node name="ViewSelector" type="HBoxContainer" parent="HelpPanel/Content"]
 mouse_filter = 1

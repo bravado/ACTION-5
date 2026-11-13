@@ -16,7 +16,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export var interactor_path: NodePath = ^"../Interactor"
 @export var player_path: NodePath = ^"../Player"
 
-@onready var display: Control = $Reliquary
+@onready var display: Control = $Display
 @onready var interactor: Node = get_node_or_null(interactor_path)
 @onready var player: Node3D = get_node_or_null(player_path) as Node3D
 @onready var views: Node = get_node_or_null(views_path)

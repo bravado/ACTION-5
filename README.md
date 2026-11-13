@@ -319,11 +319,11 @@ The arena light switch is the labelled **LIGHT SWITCH [E]** console on the south
 **D09-02 F1 arena-to-exit traversal:** The arena Gun pickup is authored at `Z = 1.0`, matching the Bat/Shovel row so a player locked to the F1 `Z = 0` lane can collect it with **E**. The dungeon's central Obstacle is **1.1 m tall** (matching mesh and collision, resting on the floor), permitting the normal grounded jump and horizontal movement in F1 to cross it and reach the physical EXIT. No view-specific collision bypass, teleport or movement tuning is required. The reference suite performs a real F1 Gun pickup and a physics-driven running jump to the exit.
 
 
-### D09-03 — Iron Reliquary HUD (PR #38, in progress)
+### D09-03 — HUD (PR #38, ready for review)
 
 The reference HUD uses the same compact, declarative Godot scene layout across all views: **Vitality (health) at the top-left**, **Objective at the bottom-left**, and **equipped weapon, ammo/actions and smaller next-item name at the bottom-right**. The center stays clear; optional icons come from weapon definition resources. **Q** swaps to the next carried item with the normal Equipment controller (the small label previews the next item and follows remapped controls). **H** completely shows/hides gameplay HUD chrome without changing gameplay. **F6** opens the keyboard/gamepad-help and clickable camera-selector panel; **C** opens camera settings. Interaction prompts are selected by the same Interactor as pressing E. A small first-person aim reticle only appears when a gun is equipped.
 
-This design is based on the original *Iron Reliquary* Diablo / Symphony of the Night visual direction. It contains no copied game artwork, and its icons are original minimal SVGs. CI/native/Web screenshot and manual release gates are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37).
+The original PS1-style design draws on the compact status readability of Diablo and Castlevania: Symphony of the Night. It contains no copied game artwork, and its icons are original minimal SVGs. CI/native/Web screenshot and manual release gates are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37).
 
 
 **D09-03 camera shortcut update:** Input `1` selects First-Person and `4` selects Side-Scroller; `2` and `3` retain Beat 'em Up and Isometric, and `5` selects **Top-Down**. F6 view buttons, displayed view labels and help shortcuts reflect the same mapping rather than hardcoded indices. This affects input mapping, not actor/camera state or persistent per-profile settings.

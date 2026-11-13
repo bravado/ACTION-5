@@ -1,4 +1,4 @@
-# ACTION-5 Iron Reliquary — UI appearance and asset inventory
+# ACTION-5 HUD — resource names, layout and asset inventory
 
 This document describes **D09-03** and its intentionally demo-local skin.
 The UI design borrows only broad material and layout inspiration from
@@ -17,19 +17,19 @@ the repository's MIT license:
 | `demo/ui/icons/bat.svg` | Stylized wooden bat |
 | `demo/ui/icons/shovel.svg` | Stylized shovel |
 | `demo/ui/icons/gun.svg` | Stylized pistol |
-| `demo/ui/iron_frame.tres` | Original dark-metal / antique-gold panel skin |
+| `demo/ui/panel_frame.tres` | Original dark-metal / antique-gold panel skin |
 
 The demo uses the built-in Godot font fallback and built-in Control widgets.
 There are **no third-party fonts, textures or UI libraries** to attribute.
 
 ## Layout / interaction contract
 
-- `demo/ui/iron_reliquary.tscn` is the **single reusable viewport HUD**
-  for F1–F5. `iron_reliquary.gd` builds small fixed-anchor status and
-  equipment panels with an open middle gap and event-only presentation.
+- `demo/ui/hud.tscn` is the **single reusable viewport HUD**
+  for F1–F5. `hud.gd` updates the declaratively authored fixed-anchor status and
+  equipment panels, leaving an open middle gap; no gameplay state lives in the presenter.
   **Vitality is anchored top-left, Objective bottom-left, and Equipment
   bottom-right**, identically across all five camera views.
-- `reference_hud.gd` is the demo-specific read-only adapter. It observes
+- `demo/ui/hud_adapter.gd` is the demo-specific read-only adapter. It observes
   Health, Combat, Equipment, ViewManager, Interactor and InputMap. Never
   place health, ammo, reload or interaction decision logic in the UI layer.
 - A weapon may optionally provide `Action5WeaponDefinition.hud_icon`.
@@ -60,7 +60,7 @@ not this demo's presentation logic.
 The demo's primary shortcuts are **1 First-Person, 2 Beat 'em Up,
 3 Isometric / Third-Person, 4 Side-Scroller, 5 Top-Down**. The input
 adapter owns the mapping `[3, 1, 2, 0, 4]` for the ViewManager's stable
-internal profile indices. `reference_hud.gd` queries the adapter for
+internal profile indices. `hud_adapter.gd` queries the adapter for
 numeric labels and the F6 help selector, so the game does not maintain an
 independent map of shortcuts. The last profile's in-game display name is
 **Top-Down**, even though its existing resource/enum retains the legacy
@@ -77,8 +77,8 @@ independent map of shortcuts. The last profile's in-game display name is
   and checked again at `pickup()` commit time. It includes actual pickup
   radius, weapon validity, inventory space, attack registration and first
   auto-equip mount presence; HUD does not check these individually.
-- **Declarative UI:** `iron_reliquary.tscn` owns fixed controls, anchors,
-  theme overrides and the notice timer; the shorter `iron_reliquary.gd`
+- **Declarative UI:** `hud.tscn` owns fixed controls, anchors,
+  theme overrides and the notice timer; the shorter `hud.gd`
   only projects values and emits view/settings requests. The demo scene no
   longer contains duplicate invisible Help/Status/RetroDirection/buttons.
 - **Event-specific updates:** Health, movement and reload ticks update
@@ -86,7 +86,7 @@ independent map of shortcuts. The last profile's in-game display name is
   regenerated on view/equipment/attack changes and when help opens, or via
   explicit `Hud.refresh()` after remapping inputs. Both H/HUD and F6/Help
   footer/header labels are read from live InputMap.
-- **Single visibility state:** The Iron Reliquary presenter alone owns
+- **Single visibility state:** The HUD presenter alone owns
   gameplay HUD visibility. The adapter only forwards toggles and reads
   `display.is_gameplay_visible()`. Menus remain independent.
 
@@ -106,3 +106,18 @@ parents before any transfer, guaranteeing its typed rollback destination is
 valid. The HUD performs only one exit-node synchronization per full refresh.
 These checks keep the generic interaction API extensible; no concrete
 EquipmentController class is required by the demo pickup interaction.
+
+## Naming convention
+
+UI filenames are plain, functional and consistent with existing resources
+such as `death_overlay.tscn`, `victory_overlay.tscn` and
+`camera_settings_panel.gd`:
+
+- `hud.tscn` — static HUD layout (root instance: `Hud/Display`)
+- `hud.gd` — value-only presenter attached to the HUD scene
+- `hud_adapter.gd` — read-only demo adapter from Action5 components
+- `panel_frame.tres` — shared panel style for HUD, settings, and outcome overlays
+
+Avoid branded theme names or milestone numbers in asset filenames. Keep
+existing published API resource paths stable, including the legacy
+`retro_topdown.tres` profile; user-visible camera labels stay `Top-Down`.

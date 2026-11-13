@@ -144,7 +144,7 @@ try {
     errors.push('Right-click in gameplay did not trigger Kick');
   }
   const beforeHudClick = combatStarts.length;
-  await page.keyboard.press('F6'); // on-demand Iron Reliquary controls
+  await page.keyboard.press('F6'); // on-demand HUD controls
   await page.waitForTimeout(220);
   await page.mouse.click(350, 169); // SIDE in the new controls panel
   await page.waitForTimeout(250);

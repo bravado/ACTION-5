@@ -25,7 +25,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var player := stage.get_node("Player") as CharacterBody3D
     var views: Node = stage.get_node("ViewManager")
     var hud: Node = stage.get_node("Hud")
-    var display := stage.get_node("Hud/Reliquary") as Control
+    var display := stage.get_node("Hud/Display") as Control
     var hp_text := display.get("_hp_text") as Label
     var weapon_text := display.get("_weapon_title") as Label
     var ammo_text := display.get("_ammo_text") as Label

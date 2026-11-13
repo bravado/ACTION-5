@@ -1,12 +1,12 @@
 extends Control
-## Iron Reliquary's declarative scene owns layout; this presenter accepts
+## The HUD's declarative scene owns layout; this presenter accepts
 ## read-only gameplay snapshots and emits only UI navigation requests.
 
 signal help_visibility_changed(open: bool)
 signal view_requested(index: int)
 signal settings_requested
 
-const FRAME: StyleBoxFlat = preload("res://demo/ui/iron_frame.tres")
+const FRAME: StyleBoxFlat = preload("res://demo/ui/panel_frame.tres")
 const GOLD := Color("#BA9A60")
 
 @onready var _health_panel: PanelContainer = $HealthPanel
@@ -78,7 +78,7 @@ func set_help_open(value: bool) -> void:
 
 func set_shortcut_hints(hud_hint: String, help_hint: String) -> void:
     _input_hint = "%s · HUD    %s · HELP" % [hud_hint, help_hint]
-    _help_title.text = "IRON RELIQUARY  ·  CONTROLS  [%s TO CLOSE]" % help_hint
+    _help_title.text = "HUD · CONTROLS  [%s TO CLOSE]" % help_hint
     _render_player_state()
 
 

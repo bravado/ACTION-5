@@ -87,7 +87,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var slash: Resource = sword.get("definition").attacks[0]
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
-    var display := level.get_node("Hud/Reliquary") as Control
+    var display := level.get_node("Hud/Display") as Control
     var view_label := display.get("_view") as Label
     var weapon_label := display.get("_weapon_title") as Label
     verify.call(level.get_node("Hud").is_physics_processing(),

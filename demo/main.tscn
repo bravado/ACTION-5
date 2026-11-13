@@ -36,8 +36,8 @@
 [ext_resource type="PackedScene" path="res://demo/world/remote_chamber.tscn" id="29_remote_chamber"]
 [ext_resource type="Script" path="res://demo/world/outer_wall_fader.gd" id="30_outer_wall_fader"]
 [ext_resource type="Script" path="res://demo/world/side_lane_controller.gd" id="31_side_lane"]
-[ext_resource type="Script" path="res://demo/ui/reference_hud.gd" id="32_hud"]
-[ext_resource type="PackedScene" path="res://demo/ui/iron_reliquary.tscn" id="34_reliquary"]
+[ext_resource type="Script" path="res://demo/ui/hud_adapter.gd" id="32_hud_adapter"]
+[ext_resource type="PackedScene" path="res://demo/ui/hud.tscn" id="34_hud_scene"]
 [ext_resource type="PackedScene" path="res://demo/ui/victory_overlay.tscn" id="33_victory"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
@@ -448,9 +448,9 @@ mouse_filter = 2
 color = Color(0.12, 0.18, 0.26, 0.18)
 
 [node name="Hud" type="CanvasLayer" parent="."]
-script = ExtResource("32_hud")
+script = ExtResource("32_hud_adapter")
 
-[node name="Reliquary" parent="Hud" instance=ExtResource("34_reliquary")]
+[node name="Display" parent="Hud" instance=ExtResource("34_hud_scene")]
 
 [node name="CameraSettings" type="PanelContainer" parent="Hud"]
 visible = false

@@ -43,7 +43,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     # D09 projects current InputMap and registered AttackDefinitions instead
     # of hardcoded weapon, command, or obsolete demo help strings.
-    var controls: Label = level.get_node("Hud/Reliquary/HelpPanel/Content/Scroll/HelpText") as Label
+    var controls: Label = level.get_node("Hud/Display/HelpPanel/Content/Scroll/HelpText") as Label
     verify.call(controls.text.contains("ACTION-5")
         and controls.text.contains("Interact: E")
         and controls.text.contains("Swap: Q")
