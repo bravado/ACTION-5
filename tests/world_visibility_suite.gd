@@ -47,7 +47,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     player.global_position = mesh.global_position + Vector3(0, 0.15, 0)
     views.switch_view(1)
-    controller._process(1.0)
+    controller.call("_process", 1.0)
     var faded := mesh.get_surface_override_material(0) as StandardMaterial3D
     verify.call(faded != null and faded != material
         and faded.albedo_color.a < 0.35,
@@ -83,8 +83,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # A target may disappear during fresh sector loading. No stale ownership.
     var target_id: int = mesh.get_instance_id()
     imported.free()
-    controller._process(0.0)
-    verify.call(not (controller._materials as Dictionary).has(target_id),
+    controller.call("_process", 0.0)
+    verify.call(not (controller.get("_materials") as Dictionary).has(target_id),
         "Dynamic imported scenes release material cache on unload")
 
     controller.queue_free()
