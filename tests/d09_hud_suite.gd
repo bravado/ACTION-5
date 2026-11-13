@@ -24,6 +24,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var hp_panel := display.get_node("HealthPanel") as PanelContainer
     var equip_panel := display.get_node("EquipmentPanel") as PanelContainer
     var hp_bar := display.get("_health_bar") as ProgressBar
+    var hp_text := display.get("_hp_text") as Label
+    var objective := display.get("_objective") as Label
+    var fallback := display.get("_weapon_fallback") as Label
+    verify.call(objective.text.contains("east gate")
+        and objective.size.x >= 290.0 and objective.size.y >= 30.0,
+        "D09-03 objective value has visible space in fixed top-left panel")
+    verify.call(hp_text.text.contains("100 / 100") and hp_text.size.x >= 80.0,
+        "D09-03 numeric HP value is not compressed by the vitality title")
+    verify.call(fallback.visible and fallback.size.x >= 30.0,
+        "D09-03 unarmed icon fallback reserves a visible square")
     var main_label := display.get("_weapon_title") as Label
     var second_label := display.get("_secondary") as Label
     verify.call(not stage.get_node("Hud/Help").visible

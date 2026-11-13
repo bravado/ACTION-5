@@ -20,6 +20,7 @@ var _weapon_fallback: Label
 var _weapon_title: Label
 var _ammo_text: Label
 var _secondary: Label
+var _secondary_separator: HSeparator
 var _objective: Label
 var _view: Label
 var _interaction: Label
@@ -136,10 +137,11 @@ func set_equipment(name: String, icon: Texture2D, ammo: Dictionary,
     _secondary.text = "%s  ·  %s to switch" % [secondary, swap_hint] \
         if not secondary.is_empty() and not swap_hint.is_empty() else ""
     _secondary.visible = not _secondary.text.is_empty()
+    _secondary_separator.visible = _secondary.visible
 
 
 func set_objective(value: String) -> void:
-    _objective.text = "OBJECTIVE\n" + value
+    _objective.text = value
 
 
 func set_view(value: String) -> void:
@@ -205,6 +207,9 @@ func _build_health() -> void:
     title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     row.add_child(title)
     _hp_text = _label("100 / 100", 14)
+    _hp_text.custom_minimum_size.x = 80
+    _hp_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    _hp_text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
     row.add_child(_hp_text)
     _health_bar = ProgressBar.new()
     _health_bar.custom_minimum_size = Vector2(0, 16)
@@ -239,6 +244,10 @@ func _build_equipment() -> void:
     _weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     icon_box.add_child(_weapon_icon)
     _weapon_fallback = _label("◆", 26, GOLD)
+    _weapon_fallback.custom_minimum_size = Vector2(32, 32)
+    _weapon_fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _weapon_fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    _weapon_fallback.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
     icon_box.add_child(_weapon_fallback)
     var details := _stack(row)
     details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -246,8 +255,8 @@ func _build_equipment() -> void:
     details.add_child(_weapon_title)
     _ammo_text = _label("READY", 13, GOLD)
     details.add_child(_ammo_text)
-    var line := HSeparator.new()
-    stack.add_child(line)
+    _secondary_separator = HSeparator.new()
+    stack.add_child(_secondary_separator)
     _secondary = _label("", 12, MUTED)
     stack.add_child(_secondary)
 
@@ -256,9 +265,13 @@ func _build_top() -> void:
     var objective_panel := _panel("ObjectivePanel", 0, 0, 0, 0,
         24, 18, 353, 82)
     _gameplay_nodes.append(objective_panel)
+    var stack := _stack(objective_panel)
+    stack.add_child(_label("OBJECTIVE", 11, GOLD))
     _objective = _label("", 13)
+    _objective.custom_minimum_size = Vector2(298, 30)
     _objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    objective_panel.add_child(_objective)
+    _objective.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+    stack.add_child(_objective)
     var view_panel := _panel("ViewPanel", 1, 0, 1, 0,
         -294, 18, -24, 67)
     _gameplay_nodes.append(view_panel)
