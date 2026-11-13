@@ -17,6 +17,7 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _settings_toggle: Button = $Hud/SettingsToggle
+@onready var _hud: Node = $Hud
 
 func _ready() -> void:
     _views.view_changed.connect(_on_view_changed)
@@ -31,9 +32,10 @@ func _ready() -> void:
     _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
     _register_demo_actions()
     _settings_toggle.pressed.connect(_toggle_camera_settings)
+    _hud.help_visibility_changed.connect(_on_hud_help_visibility_changed)
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
-    _input.set_enabled(not _camera_settings.visible)
+    _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())
     for i in range(5):
         var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
         button.pressed.connect(_on_mode_button_pressed.bind(i))
@@ -54,6 +56,8 @@ func _on_mode_button_pressed(index: int) -> void:
 
 
 func _toggle_camera_settings() -> void:
+    if _hud.is_help_open():
+        _hud.set_help_open(false)
     _camera_settings.visible = not _camera_settings.visible
     if _camera_settings.visible:
         _camera_settings.call("refresh_controls")
@@ -65,8 +69,15 @@ func _on_camera_settings_visibility_changed() -> void:
     # This also handles the Close button inside the settings panel.
     _release_ui_focus()
     # Only the panel's UI gate is owned here; the adapter owns window focus.
-    _input.set_enabled(not _camera_settings.visible)
+    _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())
     print("ACTION5_CAMERA_SETTINGS_VISIBLE ", "open" if _camera_settings.visible else "closed")
+
+
+func _on_hud_help_visibility_changed(open: bool) -> void:
+    _input.set_enabled(not open and not _camera_settings.visible)
+    if open:
+        Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+    _release_ui_focus()
 
 
 func _release_ui_focus() -> void:
@@ -89,7 +100,7 @@ func _unhandled_input(event: InputEvent) -> void:
     # The demo's remappable actions accept keyboard, controller and mouse.
     if event is InputEventKey and event.echo:
         return
-    if _camera_settings.visible or not event.is_pressed():
+    if _camera_settings.visible or _hud.is_help_open() or not event.is_pressed():
         return
     var consumed: bool = false
     if event.is_action_pressed(&"demo_interact"):

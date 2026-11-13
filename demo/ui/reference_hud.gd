@@ -12,10 +12,15 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export var exit_path: NodePath = ^"../EncounterSector/ExitTerminal"
 @export var actor_input_path: NodePath = ^"../ActorInput"
 @export var direction_policy_path: NodePath = ^"../Player/EquippedViewFacing"
+@export var interactor_path: NodePath = ^"../Interactor"
+@export var player_path: NodePath = ^"../Player"
 
 @onready var status: Label = $Status
 @onready var help: Label = $Help
 @onready var retro_direction: Label = get_node_or_null(^"RetroDirection") as Label
+@onready var display: Control = $Reliquary
+@onready var interactor: Node = get_node_or_null(interactor_path)
+@onready var player: Node3D = get_node_or_null(player_path) as Node3D
 @onready var views: Node = get_node_or_null(views_path)
 @onready var health: Node = get_node_or_null(health_path)
 @onready var combat: Node = get_node_or_null(combat_path)
@@ -28,15 +33,29 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 var _weapon: Node
 var _exit: Node
 var _reload_timer: Timer
+var _interaction_timer: Timer
+var _hud_visible: bool = true
+var _last_objective: String = ""
+signal help_visibility_changed(open: bool)
 
 
 func _ready() -> void:
+    _register_hud_actions()
+    display.help_visibility_changed.connect(_on_help_visibility_changed)
+    _interaction_timer = Timer.new()
+    _interaction_timer.wait_time = 0.14
+    _interaction_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+    add_child(_interaction_timer)
+    _interaction_timer.timeout.connect(_refresh_interaction)
+    _interaction_timer.start()
     _reload_timer = Timer.new()
     _reload_timer.wait_time = 0.25
     add_child(_reload_timer)
     _reload_timer.timeout.connect(refresh)
     _connect(views, &"view_changed", _on_view_changed)
     _connect(health, &"health_changed", _on_health_changed)
+    _connect(health, &"damaged", _on_player_damaged)
+    _connect(combat, &"attack_hit", _on_attack_hit)
     _connect(combat, &"attack_started", _on_attack_event)
     _connect(combat, &"attack_finished", _on_attack_event)
     _connect(combat, &"attack_cancelled", _on_attack_event)
@@ -47,6 +66,9 @@ func _ready() -> void:
     _connect(equipment, &"weapon_unequipped", _on_equipment_event)
     _connect(equipment, &"weapon_dropped", _on_equipment_event)
     _connect(equipment, &"weapon_picked_up", _on_equipment_event)
+    _connect(equipment, &"weapon_picked_up", _on_pickup_notice)
+    _connect(equipment, &"weapon_dropped", _on_drop_notice)
+    _connect(equipment, &"weapon_equipped", _on_equip_notice)
     _connect(moves, &"move_changed", _on_move_changed)
     _connect(session, &"sector_changed", _on_sector_changed)
     Input.joy_connection_changed.connect(_on_joy_connection)
@@ -126,6 +148,12 @@ func refresh() -> void:
             objective = "Reach the EXIT beacon in the dungeon"
         elif sector == "encounter":
             objective = "Defeat the dungeon enemies to unlock EXIT"
+    display.set_objective(objective)
+    if not _last_objective.is_empty() and _last_objective != objective:
+        display.notify(objective)
+    _last_objective = objective
+    display.set_view("F%d · %s" % [int(views.get("active_index")) + 1,
+        str(profile.get("display_name")).to_upper()])
     var instructions: String = "ACTION-5 | " + objective
     var view_hints := PackedStringArray()
     for i in range((views.get("profiles") as Array).size()):
@@ -200,7 +228,124 @@ func refresh() -> void:
         instructions += " | " + " | ".join(commands)
     if help.text != instructions:
         help.text = instructions
+    display.set_help_text(instructions)
+    var definition: Resource = _weapon.get("definition") as Resource if is_instance_valid(_weapon) else null
+    var icon: Texture2D = definition.get("hud_icon") as Texture2D if definition != null else null
+    var ammo: Dictionary = _weapon.call("get_ammo_status") if is_instance_valid(_weapon) \
+        and _weapon.has_method("get_ammo_status") else {}
+    var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
+    var next_name: String = _next_weapon_name()
+    display.set_health(float(health.get("current_health")) if is_instance_valid(health) else 0.0,
+        float(health.get("max_health")) if is_instance_valid(health) else 1.0)
+    display.set_equipment(weapon_name, icon, ammo, next_name,
+        _binding(&"demo_swap") if not next_name.is_empty() else "",
+        " · ".join(commands))
     _update_reload_timer()
+
+
+func _next_weapon_name() -> String:
+    if not is_instance_valid(equipment):
+        return ""
+    var items: Array = equipment.get("inventory") as Array
+    if items.is_empty():
+        return ""
+    var index: int = items.find(_weapon)
+    if index >= 0 and items.size() < 2:
+        return ""
+    var next: Node = items[0] as Node if index < 0 else items[(index + 1) % items.size()] as Node
+    if not is_instance_valid(next):
+        return ""
+    var definition: Resource = next.get("definition") as Resource
+    return str(definition.get("display_name")) if definition != null else next.name
+
+
+func _register_hud_actions() -> void:
+    for config in [{"name": &"hud_toggle", "key": KEY_H},
+            {"name": &"hud_help", "key": KEY_F6}]:
+        var action: StringName = config["name"]
+        if not InputMap.has_action(action):
+            InputMap.add_action(action)
+        if InputMap.action_get_events(action).is_empty():
+            var event := InputEventKey.new()
+            event.keycode = config["key"]
+            InputMap.action_add_event(action, event)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+    if not event.is_pressed() or (event is InputEventKey and event.echo):
+        return
+    if event.is_action_pressed(&"hud_toggle"):
+        set_hud_visible(not _hud_visible)
+        get_viewport().set_input_as_handled()
+    elif event.is_action_pressed(&"hud_help"):
+        set_help_open(not display.is_help_open())
+        get_viewport().set_input_as_handled()
+    elif event is InputEventKey and event.keycode == KEY_ESCAPE and display.is_help_open():
+        set_help_open(false)
+        get_viewport().set_input_as_handled()
+
+
+func set_hud_visible(value: bool) -> void:
+    _hud_visible = value
+    display.set_gameplay_visible(value)
+    _sync_retro_direction()
+    if value:
+        _refresh_interaction()
+
+
+func is_hud_visible() -> bool:
+    return _hud_visible
+
+
+func set_help_open(value: bool) -> void:
+    display.set_help_open(value)
+
+
+func is_help_open() -> bool:
+    return display.is_help_open()
+
+
+func _on_help_visibility_changed(open: bool) -> void:
+    help_visibility_changed.emit(open)
+
+
+func _refresh_interaction() -> void:
+    if not _hud_visible or not is_instance_valid(interactor) or not is_instance_valid(player) \
+            or not interactor.has_method("get_target"):
+        display.set_interaction("")
+        return
+    var target: Node3D = interactor.call("get_target", player) as Node3D
+    if not is_instance_valid(target):
+        display.set_interaction("")
+        return
+    var action: String = str(target.call("get_interaction_label", player)) \
+        if target.has_method("get_interaction_label") else "Interact"
+    display.set_interaction("%s · %s" % [_binding(&"demo_interact"), action])
+
+
+func _item_name(weapon: Node3D) -> String:
+    var definition: Resource = weapon.get("definition") as Resource if is_instance_valid(weapon) else null
+    return str(definition.get("display_name")) if definition != null else "item"
+
+
+func _on_pickup_notice(weapon: Node3D) -> void:
+    display.notify("Picked up " + _item_name(weapon))
+
+
+func _on_equip_notice(weapon: Node3D) -> void:
+    display.notify("Equipped " + _item_name(weapon))
+
+
+func _on_drop_notice(weapon: Node3D) -> void:
+    display.notify("Dropped " + _item_name(weapon))
+
+
+func _on_player_damaged(amount: float, _source: Node) -> void:
+    display.notify("HIT · -%d HP" % ceili(amount))
+
+
+func _on_attack_hit(_id: StringName, _target: Node) -> void:
+    display.notify("HIT CONFIRMED")
 
 
 ## InputMap is authoritative. Optional command defaults are shown before
@@ -311,10 +456,11 @@ func _sync_retro_direction() -> void:
         return
     var retro: bool = is_instance_valid(views) and views.get("current_profile") != null \
         and int(views.get("current_profile").get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN
-    retro_direction.visible = retro
+    # Existing text still serves tests; visual feedback lives in Reliquary.
+    retro_direction.visible = false
     # The facing snapshot updates on the physics clock, not each render frame.
     # This bounds HUD allocation work on high-refresh native/WebGL2 displays.
-    set_physics_process(retro)
+    set_physics_process(retro and _hud_visible)
 
 
 func _physics_process(_delta: float) -> void:
@@ -337,6 +483,10 @@ func _physics_process(_delta: float) -> void:
     ]
     if retro_direction.text != text_line:
         retro_direction.text = text_line
+    if _hud_visible:
+        display.set_view("F5 · RETRO TOP-DOWN | %s %s" % [
+            facing_label, _compass_heading(heading)
+        ])
 
 
 func _compass_heading(direction: Vector2) -> String:
