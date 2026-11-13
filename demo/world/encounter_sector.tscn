@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://demo/world/traversal_fixture.gd" id="6"]
 [ext_resource type="Script" path="res://demo/interactions/reference_exit.gd" id="7_exit"]
 [ext_resource type="PackedScene" path="res://demo/equipment/sword.tscn" id="8_sword"]
-[ext_resource type="Script" path="res://demo/interactions/world_pickup.gd" id="9_pickup"]
 
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(24, 0.4, 16)
@@ -70,10 +69,6 @@ surface_material_override/0 = SubResource("obstacle_color")
 
 [node name="SwordPickup" parent="." instance=ExtResource("8_sword")]
 position = Vector3(1.8, 0.45, -3.5)
-
-[node name="SwordPickupWorldState" type="Node3D" parent="."]
-script = ExtResource("9_pickup")
-weapon_path = NodePath("../SwordPickup")
 
 [node name="Melee" parent="." instance=ExtResource("2")]
 position = Vector3(-5, 0.15, 0)
