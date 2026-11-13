@@ -32,7 +32,7 @@ world Muzzle to this target, excluding the owner body's collision objects.
 In F1 the same provider selects an upper-torso target along the shared
 2D horizontal combat lane (default 1.25 units above actor root), rather
 than tracing a camera ray into depth or firing at hand height. F2/F3
-use world aim/facing; retro F5 uses the equipped weapon's direction policy and selects targets along the player's forward centerline. No gun-specific camera checks and no
+use world aim/facing; Top-Down (F5) uses the equipped weapon's direction policy and selects targets along the player's forward centerline. No gun-specific camera checks and no
 retro quantization in its AttackDefinition. A nearer layer-1 wall takes
 precedence over a layer-2 Hurtbox. A valid active shot consumes one bullet
 even when a wall blocks its target; a dry/invalid/cancelled request does not.

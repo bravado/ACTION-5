@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
     var side_view: bool = mode == ViewProfileScript.Mode.SIDE
     var opaque_view: bool = (
         (preserve_first_person and mode == ViewProfileScript.Mode.FIRST_PERSON)
-        or (preserve_top_down and mode == ViewProfileScript.Mode.RETRO_TOPDOWN)
+        or (preserve_top_down and mode == ViewProfileScript.Mode.TOP_DOWN)
     )
     # Do not leave an old alpha material on screen during F4/F5 entry.
     var fade_rate: float = (

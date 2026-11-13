@@ -873,7 +873,7 @@ specified 20-minute exploratory native/Web run.
 
 **Physical targeting and presentation:** The local F5 provider selects the first target on the player's forward horizontal centerline at the world-muzzle height. The existing Gun then fires *from its actual world muzzle* toward that point, stopping on nearer obstructions; the tracer also starts at that muzzle and ends at the resolved hit. F4 retains a visual-only gripped barrel-tip origin. Both Pistol variants have a validated normalized 0–1 F4 reload pose driven by the existing Gun reload countdown. None of these features alters world-muzzle authority, ammo accounting, attack-clock timing, physical Hurtboxes or NPC aim.
 
-**Automated evidence:** `tests/d09_retro_suite.gd` covers pickups, shared actor/camera, F5/F3 aiming, F5 physical Gun targeting and tracer, configurable 16-way policy, view switching, HUD and input. The D08 interaction regressions cover portal/switch isolation. `tests/d06_gun_suite.gd` checks valid F4 reload animation, live arm/grip movement, restored idle pose and alternate Gun. Pinned Godot [reviewed Checks (1,319/1,319 assertions, zero failures)](https://github.com/bravado/ACTION-5/actions/runs/43279273262) passed after the declarative input and shared centerline-ray refactors, including a real Sword-to-Hurtbox hit. [Native Linux/WebGL2 Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43272386374) passed on the prior implementation baseline; rerun it on the reviewed head before merging, and run merge-commit CI again.
+**Automated evidence:** `tests/d09_top_down_suite.gd` covers pickups, shared actor/camera, F5/F3 aiming, F5 physical Gun targeting and tracer, configurable 16-way policy, view switching, HUD and input. The D08 interaction regressions cover portal/switch isolation. `tests/d06_gun_suite.gd` checks valid F4 reload animation, live arm/grip movement, restored idle pose and alternate Gun. Pinned Godot [reviewed Checks (1,319/1,319 assertions, zero failures)](https://github.com/bravado/ACTION-5/actions/runs/43279273262) passed after the declarative input and shared centerline-ray refactors, including a real Sword-to-Hurtbox hit. [Native Linux/WebGL2 Full E2E](https://github.com/bravado/ACTION-5/actions/runs/43272386374) passed on the prior implementation baseline; rerun it on the reviewed head before merging, and run merge-commit CI again.
 
 **Separate acceptance gate:** Native/WebGL2 startup/render smoke and headless assertions are not proof of an owner-approved 20-minute exploratory playthrough (including F1–F5 camera changes, focus loss/rearm, Sword and Gun combat, doors, dungeon, F4 reload and exit). Keep that sign-off explicitly pending until performed. Follow with D10-01; do not conflate a completed implementation milestone with the final manual release gate.
 
@@ -904,8 +904,9 @@ The owner selected **1 First-Person, 2 Beat 'em Up, 3 Isometric / Third-Person,
 Existing gameplay physics, camera settings identities and per-profile
 saved overrides remain unchanged. HUD labels, F6 mode buttons, InputMap
 hints, README/camera instructions, Godot tests and real-Web browser
-keyboard smoke must agree. Existing internal `RETRO_TOPDOWN` identifiers
-remain for compatibility, while the in-game label is simply **Top-Down**.
+keyboard smoke must agree. View enum identifiers `BEAT_EM_UP` and `TOP_DOWN` now align with the
+resource names. The in-game label remains **Top-Down**, and existing
+saved camera preferences migrate to schema 3.
 
 ### D09-03 approved HUD panel placement
 
@@ -931,9 +932,11 @@ The remaining profile and directional-facing `.tres` assets were renamed
 to plain descriptive names: `views/beat_em_up.tres`, `views/top_down.tres`,
 `demo/input/top_down.tres`, `gun_top_down_facing.tres` and
 `sword_top_down_facing.tres`. No view order, combat policies, weapon
-definitions or gameplay signals change. `ViewProfile.Mode.RETRO_TOPDOWN`,
-InputMap `retro_*` actions and persisted `profile_retro_topdown`/
-`profile_beatemup` sections deliberately retain their stable identifiers.
+definitions or gameplay signals change. Public enum members are now
+`ViewProfile.Mode.BEAT_EM_UP` and `ViewProfile.Mode.TOP_DOWN`;
+view-local InputMap actions use `top_down_*`. Camera preferences use
+schema-3 sections `profile_beat_em_up` and `profile_top_down`, with
+automatic migration from the legacy schema-2 names.
 All source and scene references plus the resource-loading regression suite
 must use the renamed assets; owners of external scenes must change any old
 hardcoded paths.

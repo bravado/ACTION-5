@@ -19,7 +19,7 @@ const FirstPersonControls = preload("res://addons/action5/input/profiles/first_p
 @export var view_manager_path: NodePath = ^"../ViewManager"
 @export_range(0.0, 0.95, 0.05) var move_deadzone: float = 0.20
 @export_range(0.0, 0.95, 0.05) var aim_deadzone: float = 0.28
-@export_enum("4-way", "8-way") var retro_facing: int = 1
+@export_enum("4-way", "8-way") var top_down_facing: int = 1
 @export var independent_aim_enabled: bool = true
 ## Optional equipped/view facing provider, shared with CombatInput and Gun aim.
 @export var direction_policy_path: NodePath = ^""
@@ -220,7 +220,7 @@ func compose_intent(
         or views.camera_rig.look_input_revision != _first_person_entry_look_revision
     ):
         aim = MovementPolicyScript.to_world(Vector2(0.0, -1.0), mode, basis)
-    var sectors: int = 4 if retro_facing == 0 else 8
+    var sectors: int = 4 if top_down_facing == 0 else 8
     if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
         sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var facing := MovementPolicyScript.choose_facing(movement, aim, mode, sectors)

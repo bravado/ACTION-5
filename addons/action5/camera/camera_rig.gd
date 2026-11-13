@@ -25,7 +25,7 @@ var _orbit_angles: Dictionary = {}
 var look_input_revision: int = 0
 var _last_fps_exit_facing_yaw: float = 0.0
 var _has_fps_exit_facing: bool = false
-## Only the BEATEMUP presentation uses this small direction-sensitive
+## Only the BEAT_EM_UP presentation uses this small direction-sensitive
 ## sidestep. Player controls stay mapped to fixed world axes.
 var _arcade_peek_angle: float = 0.0
 var _arcade_last_lateral_sign: float = 1.0
@@ -88,7 +88,7 @@ func apply_profile(next_profile: ViewProfileScript, next_target: Node3D) -> void
     _snap_next = (
         leaving_first_person
         or profile.mode == ViewProfileScript.Mode.FIRST_PERSON
-        or profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN
+        or profile.mode == ViewProfileScript.Mode.TOP_DOWN
         # One isometric profile contains both high and close shoulder framing.
         or profile.mode == ViewProfileScript.Mode.ISOMETRIC
         # A platformer-style side view must be exactly horizontal immediately.
@@ -171,7 +171,7 @@ func _update_camera(delta: float) -> void:
     var actor_position: Vector3 = target.global_position
     var focus: Vector3 = actor_position + Vector3.UP * profile.focus_height
     var view_offset: Vector3 = profile.fixed_offset
-    if profile.mode == ViewProfileScript.Mode.BEATEMUP \
+    if profile.mode == ViewProfileScript.Mode.BEAT_EM_UP \
             and profile.lateral_peek_degrees > 0.0:
         # Slightly behind the direction of world-X travel so east/west
         # walls (whose faces are perpendicular to X) are never edge-on.

@@ -21,7 +21,7 @@ const D08CameraSectorSuiteScript = preload("res://tests/d08_camera_sector_suite.
 const D08ConnectionsSuiteScript = preload("res://tests/d08_connections_suite.gd")
 const D09ReferenceSuiteScript = preload("res://tests/d09_reference_suite.gd")
 const D09SideAimSuiteScript = preload("res://tests/d09_side_aim_suite.gd")
-const D09RetroSuiteScript = preload("res://tests/d09_retro_suite.gd")
+const D09TopDownSuiteScript = preload("res://tests/d09_top_down_suite.gd")
 const D09HudSuiteScript = preload("res://tests/d09_hud_suite.gd")
 const LocomotionScript = preload("res://addons/action5/actor/locomotion.gd")
 const ActorInputScript = preload("res://addons/action5/input/actor_input_adapter.gd")
@@ -126,7 +126,7 @@ func _run_tests() -> void:
             "One persistent Camera3D across all five views")
         _check(manager.profiles[2].mode == ViewProfileScript.Mode.ISOMETRIC
             and manager.profiles[3].mode == ViewProfileScript.Mode.FIRST_PERSON
-            and manager.profiles[4].mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+            and manager.profiles[4].mode == ViewProfileScript.Mode.TOP_DOWN,
             "Mode 3 is shared isometric/shoulder, 4 is FPS, 5 retro top-down")
         var player_id: int = player.get_instance_id()
         var camera_id: int = manager.get_active_camera().get_instance_id()
@@ -147,7 +147,7 @@ func _run_tests() -> void:
             "Switches do not teleport the player")
 
         manager.switch_view(4)
-        _check(manager.current_profile.mode == ViewProfileScript.Mode.RETRO_TOPDOWN,
+        _check(manager.current_profile.mode == ViewProfileScript.Mode.TOP_DOWN,
             "F5 is dedicated NES-style overhead profile")
         _check(manager.camera_rig.is_vertical_overhead(),
             "F5 camera is precisely vertical")
@@ -401,7 +401,7 @@ func _run_tests() -> void:
         var peek_config := ConfigFile.new()
         _check(peek_config.load(settings.preferences_path) == OK
             and absf(float(peek_config.get_value(
-                "profile_beatemup", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
+                "profile_beat_em_up", "lateral_peek_degrees", -1.0)) - 5.0) < 0.01,
             "F2 lateral peek override is persisted under its stable profile ID")
         settings.call("reset_current_camera")
         _check(absf(manager.current_profile.lateral_peek_degrees - 6.0) < 0.01,
@@ -409,7 +409,7 @@ func _run_tests() -> void:
         var reset_peek_config := ConfigFile.new()
         _check(reset_peek_config.load(settings.preferences_path) == OK
             and not reset_peek_config.has_section_key(
-                "profile_beatemup", "lateral_peek_degrees"),
+                "profile_beat_em_up", "lateral_peek_degrees"),
             "Reset removes F2 peek overrides so future defaults remain editable")
 
         # First-person's boolean Y-axis setting is a per-profile checkbox,
@@ -498,10 +498,10 @@ func _run_tests() -> void:
         var config := ConfigFile.new()
         _check(config.load(settings.preferences_path) == OK,
             "Per-mode camera overrides are saved")
-        _check(int(config.get_value("meta", "schema", 0)) == 2
+        _check(int(config.get_value("meta", "schema", 0)) == 3
             and absf(float(config.get_value("profile_isometric", "orthographic_size", 0.0)) - 6.25) < 0.01,
             "Saved zoom belongs to the stable isometric profile ID")
-        _check(not config.has_section_key("profile_retro_topdown", "fixed_distance"),
+        _check(not config.has_section_key("profile_top_down", "fixed_distance"),
             "Mode 5 overhead cannot inherit F2 camera depth")
         settings.call("reset_current_camera")
         _check(manager.camera_rig.get_isometric_close_factor() < 0.01
@@ -565,9 +565,36 @@ func _run_tests() -> void:
             "Old retro view 6 preferences migrated to new view 5")
         var migrated := ConfigFile.new()
         _check(migrated.load(settings.preferences_path) == OK
-            and int(migrated.get_value("meta", "schema", 0)) == 2
+            and int(migrated.get_value("meta", "schema", 0)) == 3
             and migrated.has_section_key("profile_isometric", "shoulder_offset"),
             "Migrated settings are saved in stable five-mode schema")
+        # Schema 2 used legacy profile section names. Migrate those values
+        # without changing their camera or resetting user preferences.
+        settings.preferences_path = "user://action5_named_profile_migration_test.cfg"
+        var named_old := ConfigFile.new()
+        named_old.set_value("meta", "schema", 2)
+        named_old.set_value("profile_beatemup", "lateral_peek_degrees", 3.5)
+        named_old.set_value("profile_retro_topdown", "orthographic_size", 12.25)
+        _check(named_old.save(settings.preferences_path) == OK,
+            "Legacy schema-2 profile-name fixture saved")
+        settings.call("_load_preferences")
+        _check(absf(manager.profiles[1].lateral_peek_degrees - 3.5) < 0.01
+            and absf(manager.profiles[4].orthographic_size - 12.25) < 0.01,
+            "Old Beat 'em Up and Top-Down overrides survive the identifier migration")
+        var named_new := ConfigFile.new()
+        _check(named_new.load(settings.preferences_path) == OK
+            and int(named_new.get_value("meta", "schema", 0)) == 3
+            and named_new.has_section_key("profile_beat_em_up", "lateral_peek_degrees")
+            and named_new.has_section_key("profile_top_down", "orthographic_size")
+            and not named_new.has_section("profile_beatemup")
+            and not named_new.has_section("profile_retro_topdown"),
+            "Schema-2 sections migrate atomically to descriptive schema-3 names")
+        manager.profiles[1].lateral_peek_degrees = 6.0
+        manager.profiles[4].orthographic_size = 15.5
+        settings.call("_load_preferences")
+        _check(absf(manager.profiles[1].lateral_peek_degrees - 3.5) < 0.01
+            and absf(manager.profiles[4].orthographic_size - 12.25) < 0.01,
+            "Schema-3 saved overrides reload without legacy sections")
         settings.save_user_settings = false
         for index in range(5):
             manager.switch_view(index)
@@ -715,8 +742,8 @@ func _run_tests() -> void:
     await d09_suite.run_tests(self, Callable(self, "_check"))
     var side_aim_suite := D09SideAimSuiteScript.new()
     await side_aim_suite.run_tests(self, Callable(self, "_check"))
-    var retro_suite := D09RetroSuiteScript.new()
-    await retro_suite.run_tests(self, Callable(self, "_check"))
+    var top_down_suite := D09TopDownSuiteScript.new()
+    await top_down_suite.run_tests(self, Callable(self, "_check"))
     var hud_suite := D09HudSuiteScript.new()
     await hud_suite.run_tests(self, Callable(self, "_check"))
 

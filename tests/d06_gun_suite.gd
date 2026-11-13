@@ -216,7 +216,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var source := ContextSourceScript.new()
     level.add_child(source)
     source.snapshot = ContextScript.new(true, Vector2(0, -1), Vector2(0, -1),
-        ProfileScript.Mode.BEATEMUP)
+        ProfileScript.Mode.BEAT_EM_UP)
     var aim: Node = actor.get_node("AimTargetProvider")
     aim.context_source = source
 
@@ -363,7 +363,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # Gun is allowed to fire while jumping/running: no locomotion switches
     # are made by Gun, and all views retain one physical instance.
     source.snapshot = ContextScript.new(true, Vector2(0, -1), Vector2(0, -1),
-        ProfileScript.Mode.BEATEMUP)
+        ProfileScript.Mode.BEAT_EM_UP)
     var baseline_weapon: Node = equipment.current_weapon
     var baseline_magazine: int = gun.magazine
     for view in range(5):
@@ -422,7 +422,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     baseline_magazine = gun.magazine
     views.switch_view(2)
     source.snapshot = ContextScript.new(true, Vector2(0, -1),
-        Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
+        Vector2(0, -1), ProfileScript.Mode.BEAT_EM_UP)
     verify.call(world_visual.call("get_projectile_visual_origin",
         gun, muzzle.global_position).is_equal_approx(muzzle.global_position),
         "F1–F3 and F5 never use the local F4 visual muzzle for projectile position")
@@ -430,14 +430,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # Independent F5 right-stick aiming uses the view-specific policy, not
     # movement or gun branches; F1–F3 retain continuous directions.
     source.snapshot = ContextScript.new(true, Vector2(0.98, 0.18),
-        Vector2(-1, 0), ProfileScript.Mode.RETRO_TOPDOWN)
-    var retro_target: Vector3 = aim.call("get_world_target",
+        Vector2(-1, 0), ProfileScript.Mode.TOP_DOWN)
+    var top_down_target: Vector3 = aim.call("get_world_target",
         muzzle.global_position, 20.0, camera_excludes)
-    var retro_direction := Vector2(retro_target.x - muzzle.global_position.x,
-        retro_target.z - muzzle.global_position.z).normalized()
-    verify.call(retro_direction.dot(Vector2.RIGHT) > 0.99,
+    var top_down_direction := Vector2(top_down_target.x - muzzle.global_position.x,
+        top_down_target.z - muzzle.global_position.z).normalized()
+    verify.call(top_down_direction.dot(Vector2.RIGHT) > 0.99,
         "F5 independent 8-way aim follows right stick, not moving/facing left")
-    for mode in [ProfileScript.Mode.SIDE, ProfileScript.Mode.BEATEMUP,
+    for mode in [ProfileScript.Mode.SIDE, ProfileScript.Mode.BEAT_EM_UP,
             ProfileScript.Mode.ISOMETRIC]:
         source.snapshot = ContextScript.new(true, Vector2(0.6, -0.8),
             Vector2(-1, 0), mode)
@@ -448,7 +448,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(continuous_direction.distance_to(Vector2(0.6, -0.8)) < 0.001,
             "View %d retains continuous gun heading without retro quantization" % mode)
     source.snapshot = ContextScript.new(true, Vector2(0, -1),
-        Vector2(0, -1), ProfileScript.Mode.BEATEMUP)
+        Vector2(0, -1), ProfileScript.Mode.BEAT_EM_UP)
 
     # A real F4 reload must drive valid visual poses from the Gun's own
     # command progress. This is not a CombatController attack animation.

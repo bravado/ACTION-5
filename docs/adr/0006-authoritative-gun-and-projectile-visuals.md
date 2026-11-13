@@ -197,7 +197,7 @@ producer per NPC, not a new combat/gun framework; the shipped
 should test target death/loss, two simultaneous enemies, body-first
 hit receivers, wall collision and camera switching. A missing target
 must fail closed without reusing the player's camera. D08 interactions,
-D09 reference HUD and retro directional policies are implemented.
+D09 reference HUD and Top-Down directional policies are implemented.
 D10 diagnostics, D11 full test matrix and D12 clean addon packaging
 remain separate.
 

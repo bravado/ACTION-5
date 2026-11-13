@@ -19,7 +19,7 @@ static func resolve_direction(
     if result.length_squared() < 0.001:
         result = Vector2(0.0, -1.0)
     result = result.normalized()
-    if mode == ViewProfileScript.Mode.RETRO_TOPDOWN and sectors >= 2:
+    if mode == ViewProfileScript.Mode.TOP_DOWN and sectors >= 2:
         result = PolicyScript.quantize_facing(result, sectors)
     return result
 

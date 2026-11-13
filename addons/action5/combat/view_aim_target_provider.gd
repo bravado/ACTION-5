@@ -9,7 +9,7 @@ const ProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
 @export var context_source_path: NodePath = ^"../../ActorInput"
 @export_flags_3d_physics var camera_target_mask: int = 3
-@export_enum("Free", "4-way", "8-way") var retro_gun_sectors: int = 2
+@export_enum("Free", "4-way", "8-way") var top_down_gun_sectors: int = 2
 ## F1 orthographic rays travel into screen depth, not left/right along the
 ## side-scroller plane. Use a separate upper-torso-height horizontal sight ray.
 ## This is a target-selection port only: Gun still casts from the world muzzle.
@@ -41,14 +41,14 @@ func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]
         return hit.get("position", end)
     if mode == ProfileScript.Mode.SIDE and is_instance_valid(camera):
         return _side_center_target(context, camera, origin, maximum_range, exclude)
-    var sectors: int = retro_gun_sectors * 4 if mode == ProfileScript.Mode.RETRO_TOPDOWN else 0
+    var sectors: int = top_down_gun_sectors * 4 if mode == ProfileScript.Mode.TOP_DOWN else 0
     if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
         sectors = int(direction_policy.call("get_sectors", mode, sectors))
     var direction: Vector2 = AimScript.resolve_direction(
         context.get("world_aim"), context.get("facing_world"), mode, camera, sectors
     )
-    if mode == ProfileScript.Mode.RETRO_TOPDOWN:
-        return _retro_center_target(origin, direction, maximum_range, exclude)
+    if mode == ProfileScript.Mode.TOP_DOWN:
+        return _top_down_center_target(origin, direction, maximum_range, exclude)
     return origin + Vector3(direction.x, 0.0, direction.y) * maximum_range
 
 
@@ -58,7 +58,7 @@ func get_world_target(origin: Vector3, maximum_range: float, exclude: Array[RID]
 ## this point. This is the same two-stage aiming principle as F1/F4 and
 ## cannot bypass an intervening wall or another object nearer the gun.
 ## Use the muzzle's Y for an overhead horizontal shot, not the floor.
-func _retro_center_target(origin: Vector3, direction: Vector2,
+func _top_down_center_target(origin: Vector3, direction: Vector2,
         maximum_range: float, exclude: Array[RID]) -> Vector3:
     var actor := get_node_or_null(side_aim_anchor_path) as Node3D
     if not is_instance_valid(actor) or maximum_range <= 0.0:

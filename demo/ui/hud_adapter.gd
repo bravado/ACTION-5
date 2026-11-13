@@ -133,7 +133,7 @@ func refresh() -> void:
     _refresh_health()
     _refresh_equipment()
     _refresh_activity()
-    _sync_retro_direction()
+    _sync_top_down_direction()
 
 
 func _objective_text() -> String:
@@ -364,7 +364,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func set_hud_visible(value: bool) -> void:
     display.set_gameplay_visible(value)
-    _sync_retro_direction()
+    _sync_top_down_direction()
     if value:
         _refresh_interaction()
 
@@ -529,10 +529,10 @@ func _on_joy_connection(_device: int, _connected: bool) -> void:
 
 ## Physics-rate, read-only direction indicator; only enabled when the
 ## top-down view is active and the gameplay HUD is visible.
-func _sync_retro_direction() -> void:
+func _sync_top_down_direction() -> void:
     var profile: Resource = views.get("current_profile") as Resource if is_instance_valid(views) else null
     set_physics_process(profile != null and is_hud_visible()
-        and int(profile.get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN)
+        and int(profile.get("mode")) == ViewProfileScript.Mode.TOP_DOWN)
 
 
 func _physics_process(_delta: float) -> void:
@@ -544,7 +544,7 @@ func _physics_process(_delta: float) -> void:
     var heading: Vector2 = context.get("facing_world")
     var sectors: int = 8
     if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
-        sectors = int(direction_policy.call("get_sectors", ViewProfileScript.Mode.RETRO_TOPDOWN, sectors))
+        sectors = int(direction_policy.call("get_sectors", ViewProfileScript.Mode.TOP_DOWN, sectors))
     var facing_label: String = "%d-WAY" % sectors if sectors >= 2 else "FREE"
     display.set_view("%d · TOP-DOWN | %s %s" % [
         _shortcut_number(int(views.get("active_index"))), facing_label, _compass_heading(heading)

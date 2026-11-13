@@ -63,8 +63,7 @@ adapter owns the mapping `[3, 1, 2, 0, 4]` for the ViewManager's stable
 internal profile indices. `hud_adapter.gd` queries the adapter for
 numeric labels and the F6 help selector, so the game does not maintain an
 independent map of shortcuts. The last profile's in-game display name is
-**Top-Down**, even though its existing resource/enum retains the legacy
-`retro_topdown` identifier for compatibility.
+**Top-Down**, using the `TOP_DOWN` enum and `top_down.tres` resource.
 
 
 ## D09-03 architecture simplifications (PR #38)
@@ -125,8 +124,9 @@ camera and direction policy assets also follow this convention:
 `demo/input/top_down.tres`,
 `demo/equipment/gun_top_down_facing.tres` and
 `demo/equipment/sword_top_down_facing.tres`.
-These filenames replace the older `beatemup` and `retro_*` resource
-paths. They are **not aliases**: external scenes must update their resource
-references. The internal `RETRO_TOPDOWN` enum, `retro_*` InputMap actions
-and the `profile_retro_topdown` settings key are left unchanged to avoid
-breaking input, gameplay behavior or existing camera preferences.
+These filenames replace the older resource paths without aliases:
+external consumers must update their references. The enum members,
+InputMap actions and settings sections now use `BEAT_EM_UP`,
+`TOP_DOWN`, `top_down_*`, `profile_beat_em_up` and
+`profile_top_down`. Legacy schema-2 saved settings are migrated on load
+so user camera overrides are retained.

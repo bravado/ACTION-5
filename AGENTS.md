@@ -765,9 +765,9 @@ Owner accepted the F1 trajectory. Do not falsely claim the separate
 
 ## D09-02 retro combat integration (implemented)
 
-D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena and existing D08 connected dungeon hold Sword pickups through WorldPickup persistence. F5 demo assigns `demo/input/top_down.tres` in `demo/main.tscn`, with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_retro_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. Pinned CI/Full E2E validate the implementation; the complete owner exploratory playthrough remains a separate manual acceptance gate.
+D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinition`, world mount and optional F4 grip. Direction quantization is a configurable `Action5ViewFacingPolicy` on the weapon definition; `Action5EquippedViewFacing` is one actor-local lookup shared by ActorInputAdapter (visible facing), CombatInputAdapter (melee request direction), and ViewAimTargetProvider (Gun target selection). This is not a second combat engine. Use `facing_sectors = 0` for F5-only quantization; it is not safe to set attack-global sectors. The starting arena and existing D08 connected dungeon hold Sword pickups through WorldPickup persistence. F5 demo assigns `demo/input/top_down.tres` in `demo/main.tscn`, with WASD movement, arrow-key independent aim and right-stick support; the generic ActorInputAdapter consumes optional extra aim actions. The HUD shows equipped Sword 4-WAY versus Gun 8-WAY and the current heading. The arena light switch is separated from the detached portal by more than twice the Interactor radius to prevent near-portal E selection conflicts; `tests/d09_top_down_suite.gd` validates physical pickup, same Sword F3/F5 behavior, eight-way Gun F5 target, free F3 target, and a replaceable 16-way policy. Keep world muzzle obstruction, D05 hit windows, gamepad independent aim, F4 visual-only muzzle, actor identity and scrolling profile bounds intact. Pinned CI/Full E2E validate the implementation; the complete owner exploratory playthrough remains a separate manual acceptance gate.
 
-- D09-02 top-down Gun correction: **do not start projectiles at the actor's center**. Both demo Guns reuse the existing `EquipmentVisualAdapter` origin (physical weapon muzzle except optional F4 barrel-tip). Only the actor-local `Action5ViewAimTargetProvider` selects F5 target along the player's X/Z center-forward line. It first resolves a reachable target/obstacle on that line, then `Action5Gun` still casts the authoritative ray from the real muzzle to that point. Do not give `Action5Gun`, `CombatController`, `ProjectileVisual` or the projectile presenter new view branches. `tests/d09_retro_suite.gd` verifies centerline target selection, real muzzle-origin emitted tracer, physical hit, ammo and F3/F4 fallbacks.
+- D09-02 top-down Gun correction: **do not start projectiles at the actor's center**. Both demo Guns reuse the existing `EquipmentVisualAdapter` origin (physical weapon muzzle except optional F4 barrel-tip). Only the actor-local `Action5ViewAimTargetProvider` selects F5 target along the player's X/Z center-forward line. It first resolves a reachable target/obstacle on that line, then `Action5Gun` still casts the authoritative ray from the real muzzle to that point. Do not give `Action5Gun`, `CombatController`, `ProjectileVisual` or the projectile presenter new view branches. `tests/d09_top_down_suite.gd` verifies centerline target selection, real muzzle-origin emitted tracer, physical hit, ammo and F3/F4 fallbacks.
 
 - **D09-02 F4 reload regression:** `demo/equipment/gun_reload_grip.tres` must pass `Action5FirstPersonLimbProfile.valid()`—especially the last pose at exactly `time = 1.0`, not 0.8. Its first/last grip geometry must return to the idle pose; otherwise `sample()` returns `{}` and F4 appears frozen despite Gun `reload_left` counting down. Both first-person Gun viewmodels reuse the profile and receive `get_visual_action()` through `set_visual_source` + EquipmentVisualAdapter. Do not introduce a second reload timer or put weapon-specific branches into CombatController/FirstPersonPresenter. `tests/d06_gun_suite.gd` now checks real mid-reload arm/grip movement, successful completion returning to idle, alternate Gun reload and abort on unequip.
 
@@ -796,9 +796,10 @@ demo scene) is the *sole* shortcut-order authority. The HUD queries it
 for its compact active-view label and F6 button order. Keep default
 identity mapping for users embedding Action5ViewInput without this array.
 The resource is now named `addons/action5/views/top_down.tres`.
-Keep the **internal** `ViewProfile.Mode.RETRO_TOPDOWN` enum and the
-`profile_retro_topdown` saved-settings section for compatibility.
-The visible mode is always **Top-Down**.
+Use `ViewProfile.Mode.TOP_DOWN`, `ViewProfile.Mode.BEAT_EM_UP`,
+and schema-3 sections `profile_top_down` and `profile_beat_em_up`.
+Existing schema-2 preferences are migrated automatically when loaded.
+The visible mode remains **Top-Down**.
 
 ### D09-03 UI layout refinement
 
@@ -836,7 +837,9 @@ branding concept, art direction or milestone. For the current UI:
 for future resources (e.g. `inventory.tscn`, `health_bar.tscn`) rather than
 inventing named UI themes. When a resource path must be renamed, migrate **all scenes, scripts,
 tests and documentation atomically**, and verify the new paths load while
-the old paths no longer exist. Renaming a `.tres` path does not require
-renaming public enums, input actions or persisted user settings keys:
-in particular, keep `RETRO_TOPDOWN` and `profile_retro_topdown` stable.
-External projects that load an old asset path must update that reference.
+the old paths no longer exist. Enum members and InputMap actions should also use plain identifiers:
+`TOP_DOWN`, `BEAT_EM_UP`, and `top_down_*`. Saved camera sections use
+`profile_top_down` and `profile_beat_em_up` with a schema-2 reader
+for old preferences. External integrations loading old resource paths,
+enum member names, exported properties or action names must update their
+references; preserve only the settings-file migration.
