@@ -69,6 +69,24 @@ try {
   if (hashes.size < 5) {
     errors.push('Only ' + hashes.size + '/5 unique camera screenshots after pressing 1–5');
   }
+  // Verify the user's numeric shortcut order using actual browser keyboard
+  // events and runtime camera logs, not merely different screenshots.
+  for (const [key, index, mode] of [
+    ['1', 4, 'First-Person'],
+    ['4', 1, 'Side-Scroller'],
+    ['5', 5, 'Top-Down'],
+  ]) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(280);
+    const lastChange = cameraChanges.at(-1) || '';
+    if (!lastChange.includes('index=' + index) ||
+        !lastChange.includes('mode=' + mode)) {
+      errors.push('Key ' + key + ' must select ' + mode +
+        ' (internal profile ' + index + '): ' + lastChange);
+    }
+  }
+  if (errors.length) throw Error(errors.join('\\n'));
+  console.log('ACTION5_BROWSER_SHORTCUTS_OK 1=first-person 4=side-scroller 5=top-down');
   if (!rigViews.some(line => line.includes('view=3 body_hidden=0 rig=1 tool=1')) ||
       !rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
         line.includes('viewmodel=1'))) {
