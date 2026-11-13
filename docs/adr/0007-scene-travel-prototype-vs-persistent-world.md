@@ -48,6 +48,17 @@ crossings restore the actual live objects. Fresh mode may reinitialize
 the destination room and its loose items but never the player's own
 inventory. Head-specific CI must still prove this behavior.
 
+The main arena authors one `PickupSpawns` scene-local participant with a
+list of pickup node paths instead of weapon-specific or per-item state
+wrappers. Its `capture_state()` returns availability keyed by stable authored
+paths; `restore_state()` and `reset_to_initial()` manage only the world
+spawn copies, preserving any inventory-owned originals. It remembers the
+original PackedScene, parent, transform and node name so fresh pickups
+remain addressable at their authored paths. This is independent of
+`Action5EquipmentController` and `Action5Interactor`, and remains outside
+`addons/action5/`. D08 tests cover multiple weapons, partial snapshots,
+fresh resets and carried-item preservation.
+
 F1/F2/F5 camera clamps use one world-space bounds rectangle covering
 the **union** of arena and translated dungeon. They do not move or
 snap when the player crosses the threshold. The camera and WASD

@@ -36,6 +36,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _frames(tree, 9)
     var player := stage.get_node("Player") as CharacterBody3D
     var equipment := player.get_node("Equipment")
+    var pickup_spawns := stage.get_node("PickupSpawns")
+    var initial_pickups: Dictionary = pickup_spawns.call("capture_state")
+    verify.call(initial_pickups.size() == 4
+        and bool(initial_pickups.get("../BatPickup"))
+        and bool(initial_pickups.get("../ShovelPickup"))
+        and bool(initial_pickups.get("../GunPickup"))
+        and bool(initial_pickups.get("../SwordPickup")),
+        "One data-driven world-spawn participant tracks all four authored pickups")
     var world := stage.get_node("WorldSession")
     var encounter := stage.get_node("EncounterSector") as Node3D
     var door := stage.get_node("EncounterDoor") as Node3D
@@ -118,6 +126,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var bat := equipment.get("current_weapon") as Node3D
     player.global_position = stage.get_node("GunPickup").global_position
     _press(stage, KEY_E)
+    var collected_pickups: Dictionary = pickup_spawns.call("capture_state")
+    verify.call(not bool(collected_pickups.get("../BatPickup"))
+        and not bool(collected_pickups.get("../GunPickup"))
+        and bool(collected_pickups.get("../ShovelPickup"))
+        and bool(collected_pickups.get("../SwordPickup")),
+        "Spawn-state snapshot tracks availability independently per authored pickup")
     verify.call(equipment.inventory.size() == 2
         and is_instance_valid(bat)
         and equipment.inventory[0] == bat
@@ -415,12 +429,30 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = door.global_position + Vector3(-1.5, 0.15, 0)
     await _physics_frames(tree, 3)
     await _frames(tree, 2)
-    verify.call(stage.has_node("BatPickupWorldState")
-        and stage.has_node("GunPickupWorldState")
-        and stage.get_node("BatPickupWorldState").capture_state()["available"]
-        and stage.get_node("GunPickupWorldState").capture_state()["available"]
-        and equipment.inventory.size() == 1,
-        "Start fresh arena re-creates original pickups without clearing carried Gun")
+    var fresh_pickups: Dictionary = pickup_spawns.call("capture_state")
+    verify.call(fresh_pickups.size() == 4
+        and bool(fresh_pickups.get("../BatPickup"))
+        and bool(fresh_pickups.get("../ShovelPickup"))
+        and bool(fresh_pickups.get("../GunPickup"))
+        and bool(fresh_pickups.get("../SwordPickup"))
+        and stage.has_node("BatPickup") and stage.has_node("GunPickup")
+        and equipment.inventory.size() == 1 and equipment.inventory.has(gun),
+        "Fresh arena re-creates all named spawn instances without clearing carried Gun")
+    pickup_spawns.call("restore_state", collected_pickups)
+    var restored_pickups: Dictionary = pickup_spawns.call("capture_state")
+    verify.call(not bool(restored_pickups.get("../BatPickup"))
+        and not bool(restored_pickups.get("../GunPickup"))
+        and bool(restored_pickups.get("../ShovelPickup"))
+        and bool(restored_pickups.get("../SwordPickup"))
+        and not stage.has_node("BatPickup") and not stage.has_node("GunPickup")
+        and equipment.inventory.has(gun) and gun.equipment_owner == equipment,
+        "Restoring a partial pickup snapshot removes only world copies, never inventory")
+    pickup_spawns.call("reset_to_initial")
+    var reset_pickups: Dictionary = pickup_spawns.call("capture_state")
+    verify.call(reset_pickups == initial_pickups
+        and stage.has_node("BatPickup") and stage.has_node("GunPickup")
+        and equipment.inventory.has(gun),
+        "Repeated fresh reset restores stable named spawns without duplicating owned gear")
     verify.call(world.current_sector == &"arena" and tree.current_scene == stage,
         "Fresh entry updates destination only, keeping one live world and player")
 
