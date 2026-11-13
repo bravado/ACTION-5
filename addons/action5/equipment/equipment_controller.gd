@@ -42,7 +42,8 @@ func can_pickup(weapon: WeaponScript) -> bool:
         return false
     if inventory.size() >= max_items or weapon.global_position.distance_to(actor.global_position) > pickup_radius:
         return false
-    if not weapon.is_inside_tree() or weapon.get_parent() == null or not _can_register(weapon):
+    if not weapon.is_inside_tree() or not (weapon.get_parent() is Node3D) \
+            or not _can_register(weapon):
         return false
     # The first pickup auto-equips, so the target mount must be available.
     if current_weapon == null and _mount_for(weapon) == null:

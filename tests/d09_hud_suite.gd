@@ -218,6 +218,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     fourth.global_position = player.global_position + Vector3(0.7, 0, 0)
     verify.call(bool(equipment.call("can_pickup", fourth)),
         "D09-03 eligible nearby fourth weapon can be previewed")
+    # A generic Node parent cannot be stored as Equipment's original
+    # Node3D world parent for transactional pickup rollback.
+    var invalid_parent := Node.new()
+    stage.add_child(invalid_parent)
+    fourth.reparent(invalid_parent, true)
+    fourth.global_position = player.global_position + Vector3(0.7, 0, 0)
+    verify.call(not bool(equipment.call("can_pickup", fourth)),
+        "D09-03 unsupported original world parent is rejected before pickup")
+    fourth.reparent(stage, true)
     fourth.set("definition", null)
     verify.call(not bool(equipment.call("can_pickup", fourth))
         and not bool(fourth.get_node("PickupInteraction").call("can_interact", player)),

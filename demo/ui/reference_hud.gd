@@ -127,7 +127,6 @@ func refresh() -> void:
     if not is_instance_valid(views) or not is_instance_valid(combat) or not is_instance_valid(equipment):
         return
     _sync_weapon()
-    _sync_exit()
     _refresh_objective()
     _refresh_view()
     _refresh_help()
@@ -528,9 +527,8 @@ func _on_joy_connection(_device: int, _connected: bool) -> void:
     _refresh_help()
 
 
-## A read-only view-local compass. It never changes gameplay direction,
-## timing, ammo, equipment or focus. Only enabled while overhead is active.
-## Physics-rate compass only while the overhead view is active and visible.
+## Physics-rate, read-only direction indicator; only enabled when the
+## top-down view is active and the gameplay HUD is visible.
 func _sync_retro_direction() -> void:
     var profile: Resource = views.get("current_profile") as Resource if is_instance_valid(views) else null
     set_physics_process(profile != null and is_hud_visible()

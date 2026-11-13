@@ -96,3 +96,13 @@ independent map of shortcuts. The last profile's in-game display name is
 `tests/capture_scene.gd` uses the real demo `_toggle_camera_settings()`
 route (equivalent to pressing C) for the native settings screenshot.
 Do not restore a hidden SettingsToggle merely for capture tests.
+
+### Final robustness review
+
+The weapon pickup interaction holds a typed `Action5Weapon` reference and
+consumes the existing `can_pickup` port instead of repeating owner/equip
+checks. The controller rejects world weapons with non-`Node3D` original
+parents before any transfer, guaranteeing its typed rollback destination is
+valid. The HUD performs only one exit-node synchronization per full refresh.
+These checks keep the generic interaction API extensible; no concrete
+EquipmentController class is required by the demo pickup interaction.
