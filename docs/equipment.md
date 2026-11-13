@@ -248,7 +248,7 @@ are needed. See [AI authoring](ai.md) and `tests/d07_suite.gd`.
 
 | Key | Command |
 |---|---|
-| E | Pick up nearest Bat/Shovel within reach |
+| E | Interact with the nearest eligible pickup (Bat, Shovel, Gun or Sword) or world prop, subject to distance and line of sight |
 | Q | Swap between carried weapons (or re-equip the last stowed item) |
 | G | Drop current weapon into the persistent world |
 | Left mouse / J | Bat vertical swing or Shovel swing; otherwise Punch |
@@ -280,6 +280,11 @@ complex inventory system). Drop restores the same Node3D to the world.
 
 ## Add a melee weapon without changing core code
 
+For the exact Godot editor steps to **turn a weapon into an E-interactable
+world pickup**, instance it in a level, and optionally register its arena
+spawn for fresh-entry reset, see [Add a weapon pickup](adding-pickups.md).
+This section focuses on combat/weapon definitions, not world-spawn policy.
+
 1. Create an `Action5AttackDefinition` with a unique ID, attack ticks,
    hitbox size/forward offset, damage, knockback and a **dedicated mapped
    world animation** key/channel present in the actor's SkeletonProfile.
@@ -300,10 +305,16 @@ complex inventory system). Drop restores the same Node3D to the world.
    second `FirstPersonLimbProfile` with `animation_key` equal to its
    `visual_action_key` and add it to the viewmodel's `action_profiles`;
    no additional equipment controller or separate viewmodel is needed.
-3. Create a `Weapon` Node3D scene with this definition and independently
-   authored world MeshInstance3D children. Put it in the world. You
-   may add it to the demo's `action5_weapon_pickup` group to allow E.
-4. Pickup invokes `EquipmentController.pickup(weapon)` and auto-equips
+3. Create an instanced `Action5Weapon` Node3D scene with this definition,
+   independently authored world MeshInstance3D children, the
+   `action5_weapon_pickup` group on its root, and a prefab-local
+   `PickupInteraction` child using
+   `demo/interactions/weapon_pickup_interaction.gd`. The group enables
+   loose-item visibility tracking; **the interaction child enables E**
+   through the generic Interactor. Place the prefab in your level and
+   follow [the pickup guide](adding-pickups.md) for optional arena
+   `PickupSpawns` registration.
+4. Pickup through `Action5Interactor` invokes `EquipmentController.pickup(weapon)` and auto-equips
    the first item. Swap/drop operate on instances. To invoke a
    configured swing from gameplay/AI, call `EquipmentController.request_equipped_action(
    index, world_xz_direction)`. Player input uses its existing

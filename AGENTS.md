@@ -622,6 +622,15 @@ nearby items behind real walls would be collectable. The scene-local `PickupSpaw
 captures availability per spawn, and resets only available world instances;
 never delete equipped items or weapons moved to other cached environments.
 The reusable Equipment and Interactor components must not know about spawn state.
+To add a pickup: instance an `Action5Weapon` PackedScene with the
+`action5_weapon_pickup` root group and prefab-local
+`PickupInteraction` child; for an arena spawn that must reset, append
+its relative NodePath to the existing `PickupSpawns.pickup_paths`.
+The root group is for room-visibility tracking; the child is what
+registers `action5_interactable` and makes E available. Do not add
+weapon-specific wrapper nodes or register encounter-sector pickups
+with the arena adapter: fresh dungeon entry recreates the whole
+encounter scene. See [pickup authoring](docs/adding-pickups.md).
 `Action5Interactor` skips inactive scene descendants, and
 `LocationPortal` also refuses direct interactions while paused.
 
