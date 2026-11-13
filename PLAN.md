@@ -910,3 +910,17 @@ remain for compatibility, while the in-game label is simply **Top-Down**.
 ### D09-03 approved HUD panel placement
 
 The Iron Reliquary layout now places **Vitality/HP top-left**, **Objective bottom-left**, and **Equipment bottom-right** (its secondary item/Q label stays in the same equipment panel). This supersedes earlier D09-03 descriptions of bottom-left HP. Preserve the gap between bottom panels, H hide/show, and a single identical layout for all five views. This is a presentation-only repositioning, with no core gameplay dependencies.
+
+
+### D09-03 decoupling review follow-up (PR #38)
+
+The architecture review's seven findings are addressed together:
+Equipment owns next-weapon and side-effect-free pickup-eligibility queries;
+the HUD no longer duplicates either selection policy. Obsolete invisible
+UI/test hooks are removed in favor of the real F6 selector, HUD panels and C
+camera settings. The compact presentation is authored declaratively in a
+Godot scene, avoiding hundreds of lines of procedural layout code. The HUD
+adapter handles HP, movement and reload updates narrowly and only refreshes
+stable help/commands on relevant events. One presenter visibility flag and
+remappable H/F6 hints complete the separation. All gameplay remains in the
+existing Action5 components; native/Web review and CI still gate acceptance.

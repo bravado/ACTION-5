@@ -801,3 +801,22 @@ compatibility, but call the visible mode **Top-Down**.
 ### D09-03 UI layout refinement
 
 The owner requested a **position swap**: Vitality/health is now **top-left**, Objective is **bottom-left**, and Equipment stays **bottom-right**. Keep all three panels fixed across view modes and preserve the bottom-center gap, HP/equipment/interaction ownership and H visibility toggle. Test anchors explicitly; do not change the HUD's gameplay adapter or input mapping to implement layout adjustments.
+
+
+### D09-03 architectural refactor (PR #38)
+
+Keep `Action5EquipmentController.get_next_weapon()` as the single source
+for next-item preview and Q swap, and `can_pickup(weapon)` as the
+side-effect-free eligibility query that both pickup() and world interaction
+advertising call. Revalidate on the actual pickup transaction.
+
+Static Iron Reliquary panel nodes, positions, text defaults, styleboxes and
+help/notification timers now live in `demo/ui/iron_reliquary.tscn`; its
+GDScript merely projects values. Do not restore invisible legacy
+`Hud/Status`, `Hud/Help`, `Hud/ModeButtons` or `Hud/RetroDirection`
+compatibility nodes. Update tests to operate on the real HUD presenter.
+The presenter is the sole owner of gameplay HUD visibility; the adapter
+may read, not mirror, its state. Refreshed help/shortcut data is generated
+only on relevant events, explicit refresh and help opening; HP, movement
+and ammunition updates have narrow handlers. Short H/F6 prompts must
+reflect actual remapped InputMap actions.

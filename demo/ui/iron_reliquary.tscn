@@ -1,6 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://demo/ui/iron_reliquary.gd" id="1"]
+[ext_resource type="Script" path="res://demo/ui/iron_reliquary.gd" id="1_script"]
+[ext_resource type="StyleBoxFlat" path="res://demo/ui/iron_frame.tres" id="2_frame"]
+
+[sub_resource type="StyleBoxFlat" id="BarBackground"]
+bg_color = Color(0.047, 0.043, 0.071, 1)
+
+[sub_resource type="StyleBoxFlat" id="BarFill"]
+bg_color = Color(0.659, 0.184, 0.271, 1)
 
 [node name="Reliquary" type="Control"]
 anchors_preset = 15
@@ -9,4 +16,272 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("1")
+script = ExtResource("1_script")
+
+[node name="HealthPanel" type="PanelContainer" parent="."]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 307.0
+offset_bottom = 99.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="Content" type="VBoxContainer" parent="HealthPanel"]
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Row" type="HBoxContainer" parent="HealthPanel/Content"]
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="HealthPanel/Content/Row"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+text = "VITALITY"
+
+[node name="HP" type="Label" parent="HealthPanel/Content/Row"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/font_size = 14
+custom_minimum_size = Vector2(80, 0)
+text = "100 / 100"
+horizontal_alignment = 2
+
+[node name="HealthBar" type="ProgressBar" parent="HealthPanel/Content"]
+custom_minimum_size = Vector2(0, 16)
+mouse_filter = 2
+theme_override_styles/background = SubResource("BarBackground")
+theme_override_styles/fill = SubResource("BarFill")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="Footer" type="Label" parent="HealthPanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
+theme_override_font_sizes/font_size = 11
+text = "H · HUD    F6 · HELP"
+
+[node name="EquipmentPanel" type="PanelContainer" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -359.0
+offset_top = -119.0
+offset_right = -24.0
+offset_bottom = -20.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="Content" type="VBoxContainer" parent="EquipmentPanel"]
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Row" type="HBoxContainer" parent="EquipmentPanel/Content"]
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="IconFrame" type="PanelContainer" parent="EquipmentPanel/Content/Row"]
+custom_minimum_size = Vector2(46, 46)
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="IconCenter" type="CenterContainer" parent="EquipmentPanel/Content/Row/IconFrame"]
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="EquipmentPanel/Content/Row/IconFrame/IconCenter"]
+visible = false
+custom_minimum_size = Vector2(32, 32)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Fallback" type="Label" parent="EquipmentPanel/Content/Row/IconFrame/IconCenter"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 26
+custom_minimum_size = Vector2(32, 32)
+text = "◆"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Details" type="VBoxContainer" parent="EquipmentPanel/Content/Row"]
+mouse_filter = 2
+theme_override_constants/separation = 4
+size_flags_horizontal = 3
+
+[node name="WeaponTitle" type="Label" parent="EquipmentPanel/Content/Row/Details"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/font_size = 17
+text = "Unarmed"
+text_overrun_behavior = 3
+
+[node name="AmmoText" type="Label" parent="EquipmentPanel/Content/Row/Details"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 13
+text = "READY"
+
+[node name="Separator" type="HSeparator" parent="EquipmentPanel/Content"]
+visible = false
+mouse_filter = 2
+
+[node name="Secondary" type="Label" parent="EquipmentPanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
+theme_override_font_sizes/font_size = 12
+visible = false
+text_overrun_behavior = 3
+
+[node name="ObjectivePanel" type="PanelContainer" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -101.0
+offset_right = 353.0
+offset_bottom = -20.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="Content" type="VBoxContainer" parent="ObjectivePanel"]
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="ObjectivePanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 11
+text = "OBJECTIVE"
+
+[node name="ObjectiveText" type="Label" parent="ObjectivePanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/font_size = 13
+custom_minimum_size = Vector2(298, 30)
+autowrap_mode = 3
+text_overrun_behavior = 0
+
+[node name="ViewPanel" type="PanelContainer" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -294.0
+offset_top = 18.0
+offset_right = -24.0
+offset_bottom = 67.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="ViewText" type="Label" parent="ViewPanel"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="InteractionPanel" type="PanelContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -144.0
+offset_top = -181.0
+offset_right = 144.0
+offset_bottom = -135.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="InteractionText" type="Label" parent="InteractionPanel"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+
+[node name="NotificationPanel" type="PanelContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 88.0
+offset_right = 150.0
+offset_bottom = 127.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+
+[node name="NotificationText" type="Label" parent="NotificationPanel"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="AimReticle" type="Label" parent="."]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 24
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -9.0
+offset_top = -15.0
+offset_right = 9.0
+offset_bottom = 15.0
+text = "+"
+horizontal_alignment = 1
+
+[node name="HelpPanel" type="PanelContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -248.0
+offset_right = 350.0
+offset_bottom = 248.0
+mouse_filter = 0
+theme_override_styles/panel = ExtResource("2_frame")
+
+[node name="Content" type="VBoxContainer" parent="HelpPanel"]
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="HelpPanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 18
+text = "IRON RELIQUARY  ·  CONTROLS"
+
+[node name="ViewSelector" type="HBoxContainer" parent="HelpPanel/Content"]
+mouse_filter = 1
+theme_override_constants/separation = 6
+
+[node name="CameraSettings" type="Button" parent="HelpPanel/Content"]
+text = "CAMERA SETTINGS [C]"
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="HelpPanel/Content"]
+size_flags_vertical = 3
+mouse_filter = 0
+
+[node name="HelpText" type="Label" parent="HelpPanel/Content/Scroll"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/font_size = 14
+custom_minimum_size = Vector2(610, 0)
+autowrap_mode = 3
+
+[node name="NoticeTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+

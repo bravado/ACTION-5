@@ -65,3 +65,27 @@ numeric labels and the F6 help selector, so the game does not maintain an
 independent map of shortcuts. The last profile's in-game display name is
 **Top-Down**, even though its existing resource/enum retains the legacy
 `retro_topdown` identifier for compatibility.
+
+
+## D09-03 architecture simplifications (PR #38)
+
+- **Equipment selection:** `Action5EquipmentController.get_next_weapon()` is
+  the read-only Q-switch preview; `swap_next()` shares exactly that
+  selection. Never recompute inventory index policies in the HUD.
+- **Pickup eligibility:** `EquipmentController.can_pickup(weapon)` is a
+  side-effect-free preflight shared with `WeaponPickupInteraction.can_interact`
+  and checked again at `pickup()` commit time. It includes actual pickup
+  radius, weapon validity, inventory space, attack registration and first
+  auto-equip mount presence; HUD does not check these individually.
+- **Declarative UI:** `iron_reliquary.tscn` owns fixed controls, anchors,
+  theme overrides and the notice timer; the shorter `iron_reliquary.gd`
+  only projects values and emits view/settings requests. The demo scene no
+  longer contains duplicate invisible Help/Status/RetroDirection/buttons.
+- **Event-specific updates:** Health, movement and reload ticks update
+  only their respective presentation data. Full help/attack metadata is
+  regenerated on view/equipment/attack changes and when help opens, or via
+  explicit `Hud.refresh()` after remapping inputs. Both H/HUD and F6/Help
+  footer/header labels are read from live InputMap.
+- **Single visibility state:** The Iron Reliquary presenter alone owns
+  gameplay HUD visibility. The adapter only forwards toggles and reads
+  `display.is_gameplay_visible()`. Menus remain independent.

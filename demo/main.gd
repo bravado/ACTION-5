@@ -14,9 +14,7 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _combat: Node = $Player/CombatController
 @onready var _equipment: Node = $Player/Equipment
 
-@onready var _mode_buttons: HBoxContainer = $Hud/ModeButtons
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
-@onready var _settings_toggle: Button = $Hud/SettingsToggle
 @onready var _hud: Node = $Hud
 
 func _ready() -> void:
@@ -31,7 +29,6 @@ func _ready() -> void:
     # references LocationManager or a specific PackedScene itself.
     _equipment.set("drop_parent_provider_path", NodePath("../../LocationManager"))
     _register_demo_actions()
-    _settings_toggle.pressed.connect(_toggle_camera_settings)
     _hud.help_visibility_changed.connect(_on_hud_help_visibility_changed)
     _hud.view_requested.connect(_on_mode_button_pressed)
     _hud.settings_requested.connect(_toggle_camera_settings)
@@ -39,9 +36,6 @@ func _ready() -> void:
     # Settings can also be closed by its own Close button, not only C.
     _camera_settings.visibility_changed.connect(_on_camera_settings_visibility_changed)
     _input.set_enabled(not _camera_settings.visible and not _hud.is_help_open())
-    for i in range(5):
-        var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
-        button.pressed.connect(_on_mode_button_pressed.bind(i))
     _on_view_changed(_views.current_profile, null)
 
 
@@ -192,9 +186,6 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
             _player.global_position.z,
             int(arm_in_view),
         ])
-    for i in range(5):
-        var button := _mode_buttons.get_node("Mode" + str(i + 1)) as Button
-        button.disabled = i == _views.active_index
     if not current.is_orbit_mode():
         Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 

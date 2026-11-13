@@ -37,8 +37,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-03 unarmed icon fallback reserves a visible square")
     var main_label := display.get("_weapon_title") as Label
     var second_label := display.get("_secondary") as Label
-    verify.call(not stage.get_node("Hud/Help").visible
-        and not stage.get_node("Hud/Status").visible
+    verify.call(not display.get_node("HelpPanel").visible
+        and stage.get_node_or_null("Hud/Status") == null
+        and stage.get_node_or_null("Hud/ModeButtons") == null
         and hp_panel.visible and equip_panel.visible,
         "D09-03 one gameplay HUD replaces visible diagnostic wall")
     verify.call((display.get("_ammo_text") as Label).text == "PUNCH · KICK",
@@ -77,8 +78,35 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             and equip_panel.position.is_equal_approx(equip_pos)
             and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
+    # Changing Health must not rebuild stable help/InputMap metadata.
+    var stable_help: Label = display.get("_help_text") as Label
+    var saved_hud_keys: Array = InputMap.action_get_events(&"hud_toggle")
+    var saved_help_keys: Array = InputMap.action_get_events(&"hud_help")
+    InputMap.action_erase_events(&"hud_toggle")
+    InputMap.action_erase_events(&"hud_help")
+    var hud_key := InputEventKey.new()
+    hud_key.keycode = KEY_J
+    var help_key := InputEventKey.new()
+    help_key.keycode = KEY_F7
+    InputMap.action_add_event(&"hud_toggle", hud_key)
+    InputMap.action_add_event(&"hud_help", help_key)
+    var before_help: String = stable_help.text
     health.current_health = 74.0
     health.health_changed.emit(74.0, 100.0)
+    verify.call(stable_help.text == before_help,
+        "D09-03 health signal does not rebuild stable help metadata")
+    hud.call("set_help_open", true)
+    verify.call((display.get("_help_title") as Label).text.contains("F7")
+        and (display.get("_health_footer") as Label).text.contains("J"),
+        "D09-03 remapped HUD/help hints follow real InputMap actions")
+    hud.call("set_help_open", false)
+    InputMap.action_erase_events(&"hud_toggle")
+    InputMap.action_erase_events(&"hud_help")
+    for event in saved_hud_keys:
+        InputMap.action_add_event(&"hud_toggle", event)
+    for event in saved_help_keys:
+        InputMap.action_add_event(&"hud_help", event)
+    hud.call("refresh")
     verify.call(is_equal_approx(hp_bar.value, 74.0)
         and hp_bar.max_value == 100.0, "D09-03 HP bar projects current/max Health")
     var bat := (load("res://demo/equipment/bat.tscn") as PackedScene).instantiate() as Node3D
@@ -91,13 +119,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     stage.add_child(gun)
     gun.global_position = player.global_position + Vector3(0.45, 0, 0)
     verify.call(equipment.call("pickup", gun), "D09-03 Gun joins existing inventory")
+    verify.call(equipment.call("get_next_weapon") == gun,
+        "D09-03 Equipment is authoritative for the next Q selection")
     verify.call(main_label.text == "Bat" and second_label.text.contains("Pistol")
         and second_label.text.contains("Q"), "D09-03 active Bat shows smaller Pistol/Q cue")
     var swap := InputEventKey.new()
     swap.keycode = KEY_Q
     swap.pressed = true
     stage.call("_unhandled_input", swap)
-    verify.call(main_label.text == "Pistol" and second_label.text.contains("Bat"),
+    verify.call(equipment.call("get_next_weapon") == bat
+        and main_label.text == "Pistol" and second_label.text.contains("Bat"),
         "D09-03 Q uses existing swap command and reverses labels")
     var q_bindings: Array = InputMap.action_get_events(&"demo_swap")
     InputMap.action_erase_events(&"demo_swap")
@@ -161,5 +192,31 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-03 prompt names the target that E would interact with")
     verify.call(interactor.call("try_interact", player) and switch_instance.activated,
         "D09-03 selected prompt target receives real interaction")
+    # Eligibility is shared between Equipment pickup and the preview's port.
+    var third := (load("res://demo/equipment/shovel.tscn") as PackedScene).instantiate() as Node3D
+    stage.add_child(third)
+    third.global_position = player.global_position + Vector3(0.4, 0, 0)
+    var third_interaction: Node = third.get_node("PickupInteraction")
+    verify.call(not bool(equipment.call("can_pickup", third))
+        and not bool(third_interaction.call("can_interact", player)),
+        "D09-03 full inventory never advertises an impossible pickup")
+    equipment.set("max_items", 3)
+    verify.call(bool(equipment.call("can_pickup", third))
+        and bool(third_interaction.call("can_interact", player)),
+        "D09-03 optional third slot uses the same authoritative pickup preflight")
+    verify.call(bool(equipment.call("pickup", third)), "D09-03 third item can be picked")
+    verify.call(equipment.call("get_next_weapon") == bat
+        and (display.get("_secondary") as Label).text.contains("Bat"),
+        "D09-03 next weapon preview matches 3-item swap sequence")
+    var fourth := (load("res://demo/equipment/bat.tscn") as PackedScene).instantiate() as Node3D
+    stage.add_child(fourth)
+    fourth.global_position = player.global_position + Vector3(2.55, 0, 0)
+    equipment.set("max_items", 4)
+    verify.call(not bool(equipment.call("can_pickup", fourth))
+        and not bool(fourth.get_node("PickupInteraction").call("can_interact", player)),
+        "D09-03 2.55m interaction range does not misreport 2.5m pickup reach")
+    fourth.global_position = player.global_position + Vector3(0.7, 0, 0)
+    verify.call(bool(equipment.call("can_pickup", fourth)),
+        "D09-03 eligible nearby fourth weapon can be previewed")
     stage.queue_free()
     await _frames(tree, 2)

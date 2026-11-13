@@ -87,13 +87,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var slash: Resource = sword.get("definition").attacks[0]
     verify.call(slash.facing_sectors == 0 and combat.call("get_attack", slash.attack_id) == slash,
         "D09-02 Sword registers an unquantized D05 melee attack")
-    var retro_hint := level.get_node("Hud/RetroDirection") as Label
+    var display := level.get_node("Hud/Reliquary") as Control
+    var view_label := display.get("_view") as Label
+    var weapon_label := display.get("_weapon_title") as Label
     verify.call(level.get_node("Hud").is_physics_processing(),
         "D09-02 overhead compass updates only on fixed physics ticks")
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(not retro_hint.visible and retro_hint.text.contains("Sword")
-        and retro_hint.text.contains("4-WAY")
-        and str((level.get_node("Hud/Reliquary") as Control).get("_view").text).contains("4-WAY"),
+    verify.call(weapon_label.text.contains("Sword") and view_label.text.contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
     var diagonal := Vector2(1, -0.5).normalized()
     var f5_sword: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
@@ -132,9 +132,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(not retro_hint.visible and retro_hint.text.contains("Pistol")
-        and retro_hint.text.contains("8-WAY")
-        and str((level.get_node("Hud/Reliquary") as Control).get("_view").text).contains("8-WAY"),
+    verify.call(weapon_label.text.contains("Pistol") and view_label.text.contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
     var f5_gun: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
         ProfileScript.Mode.RETRO_TOPDOWN, null,

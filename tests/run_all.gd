@@ -91,8 +91,8 @@ func _run_tests() -> void:
         "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
         "Diagnostic 3D camera is present")
-    _check(level.get_node_or_null("Hud/Help") is Label,
-        "D01 help text is visible in the scene")
+    _check(level.get_node_or_null("Hud/Reliquary/HelpPanel/Content/Scroll/HelpText") is Label,
+        "D01 on-demand help is authored in the scene")
 
     if player != null:
         _check(player.get_node_or_null("CollisionShape3D") is CollisionShape3D,
@@ -308,14 +308,14 @@ func _run_tests() -> void:
         _check(not InputMap.has_action(&"view_6"),
             "No unused sixth camera action registered")
 
-        var side_button := level.get_node("Hud/ModeButtons/Mode1") as Button
+        var selector := level.get_node("Hud/Reliquary/HelpPanel/Content/ViewSelector") as HBoxContainer
+        var side_button := selector.get_child(3) as Button
         side_button.pressed.emit()
-        _check(manager.active_index == 0, "Camera selector button chooses F1")
-        _check((level.get_node("Hud/Status") as Label).text.contains("VIEW 1 / 5"),
-            "HUD displays five-mode index and active camera")
-        _check(level.get_node_or_null("Hud/ModeButtons/Mode5") is Button
-            and level.get_node_or_null("Hud/ModeButtons/Mode6") == null,
-            "HUD exposes exactly five view-selection buttons")
+        _check(manager.active_index == 0, "Real F6 selector chooses side-scroller")
+        _check((level.get_node("Hud/Reliquary") as Control).get("_view").text.begins_with("4"),
+            "HUD displays remapped shortcut and active camera")
+        _check(selector.get_child_count() == 5,
+            "HUD has exactly five F6 view buttons")
 
         if input_adapter != null:
             var key_one := InputEventKey.new()
@@ -370,9 +370,8 @@ func _run_tests() -> void:
             "F2 brawler uses close arcade-scale framing")
 
         var settings := level.get_node("Hud/CameraSettings")
-        var toggle := level.get_node("Hud/SettingsToggle") as Button
         player.call("set_move_intent", Vector2.RIGHT)
-        toggle.pressed.emit()
+        level.call("_toggle_camera_settings")
         _check(settings.visible, "Camera settings panel can be opened")
         _check(not actor_input.enabled
             and player_locomotion.desired.world_move.is_zero_approx(),
@@ -607,15 +606,15 @@ func _run_tests() -> void:
 
     # Regression: clicking a camera/menu button must never steal Space from
     # actor_jump. This used to re-select the previously focused camera.
-    var ui_buttons := level.get_node("Hud/ModeButtons") as HBoxContainer
-    var settings_button := level.get_node("Hud/SettingsToggle") as Button
+    var hud := level.get_node("Hud")
+    var ui_buttons := level.get_node("Hud/Reliquary/HelpPanel/Content/ViewSelector") as HBoxContainer
+    var settings_button := level.get_node("Hud/Reliquary/HelpPanel/Content/CameraSettings") as Button
     var settings_panel := level.get_node("Hud/CameraSettings") as PanelContainer
     for i in range(5):
-        var mode_button := ui_buttons.get_node("Mode" + str(i + 1)) as Button
-        _check(mode_button.focus_mode == Control.FOCUS_NONE,
-            "View selector %d never captures Space-to-jump focus" % (i + 1))
-    _check(settings_button.focus_mode == Control.FOCUS_NONE,
-        "Camera Settings toggle never captures Space-to-jump focus")
+        _check((ui_buttons.get_child(i) as Button).focus_mode != Control.FOCUS_NONE,
+            "F6 view button %d remains keyboard-navigable" % (i + 1))
+    hud.call("set_help_open", true)
+    _check(not level.get_node("ActorInput").enabled, "Opening help gates gameplay")
     settings_button.pressed.emit()
     var reset_button := settings_panel.find_child("ResetCamera", true, false) as Button
     var close_button := settings_panel.find_child("CloseSettings", true, false) as Button
@@ -632,12 +631,15 @@ func _run_tests() -> void:
     _check(not settings_panel.visible
         and root.gui_get_focus_owner() != slider,
         "Closing camera settings releases slider focus")
-    var previously_clicked := ui_buttons.get_node("Mode3") as Button
-    previously_clicked.pressed.emit()
+    var previously_clicked := ui_buttons.get_child(2) as Button
+    hud.call("set_help_open", true)
     previously_clicked.grab_focus()
     await process_frame
+    _check(root.gui_get_focus_owner() == previously_clicked,
+        "F6 view button can receive keyboard focus")
+    hud.call("set_help_open", false)
     _check(root.gui_get_focus_owner() != previously_clicked,
-        "Clicked view button cannot retain keyboard focus")
+        "Closing F6 releases selector focus before gameplay")
     var views := level.get_node("ViewManager") as ViewManagerScript
     views.switch_view(1)
     var count_before_space: int = views.switch_count
@@ -653,9 +655,10 @@ func _run_tests() -> void:
     await process_frame
     _check(views.active_index == 1 and views.switch_count == count_before_space,
         "Space after switching with 1–5 cannot activate previous view")
+    hud.call("set_help_open", true)
     settings_button.pressed.emit()
     settings_button.grab_focus()
-    settings_button.pressed.emit()
+    level.call("_toggle_camera_settings")
     var count_after_settings: int = views.switch_count
     Input.parse_input_event(space_down)
     await physics_frame

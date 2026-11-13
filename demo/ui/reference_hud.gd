@@ -16,9 +16,6 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 @export var interactor_path: NodePath = ^"../Interactor"
 @export var player_path: NodePath = ^"../Player"
 
-@onready var status: Label = $Status
-@onready var help: Label = $Help
-@onready var retro_direction: Label = get_node_or_null(^"RetroDirection") as Label
 @onready var display: Control = $Reliquary
 @onready var interactor: Node = get_node_or_null(interactor_path)
 @onready var player: Node3D = get_node_or_null(player_path) as Node3D
@@ -36,7 +33,7 @@ var _weapon: Node
 var _exit: Node
 var _reload_timer: Timer
 var _interaction_timer: Timer
-var _hud_visible: bool = true
+var _short_actions := PackedStringArray()
 var _last_objective: String = ""
 signal help_visibility_changed(open: bool)
 signal view_requested(index: int)
@@ -58,7 +55,7 @@ func _ready() -> void:
     _reload_timer = Timer.new()
     _reload_timer.wait_time = 0.25
     add_child(_reload_timer)
-    _reload_timer.timeout.connect(refresh)
+    _reload_timer.timeout.connect(_refresh_equipment)
     _connect(views, &"view_changed", _on_view_changed)
     _connect(health, &"health_changed", _on_health_changed)
     _connect(health, &"damaged", _on_player_damaged)
@@ -68,7 +65,7 @@ func _ready() -> void:
     _connect(combat, &"attack_cancelled", _on_attack_event)
     _connect(combat, &"attack_phase_changed", _on_phase_changed)
     _connect(combat, &"attack_registered", _on_attack_registered)
-    _connect(combat, &"attack_unregistered", _on_attack_event)
+    _connect(combat, &"attack_unregistered", _on_attack_unregistered)
     _connect(equipment, &"weapon_equipped", _on_equipment_event)
     _connect(equipment, &"weapon_unequipped", _on_equipment_event)
     _connect(equipment, &"weapon_dropped", _on_equipment_event)
@@ -79,7 +76,6 @@ func _ready() -> void:
     _connect(moves, &"move_changed", _on_move_changed)
     _connect(session, &"sector_changed", _on_sector_changed)
     Input.joy_connection_changed.connect(_on_joy_connection)
-    _sync_retro_direction()
     refresh()
 
 
@@ -132,36 +128,50 @@ func refresh() -> void:
         return
     _sync_weapon()
     _sync_exit()
-    var profile: Resource = views.get("current_profile") as Resource
-    if profile == null:
-        return
-    var hp: int = ceili(float(health.get("current_health"))) if is_instance_valid(health) else 0
-    var attack: String = str(combat.get("current_id"))
-    if attack.is_empty():
-        attack = "none"
+    _refresh_objective()
+    _refresh_view()
+    _refresh_help()
+    _refresh_health()
+    _refresh_equipment()
+    _refresh_activity()
+    _sync_retro_direction()
+
+
+func _objective_text() -> String:
     var sector: String = str(session.get("current_sector")) if is_instance_valid(session) else "arena"
-    var line: String = "VIEW %d / %d | %s | %s | Move %s | HP %d | Attack %s (%s) | %s" % [
-        int(views.get("active_index")) + 1, (views.get("profiles") as Array).size(),
-        str(profile.get("display_name")), sector, str(moves.get("active_id")) if is_instance_valid(moves) else "-",
-        hp, attack, str(combat.get("phase")), weapon_summary(_weapon)
-    ]
-    if status.text != line:
-        status.text = line
-    var objective: String = "Find the east gate and enter the dungeon"
     if is_instance_valid(_exit):
         if bool(_exit.get("complete")):
-            objective = "COMPLETE"
-        elif bool(_exit.call("is_unlocked")):
-            objective = "Reach the EXIT beacon in the dungeon"
-        elif sector == "encounter":
-            objective = "Defeat the dungeon enemies to unlock EXIT"
+            return "COMPLETE"
+        if bool(_exit.call("is_unlocked")):
+            return "Reach the EXIT beacon in the dungeon"
+        if sector == "encounter":
+            return "Defeat the dungeon enemies to unlock EXIT"
+    return "Find the east gate and enter the dungeon"
+
+
+func _refresh_objective() -> void:
+    _sync_exit()
+    var objective: String = _objective_text()
     display.set_objective(objective)
     if not _last_objective.is_empty() and _last_objective != objective:
         display.notify(objective)
     _last_objective = objective
+
+
+func _refresh_view() -> void:
+    if not is_instance_valid(views) or views.get("current_profile") == null:
+        return
+    var profile: Resource = views.get("current_profile") as Resource
     display.set_view("%d · %s" % [_shortcut_number(int(views.get("active_index"))),
         str(profile.get("display_name")).to_upper()])
-    var instructions: String = "ACTION-5 | " + objective
+
+
+## Help and command metadata update on view/equipment/attack registration,
+## input-remap (explicit refresh), and opening F6, not on HP/reload ticks.
+func _refresh_help() -> void:
+    if not is_instance_valid(views) or not is_instance_valid(combat) or not is_instance_valid(equipment):
+        return
+    var instructions: String = "ACTION-5 | " + _objective_text()
     var view_hints := PackedStringArray()
     for slot in range((views.get("profiles") as Array).size()):
         var index: int = _profile_index_for_shortcut(slot)
@@ -239,50 +249,53 @@ func refresh() -> void:
     instructions += "\nActions: " + (" | ".join(actions) if not actions.is_empty() else "none")
     if not commands.is_empty():
         instructions += " | " + " | ".join(commands)
-    if help.text != instructions:
-        help.text = instructions
     display.set_help_text(instructions)
+    display.set_shortcut_hints(_binding(&"hud_toggle"), _binding(&"hud_help"))
+    _short_actions.clear()
+    for hint in actions:
+        var bracket: int = hint.find(" [")
+        _short_actions.append((hint.substr(0, bracket) if bracket >= 0 else hint).to_upper())
+
+
+func _refresh_health() -> void:
+    display.set_health(float(health.get("current_health")) if is_instance_valid(health) else 0.0,
+        float(health.get("max_health")) if is_instance_valid(health) else 1.0)
+
+
+func _refresh_equipment() -> void:
+    var profile: Resource = views.get("current_profile") as Resource if is_instance_valid(views) else null
     var definition: Resource = _weapon.get("definition") as Resource if is_instance_valid(_weapon) else null
     var icon: Texture2D = definition.get("hud_icon") as Texture2D if definition != null else null
     var ammo: Dictionary = _weapon.call("get_ammo_status") if is_instance_valid(_weapon) \
         and _weapon.has_method("get_ammo_status") else {}
     var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
     var next_name: String = _next_weapon_name()
-    # Short action names belong in the compact weapon panel. Detailed
-    # keyboard/gamepad combinations live in F6 Help, not a clipped HUD line.
-    var short_actions := PackedStringArray()
-    for hint in actions:
-        var text_hint: String = hint
-        var bracket: int = text_hint.find(" [")
-        short_actions.append((text_hint.substr(0, bracket) if bracket >= 0 else text_hint).to_upper())
-    display.set_health(float(health.get("current_health")) if is_instance_valid(health) else 0.0,
-        float(health.get("max_health")) if is_instance_valid(health) else 1.0)
     display.set_equipment(weapon_name, icon, ammo, next_name,
         _binding(&"demo_swap") if not next_name.is_empty() else "",
-        " · ".join(short_actions))
-    display.set_reticle(not ammo.is_empty()
+        " · ".join(_short_actions))
+    display.set_reticle(not ammo.is_empty() and profile != null
         and int(profile.get("mode")) == ViewProfileScript.Mode.FIRST_PERSON)
-    var activity: String = ""
-    if attack != "none":
-        activity = "ATTACK  ·  " + attack.replace("_", " ").to_upper()
+    _update_reload_timer()
+
+
+func _refresh_activity() -> void:
+    if not is_instance_valid(combat):
+        return
+    var attack: String = str(combat.get("current_id"))
+    var activity := ""
+    if not attack.is_empty():
+        activity = "ATTACK · " + attack.replace("_", " ").to_upper()
     elif is_instance_valid(moves):
         var movement: String = str(moves.get("active_id"))
         if movement != "grounded" and not movement.is_empty():
             activity = movement.replace("_", " ").to_upper()
     display.set_player_state(activity)
-    _update_reload_timer()
 
 
 func _next_weapon_name() -> String:
-    if not is_instance_valid(equipment):
+    if not is_instance_valid(equipment) or not equipment.has_method("get_next_weapon"):
         return ""
-    var items: Array = equipment.get("inventory") as Array
-    if items.is_empty():
-        return ""
-    var index: int = items.find(_weapon)
-    if index >= 0 and items.size() < 2:
-        return ""
-    var next: Node = items[0] as Node if index < 0 else items[(index + 1) % items.size()] as Node
+    var next: Node = equipment.call("get_next_weapon") as Node
     if not is_instance_valid(next):
         return ""
     var definition: Resource = next.get("definition") as Resource
@@ -340,7 +353,7 @@ func _unhandled_input(event: InputEvent) -> void:
     if not event.is_pressed() or (event is InputEventKey and event.echo):
         return
     if event.is_action_pressed(&"hud_toggle"):
-        set_hud_visible(not _hud_visible)
+        set_hud_visible(not is_hud_visible())
         get_viewport().set_input_as_handled()
     elif event.is_action_pressed(&"hud_help"):
         set_help_open(not display.is_help_open())
@@ -351,7 +364,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func set_hud_visible(value: bool) -> void:
-    _hud_visible = value
     display.set_gameplay_visible(value)
     _sync_retro_direction()
     if value:
@@ -359,7 +371,7 @@ func set_hud_visible(value: bool) -> void:
 
 
 func is_hud_visible() -> bool:
-    return _hud_visible
+    return display.is_gameplay_visible()
 
 
 func set_help_open(value: bool) -> void:
@@ -371,6 +383,8 @@ func is_help_open() -> bool:
 
 
 func _on_help_visibility_changed(open: bool) -> void:
+    if open:
+        _refresh_help()
     help_visibility_changed.emit(open)
 
 
@@ -383,7 +397,7 @@ func _on_settings_requested() -> void:
 
 
 func _refresh_interaction() -> void:
-    if not _hud_visible or not is_instance_valid(interactor) or not is_instance_valid(player) \
+    if not is_hud_visible() or not is_instance_valid(interactor) or not is_instance_valid(player) \
             or not interactor.has_method("get_target"):
         display.set_interaction("")
         return
@@ -440,19 +454,6 @@ func _binding(action: StringName, fallback_key: int = 0) -> String:
     return "/".join(hints) if not hints.is_empty() else "unbound"
 
 
-func weapon_summary(weapon: Node) -> String:
-    if not is_instance_valid(weapon):
-        return "Unarmed"
-    var definition: Resource = weapon.get("definition") as Resource
-    var name: String = str(definition.get("display_name")) if definition != null else weapon.name
-    if weapon.has_method("get_ammo_status"):
-        var ammo: Dictionary = weapon.call("get_ammo_status")
-        name += " | Ammo %d/%d" % [int(ammo.get("magazine", 0)), int(ammo.get("reserve", 0))]
-        if bool(ammo.get("reloading", false)):
-            name += " | Reload %d ticks" % int(ammo.get("reload_left", 0))
-    return name
-
-
 func command_hints(weapon: Node) -> PackedStringArray:
     var result := PackedStringArray()
     if not is_instance_valid(weapon) or not weapon.has_method("get_command_bindings"):
@@ -470,23 +471,26 @@ func command_hints(weapon: Node) -> PackedStringArray:
 
 
 func _on_view_changed(_current: Resource, _previous: Resource) -> void:
-    _sync_retro_direction()
     refresh()
 
 
 func _on_health_changed(_value: float, _previous: float) -> void:
-    refresh()
+    _refresh_health()
 
 
 func _on_attack_event(_id: StringName) -> void:
-    refresh()
+    _refresh_activity()
 
 
 func _on_phase_changed(_id: StringName, _phase: StringName, _tick: int) -> void:
-    refresh()
+    _refresh_activity()
 
 
 func _on_attack_registered(_definition: Resource) -> void:
+    refresh()
+
+
+func _on_attack_unregistered(_id: StringName) -> void:
     refresh()
 
 
@@ -495,7 +499,7 @@ func _on_equipment_event(_item: Node3D) -> void:
 
 
 func _on_move_changed(_previous: StringName, _current: StringName) -> void:
-    refresh()
+    _refresh_activity()
 
 
 func _on_sector_changed(_previous: StringName, _current: StringName) -> void:
@@ -503,63 +507,48 @@ func _on_sector_changed(_previous: StringName, _current: StringName) -> void:
 
 
 func _on_fired(_impact: Vector3, _hit: bool) -> void:
-    refresh()
+    _refresh_equipment()
 
 
 func _on_reload_started() -> void:
-    refresh()
+    _refresh_equipment()
 
 
 func _on_reload_ended(_completed: bool) -> void:
-    refresh()
+    _refresh_equipment()
 
 
 func _on_objective_changed() -> void:
-    refresh()
+    _refresh_objective()
 
 
 func _on_joy_connection(_device: int, _connected: bool) -> void:
-    refresh()
+    _refresh_help()
 
 
 ## A read-only view-local compass. It never changes gameplay direction,
 ## timing, ammo, equipment or focus. Only enabled while overhead is active.
+## Physics-rate compass only while the overhead view is active and visible.
 func _sync_retro_direction() -> void:
-    if retro_direction == null:
-        return
-    var retro: bool = is_instance_valid(views) and views.get("current_profile") != null \
-        and int(views.get("current_profile").get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN
-    # Existing text still serves tests; visual feedback lives in Reliquary.
-    retro_direction.visible = false
-    # The facing snapshot updates on the physics clock, not each render frame.
-    # This bounds HUD allocation work on high-refresh native/WebGL2 displays.
-    set_physics_process(retro and _hud_visible)
+    var profile: Resource = views.get("current_profile") as Resource if is_instance_valid(views) else null
+    set_physics_process(profile != null and is_hud_visible()
+        and int(profile.get("mode")) == ViewProfileScript.Mode.RETRO_TOPDOWN)
 
 
 func _physics_process(_delta: float) -> void:
-    if retro_direction == null or not is_instance_valid(actor_input):
+    if not is_instance_valid(actor_input):
         return
     var context: RefCounted = actor_input.call("get_action_input_context")
     if context == null:
         return
     var heading: Vector2 = context.get("facing_world")
     var sectors: int = 8
-    if is_instance_valid(direction_policy):
-        if direction_policy.has_method("get_sectors"):
-            sectors = int(direction_policy.call("get_sectors", ViewProfileScript.Mode.RETRO_TOPDOWN, sectors))
-    var current: Node = equipment.get("current_weapon") as Node if is_instance_valid(equipment) else null
-    var definition: Resource = current.get("definition") as Resource if is_instance_valid(current) else null
-    var weapon_name: String = str(definition.get("display_name")) if definition != null else "Unarmed"
+    if is_instance_valid(direction_policy) and direction_policy.has_method("get_sectors"):
+        sectors = int(direction_policy.call("get_sectors", ViewProfileScript.Mode.RETRO_TOPDOWN, sectors))
     var facing_label: String = "%d-WAY" % sectors if sectors >= 2 else "FREE"
-    var text_line: String = "TOP-DOWN | %s | %s | Heading %s | WASD move / Arrows or right stick aim" % [
-        weapon_name, facing_label, _compass_heading(heading)
-    ]
-    if retro_direction.text != text_line:
-        retro_direction.text = text_line
-    if _hud_visible:
-        display.set_view("%d · TOP-DOWN | %s %s" % [_shortcut_number(int(views.get("active_index"))),
-            facing_label, _compass_heading(heading)
-        ])
+    display.set_view("%d · TOP-DOWN | %s %s" % [
+        _shortcut_number(int(views.get("active_index"))), facing_label, _compass_heading(heading)
+    ])
 
 
 func _compass_heading(direction: Vector2) -> String:
