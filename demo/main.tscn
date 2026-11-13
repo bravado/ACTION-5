@@ -9,7 +9,7 @@
 [ext_resource type="Script" path="res://addons/action5/input/actor_input_adapter.gd" id="7_actor_input"]
 [ext_resource type="Resource" path="res://addons/action5/input/profiles/side.tres" id="35_side_controls"]
 [ext_resource type="Resource" path="res://addons/action5/input/profiles/first_person.tres" id="36_first_person_controls"]
-[ext_resource type="Resource" path="res://demo/input/retro_topdown.tres" id="37_retro_controls"]
+[ext_resource type="Resource" path="res://demo/input/top_down.tres" id="37_top_down_controls"]
 [ext_resource type="PackedScene" path="res://demo/combat/training_target.tscn" id="8_target"]
 [ext_resource type="Script" path="res://addons/action5/combat/combat_input_adapter.gd" id="9_combat_input"]
 [ext_resource type="PackedScene" path="res://demo/equipment/bat.tscn" id="10_bat"]
@@ -414,7 +414,7 @@ shortcut_profile_indices = PackedInt32Array(3, 1, 2, 0, 4)
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
-view_controls = Array[Resource]([ExtResource("35_side_controls"), ExtResource("36_first_person_controls"), ExtResource("37_retro_controls")])
+view_controls = Array[Resource]([ExtResource("35_side_controls"), ExtResource("36_first_person_controls"), ExtResource("37_top_down_controls")])
 direction_policy_path = NodePath("../Player/EquippedViewFacing")
 
 [node name="CombatInput" type="Node" parent="."]

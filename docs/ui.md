@@ -118,6 +118,15 @@ such as `death_overlay.tscn`, `victory_overlay.tscn` and
 - `hud_adapter.gd` — read-only demo adapter from Action5 components
 - `panel_frame.tres` — shared panel style for HUD, settings, and outcome overlays
 
-Avoid branded theme names or milestone numbers in asset filenames. Keep
-existing published API resource paths stable, including the legacy
-`retro_topdown.tres` profile; user-visible camera labels stay `Top-Down`.
+Avoid branded theme names or milestone numbers in asset filenames. The
+camera and direction policy assets also follow this convention:
+`addons/action5/views/beat_em_up.tres`,
+`addons/action5/views/top_down.tres`,
+`demo/input/top_down.tres`,
+`demo/equipment/gun_top_down_facing.tres` and
+`demo/equipment/sword_top_down_facing.tres`.
+These filenames replace the older `beatemup` and `retro_*` resource
+paths. They are **not aliases**: external scenes must update their resource
+references. The internal `RETRO_TOPDOWN` enum, `retro_*` InputMap actions
+and the `profile_retro_topdown` settings key are left unchanged to avoid
+breaking input, gameplay behavior or existing camera preferences.

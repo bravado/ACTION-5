@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/action5/equipment/weapon_definition.gd" id="1"]
 [ext_resource type="Resource" path="res://demo/equipment/sword_slash.tres" id="2"]
 [ext_resource type="PackedScene" path="res://demo/equipment/sword_first_person.tscn" id="3"]
-[ext_resource type="Resource" path="res://demo/equipment/retro_sword_facing.tres" id="4"]
+[ext_resource type="Resource" path="res://demo/equipment/sword_top_down_facing.tres" id="4"]
 
 [resource]
 script = ExtResource("1")

@@ -19,7 +19,7 @@ Build **one 3D gameplay simulation**, not five games and not five renderers. All
 | 2 (F2 alternate) | Beat'em up | Side/angled orthographic | X/Z, stage-relative | Directional or soft target |
 | 3 (F3 alternate) | Isometric / shoulder | One orthographic profile, zoomable from wide tilted dungeon to close shoulder framing | X/Z, screen/camera-relative | Cursor target, lock-on or shoulder look-ahead |
 | 4 (F4 alternate) | First person | Perspective eye camera | X/Z, yaw-relative | Crosshair ray/mouse look |
-| 5 (F5 alternate) | Retro top-down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
+| 5 (F5 alternate) | Top-Down (NES Commando / Zelda) | True vertical overhead orthographic | X/Z screen-aligned; optionally 4-/8-way | 4-way melee facing, 8-way ranged aiming; optional independent aim |
 
 **Crucial constraint:** Browser/OS shortcuts can preempt function keys (notably F1/F4), and Ctrl+number normally switches browser tabs. **Both native and Web use number-row 1–5 as the primary mapping**; F1–F5 remain optional alternate mappings. Web additionally requires a five-option on-screen view selector, with controller cycling. Do not rely on Ctrl+number. Avoid number-row conflicts with game weapon/equipment bindings by making the mapping configurable.
 
@@ -162,7 +162,7 @@ EquipmentComponent.weapon_equipped(weapon_id)
 
 **F4 First person:** perspective eye/character anchor; mouse yaw/pitch with vertical limits; camera forward projected onto X/Z for locomotion; world-space crosshair ray target; locally hide head and optionally use an arms/weapon viewmodel. Maintain shared combat timing and authoritative muzzle/projectile trajectory.
 
-**F5 Retro top-down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
+**F5 Top-Down:** use a true 90-degree downward orthographic camera, centered/following X/Z with configurable zoom, follow dead zone, level bounds and scrolling. Keep the same 3D world, character models, hitboxes, weapon attachments and combat. Map screen movement to X/Z via projected camera-right and camera-up axes, or explicit world axes. **Do not use a projected camera-forward vector** at vertical pitch: it becomes zero. Quantize facing/attacks to 4 directions (Zelda-style sword) or 8 directions (Commando-style gun), selected by profile/weapon rather than hardcoded in the combat core; optionally allow free analog movement and right-stick/mouse independent aim. Retain the last valid facing when aim input is zero. Resolve mouse aim from ray-to-ground/target, ensuring no NaN or invalid vector. Logical collision/damage and muzzle-world occlusion remain shared across all modes. Optional directional animation variants, overhead mesh/weapon visibility adjustments and retro pixel styling are presentation only. Apply roof/ceiling occlusion, camera bounds and overhead readability in the demo.
 
 **Camera transitions:** Move target camera transform smoothly when possible. For orthographic <-> perspective projection changes, allow an instantaneous projection cut with short optional fade; do not promise seamless mathematical projection interpolation. Camera must avoid geometry intersections; expensive dual-viewport blending is NOT required for 1.0.
 
@@ -869,7 +869,7 @@ specified 20-minute exploratory native/Web run.
 
 **Implementation state:** D09-02 is integrated into the reusable addon and reference demo. The same actor, camera, world physics, CombatController, Equipment lifecycle, animation channels and scene-state system serve all five views. The demo provides a Sword pickup in the arena and connected dungeon. Its D05 melee attack has `facing_sectors = Free`; an optional `Action5ViewFacingPolicy` on its weapon definition supplies F5-only four-way direction. The Pistol has an independent eight-way F5 policy. One actor-local `Action5EquippedViewFacing` exposes a duck-typed `get_sectors(view_mode, fallback)` to ActorInputAdapter, CombatInputAdapter and ViewAimTargetProvider, so the actor, combat timeline and Gun do not branch on weapon IDs or F5. A third 16-way policy is replaceable via resources alone.
 
-**Input and environment:** F5 uses the declarative `demo/input/retro_topdown.tres` assigned on `demo/main.tscn`: WASD travels, arrows/right stick aim independently; the other views retain their bindings. The vertical camera follows the existing arena/dungeon bounds, with no second scene or player. The HUD shows weapon, heading and 4-/8-way setting. The arena light switch has a visible labelled pedestal and state indicator, separated from the remote-room portal's E interaction range.
+**Input and environment:** F5 uses the declarative `demo/input/top_down.tres` assigned on `demo/main.tscn`: WASD travels, arrows/right stick aim independently; the other views retain their bindings. The vertical camera follows the existing arena/dungeon bounds, with no second scene or player. The HUD shows weapon, heading and 4-/8-way setting. The arena light switch has a visible labelled pedestal and state indicator, separated from the remote-room portal's E interaction range.
 
 **Physical targeting and presentation:** The local F5 provider selects the first target on the player's forward horizontal centerline at the world-muzzle height. The existing Gun then fires *from its actual world muzzle* toward that point, stopping on nearer obstructions; the tracer also starts at that muzzle and ends at the resolved hit. F4 retains a visual-only gripped barrel-tip origin. Both Pistol variants have a validated normalized 0–1 F4 reload pose driven by the existing Gun reload countdown. None of these features alters world-muzzle authority, ammo accounting, attack-clock timing, physical Hurtboxes or NPC aim.
 
@@ -924,3 +924,16 @@ adapter handles HP, movement and reload updates narrowly and only refreshes
 stable help/commands on relevant events. One presenter visibility flag and
 remappable H/F6 hints complete the separation. All gameplay remains in the
 existing Action5 components; native/Web review and CI still gate acceptance.
+
+### D09-03 resource path alignment (PR #38)
+
+The remaining profile and directional-facing `.tres` assets were renamed
+to plain descriptive names: `views/beat_em_up.tres`, `views/top_down.tres`,
+`demo/input/top_down.tres`, `gun_top_down_facing.tres` and
+`sword_top_down_facing.tres`. No view order, combat policies, weapon
+definitions or gameplay signals change. `ViewProfile.Mode.RETRO_TOPDOWN`,
+InputMap `retro_*` actions and persisted `profile_retro_topdown`/
+`profile_beatemup` sections deliberately retain their stable identifiers.
+All source and scene references plus the resource-loading regression suite
+must use the renamed assets; owners of external scenes must change any old
+hardcoded paths.

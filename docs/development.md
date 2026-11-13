@@ -335,7 +335,7 @@ detached scene travel with the same inventory/actor identity. The
 usual D07 NPC and D08 dropped-equipment/camera regressions still run.
 
 
-**F2 side-wall reveal (D08):** `beatemup.tres` sets the optional
+**F2 side-wall reveal (D08):** `beat_em_up.tres` sets the optional
 `lateral_peek_degrees = 6`, with an exponential response of 8.
 Use **C → Side peek (deg) / Peek response** to edit these independently
 of gameplay state; profile-specific overrides persist and Reset restores

@@ -327,3 +327,15 @@ The original PS1-style design draws on the compact status readability of Diablo 
 
 
 **D09-03 camera shortcut update:** Input `1` selects First-Person and `4` selects Side-Scroller; `2` and `3` retain Beat 'em Up and Isometric, and `5` selects **Top-Down**. F6 view buttons, displayed view labels and help shortcuts reflect the same mapping rather than hardcoded indices. This affects input mapping, not actor/camera state or persistent per-profile settings.
+
+### Resource naming (D09-03)
+
+New resource files use plain, descriptive `snake_case` names. The
+Top-Down camera and input profiles are `addons/action5/views/top_down.tres`
+and `demo/input/top_down.tres`; the Beat 'em Up camera profile is
+`addons/action5/views/beat_em_up.tres`. The Gun and Sword four/eight-way
+profiles are `demo/equipment/gun_top_down_facing.tres` and
+`demo/equipment/sword_top_down_facing.tres`. These **replace**, rather than
+alias, the prior filenames. Existing external scenes referencing the prior
+paths should update them. Internal mode enum and persisted camera settings
+keys remain unchanged so gameplay/input behavior and preferences are not reset.
