@@ -520,6 +520,8 @@ func _on_reload_ended(_completed: bool) -> void:
 
 func _on_objective_changed() -> void:
     _refresh_objective()
+    # F6 help includes the objective text; it changes far less often than HP.
+    _refresh_help()
 
 
 func _on_joy_connection(_device: int, _connected: bool) -> void:

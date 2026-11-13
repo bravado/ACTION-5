@@ -205,8 +205,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and bool(third_interaction.call("can_interact", player)),
         "D09-03 optional third slot uses the same authoritative pickup preflight")
     verify.call(bool(equipment.call("pickup", third)), "D09-03 third item can be picked")
-    verify.call(equipment.call("get_next_weapon") == bat
-        and (display.get("_secondary") as Label).text.contains("Bat"),
+    verify.call(equipment.call("get_next_weapon") == third
+        and (display.get("_secondary") as Label).text.contains("Shovel"),
         "D09-03 next weapon preview matches 3-item swap sequence")
     var fourth := (load("res://demo/equipment/bat.tscn") as PackedScene).instantiate() as Node3D
     stage.add_child(fourth)

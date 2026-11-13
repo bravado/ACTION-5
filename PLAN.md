@@ -888,7 +888,7 @@ specified 20-minute exploratory native/Web run.
 
 The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **Iron Reliquary** HUD inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
 
-- One fixed HUD scene across F1–F5, two corner panels (HP and active weapon with small next-item name and `Q`/InputMap swap hint), a persistent center gap, and concise fixed-position view/objective labels.
+- One fixed HUD scene across F1–F5: Vitality top-left, Objective bottom-left, active weapon/next-item name and `Q`/InputMap swap hint bottom-right, with an unobstructed bottom-center gap.
 - Full gameplay HUD show/hide with remappable `hud_toggle` (H by default), independent of actor/combat/equipment state; help via `hud_help` (F6). Outcome overlays remain usable.
 - The data source is an event-driven read-only adapter, never another inventory, combat clock, aim controller or health authority. Optional `WeaponDefinition.hud_icon` adds pure presentation metadata.
 - Contextual prompts use a read-only `Interactor.get_target(actor)` path shared with actual interaction selection, plus optional `get_interaction_label(actor)` on each interactable; do not guess nearby targets in UI.
