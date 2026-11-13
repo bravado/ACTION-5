@@ -89,3 +89,10 @@ independent map of shortcuts. The last profile's in-game display name is
 - **Single visibility state:** The Iron Reliquary presenter alone owns
   gameplay HUD visibility. The adapter only forwards toggles and reads
   `display.is_gameplay_visible()`. Menus remain independent.
+
+
+### Screenshot evidence
+
+`tests/capture_scene.gd` uses the real demo `_toggle_camera_settings()`
+route (equivalent to pressing C) for the native settings screenshot.
+Do not restore a hidden SettingsToggle merely for capture tests.

@@ -218,5 +218,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     fourth.global_position = player.global_position + Vector3(0.7, 0, 0)
     verify.call(bool(equipment.call("can_pickup", fourth)),
         "D09-03 eligible nearby fourth weapon can be previewed")
+    fourth.set("definition", null)
+    verify.call(not bool(equipment.call("can_pickup", fourth))
+        and not bool(fourth.get_node("PickupInteraction").call("can_interact", player)),
+        "D09-03 invalid definition is rejected by both pickup and prompt eligibility")
     stage.queue_free()
     await _frames(tree, 2)
