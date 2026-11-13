@@ -36,8 +36,14 @@ func _ready() -> void:
 
 
 func _available(spawn: Dictionary) -> bool:
-    var pickup := spawn["instance"] as Node3D
-    return is_instance_valid(pickup) and not pickup.is_queued_for_deletion() \
+    # A picked-up original can be freed after crossing/resetting sectors.
+    # Check the untyped reference before casting: Godot errors when casting
+    # an already-freed Object, even if is_instance_valid() follows.
+    var instance: Variant = spawn["instance"]
+    if not is_instance_valid(instance):
+        return false
+    var pickup := instance as Node3D
+    return pickup != null and not pickup.is_queued_for_deletion() \
         and pickup.get_parent() == spawn["parent"] \
         and pickup.get("equipment_owner") == null
 
