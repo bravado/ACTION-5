@@ -27,6 +27,8 @@ There are **no third-party fonts, textures or UI libraries** to attribute.
 - `demo/ui/iron_reliquary.tscn` is the **single reusable viewport HUD**
   for F1–F5. `iron_reliquary.gd` builds small fixed-anchor status and
   equipment panels with an open middle gap and event-only presentation.
+  **Vitality is anchored top-left, Objective bottom-left, and Equipment
+  bottom-right**, identically across all five camera views.
 - `reference_hud.gd` is the demo-specific read-only adapter. It observes
   Health, Combat, Equipment, ViewManager, Interactor and InputMap. Never
   place health, ammo, reload or interaction decision logic in the UI layer.

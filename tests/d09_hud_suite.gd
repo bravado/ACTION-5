@@ -23,13 +23,14 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var health := player.get_node("Health")
     var hp_panel := display.get_node("HealthPanel") as PanelContainer
     var equip_panel := display.get_node("EquipmentPanel") as PanelContainer
+    var objective_panel := display.get_node("ObjectivePanel") as PanelContainer
     var hp_bar := display.get("_health_bar") as ProgressBar
     var hp_text := display.get("_hp_text") as Label
     var objective := display.get("_objective") as Label
     var fallback := display.get("_weapon_fallback") as Label
     verify.call(objective.text.contains("east gate")
         and objective.size.x >= 290.0 and objective.size.y >= 30.0,
-        "D09-03 objective value has visible space in fixed top-left panel")
+        "D09-03 objective value has visible space in fixed bottom-left panel")
     verify.call(hp_text.text.contains("100 / 100") and hp_text.size.x >= 80.0,
         "D09-03 numeric HP value is not compressed by the vitality title")
     verify.call(fallback.visible and fallback.size.x >= 30.0,
@@ -56,14 +57,23 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
                 expected_indices[slot],
             "D09-03 selector %d label matches input adapter mapping" % (slot + 1))
     var health_pos: Vector2 = hp_panel.position
+    var objective_pos: Vector2 = objective_panel.position
     var equip_pos: Vector2 = equip_panel.position
-    verify.call(hp_panel.anchor_left == 0.0 and equip_panel.anchor_right == 1.0
-        and equip_panel.position.x > hp_panel.position.x + hp_panel.size.x + 80.0,
-        "D09-03 bottom panels are compact with unobstructed center gap")
+    verify.call(hp_panel.anchor_left == 0.0 and hp_panel.anchor_top == 0.0
+        and hp_panel.anchor_bottom == 0.0
+        and objective_panel.anchor_left == 0.0
+        and objective_panel.anchor_top == 1.0
+        and objective_panel.anchor_bottom == 1.0
+        and equip_panel.anchor_right == 1.0 and equip_panel.anchor_bottom == 1.0
+        and hp_panel.position.y < objective_panel.position.y
+        and objective_panel.position.y + objective_panel.size.y <= display.size.y
+        and equip_panel.position.x > objective_panel.position.x + objective_panel.size.x + 80.0,
+        "D09-03 vitality sits top-left, objective bottom-left and equipment bottom-right with clear gap")
     for i in range(5):
         views.call("switch_view", i)
         await _frames(tree, 2)
         verify.call(hp_panel.position.is_equal_approx(health_pos)
+            and objective_panel.position.is_equal_approx(objective_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
             and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
@@ -115,7 +125,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     hide_key.pressed = true
     hud.call("_unhandled_input", hide_key)
     verify.call(not hp_panel.visible and not equip_panel.visible
-        and not display.get_node("ObjectivePanel").visible,
+        and not objective_panel.visible,
         "D09-03 H hidden mode removes gameplay chrome")
     for i in range(5):
         views.call("switch_view", i)

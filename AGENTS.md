@@ -797,3 +797,7 @@ for its compact active-view label and F6 button order. Keep default
 identity mapping for users embedding Action5ViewInput without this array.
 Retain the `retro_topdown` resource identifier and enum for backward
 compatibility, but call the visible mode **Top-Down**.
+
+### D09-03 UI layout refinement
+
+The owner requested a **position swap**: Vitality/health is now **top-left**, Objective is **bottom-left**, and Equipment stays **bottom-right**. Keep all three panels fixed across view modes and preserve the bottom-center gap, HP/equipment/interaction ownership and H visibility toggle. Test anchors explicitly; do not change the HUD's gameplay adapter or input mapping to implement layout adjustments.

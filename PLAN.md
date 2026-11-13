@@ -906,3 +906,7 @@ saved overrides remain unchanged. HUD labels, F6 mode buttons, InputMap
 hints, README/camera instructions, Godot tests and real-Web browser
 keyboard smoke must agree. Existing internal `RETRO_TOPDOWN` identifiers
 remain for compatibility, while the in-game label is simply **Top-Down**.
+
+### D09-03 approved HUD panel placement
+
+The Iron Reliquary layout now places **Vitality/HP top-left**, **Objective bottom-left**, and **Equipment bottom-right** (its secondary item/Q label stays in the same equipment panel). This supersedes earlier D09-03 descriptions of bottom-left HP. Preserve the gap between bottom panels, H hide/show, and a single identical layout for all five views. This is a presentation-only repositioning, with no core gameplay dependencies.

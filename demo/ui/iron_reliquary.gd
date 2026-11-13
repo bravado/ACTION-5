@@ -199,7 +199,7 @@ func _stack(parent: Control) -> VBoxContainer:
 
 
 func _build_health() -> void:
-    var panel := _panel("HealthPanel", 0, 1, 0, 1, 24, -101, 307, -20)
+    var panel := _panel("HealthPanel", 0, 0, 0, 0, 24, 18, 307, 99)
     _gameplay_nodes.append(panel)
     var stack := _stack(panel)
     var row := HBoxContainer.new()
@@ -263,8 +263,8 @@ func _build_equipment() -> void:
 
 
 func _build_top() -> void:
-    var objective_panel := _panel("ObjectivePanel", 0, 0, 0, 0,
-        24, 18, 353, 82)
+    var objective_panel := _panel("ObjectivePanel", 0, 1, 0, 1,
+        24, -101, 353, -20)
     _gameplay_nodes.append(objective_panel)
     var stack := _stack(objective_panel)
     stack.add_child(_label("OBJECTIVE", 11, GOLD))
