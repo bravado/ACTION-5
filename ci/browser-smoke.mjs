@@ -827,24 +827,24 @@ try {
   await page.reload({ waitUntil: 'load', timeout: 90_000 });
   await page.waitForTimeout(7000);
   await page.keyboard.press('2');
-  // Render-heavy WebGL2 machines do not simulate an exact travel distance
-  // per wall-clock millisecond. Progress toward the actual gun pickup using
-  // successive real WASD edges; do not assume one fixed sleep reaches it.
+  // The Gun is on the same starting row as the Bat (x=3, z=1).
+  // Move along +X in small real input steps. Previous diagonal D+S
+  // movement could overshoot the Gun's Z lane after picking up the Bat,
+  // making this test fail even though the E interaction was valid.
+  // Small steps tolerate variable WebGL2 frame rates without teleporting
+  // the actor, injecting a test-only bridge or weakening pickup assertions.
   const beforeGun = weaponEvents.length;
   for (let attempt = 0; attempt < 9; attempt++) {
     await page.keyboard.down('d');
-    await page.keyboard.down('s');
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(230);
     await page.keyboard.up('d');
-    await page.keyboard.up('s');
-    await page.waitForTimeout(180);
+    await page.waitForTimeout(140);
     await page.keyboard.press('e', { delay: 110 });
-    await page.waitForTimeout(220);
+    await page.waitForTimeout(240);
     if (weaponEvents.slice(beforeGun).some(line =>
         line.includes('ACTION5_WEAPON_PICKUP id=gun'))) break;
-    // Preserve the first Bat pickup in inventory while approaching the
-    // Gun. Dropping Bat here would move it in front of the actor and
-    // repeatedly make it the closest item again.
+    // An earlier E may legitimately pick up the Bat; keep it in inventory
+    // and continue toward the Gun with subsequent real movement presses.
   }
   if (weaponEvents.slice(beforeGun).some(line =>
       line.includes('ACTION5_WEAPON_PICKUP id=gun')) &&
