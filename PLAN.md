@@ -882,3 +882,14 @@ specified 20-minute exploratory native/Web run.
 **Second review / performance closure (2026-11-12):** ActorInputAdapter resolves each active view-control profile only once per physics tick and passes it to both movement and aim input readers. The optional F5 HUD compass refreshes at fixed physics-tick cadence only while F5 is active (rather than once per rendered frame), avoiding needless allocation on high-refresh displays. Action5ViewFacingPolicy.valid() enforces the documented 0 or 2–32 sector range even when assigned programmatically; the suite exercises valid 0/16 sectors and invalid 1/33. These changes do not introduce stateful direction caches, alter the firing clock or raycast frequency, or couple CameraRig and Gun. Final pinned Checks/native/WebGL2 Full E2E are the review gates. [full-e2e]
 
 **D09-02 side-scroller accessibility follow-up (2026-11-12):** The arena Gun pickup is now at Z=1.0, matching Bat/Shovel and reachable through the default F1 Z=0 side lane. The dungeon's central block is 1.1 m high with coincident BoxMesh/BoxShape and floor-aligned center Y=0.55; the normal 6.3 m/s jump and movement traverse it without a gameplay/physics bypass. [Checks #43340690231](https://github.com/bravado/ACTION-5/actions/runs/43340690231) passed **1,331/1,331** assertions, including an actual F1 E pickup, grounded jump over the collision block and run to the EXIT. Verify the final native/WebGL2 smoke and owner visuals before squash merge. [full-e2e]
+
+
+## D09-03 — Iron Reliquary UI in progress (PR #38)
+
+The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **Iron Reliquary** HUD inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
+
+- One fixed HUD scene across F1–F5, two corner panels (HP and active weapon with small next-item name and `Q`/InputMap swap hint), a persistent center gap, and concise fixed-position view/objective labels.
+- Full gameplay HUD show/hide with remappable `hud_toggle` (H by default), independent of actor/combat/equipment state; help via `hud_help` (F6). Outcome overlays remain usable.
+- The data source is an event-driven read-only adapter, never another inventory, combat clock, aim controller or health authority. Optional `WeaponDefinition.hud_icon` adds pure presentation metadata.
+- Contextual prompts use a read-only `Interactor.get_target(actor)` path shared with actual interaction selection, plus optional `get_interaction_label(actor)` on each interactable; do not guess nearby targets in UI.
+- Requirements/acceptance are tracked in [issue #37](https://github.com/bravado/ACTION-5/issues/37). CI/native/Web exploratory checks and actual visual approval remain gates before marking D09-03 delivered.

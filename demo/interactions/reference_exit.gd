@@ -46,6 +46,10 @@ func get_interaction_point(_actor: Node3D) -> Vector3:
     return global_position + Vector3(0, 1.0, 0)
 
 
+func get_interaction_label(_actor: Node3D) -> String:
+    return "Complete encounter"
+
+
 func interact(actor: Node3D) -> bool:
     if not can_interact(actor):
         return false

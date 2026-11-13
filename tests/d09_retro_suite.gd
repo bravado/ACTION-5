@@ -91,8 +91,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(level.get_node("Hud").is_physics_processing(),
         "D09-02 overhead compass updates only on fixed physics ticks")
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(retro_hint.visible and retro_hint.text.contains("Sword")
-        and retro_hint.text.contains("4-WAY"),
+    verify.call(not retro_hint.visible and retro_hint.text.contains("Sword")
+        and retro_hint.text.contains("4-WAY")
+        and str((level.get_node("Hud/Reliquary") as Control).get("_view").text).contains("4-WAY"),
         "D09-02 live overhead HUD identifies the equipped four-way Sword")
     var diagonal := Vector2(1, -0.5).normalized()
     var f5_sword: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
@@ -131,8 +132,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 Gun has independent eight-way F5 configuration")
     views.switch_view(4)
     level.get_node("Hud").call("_physics_process", 0.0)
-    verify.call(retro_hint.visible and retro_hint.text.contains("Pistol")
-        and retro_hint.text.contains("8-WAY"),
+    verify.call(not retro_hint.visible and retro_hint.text.contains("Pistol")
+        and retro_hint.text.contains("8-WAY")
+        and str((level.get_node("Hud/Reliquary") as Control).get("_view").text).contains("8-WAY"),
         "D09-02 same HUD shows eight sectors with Gun without restarting actor")
     var f5_gun: Vector2 = AimScript.resolve_direction(diagonal, Vector2.LEFT,
         ProfileScript.Mode.RETRO_TOPDOWN, null,

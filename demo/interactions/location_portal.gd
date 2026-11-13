@@ -40,6 +40,10 @@ func can_interact(actor: Node3D) -> bool:
     return destination_scene != null and not destination_scene.resource_path.is_empty()
 
 
+func get_interaction_label(_actor: Node3D) -> String:
+    return "Enter portal"
+
+
 func interact(actor: Node3D) -> bool:
     if not can_interact(actor):
         return false

@@ -17,6 +17,11 @@ func can_interact(actor: Node3D) -> bool:
         and is_instance_valid(actor) and actor.get_node_or_null("Equipment") != null
 
 
+func get_interaction_label(_actor: Node3D) -> String:
+    var definition: Resource = weapon.get("definition") as Resource if is_instance_valid(weapon) else null
+    return "Pick up " + (str(definition.get("display_name")) if definition != null else "item")
+
+
 func interact(actor: Node3D) -> bool:
     if not can_interact(actor):
         return false

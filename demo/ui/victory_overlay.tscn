@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://demo/ui/victory_overlay.gd" id="1"]
+
+[ext_resource type="StyleBox" path="res://demo/ui/iron_frame.tres" id="2_frame"]
 
 [node name="VictoryOverlay" type="CanvasLayer"]
 layer = 30
@@ -35,6 +37,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Screen/Center"]
+theme_override_styles/panel = ExtResource("2_frame")
 layout_mode = 2
 custom_minimum_size = Vector2(420, 195)
 
@@ -43,6 +46,7 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="Screen/Center/Panel/Content"]
+theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 33
 text = "Encounter Complete!"
