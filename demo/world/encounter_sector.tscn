@@ -14,11 +14,13 @@ size = Vector3(24, 0.4, 16)
 [sub_resource type="BoxMesh" id="floor_mesh"]
 size = Vector3(24, 0.4, 16)
 
+; A 1.1m obstacle remains substantial but is jumpable in F1 (6.3m/s takeoff).
+; Keep collision and visuals identical; the base remains at floor Y=0.
 [sub_resource type="BoxShape3D" id="obstacle_shape"]
-size = Vector3(3, 2.5, 3)
+size = Vector3(3, 1.1, 3)
 
 [sub_resource type="BoxMesh" id="obstacle_mesh"]
-size = Vector3(3, 2.5, 3)
+size = Vector3(3, 1.1, 3)
 
 [sub_resource type="StandardMaterial3D" id="obstacle_color"]
 albedo_color = Color(0.4, 0.45, 0.55, 1)
@@ -55,7 +57,7 @@ shape = SubResource("floor_shape")
 mesh = SubResource("floor_mesh")
 
 [node name="Obstacle" type="StaticBody3D" parent="."]
-position = Vector3(0, 1.25, 0)
+position = Vector3(0, 0.55, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Obstacle"]
 shape = SubResource("obstacle_shape")
