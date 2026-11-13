@@ -20,7 +20,9 @@ func _ready() -> void:
         if not is_instance_valid(pickup) or not pickup.get_parent() is Node3D:
             push_warning("ACTION5: Pickup spawn path must resolve to a Node3D: " + key)
             continue
-        var scene := load(pickup.scene_file_path) as PackedScene if not pickup.scene_file_path.is_empty() else null
+        var scene: PackedScene = null
+        if not pickup.scene_file_path.is_empty():
+            scene = load(pickup.scene_file_path) as PackedScene
         if scene == null:
             push_warning("ACTION5: Pickup must be an instanced PackedScene: " + key)
             continue
