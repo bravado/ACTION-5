@@ -382,8 +382,9 @@ The generic addon `Action5VisibilityController` drives only opted-in
 `OuterWallFader`. The reference arena, instanced encounter and detached
 chamber use `demo/world/visibility/{outer_wall,foreground_wall}.tres`:
 F2/F3 fade near exterior walls, side mode hides designated foreground
-meshes, FPS and top-down stay opaque. Renderer-compatible per-surface
-StandardMaterial3D copies preserve authored overrides and shadows;
+meshes, FPS and top-down stay opaque. Renderer-compatible StandardMaterial3D
+copies support both mesh-wide material overrides and individual surfaces,
+restoring authored visibility, materials and shadows on target removal;
 GridMaps support whole-map hide/show, not per-cell alpha fade. No collision,
 NavigationLink3D, actor line of sight or door state changes.
 

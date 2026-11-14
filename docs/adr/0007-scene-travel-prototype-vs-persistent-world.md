@@ -167,7 +167,8 @@ register loose connected-world pickups (unrelated Node3D additions do
 not schedule deferred work), then tracks only those items for
 changes of room position. It excludes tagged detached scene roots,
 releases visual ownership on pickup, and prunes dead weak references
-after room resets. Action5VisibilityController prunes dead target and material entries.
+after room resets. Action5VisibilityController restores surviving visuals
+when targets are removed and prunes freed target/material cache entries.
 Visibility paths remain a scene-composition policy, not an addon core
 dependency.
 
@@ -200,9 +201,10 @@ opt-in per-geometry `Action5VisibilityTarget` policies. It fades exterior wall *
 The component cannot affect a shared interior wall, opaque door,
 enemy LoS, collision, pathfinding or actor state. FPS remains opaque.
 
-Each material surface is duplicated and cached per MeshInstance3D to preserve
-the source asset and minimize per-frame allocations; the original
-surface override is restored at full distance. Alpha blended
+Compatible StandardMaterial3D surfaces (or a mesh-wide material override)
+are duplicated and cached only on fading targets, preserving the source
+asset; the original overrides and shadows are restored when opacity is
+normal or a target is removed. Alpha blended
 StandardMaterial3D supports the native and WebGL2 Compatibility
 pipelines, unlike the `GeometryInstance3D.transparency` multiplier,
 which Compatibility ignores. This decision explicitly separates

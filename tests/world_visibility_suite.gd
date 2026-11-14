@@ -61,6 +61,42 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(mesh.visible and mesh.get_surface_override_material(0) == material,
         "Imported geometry restores original render state in top-down")
 
+    # Removing a target while keeping its imported mesh alive restores its
+    # authored state and releases ownership for a replacement target.
+    views.switch_view(0)
+    verify.call(not mesh.visible, "Fixture starts hidden before target removal")
+    var mesh_id: int = mesh.get_instance_id()
+    target.free()
+    controller.call("_process", 0.0)
+    verify.call(mesh.visible and mesh.get_surface_override_material(0) == material
+        and not (controller.get("_visibility") as Dictionary).has(mesh_id)
+        and not (controller.get("_materials") as Dictionary).has(mesh_id),
+        "Removing a target restores its surviving mesh and releases its cache")
+    var replacement := Target.new()
+    replacement.policy = policy
+    replacement.visual_root_path = ^"../ImportedGeometry"
+    replacement.proximity_shape_path = ^""
+    imported.add_child(replacement)
+    views.switch_view(1)
+    controller.call("_process", 1.0)
+    verify.call((controller.get("_materials") as Dictionary).has(mesh_id)
+        and mesh.get_surface_override_material(0) != material,
+        "A new target can acquire the same mesh without leaking its old owner")
+    # A replacement may also be attached before the next controller tick.
+    replacement.free()
+    var immediate := Target.new()
+    immediate.policy = policy
+    immediate.visual_root_path = ^"../ImportedGeometry"
+    immediate.proximity_shape_path = ^""
+    imported.add_child(immediate)
+    controller.call("_process", 1.0)
+    verify.call((controller.get("_materials") as Dictionary).has(mesh_id)
+        and mesh.get_surface_override_material(0) != material,
+        "Replacing a target in the same frame correctly releases old ownership")
+    views.switch_view(4)
+    verify.call(mesh.get_surface_override_material(0) == material,
+        "Same-frame replacement retains the original material, not the old fade clone")
+
     # GridMap intentionally uses whole-node visibility, never per-cell alpha.
     var grid := GridMap.new()
     grid.name = "Tiles"
@@ -79,6 +115,59 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     views.switch_view(4)
     verify.call(grid.visible,
         "GridMap authored visibility returns without touching tile collision")
+
+    # Imported meshes with a material_override must fade the actual rendered
+    # material, not an ineffective surface override behind it.
+    var override_root := Node3D.new()
+    world.add_child(override_root)
+    var override_mesh := MeshInstance3D.new()
+    override_mesh.name = "OverrideMesh"
+    override_mesh.mesh = BoxMesh.new()
+    var original_override := StandardMaterial3D.new()
+    original_override.albedo_color.a = 0.6
+    override_mesh.material_override = original_override
+    override_root.add_child(override_mesh)
+    var override_target := Target.new()
+    var override_policy := Policy.new()
+    override_policy.fade_modes = 1 << 1
+    override_target.policy = override_policy
+    override_target.visual_root_path = ^"../OverrideMesh"
+    override_target.proximity_shape_path = ^""
+    override_root.add_child(override_target)
+    player.global_position = override_mesh.global_position + Vector3(0, 0.15, 0)
+    views.switch_view(1)
+    controller.call("_process", 1.0)
+    var faded_override := override_mesh.material_override as StandardMaterial3D
+    verify.call(faded_override != null and faded_override != original_override
+        and faded_override.albedo_color.a < 0.25
+        and is_equal_approx(original_override.albedo_color.a, 0.6),
+        "Imported material_override fades with a clone, preserving its source")
+    views.switch_view(4)
+    verify.call(override_mesh.material_override == original_override,
+        "Opaque camera restores the exact imported material_override")
+    views.switch_view(1)
+    controller.call("_process", 1.0)
+    override_target.free()
+    controller.call("_process", 0.0)
+    verify.call(override_mesh.material_override == original_override,
+        "Removing a target restores an actively faded material_override")
+
+    # Unsupported material types do not create ghost shadow changes.
+    var unsupported := ORMMaterial3D.new()
+    override_mesh.material_override = unsupported
+    var unsupported_target := Target.new()
+    unsupported_target.policy = override_policy
+    unsupported_target.visual_root_path = ^"../OverrideMesh"
+    unsupported_target.proximity_shape_path = ^""
+    override_root.add_child(unsupported_target)
+    var original_shadow: int = override_mesh.cast_shadow
+    controller.call("_process", 1.0)
+    verify.call(override_mesh.material_override == unsupported
+        and override_mesh.cast_shadow == original_shadow,
+        "Unsupported materials remain opaque with unchanged shadow state")
+    unsupported_target.free()
+    override_root.free()
+    controller.call("_process", 0.0)
 
     # A target may disappear during fresh sector loading. No stale ownership.
     var target_id: int = mesh.get_instance_id()

@@ -41,8 +41,9 @@ The current demo uses two connected areas plus cached detached locations.
 The demo's fixed sector-crossing threshold, camera bounds and room-occlusion
 arrays are **composition-specific**, not required level interfaces. New
 connected geometries must configure those demo systems or use their own
-scene adapters. This PR does not convert the demo's hand-built geometry
-into a GridMap or change its navigation topology.
+scene adapters. The visibility integration does not convert the demo's hand-built
+geometry into a GridMap or change its navigation topology. The
+follow-up work is tracked in [level authoring issue #41](https://github.com/bravado/ACTION-5/issues/41).
 
 ## Visibility policies
 
@@ -71,10 +72,13 @@ To make a roof hide in top-down only, set `hidden_modes` to Top Down,
 leaving fading disabled. To make a tree fade in isometric, select
 Isometric under `fade_modes`; the tree's collision stays unchanged.
 
-Only mesh surfaces with `StandardMaterial3D` can alpha-fade.
-The renderer uses cached per-surface material duplicates for Godot's
-Compatibility/WebGL2 renderer. It restores original overrides and shadow
-flags when opaque or removed, without mutating shared source materials.
+Only `StandardMaterial3D` can alpha-fade, including either a mesh-wide
+`material_override` or compatible mesh surfaces. The renderer creates
+cached private material duplicates for Godot's Compatibility/WebGL2
+renderer; it restores the exact original overrides, authored visibility
+and shadow flags when opacity returns to normal, when a target is
+removed (even if its mesh survives), or when the controller exits.
+Hide-only targets do not allocate translucent material duplicates.
 Other material types and `GridMap` support hide/show only. A GridMap's
 cells are not separately addressable `MeshInstance3D` objects; for
 individual fades, isolate visual chunks in separate GridMaps or prefab
@@ -89,11 +93,12 @@ using the game-level room-visibility adapter separately.
 
 ## Runtime and performance
 
-The controller listens for target node insertions rather than scanning
-all geometry every frame. It tracks only opted-in targets, prunes unloaded
-instances, and reuses transparent material copies. Targets without
-proximity fading incur visibility updates only when view/state refreshes;
-the current implementation shares an update loop with fading targets.
+The controller registers target nodes on scene insertion rather than
+scanning all geometry each frame. It processes only opted-in targets,
+prunes unloaded/reparented instances, and reuses any transparent material
+copies. The present update loop also visits hide-only targets each frame;
+those targets do not allocate fade materials. Avoid attaching targets
+to unrelated level geometry that never requires a visibility policy.
 For huge environments, split authored geometry into independently
 controllable chunks and profile native and WebGL2 builds before adding
 automatic occlusion raycasts or per-cell material changes.
@@ -101,7 +106,8 @@ automatic occlusion raycasts or per-cell material changes.
 ## Acceptance
 
 `tests/world_visibility_suite.gd` checks a nested imported-style geometry
-wrapper, independent view masks, authored-material restoration, physical
-collision preservation, dynamic unloading and GridMap group visibility.
+wrapper, independent view masks, material surfaces and mesh-wide overrides,
+authored-state restoration on target removal, physical collision,
+dynamic unloading and GridMap group visibility.
 The existing D08 suites cover arena/dungeon/remote visibility, view
 switching and fresh-entry re-instancing.

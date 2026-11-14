@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D09-02 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun Top-Down directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
+> **Project status (November 2026): D01–D09-03 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun Top-Down directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -16,10 +16,10 @@ scene placement, fresh-entry spawn registration and known limitations.
 
 | Key (native and Web) | Mode | Camera and controls | Inspiration |
 |---|---|---|---|
-| **1** | Side-scroller | True horizontal orthographic X/Y side view; X movement with current Z lane locked | *Mario*, *Altered Beast* |
+| **1** | First person | Eye-level perspective, mouse look, crosshair aiming | First-person action |
 | **2** | Beat'em up | Close, shallow-angle orthographic framing and X/Z ground movement | *Streets of Rage*, *Golden Axe* |
 | **3** | Isometric / over-the-shoulder | **One adjustable orthographic profile:** zoom out for a tilted dungeon view, zoom in for close shoulder framing; mouse orbit and camera-relative movement | Dungeon crawlers and third-person action |
-| **4** | First person | Eye-level perspective, mouse look, crosshair aiming | First-person action |
+| **4** | Side-scroller | True horizontal orthographic X/Y side view; X movement with current Z lane locked | *Mario*, *Altered Beast* |
 | **5** | Top-Down | True overhead orthographic, configurable four-/eight-way facing and attacks | *The Legend of Zelda*, *Commando* |
 
 All modes use **one shared 3D scene and authoritative player actor**. Camera changes never recreate actors, reset combat or change world physics. Isometric and over-the-shoulder are **two zoom levels of mode 3**, not two selectable modes.
@@ -71,7 +71,7 @@ A fixed combat tick does **not** imply deterministic rollback/network simulation
 
 Levels can mix Godot GridMap, modular scene instances and imported Blender/GLB
 geometry. No tile system is required by the runtime. Optional
-`VisibilityTarget` nodes with editable `VisibilityPolicy` resources control
+`Action5VisibilityTarget` nodes with editable `Action5VisibilityPolicy` resources control
 which visual meshes fade or hide per view; the shared 3D collision, AI,
 weapons, doors and world state are unaffected. See
 [editor level authoring](docs/level-authoring.md) for the supported workflow,
@@ -89,7 +89,7 @@ PLAN.md               # authoritative product specification
 AGENTS.md             # coding agent rules and acceptance workflow
 ```
 
-The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, using the view-specific movement and attack mappings below. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Bat horizontal strike, otherwise Kick unless assigned by equipment); gamepad X/Y use the same mapping. F4 has separate camera-space pose assets for correctly framed first-person arms and kicks, while F1/F2/F3/F5 use three dedicated skinned world weapon animations (Bat vertical, Bat horizontal, Shovel overhead) and all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
+The Godot 4.7.2 project contains a **five-camera playable demonstration** of the same 3D arena and actor. Switch camera perspectives with **1–5**, using the view-specific movement and attack mappings below. D03 uses a reusable locomotion component and InputMap adapter rather than raw demo key polling. Press Space to jump, Shift to run and Alt to dodge. Use **left click / J** (Punch when unarmed, Bat/Shovel swing when equipped) and **right click / K** (Bat horizontal strike, otherwise Kick unless assigned by equipment); gamepad X/Y use the same mapping. First-person mode has separate camera-space pose assets for correctly framed arms and kicks; other views use three dedicated skinned world weapon animations (Bat vertical, Bat horizontal, Shovel overhead) and all views retain one gameplay actor. See [combat and attack authoring](docs/combat.md), [development](docs/development.md), **[how to add a movement](docs/adding-moves.md)**, [animation/model authoring](docs/animation.md), and [camera system](docs/cameras.md) documentation.
 
 ## Roadmap
 

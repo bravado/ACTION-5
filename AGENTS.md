@@ -684,10 +684,13 @@ unsupported: separate visual groups or author independent mesh scenes.
 Physical collision, door barriers, projectile obstruction, navigation and
 room-root visibility must not depend on opacity.
 
-Register targets only on scene insertion, cache per-surface duplicated
-StandardMaterial3D for WebGL2 Compatibility, restore exact material
-overrides/shadows and authored mesh visibility on teardown, and prune
-freed scenes without retaining references. Non-StandardMaterial surfaces
+Register targets only on scene insertion; duplicate StandardMaterial3D
+surfaces **or mesh-wide overrides** only when fading is configured, for
+WebGL2 Compatibility. Restore exact material overrides/shadows and
+authored mesh visibility when targets are removed even if their visuals
+survive, on controller teardown and after scene unload/reparenting.
+A replacement target must be able to acquire a released visual without
+leaked material or registry state. Non-StandardMaterial surfaces
 must remain unchanged by fading, without affecting collision or crashes.
 The old `demo/world/outer_wall_fader.gd` is removed: do not reintroduce
 a second visual owner or write mesh visibility inside demo/main.gd.
