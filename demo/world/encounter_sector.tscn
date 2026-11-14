@@ -1,4 +1,8 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/world/visibility_target.gd" id="90_visibility_target"]
+[ext_resource type="Resource" path="res://demo/world/visibility/outer_wall.tres" id="91_outer_visibility"]
+[ext_resource type="Resource" path="res://demo/world/visibility/foreground_wall.tres" id="92_front_visibility"]
 
 [ext_resource type="Script" path="res://demo/world/dungeon_navigation.gd" id="1"]
 [ext_resource type="PackedScene" path="res://demo/ai/melee_enemy.tscn" id="2"]
@@ -76,7 +80,7 @@ position = Vector3(-5, 0.15, 0)
 [node name="Ranged" parent="." instance=ExtResource("3")]
 position = Vector3(-6, 0.15, 3)
 
-[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="NorthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, -8)
 
 [node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
@@ -86,7 +90,7 @@ surface_material_override/0 = SubResource("dungeon_wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("dungeon_wall_x_shape")
 
-[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
+[node name="SouthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, 8)
 
 [node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
@@ -96,7 +100,7 @@ surface_material_override/0 = SubResource("dungeon_wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
 shape = SubResource("dungeon_wall_x_shape")
 
-[node name="EastWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="EastWall" type="StaticBody3D" parent="."]
 position = Vector3(12, 1.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="EastWall"]
@@ -147,3 +151,15 @@ no_depth_test = true
 
 [node name="TraversalFixture" type="Node3D" parent="."]
 script = ExtResource("6")
+
+[node name="VisibilityTarget" type="Node" parent="NorthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="SouthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("92_front_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="EastWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")

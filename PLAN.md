@@ -804,7 +804,7 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 
 `WorldSession` detects physical sector transitions, preloads nearby NPC physics, preserves live enemy state on ordinary revisits and supports an explicit destination-only fresh/restore policy. The `Action5Interactor` handles doors, switches, portals and prefab-local weapon pickups with real range and line-of-sight validation. An optional `LocationPortal` loads a cached environment PackedScene without duplicating Player, equipment or camera. Disabled remote locations are isolated by Godot `DISABLE_MODE_REMOVE` for collision objects and explicit navigation state handling. A location-owned drop-parent provider resolves the active world at drop time.
 
-`RoomVisibility` independently handles connected-room occlusion, NPC and loose-item presentation, while `OuterWallFader` owns F1 foreground hiding and proximity transparency. The roof tint is a full-viewport presentation-only overlay; its separate physics ceiling remains authoritative. `SectorCameraBounds` merges transformed bounds of connected sectors without adding room names or movement transforms to the camera core. F2 lateral peek defaults to configurable 6°. All five views retain consistent facing with view-specific control profiles.
+`RoomVisibility` independently handles connected-room occlusion, NPC and loose-item presentation, while the opt-in `Action5VisibilityController` owns camera-dependent foreground hiding and proximity transparency through `VisibilityTarget`/`VisibilityPolicy` resources. The roof tint is a full-viewport presentation-only overlay; its separate physics ceiling remains authoritative. `SectorCameraBounds` merges transformed bounds of connected sectors without adding room names or movement transforms to the camera core. F2 lateral peek defaults to configurable 6°. All five views retain consistent facing with view-specific control profiles.
 
 **D08 verification:** Godot integration tests cover physical doors, retained AI awareness, two overlapping cached remote environments, pickup/drop/restoration, non-default physics disabling, F1/F2 wall rendering and camera continuity. Latest pre-merge checks: **1,212 assertions, zero failures**, with owner F1–F5 visual acceptance on November 11, 2026. Native/WebGL2 exports remain under automated CI; a failing installation of browser dependencies is infrastructure evidence, not proof of a gameplay regression. D09 builds the playable reference and configurable retro directional combat on these existing ports without a new scene or persistence framework.
 
@@ -813,21 +813,36 @@ D08 extends the existing D07-equipped NPCs without changing the reusable actor, 
 - [x] Reduce F2 lateral camera peek from 20° to a configurable
   **6° default**; preserve the 0° disable option and world-aligned
   beat'em-up WASD.
-- [x] Reuse the **presentation-only** `OuterWallFader` to own
-  both F1's front-wall mesh hide and near-wall fade, removing the
-  competing main-scene writer. Its material fade is activated via
-  `action5_outer_wall` groups on outer arena,
-  dungeon and remote-room walls. Only these near-player perimeter
-  meshes fade; shared/interior wall geometry, equipment props and
+- [x] Keep the **presentation-only** foreground-hide and
+  near-wall fade behavior without a competing main-scene writer.
+  PR #40 generalizes the former demo-only wall fader into
+  `Action5VisibilityController`, `Action5VisibilityTarget` and
+  `Action5VisibilityPolicy` resources. Exterior walls in the arena,
+  dungeon and remote room opt in through target children rather than
+  fixed wall groups. Shared/interior geometry, equipment props and
   the closed dungeon door remain fully opaque.
-- [x] Use per-mesh duplicated/cached alpha StandardMaterial3D for
-  **Compatibility/WebGL2** and restore original overrides when far.
+- [x] Use duplicated/cached alpha StandardMaterial3D surfaces or
+  mesh-level overrides for **Compatibility/WebGL2**, restoring the
+  exact original materials, shadows and surviving visual state.
   Keep collider, attacks, AI visibility/navigation and
   RoomVisibility's sector occlusion independent of fade.
 - [x] Owner verified F1/F2/F3/F5 near-wall rendering and F4 opaque
   walls on November 11, 2026; maintain automated native/WebGL2
   screenshot and startup gates for subsequent changes.
 
+
+### Follow-up — editor-authored levels and reusable visibility (PR #40)
+
+Mixed 3D scene authoring (GridMap, Blender/GLB imported geometry and
+modular PackedScenes) is supported without a mandatory level format.
+One optional `Action5VisibilityController` applies authorable
+`VisibilityPolicy` Resources to registered `VisibilityTarget` nodes,
+without touching collision, AI, navigation, doors or shared actor state.
+Only StandardMaterial3D supports alpha fade; GridMap visibility applies
+at the whole GridMap node level. See [level-authoring guide](docs/level-authoring.md)
+and [LEVEL tracker #41](https://github.com/bravado/ACTION-5/issues/41).
+The actual GridMap dungeon, Blender village, modular arena and generic
+multi-sector room composition remain separate, pending issues #42–#47.
 
 ## D09-01 delivered baseline — playable reference and view-local input
 

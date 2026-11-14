@@ -270,7 +270,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # It must work under WebGL2's Compatibility renderer, where generic
     # GeometryInstance3D.transparency is ignored. The material override
     # remains per mesh; collision and the interior props never change.
-    var fader: Node = world.get_node("OuterWallFader")
+    var fader: Node = world.get_node("VisibilityController")
     var south := world.get_node("SouthWall") as StaticBody3D
     var south_visual := south.get_node("MeshInstance3D") as MeshInstance3D
     var original_south: Material = south_visual.get_surface_override_material(0)
@@ -283,7 +283,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
     fader.call("_process", 1.0)
     var faded: StandardMaterial3D = south_visual.get_surface_override_material(0)
-    verify.call(south.is_in_group("action5_outer_wall")
+    verify.call(south.get_node("VisibilityTarget").policy.fades_in(1)
         and south_visual.visible
         and faded != original_south
         and faded != null
@@ -291,7 +291,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and faded.albedo_color.a < 0.35
         and not south_collider.disabled and south.collision_layer != 0,
         "Close to south/front outer wall uses alpha-blended opacity without disabling collision")
-    verify.call(not pillar.get_parent().is_in_group("action5_outer_wall")
+    verify.call(pillar.get_parent().get_node_or_null("VisibilityTarget") == null
         and pillar.get_surface_override_material(0) == pillar_material
         and shared_wall.get_surface_override_material(0) == shared_material,
         "Interior obstacles and shared physical doorway walls never fade")
@@ -313,7 +313,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     views.switch_view(4)
     verify.call(south_visual.get_surface_override_material(0) == original_south
         and south_visual.visible and not south_collider.disabled
-        and bool(fader.get("preserve_top_down")),
+        and not south.get_node("VisibilityTarget").policy.fades_in(4),
         "F5 immediately restores opaque exterior walls without changing physics")
     views.switch_view(1)
     player.global_position = world.to_global(Vector3(26, 0.15, 6.9))
@@ -321,7 +321,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var dungeon_south := dungeon.get_node("SouthWall") as StaticBody3D
     var dungeon_mesh := dungeon_south.get_node("Mesh") as MeshInstance3D
     var dungeon_mat := dungeon_mesh.get_surface_override_material(0) as StandardMaterial3D
-    verify.call(dungeon_south.is_in_group("action5_outer_wall")
+    verify.call(dungeon_south.get_node("VisibilityTarget").policy.fades_in(1)
         and dungeon_mat != null
         and dungeon_mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
         and dungeon_mat.albedo_color.a < 0.35
@@ -339,8 +339,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     doorway.call("set_open", false)
     await _frames(tree, 2)
     verify.call(not south_visual.visible and not dungeon_mesh.visible
-        and south.is_in_group("action5_side_hidden_wall")
-        and dungeon_south.is_in_group("action5_side_hidden_wall")
+        and south.get_node("VisibilityTarget").policy.hides_in(0)
+        and dungeon_south.get_node("VisibilityTarget").policy.hides_in(0)
         and arena_north.visible and dungeon_north.visible
         and not south_collider.disabled and south.collision_layer != 0
         and not (dungeon_south.get_node("CollisionShape3D") as CollisionShape3D).disabled,

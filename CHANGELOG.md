@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Mixed 3D level authoring and reusable visibility (PR #40)
+
+- Document scenes combining GridMap geometry, imported Blender/GLB meshes and modular PackedScenes without binding gameplay to a level format.
+- Replace the demo-only exterior wall fader with opt-in `Action5VisibilityController`, `Action5VisibilityTarget` and `Action5VisibilityPolicy` resources; preserve physical collisions, navigation, room occlusion and actor state.
+- Support compatibility-renderer alpha fading of StandardMaterial3D surfaces and mesh-wide overrides; GridMaps support whole-node visibility rather than per-cell alpha fade.
+- Restore surviving visuals on target removal or scene reset, avoid fade-material caches for hide-only meshes and add regressions for imported materials, target replacement and GridMaps.
+- Record follow-up editor-authored level tasks in the [LEVEL tracker](https://github.com/bravado/ACTION-5/issues/41); they remain separate PRs.
+
 ### D09-01 — Playable reference and per-view input (issue #17)
 
 - Compose the shared arena, east physical door, dungeon enemies and gated EXIT into a playable objective with a victory/replay screen; preserve the same Player, weapon and scene authority.
@@ -70,4 +78,4 @@
 - Add MIT license, addon skeleton, test runner and export presets.
 - Add GitHub Actions smoke builds and evidence artifacts.
 
-> D01–D08 and D09-01 are delivered; D09-02 retro top-down encounter/scrolling, D10 tooling and D11–D12 distribution remain in the roadmap.
+> D01–D09-03 are implemented; D10 tooling and D11–D12 distribution remain in the roadmap. Follow-up sample levels are tracked separately under #41.

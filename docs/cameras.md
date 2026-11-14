@@ -156,41 +156,39 @@ may be translated or rotated. The adapter does not change
 Action5CameraRig, player movement or the shared Camera3D. Only an
 explicit detached-location portal temporarily reframes the camera.
 
-### Exterior wall visibility near the player (D08)
+### View-dependent geometry visibility (D08, generalized in PR #40)
 
-The opt-in `OuterWallFader` is also the **sole owner** of F1's
-foreground-wall hiding. Tag a camera-facing exterior `StaticBody3D`
-with both `action5_outer_wall` and `action5_side_hidden_wall`:
-the wall's mesh disappears in F1, but its solid collision body stays
-active. This is configured on the arena, dungeon and remote chamber
-`SouthWall` meshes; rear walls remain visible as scenery, and the
-door frame/panel never disappear. Runtime room replacement and
-remote-scene loading use the same group without a per-room NodePath.
-View changes take effect immediately; removing the presenter restores
-each mesh's authored visibility. `demo/main.gd` handles only view UI.
+The demo's single `Action5VisibilityController` is a render-only
+presentation component under `addons/action5/world/`. Author a
+`VisibilityTarget` child on any mesh, nested imported scene wrapper or
+GridMap and assign a shared `VisibilityPolicy` Resource. Different
+authoring formats can coexist in one level.
 
+The reference `SouthWall` targets use
+`demo/world/visibility/foreground_wall.tres`: the wall mesh is hidden
+in **Side-Scroller** (shortcut **4**, internal `SIDE` mode), while
+**Beat 'em Up** and **Isometric** can fade it according to the player's
+horizontal proximity. Normal exterior walls use `outer_wall.tres`
+without side-view hiding. These policies keep **First-Person**
+(shortcut **1**) and **Top-Down** fully opaque. Frame and closed door
+panels are not targets and stay opaque.
 
-`demo/world/outer_wall_fader.gd` is an opt-in scene
-presentation component independent of the CameraRig: only StaticBody3D
-walls tagged `action5_outer_wall` fade as the player approaches their
-**collision-box footprint**. The front/bottom `SouthWall` is a
-typical example; the same behavior works for arena, dungeon and
-separately loaded remote chambers. At **3.8 world units**, the fade
-begins; at **1.1 units**, the wall reaches 20% opacity. Moving away
-restores the exact original material. First person (view 4) and
-Top-Down (view 5) both remain **fully opaque**, including when
-switching directly out of a faded wall in F2/F3. F1 hides only tagged
-foreground walls, while untagged rear walls retain normal rendering.
-All parameters are exported.
+With the supplied policies, fade starts at **3.8 world units**, reaches
+20% opacity at **1.1 units** and restores the exact original material
+and shadow state when no longer needed. The proximity input uses an
+optional BoxShape3D footprint (useful for long walls) or the mesh bounds
+for imported geometry. `StandardMaterial3D` surfaces and mesh-wide
+`material_override` are faded through cached private alpha-blended
+copies rather than `GeometryInstance3D.transparency` (unsupported in
+Compatibility/WebGL2). Other material types are left as authored.
+GridMap supports whole-node visibility, not per-cell alpha fade; split
+chunks or use independent mesh prefabs for local fades.
 
-We use a **cached duplicated StandardMaterial3D with alpha blending**
-instead of `GeometryInstance3D.transparency`, which Godot's
-Compatibility renderer ignores (important for WebGL2). The
-renderer-only effect leaves the real StaticBody3D CollisionShape3D,
-world-space gun rays, enemy detection and NavigationMesh unchanged.
-Inner obstacles, the shared-room door and its panel do **not** belong
-to the outer-wall group and never fade.
-
+The controller restores surviving visuals when targets are removed
+and prunes cache entries after unloading/resetting levels. It never
+changes physical bodies, navigation, enemy sight, projectile rays,
+`RoomVisibility` ownership or the door's physical barrier.
+See [level authoring](level-authoring.md) for mixed 3D geometry workflows.
 
 ### F1 shared combat plane
 

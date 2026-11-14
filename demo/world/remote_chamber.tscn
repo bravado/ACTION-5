@@ -1,4 +1,8 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://addons/action5/world/visibility_target.gd" id="90_visibility_target"]
+[ext_resource type="Resource" path="res://demo/world/visibility/outer_wall.tres" id="91_outer_visibility"]
+[ext_resource type="Resource" path="res://demo/world/visibility/foreground_wall.tres" id="92_front_visibility"]
 
 [ext_resource type="Script" path="res://demo/interactions/location_portal.gd" id="1_location_portal"]
 
@@ -40,7 +44,7 @@ surface_material_override/0 = SubResource("floor_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 shape = SubResource("floor_shape")
 
-[node name="NorthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="NorthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, -7)
 
 [node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
@@ -50,7 +54,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
 shape = SubResource("wall_north_shape")
 
-[node name="SouthWall" type="StaticBody3D" parent="." groups=["action5_outer_wall", "action5_side_hidden_wall"]]
+[node name="SouthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.5, 7)
 
 [node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
@@ -60,7 +64,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
 shape = SubResource("wall_north_shape")
 
-[node name="EastWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="EastWall" type="StaticBody3D" parent="."]
 position = Vector3(10, 1.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="EastWall"]
@@ -70,7 +74,7 @@ surface_material_override/0 = SubResource("wall_material")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
 shape = SubResource("wall_east_shape")
 
-[node name="WestWall" type="StaticBody3D" parent="." groups=["action5_outer_wall"]]
+[node name="WestWall" type="StaticBody3D" parent="."]
 position = Vector3(-10, 1.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="WestWall"]
@@ -107,3 +111,19 @@ pixel_size = 0.007
 position = Vector3(0, 3, 0)
 light_energy = 0.75
 omni_range = 14
+
+[node name="VisibilityTarget" type="Node" parent="NorthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="SouthWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("92_front_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="EastWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")
+
+[node name="VisibilityTarget" type="Node" parent="WestWall"]
+script = ExtResource("90_visibility_target")
+policy = ExtResource("91_outer_visibility")

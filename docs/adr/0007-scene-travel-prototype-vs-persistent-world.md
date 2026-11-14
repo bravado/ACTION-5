@@ -148,7 +148,7 @@ the authored dungeon for Start fresh.
 
 `RoomVisibility` filters pickup-group creation before any deferred
 registration work and still owns only room-root occlusion and loose
-pickup/enemy visibility. `OuterWallFader` now owns both optional F1
+pickup/enemy visibility. `Action5VisibilityController` now owns both optional F1
 front-wall mesh hiding and proximity materials, restoring original
 state when removed. The door remains the physical blocker; no
 additional global world, input or combat manager was introduced.
@@ -167,7 +167,8 @@ register loose connected-world pickups (unrelated Node3D additions do
 not schedule deferred work), then tracks only those items for
 changes of room position. It excludes tagged detached scene roots,
 releases visual ownership on pickup, and prunes dead weak references
-after room resets. OuterWallFader similarly prunes dead material entries.
+after room resets. Action5VisibilityController restores surviving visuals
+when targets are removed and prunes freed target/material cache entries.
 Visibility paths remain a scene-composition policy, not an addon core
 dependency.
 
@@ -194,19 +195,24 @@ supported alternative at runtime.
 
 In F2 the shallow camera can obscure actors near the lower/front
 room boundary. The playable scene installs one independent
-`OuterWallFader` whose only inputs are the shared player transform,
-optional camera mode and opt-in `action5_outer_wall` physical wall
-footprints. It fades exterior wall **materials only** within
-3.8 units to a minimum 20% opacity by 1.1 units. Main arena,
-instanced dungeon and detached remote chamber use the same group.
+`Action5VisibilityController` whose inputs are the shared player transform, selected camera mode and
+opt-in per-geometry `Action5VisibilityTarget` policies. It fades exterior wall **materials only** within
+3.8 units to a minimum 20% opacity by 1.1 units. Main arena, instanced dungeon and detached chamber use the same policy resources.
 The component cannot affect a shared interior wall, opaque door,
 enemy LoS, collision, pathfinding or actor state. FPS remains opaque.
 
-The material is duplicated and cached per MeshInstance3D to preserve
-the source asset and minimize per-frame allocations; the original
-surface override is restored at full distance. Alpha blended
+Compatible StandardMaterial3D surfaces (or a mesh-wide material override)
+are duplicated and cached only on fading targets, preserving the source
+asset; the original overrides and shadows are restored when opacity is
+normal or a target is removed. Alpha blended
 StandardMaterial3D supports the native and WebGL2 Compatibility
 pipelines, unlike the `GeometryInstance3D.transparency` multiplier,
 which Compatibility ignores. This decision explicitly separates
 the *perimeter visibility effect* from `RoomVisibility`'s hiding of
 the opposite area behind a **closed** connected door.
+
+
+This adapter is geometry-format independent: nested GLB mesh scenes and
+GridMaps can share a level, and GridMaps opt into whole-object visibility
+without per-cell fading. Details and configuration are documented in
+[editor level authoring](../level-authoring.md).
