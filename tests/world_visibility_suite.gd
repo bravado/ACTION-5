@@ -54,7 +54,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Nested imported mesh fades using its geometry bounds without BoxShape3D")
     verify.call(not shape.disabled and collider.collision_layer != 0,
         "Imported visual fades never disable level collisions")
-    views.switch_view(0)
+    views.switch_view(3)
     verify.call(not mesh.visible and mesh.get_surface_override_material(0) == material,
         "Independent view policy hides nested imported geometry without editing its material")
     views.switch_view(4)
@@ -63,7 +63,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # Removing a target while keeping its imported mesh alive restores its
     # authored state and releases ownership for a replacement target.
-    views.switch_view(0)
+    views.switch_view(3)
     verify.call(not mesh.visible, "Fixture starts hidden before target removal")
     var mesh_id: int = mesh.get_instance_id()
     target.free()
@@ -109,7 +109,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     grid.add_child(tile_target)
     await tree.process_frame
     await tree.process_frame
-    views.switch_view(0)
+    views.switch_view(3)
     verify.call(not grid.visible,
         "GridMap can be controlled as one authored visual group")
     views.switch_view(4)
