@@ -5,6 +5,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
+const DebugHudScript = preload("res://addons/action5/debug/debug_hud.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
 @onready var _player: CharacterBody3D = $Player
@@ -13,6 +14,8 @@ const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy
 @onready var _moves: MoveControllerScript = $Player/Locomotion/MovementController
 @onready var _combat: Node = $Player/CombatController
 @onready var _equipment: Node = $Player/Equipment
+
+var _debug_hud: Node
 
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _hud: Node = $Hud
@@ -88,10 +91,13 @@ func _release_ui_focus() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_C:
+        if event.keycode == KEY_F7 and OS.has_feature("debug"):
+            _toggle_debug_hud()
+            get_viewport().set_input_as_handled()
+        elif event.keycode == KEY_C:
             _toggle_camera_settings()
             get_viewport().set_input_as_handled()
-        elif event.keycode == KEY_B and not _camera_settings.visible:
+        elif event.keycode == KEY_B and OS.has_feature("debug") and not _camera_settings.visible:
             _combat.set("debug_hitboxes", not bool(_combat.get("debug_hitboxes")))
             get_viewport().set_input_as_handled()
     # The demo's remappable actions accept keyboard, controller and mouse.
@@ -109,6 +115,15 @@ func _unhandled_input(event: InputEvent) -> void:
     if consumed:
         get_viewport().set_input_as_handled()
 
+
+
+func _toggle_debug_hud() -> void:
+    if not is_instance_valid(_debug_hud):
+        _debug_hud = DebugHudScript.new()
+        _debug_hud.name = "DebugHud"
+        add_child(_debug_hud)
+        _debug_hud.call("bind_sources", _player, _views)
+    _debug_hud.call("toggle")
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.
