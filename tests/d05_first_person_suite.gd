@@ -126,7 +126,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(not arm.visible and not leg.visible
         and camera.get_cull_mask_value(camera_body_layer),
         "F3 sees world actor with no F4 viewmodel leakage")
-    views.switch_view(3)
+    views.switch_view(0)
     await tree.process_frame
     verify.call(arm.visible and not leg.visible
         and visual.active_limb_key() == &""
@@ -259,7 +259,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     await tree.process_frame
     verify.call(not arm.visible and combat.current_id == &"punch",
         "F3 switch hides viewmodel but never restarts the action clock")
-    views.switch_view(3)
+    views.switch_view(0)
     await tree.process_frame
     verify.call(arm.visible and combat.current_id == &"punch",
         "F4 re-entry resumes the same authored pose at current action progress")
