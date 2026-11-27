@@ -156,7 +156,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Isometric screen-up camera projection produces finite movement")
     var same_player_id: int = player.get_instance_id()
     var world_pos: Vector3 = player.global_position
-    manager.switch_view(0)
+    manager.switch_view(3)
     verify.call(player.locomotion.side_lane_locked
         and absf(player.locomotion.side_lane_z - world_pos.z) < 0.0001,
         "Entering F1 captures current Z lane without teleporting")
