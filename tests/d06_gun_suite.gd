@@ -376,7 +376,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # The actual F4 local viewmodel has a separate, visible muzzle on its
     # animated Grip. Only the transient projectile may start there.
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 3)
     var f4_model: Node3D = world_visual.get("_viewmodel") as Node3D
     var f4_tip: Node3D = (
@@ -452,7 +452,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # A real F4 reload must drive valid visual poses from the Gun's own
     # command progress. This is not a CombatController attack animation.
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 2)
     var reload_model: Node3D = world_visual.get("_viewmodel") as Node3D
     var reload_clip: Resource = reload_model.get("reload_profile") if is_instance_valid(reload_model) else null
@@ -496,7 +496,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, gun.reload_left + 1)
     verify.call(gun.magazine == 8 and gun.reserve == 32 - (8 - baseline_magazine)
         and gun.reload_left == 0, "Reload completes exactly once, up to magazine/reserve limits")
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 2)
     world_visual.call("refresh_presentation")
     var restored_model: Node3D = world_visual.get("_viewmodel") as Node3D
@@ -553,7 +553,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(alternate_presenter.get("projectile_scene") != projectile_presenter.get("projectile_scene"),
         "Second gun configures its own projectile scene without changing shared rendering code")
     var variant_muzzle := variant.get_node("Muzzle") as Node3D
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 2)
     var heavy_model: Node3D = world_visual.get("_viewmodel") as Node3D
     var heavy_tip: Node3D = (
@@ -594,7 +594,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and visuals_before_dry == initial_variant_magazine,
         "Dry active attack cannot fire, damage or spawn a fake projectile")
     await _ticks(tree, 30)
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 2)
     var alt_model: Node3D = world_visual.get("_viewmodel") as Node3D
     var alt_reload_clip: Resource = alt_model.get("reload_profile") if is_instance_valid(alt_model) else null
@@ -683,7 +683,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "Camera-free NPC tracer starts from its own physical muzzle without an F4 provider")
     await _ticks(tree, 20)
     var npc_ammo: int = npc_gun.magazine
-    views.switch_view(3)
+    views.switch_view(0)
     views.switch_view(4)
     verify.call(npc_gun.magazine == npc_ammo and npc_equipment.current_weapon == npc_gun,
         "Local camera switches never modify camera-free NPC gun and ammo")
