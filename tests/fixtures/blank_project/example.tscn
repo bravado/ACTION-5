@@ -1,0 +1,95 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://example.gd" id="1"]
+[ext_resource type="Script" path="res://addons/action5/actor/action_actor.gd" id="2"]
+[ext_resource type="Script" path="res://addons/action5/actor/locomotion.gd" id="3"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/movement_controller.gd" id="4"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/grounded.gd" id="5"]
+[ext_resource type="Script" path="res://addons/action5/actor/moves/airborne.gd" id="6"]
+[ext_resource type="Script" path="res://addons/action5/actor/facing_presenter.gd" id="7"]
+[ext_resource type="Script" path="res://addons/action5/camera/view_manager.gd" id="8"]
+[ext_resource type="Script" path="res://addons/action5/camera/camera_rig.gd" id="9"]
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(30, 0.4, 30)
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(30, 0.4, 30)
+
+[sub_resource type="CapsuleShape3D" id="ActorShape"]
+radius = 0.35
+height = 1.6
+
+[sub_resource type="CapsuleMesh" id="ActorMesh"]
+radius = 0.35
+height = 1.6
+
+[sub_resource type="StandardMaterial3D" id="ActorMaterial"]
+albedo_color = Color(0.15, 0.65, 0.85, 1)
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.3, 0.35, 0.42, 1)
+
+[sub_resource type="BoxMesh" id="MarkerMesh"]
+size = Vector3(0.8, 0.15, 0.8)
+
+[node name="Example" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.2, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("FloorShape")
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("FloorMesh")
+material_override = SubResource("FloorMaterial")
+
+[node name="Marker" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.08, -5)
+mesh = SubResource("MarkerMesh")
+material_override = SubResource("ActorMaterial")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.15, 0)
+script = ExtResource("2")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+position = Vector3(0, 0.8, 0)
+shape = SubResource("ActorShape")
+
+[node name="Locomotion" type="Node" parent="Player"]
+script = ExtResource("3")
+
+[node name="MovementController" type="Node" parent="Player/Locomotion"]
+script = ExtResource("4")
+
+[node name="Moves" type="Node" parent="Player/Locomotion/MovementController"]
+
+[node name="Grounded" type="Node" parent="Player/Locomotion/MovementController/Moves"]
+script = ExtResource("5")
+
+[node name="Airborne" type="Node" parent="Player/Locomotion/MovementController/Moves"]
+script = ExtResource("6")
+
+[node name="Visual" type="Node3D" parent="Player"]
+script = ExtResource("7")
+
+[node name="Mesh" type="MeshInstance3D" parent="Player/Visual"]
+position = Vector3(0, 0.8, 0)
+mesh = SubResource("ActorMesh")
+material_override = SubResource("ActorMaterial")
+
+[node name="ViewManager" type="Node" parent="."]
+script = ExtResource("8")
+
+[node name="CameraRig" type="Node3D" parent="ViewManager"]
+script = ExtResource("9")
+
+[node name="Camera3D" type="Camera3D" parent="ViewManager/CameraRig"]
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, 25, 0)
+shadow_enabled = true

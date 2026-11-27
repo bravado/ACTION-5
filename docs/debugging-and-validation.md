@@ -24,8 +24,7 @@ You can pass a third AI controller source to `bind_sources`. Each category
 (movement/combat/AI) can be disabled independently. Hidden overlays have
 processing disabled, and release builds discard the HUD immediately.
 The demo's B key still toggles the existing melee hitbox debug rendering,
-but only in debug builds. Further geometric overlays (hurtboxes, muzzle/aim
-rays, camera/world bounds) and quantitative idle benchmarks remain pending.
+but only in debug builds. The separate F8 geometry overlay is described below.
 
 ## Read-only authoring checks
 
@@ -71,9 +70,19 @@ AnimationPlayer per imported actor**. Multi-rig retargeting is not provided.
    see [moves](adding-moves.md) and [cameras](cameras.md) for authoring.
 5. Call the optional validators against your authored resources and nodes.
 6. In this repository, `make blank-addon` copies only the addon to an
-   isolated temporary project and performs import/script smoke. It must
+   isolated temporary project and performs import and real scene smoke. It must
    succeed without `demo/`, the real project `tests/`, or a plugin UI.
 
-This check establishes dependency isolation, **not** a complete playable
-blank-project walkthrough. The latter still requires manual verification.
-Level authoring remains independent; see [LEVEL-01](https://github.com/bravado/ACTION-5/issues/42).
+The isolated fixture now instantiates the example, verifies floor contact and actual movement, and switches all five views on one camera. To run it manually, copy `project.godot`, `example.gd`, `example.tscn` from `tests/fixtures/blank_project/` and `addons/action5/` into an empty directory (do not copy `.gdignore`), then open the project and press F5. WASD moves in world coordinates; keys 1–5 select the view. The simple capsule intentionally needs no imported rig or demo assets. Manual visual/editor verification remains an independent acceptance gate. Level authoring remains independent; see [the level authoring guide](level-authoring.md).
+
+## Level diagnostics
+
+Call `Validator.validate_level(level_root, true, true, [^"Arrival"])` explicitly to inspect an authored level for static collision, navigation, configured marker paths and visibility target ownership. Pass false for collision/navigation on decorative scenes and omit marker paths when not needed. A missing baked navigation mesh is a warning because the reference arena creates its navigation at runtime. The check is read-only and performs no per-frame work. It does not validate arbitrary sector traversal (LEVEL-02).
+
+## World geometry diagnostics
+
+F8 toggles the optional geometry overlay independently from F7 and B. Bind an actor, view manager, optional equipment and aim port using `bind_sources`. The categories `hurtboxes`, `aim` and `bounds` may be independently toggled with `set_section_enabled`. Green outlines show the conservative hurtbox motion bounds, orange the selected target direction from the world muzzle (not an authoritative damage prediction), yellow the muzzle marker and cyan the active camera target bounds. The overlay draws world-space lines with depth testing and does not create collisions or modify gameplay. It samples at 10 Hz while enabled and clears all geometry and disables physics processing when hidden. The test logs mean engine-reported physics processing time before installing the tools and with both tools disabled, plus zero-sample counts over 60 physics ticks per phase. The timing is informational (not a machine-independent threshold or GPU benchmark); zero callback work is asserted.
+
+Additional checks: `validate_limb_profile` checks the existing first-person pose contract, `validate_direction_source` checks explicitly configured direction policy ports, and `validate_weapon` checks duplicate/invalid view-facing policies.
+
+The debug-build Vitality panel lists F7, F8 and B beneath the standard camera/HUD/help shortcuts. The same keys are documented in the F6 field guide for debug builds.

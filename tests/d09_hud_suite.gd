@@ -33,6 +33,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var view_buttons := display.get_node("ViewButtonsPanel") as PanelContainer
     var view_panel := display.get_node("ViewPanel") as PanelContainer
     var camera_button := display.get_node("HealthPanel/Content/ShortcutRow/CameraSettings") as Button
+    var diagnostic_shortcuts := display.get_node("HealthPanel/Content/DiagnosticShortcuts") as Label
     var hp_bar := display.get("_health_bar") as ProgressBar
     var hp_text := display.get("_hp_text") as Label
     var objective := display.get("_objective") as Label
@@ -64,6 +65,15 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(camera_button.text.contains("CAMERA SETTINGS") and camera_button.text.contains("C")
         and (display.get("_health_footer") as Label).text.contains("F6"),
         "Camera Settings, H HUD and F6 HELP are presented below Vitality")
+    verify.call(diagnostic_shortcuts.visible == OS.has_feature("debug")
+        and diagnostic_shortcuts.text.contains("F7 · DIAG HUD")
+        and diagnostic_shortcuts.text.contains("F8 · GEOMETRY")
+        and diagnostic_shortcuts.text.contains("B · HITBOXES")
+        and diagnostic_shortcuts.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+        "D10 Vitality advertises all debug shortcuts without capturing input")
+    if OS.has_feature("debug"):
+        verify.call(hp_panel.get_global_rect().encloses(diagnostic_shortcuts.get_global_rect()),
+            "D10 diagnostic shortcut row fits inside Vitality")
     for slot in range(5):
         var button := selector.get_child(slot) as Button
         verify.call(button.text == expected_labels[slot]
@@ -94,6 +104,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             and view_buttons.visible,
             "Top-center camera selection follows real ViewManager changes")
         verify.call(hp_panel.position.is_equal_approx(health_pos)
+            and diagnostic_shortcuts.is_visible_in_tree() == OS.has_feature("debug")
             and objective_panel.position.is_equal_approx(objective_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
             and display.get("_view").text.begins_with("%d" % (i + 1)),
@@ -198,6 +209,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     hide_key.pressed = true
     hud.call("_unhandled_input", hide_key)
     verify.call(not hp_panel.visible and not equip_panel.visible
+        and not diagnostic_shortcuts.is_visible_in_tree()
         and not objective_panel.visible and not view_buttons.visible,
         "D09-03 H hidden mode removes gameplay chrome")
     for i in range(5):

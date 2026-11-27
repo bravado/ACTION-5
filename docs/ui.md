@@ -130,3 +130,5 @@ InputMap actions and settings sections now use `BEAT_EM_UP`,
 `TOP_DOWN`, `top_down_*`, `profile_beat_em_up` and
 `profile_top_down`. Legacy schema-2 saved settings are migrated on load
 so user camera overrides are retained.
+
+The Vitality panel also displays a compact diagnostic shortcut row in debug builds only: F7 (diagnostic HUD), F8 (world geometry), and B (combat hitboxes). The row is presentation-only and follows the same HUD visibility across all views; release builds omit it.

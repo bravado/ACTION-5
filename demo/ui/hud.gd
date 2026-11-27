@@ -48,6 +48,7 @@ var _active_view_index: int = -1
 
 func _ready() -> void:
     mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HealthPanel/Content/DiagnosticShortcuts.visible = OS.has_feature("debug")
     _notice_timer.timeout.connect(_notification_panel.hide)
     _camera_button.pressed.connect(func() -> void: settings_requested.emit())
     set_gameplay_visible(true)

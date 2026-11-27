@@ -77,6 +77,13 @@ theme_override_font_sizes/font_size = 10
 text = "H · HUD  F6 · HELP"
 vertical_alignment = 1
 
+[node name="DiagnosticShortcuts" type="Label" parent="HealthPanel/Content"]
+visible = false
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
+theme_override_font_sizes/font_size = 10
+text = "F7 · DIAG HUD   F8 · GEOMETRY   B · HITBOXES"
+
 [node name="Status" type="Label" parent="HealthPanel/Content"]
 visible = false
 mouse_filter = 2

@@ -541,7 +541,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     )
     forward_ray.exclude = [actor.get_rid()]
     var wall_hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(forward_ray)
-    verify.call(wall_hit.get("collider") == level.get_node("NorthWall")
+    verify.call(wall_hit.get("collider") == level.get_node("Arena/NorthWall")
         and near_wall_camera.global_position.z > -8.7
         and near_wall_camera.global_position.z < -7.4,
         "VT-12 F4 camera faces a real nearby wall without penetrating its collider")

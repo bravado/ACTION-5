@@ -25,8 +25,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var fps: Node = actor.get_node("FirstPersonPresenter")
     var visual: Node = actor.get_node("EquipmentVisualAdapter")
     var controller: Node = actor.get_node("Locomotion/MovementController")
-    var bat: Node3D = arena.get_node("BatPickup") as Node3D
-    var shovel: Node3D = arena.get_node("ShovelPickup") as Node3D
+    var bat: Node3D = arena.get_node("Arena/BatPickup") as Node3D
+    var shovel: Node3D = arena.get_node("Arena/ShovelPickup") as Node3D
     var socket: Node3D = animation.call("get_socket", &"right_hand") as Node3D
     var actor_id: int = actor.get_instance_id()
     var bat_id: int = bat.get_instance_id()

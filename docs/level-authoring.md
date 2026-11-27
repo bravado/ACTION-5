@@ -37,7 +37,7 @@ Village (Node3D)
 └── VisibilityTargets (optional; generally parent within each visual)
 ```
 
-The current demo uses two connected areas plus cached detached locations.
+The reference arena is independently editable at `demo/world/arena.tscn`, alongside `demo/world/encounter_sector.tscn`. Both are instanced under `demo/main.tscn`, which owns the single player, camera, shared physical gate, passage slab, remote portal and world services. Arena-local pickup reset configuration and spawn markers remain inside the arena. The arena retains its original demonstration navigation quad; bake detailed navigation when authoring new maps. The current demo uses two connected areas plus cached detached locations.
 The demo's fixed sector-crossing threshold, camera bounds and room-occlusion
 arrays are **composition-specific**, not required level interfaces. New
 connected geometries must configure those demo systems or use their own

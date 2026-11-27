@@ -20,8 +20,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var animation: Node = actor.get_node("AnimationPresenter")
     var fps: Node = actor.get_node("FirstPersonPresenter")
     var views: Node = level.get_node("ViewManager")
-    var bat: WeaponScript = level.get_node("BatPickup") as WeaponScript
-    var shovel: WeaponScript = level.get_node("ShovelPickup") as WeaponScript
+    var bat: WeaponScript = level.get_node("Arena/BatPickup") as WeaponScript
+    var shovel: WeaponScript = level.get_node("Arena/ShovelPickup") as WeaponScript
     var health: Node = actor.get_node("Health")
     var selector: Node = actor.get_node("EquipmentAttackSelector")
     var action_input: Node = level.get_node("CombatInput")
@@ -226,7 +226,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(not fps.first_person and bat.get_parent() == socket,
         "Returning to F3 does not detach or recreate weapon")
 
-    var near: Node3D = level.get_node("NearDummy") as Node3D
+    var near: Node3D = level.get_node("Arena/NearDummy") as Node3D
     var target: Node = near.get_node("Health")
     near.global_position = actor.global_position + Vector3(1.5, -0.15, 0)
     target.set("current_health", target.get("max_health"))

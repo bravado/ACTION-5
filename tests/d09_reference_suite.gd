@@ -188,9 +188,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # F1 locks the player to Z=0. The authored arena Gun must be in the
     # same physical pickup row as the Bat/Shovel, not stranded at Z=3.
     views.switch_view(3)
-    var arena_gun := stage.get_node("GunPickup") as Node3D
-    var arena_bat := stage.get_node("BatPickup") as Node3D
-    var arena_shovel := stage.get_node("ShovelPickup") as Node3D
+    var arena_gun := stage.get_node("Arena/GunPickup") as Node3D
+    var arena_bat := stage.get_node("Arena/BatPickup") as Node3D
+    var arena_shovel := stage.get_node("Arena/ShovelPickup") as Node3D
     var lane_z: float = float(stage.get_node("SideLaneController").get("connected_lane_z"))
     verify.call(is_equal_approx(arena_gun.position.z, arena_bat.position.z)
         and is_equal_approx(arena_gun.position.z, arena_shovel.position.z)

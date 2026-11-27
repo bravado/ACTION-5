@@ -2,6 +2,7 @@ extends RefCounted
 ## Real resources and scene nodes, including malformed user-authored fixtures.
 
 const Validator = preload("res://addons/action5/debug/config_validator.gd")
+const Geometry = preload("res://addons/action5/debug/debug_geometry.gd")
 const DebugHud = preload("res://addons/action5/debug/debug_hud.gd")
 const Attack = preload("res://addons/action5/combat/attack_definition.gd")
 const Weapon = preload("res://addons/action5/equipment/weapon_definition.gd")
@@ -16,6 +17,39 @@ func _has(report: Dictionary, substring: String) -> bool:
 
 
 func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
+    var authored: Node3D = (load("res://demo/world/arena.tscn") as PackedScene).instantiate()
+    verify.call(authored.get_node_or_null("Floor/CollisionShape3D") is CollisionShape3D
+        and authored.get_node_or_null("Player") == null
+        and authored.get_node_or_null("ViewManager") == null,
+        "LEVEL-01 arena is independently authored without world services")
+    var markers: Array[NodePath] = [^"ArenaSpawn"]
+    verify.call(Validator.validate_level(authored, true, true, markers)["valid"],
+        "D10 authored arena passes opt-in level diagnostics")
+    var missing := Node3D.new()
+    missing.name = "MissingLevel"
+    verify.call(_has(Validator.validate_level(missing, true, true, markers), "collision")
+        and _has(Validator.validate_level(missing, true, true, markers), "NavigationRegion3D")
+        and _has(Validator.validate_level(missing, true, true, markers), "Marker3D"),
+        "D10 empty level produces actionable diagnostics")
+    verify.call(Validator.validate_level(missing, false, false)["valid"],
+        "D10 decorative scene does not need physics or navigation")
+    missing.free()
+    var duplicate_target := Action5VisibilityTarget.new()
+    var wall := authored.get_node("NorthWall")
+    duplicate_target.policy = wall.get_node("VisibilityTarget").policy
+    wall.add_child(duplicate_target)
+    verify.call(_has(Validator.validate_level(authored), "overlapping visibility target"),
+        "D10 two owners of the same visual are diagnosed")
+    duplicate_target.free()
+    authored.position = Vector3(500, 0, 500)
+    tree.root.add_child(authored)
+    await tree.process_frame
+    verify.call(authored.get_node("ArenaNavigation").navigation_mesh != null,
+        "LEVEL-01 standalone arena initializes its own navigation")
+    authored.free()
+    verify.call(level.get_node("Arena").scene_file_path == "res://demo/world/arena.tscn"
+        and level.get_node("EncounterSector").scene_file_path == "res://demo/world/encounter_sector.tscn",
+        "LEVEL-01 world composes two authored scenes")
     var view: Resource = load("res://addons/action5/views/first_person.tres")
     verify.call(Validator.validate_view(view)["valid"], "D10 shipped F4 ViewProfile validates")
     var bad_view: Resource = view.duplicate(true)
@@ -55,6 +89,19 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(Validator.validate_weapon(camera_free, gun)["valid"]
         and Validator.validate_weapon(camera_free, gun)["warnings"].is_empty(),
         "D10 camera-free weapon needs no F4 viewmodel")
+    var facing = preload("res://addons/action5/combat/view_facing_policy.gd").new()
+    var duplicate_facing: Resource = definition.duplicate(true)
+    duplicate_facing.view_facing_policies.clear()
+    duplicate_facing.view_facing_policies.append(facing)
+    duplicate_facing.view_facing_policies.append(facing)
+    verify.call(_has(Validator.validate_weapon(duplicate_facing), "duplicate view facing policy"),
+        "D10 duplicate directional overrides report the view")
+    verify.call(_has(Validator.validate_direction_source(actor, ^"MissingPolicy"), "get_sectors")
+        and Validator.validate_direction_source(actor, ^"")["valid"],
+        "D10 missing configured direction port fails while absence is optional")
+    var limb = preload("res://addons/action5/animation/first_person_limb_profile.gd").new()
+    verify.call(_has(Validator.validate_limb_profile(limb), "strictly increasing"),
+        "D10 invalid first-person pose profile is diagnosed")
     var duplicate: Resource = definition.duplicate(true)
     duplicate.attacks.append(definition.attacks[0])
     verify.call(_has(Validator.validate_weapon(duplicate), "duplicate attack_id")
@@ -99,6 +146,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.collision_layer = original_layer
 
     if OS.has_feature("debug"):
+        var baseline_cpu := 0.0
+        for tick in range(60):
+            await tree.physics_frame
+            baseline_cpu += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
         var overlay := DebugHud.new()
         level.add_child(overlay)
         overlay.bind_sources(actor, level.get_node("ViewManager"))
@@ -117,5 +168,33 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.process_frame
         verify.call(not overlay.is_processing() and overlay.sample_count() == old_samples,
             "D10 disabled overlay has zero frame-poll work")
+        var geometry := Geometry.new()
+        level.add_child(geometry)
+        geometry.bind_sources(actor, level.get_node("ViewManager"))
+        geometry.set_enabled(true)
+        for tick in range(8):
+            await tree.physics_frame
+        verify.call(geometry.sample_count() > 0 and geometry.line_count() > 0,
+            "D10 enabled geometry renders actual actor bounds")
+        geometry.set_section_enabled(&"hurtboxes", false)
+        geometry.set_section_enabled(&"bounds", false)
+        for tick in range(8):
+            await tree.physics_frame
+        verify.call(geometry.line_count() == 0, "D10 independent geometry categories")
+        geometry.set_enabled(false)
+        var idle_samples: int = geometry.sample_count()
+        var hud_idle_samples: int = overlay.sample_count()
+        var disabled_cpu := 0.0
+        for tick in range(60):
+            await tree.physics_frame
+            disabled_cpu += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
+        print("ACTION5_D10_IDLE ticks=60 baseline_mean_physics_usec=", baseline_cpu * 1000000.0 / 60.0,
+            " disabled_mean_physics_usec=", disabled_cpu * 1000000.0 / 60.0,
+            " geometry_samples=", geometry.sample_count() - idle_samples,
+            " hud_samples=", overlay.sample_count() - hud_idle_samples)
+        verify.call(not geometry.is_physics_processing() and geometry.line_count() == 0
+            and geometry.sample_count() == idle_samples and overlay.sample_count() == hud_idle_samples,
+            "D10 disabled diagnostics perform zero periodic samples across 60 physics ticks")
+        geometry.queue_free()
         overlay.queue_free()
         await tree.process_frame

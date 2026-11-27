@@ -2,6 +2,9 @@ extends RefCounted
 class_name Action5ConfigValidator
 ## Opt-in, read-only authoring checks. No runtime component imports this tool.
 
+const FacingPolicy = preload("res://addons/action5/combat/view_facing_policy.gd")
+const LimbProfile = preload("res://addons/action5/animation/first_person_limb_profile.gd")
+const VisibilityTarget = preload("res://addons/action5/world/visibility_target.gd")
 const View = preload("res://addons/action5/camera/view_profile.gd")
 const Attack = preload("res://addons/action5/combat/attack_definition.gd")
 const Weapon = preload("res://addons/action5/equipment/weapon_definition.gd")
@@ -95,6 +98,14 @@ static func validate_weapon(definition: Resource, world: Node = null,
                 definition.weapon_id, entry.input_action])
         else:
             bindings[entry.input_action] = true
+    var view_modes: Dictionary = {}
+    for policy in definition.view_facing_policies:
+        if not policy is FacingPolicy or not policy.valid():
+            errors.append("Weapon '%s': invalid view facing policy (mode 0–4; sectors 0 or 2–32)" % definition.weapon_id)
+            continue
+        if view_modes.has(policy.view_mode):
+            errors.append("Weapon '%s': duplicate view facing policy for mode %d" % [definition.weapon_id, policy.view_mode])
+        view_modes[policy.view_mode] = true
     if world != null:
         var meshes: Array = world.find_children("*", "MeshInstance3D", true, false)
         if world is MeshInstance3D:
@@ -198,3 +209,85 @@ static func validate_receiver(body: CharacterBody3D) -> Dictionary:
 
 static func validate_model(root: Node, profile: Resource) -> Dictionary:
     return Model.validate(root, profile)
+
+
+## Validate one authored level, not the whole running world. Optional marker
+## paths are relative to the level root. Decorative scenes can opt out of
+## physical/navigation requirements. No runtime registration or polling.
+static func validate_level(root: Node3D, require_collision: bool = true,
+        require_navigation: bool = true, marker_paths: Array[NodePath] = []) -> Dictionary:
+    var errors: Array[String] = []
+    var warnings: Array[String] = []
+    if not is_instance_valid(root):
+        errors.append("Level root must be a Node3D")
+        return _result(errors, warnings)
+    var has_collision := false
+    var has_navigation := false
+    var targets: Array[VisibilityTarget] = []
+    var pending: Array[Node] = [root]
+    while not pending.is_empty():
+        var node: Node = pending.pop_back()
+        if node is CollisionShape3D and node.shape != null and not node.disabled \
+                and node.get_parent() is StaticBody3D \
+                and (node.get_parent() as StaticBody3D).collision_layer != 0:
+            has_collision = true
+        if node is GridMap and node.mesh_library != null and node.collision_layer != 0:
+            for cell in node.get_used_cells():
+                var item: int = node.get_cell_item(cell)
+                if item >= 0 and node.mesh_library.has_item(item) \
+                        and not node.mesh_library.get_item_shapes(item).is_empty():
+                    has_collision = true
+                    break
+        if node is NavigationRegion3D and node.enabled:
+            has_navigation = true
+            if node.navigation_mesh == null or node.navigation_mesh.get_polygon_count() == 0:
+                warnings.append("%s: assign or bake a NavigationMesh before play" % root.get_path_to(node))
+        if node is VisibilityTarget:
+            targets.append(node)
+        for child in node.get_children():
+            pending.append(child)
+    if require_collision and not has_collision:
+        errors.append("%s: author static collision or a collision-enabled GridMap" % root.name)
+    if require_navigation and not has_navigation:
+        errors.append("%s: add an enabled NavigationRegion3D and bake navigation" % root.name)
+    for path in marker_paths:
+        if not root.get_node_or_null(path) is Marker3D:
+            errors.append("%s: marker path %s must resolve to Marker3D" % [root.name, path])
+    var owners: Dictionary = {}
+    for target in targets:
+        var context := str(root.get_path_to(target))
+        if target.policy == null:
+            errors.append("%s: assign a visibility policy" % context)
+        var visual_root: Node = target.get_node_or_null(target.visual_root_path)
+        if visual_root == null or (visual_root != root and not root.is_ancestor_of(visual_root)):
+            errors.append("%s: visual_root_path must resolve within the level" % context)
+            continue
+        var visuals := target.visuals()
+        if visuals.is_empty():
+            errors.append("%s: visual_root_path has no MeshInstance3D or GridMap" % context)
+        for visual in visuals:
+            var id := visual.get_instance_id()
+            if owners.has(id):
+                errors.append("%s: overlapping visibility target with %s for %s" %
+                    [context, owners[id], root.get_path_to(visual)])
+            else:
+                owners[id] = context
+    return _result(errors, warnings)
+
+
+static func validate_limb_profile(profile: Resource) -> Dictionary:
+    var errors: Array[String] = []
+    var warnings: Array[String] = []
+    if not profile is LimbProfile or not profile.valid():
+        errors.append("FirstPersonLimbProfile: set animation_key, valid finite poses strictly increasing from 0 to 1, positive dimensions and near-plane-safe geometry")
+    return _result(errors, warnings)
+
+
+static func validate_direction_source(owner: Node, path: NodePath) -> Dictionary:
+    var errors: Array[String] = []
+    var warnings: Array[String] = []
+    if not path.is_empty():
+        var source: Node = owner.get_node_or_null(path) if owner != null else null
+        if source == null or not source.has_method("get_sectors"):
+            errors.append("Direction policy path '%s': must resolve to get_sectors(view_mode, fallback)" % path)
+    return _result(errors, warnings)

@@ -18,7 +18,12 @@ def main() -> int:
         for path in sorted(Path(".").rglob(suffix)):
             if any(part in EXCLUDED_DIRS for part in path.parts):
                 continue
+            seen_subresource_or_node = False
             for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if line.startswith(("[sub_resource ", "[node ", "[resource]")):
+                    seen_subresource_or_node = True
+                if seen_subresource_or_node and line.startswith("[ext_resource "):
+                    issues.append(f"{path}:{number}: external resources must precede subresources and nodes")
                 if line.lstrip().startswith("#"):
                     issues.append(
                         f"{path}:{number}: invalid '#' comment in Godot resource; "

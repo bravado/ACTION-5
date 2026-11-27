@@ -27,7 +27,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var combat: Node = player.get_node("CombatController")
     var policy: Node = player.get_node("EquippedViewFacing")
     var sword := level.get_node("EncounterSector/SwordPickup") as Node3D
-    var gun := level.get_node("GunPickup") as Node3D
+    var gun := level.get_node("Arena/GunPickup") as Node3D
     var aim: Node = player.get_node("AimTargetProvider")
     var actor_input: Node = level.get_node("ActorInput")
     actor_input.call("set_enabled", false)
@@ -107,7 +107,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-02 same Sword is F5 cardinal and F3 freely aimed")
     # A real D05 Hurtbox, not just the stored attack heading, must be
     # struck by the configured cardinal Sword arc in the shared dungeon.
-    var sword_target := level.get_node("NearDummy") as Node3D
+    var sword_target := level.get_node("Arena/NearDummy") as Node3D
     var sword_health: Node = sword_target.get_node("Health")
     sword_target.global_position = player.global_position + Vector3(1.25, -0.15, 0.0)
     sword_health.set("current_health", 100.0)

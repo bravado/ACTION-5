@@ -5,6 +5,7 @@ const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 const InputAdapterScript = preload("res://addons/action5/input/actor_input_adapter.gd")
 const MoveControllerScript = preload("res://addons/action5/actor/moves/movement_controller.gd")
 const MovementPolicyScript = preload("res://addons/action5/actor/movement_policy.gd")
+const DebugGeometryScript = preload("res://addons/action5/debug/debug_geometry.gd")
 const DebugHudScript = preload("res://addons/action5/debug/debug_hud.gd")
 ## D03 reference scene: movement and facing live in reusable addon components.
 
@@ -16,6 +17,7 @@ const DebugHudScript = preload("res://addons/action5/debug/debug_hud.gd")
 @onready var _equipment: Node = $Player/Equipment
 
 var _debug_hud: Node
+var _debug_geometry: Node
 
 @onready var _camera_settings: PanelContainer = $Hud/CameraSettings
 @onready var _hud: Node = $Hud
@@ -94,6 +96,9 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_F7 and OS.has_feature("debug"):
             _toggle_debug_hud()
             get_viewport().set_input_as_handled()
+        elif event.keycode == KEY_F8 and OS.has_feature("debug"):
+            _toggle_debug_geometry()
+            get_viewport().set_input_as_handled()
         elif event.keycode == KEY_C:
             _toggle_camera_settings()
             get_viewport().set_input_as_handled()
@@ -124,6 +129,16 @@ func _toggle_debug_hud() -> void:
         add_child(_debug_hud)
         _debug_hud.call("bind_sources", _player, _views)
     _debug_hud.call("toggle")
+
+
+func _toggle_debug_geometry() -> void:
+    if not is_instance_valid(_debug_geometry):
+        _debug_geometry = DebugGeometryScript.new()
+        _debug_geometry.name = "DebugGeometry"
+        add_child(_debug_geometry)
+        _debug_geometry.call("bind_sources", _player, _views, _equipment,
+            _player.get_node_or_null("AimTargetProvider"))
+    _debug_geometry.call("toggle")
 
 
 ## Diagnostic display and CI log are generic: no checks for specific moves.

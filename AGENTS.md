@@ -1,6 +1,6 @@
 # Agent Instructions — ACTION-5
 
-Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D09-02 are implemented:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-03 HUD is ready for review on PR #38; pending manual visual acceptance, then D10 opt-in diagnostics and validators.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
+Read `PLAN.md` completely before implementing anything. Follow D01–D12 and their explicit exit gates. **D01–D09-02 are implemented:** D06 supplies Bat/Shovel/Gun equipment, D07 supplies camera-independent NPC AI, D08 supplies the persistent world and physical gate/portals, and D09-01 supplies the playable EXIT reference, HUD and view-local controls. **D09-03 HUD is merged; D10 tooling and LEVEL-01 scene composition follow the documented validation gates.** Keep D08 world/scene policy outside reusable Actor, Movement, Combat, Equipment, AI and Camera core components. Standalone move examples remain optional and independently testable.
 
 ## Product invariant
 
@@ -284,7 +284,7 @@ D07 (#15) were completed as separate subsequent deliverables.
 
 ## Starting task
 
-**D01–D09-02 are implemented; D10 tooling is the next development focus.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
+**D01–D09-03 are implemented. D10 diagnostics are opt-in; D11 covers the full regression matrix.** For a new movement, read [`docs/adding-moves.md`](docs/adding-moves.md) and use `addons/action5/actor/moves/crouch.gd` with `demo/player.tscn` as the reference. For a new weapon, follow [docs/equipment.md](docs/equipment.md) and ADR-0005: configure its `WeaponDefinition` and independently authored `AttackDefinition`/world clips, optional F4 viewmodel and input claims; extend the D06 tests without changing generic Actor, MovementController, AnimationPresenter, CombatController or EquipmentController. D06-02 Gun (#14) and D07 AI (#15) are merged via D06-02/D07-01 using those same established ports.
 ## D06-02 gun extension (merged via D06-02)
 
 A Gun is an Action5Weapon with its own ammunition, reload and world muzzle;
@@ -771,7 +771,7 @@ D09-02 now authors a Sword using the existing `WeaponDefinition`, `AttackDefinit
 **D09-02 demo geometry accessibility:** Keep the arena Gun aligned with the Bat/Shovel pickup row at `Z = 1.0`, within the connected side-lane's `Z = 0` interaction range. In `demo/world/encounter_sector.tscn`, the central `Obstacle` uses matched 1.1 m tall BoxMesh/BoxShape with center `Y = 0.55` so its bottom stays on the floor and the existing side-scroller jump can clear it. Preserve the full collision (do not disable barriers, change jump speed or teleport past it). `tests/d09_reference_suite.gd` verifies a real F1 E pickup and a physically simulated F1 jump/run over the obstacle to the unlocked EXIT. Keep these adjustments scene-local, never in addon locomotion or equipment.
 
 
-## D09-03 HUD contract (PR #38, ready for review)
+## D09-03 merged HUD contract
 
 - Render one stable, fixed HUD across all five camera modes. The authored layout in `demo/ui/hud.tscn` places Vitality top-left, Objective bottom-left and Equipment bottom-right. Its presentation script never owns gameplay state; `hud_adapter.gd` adapts authoritative Health, CombatController, Equipment, Interactor, ViewManager, session and InputMap state.
 - Objective and equipment panels leave a clear bottom-center gap; no bottom full-width bar. Optional `Action5WeaponDefinition.hud_icon` textures never affect combat. The smaller item label reads `EquipmentController.get_next_weapon()` (the same policy as `swap_next()`) and the live `demo_swap` binding (default Q).
@@ -838,3 +838,9 @@ the old paths no longer exist. Enum members and InputMap actions should also use
 for old preferences. External integrations loading old resource paths,
 enum member names, exported properties or action names must update their
 references; preserve only the settings-file migration.
+
+## LEVEL-01 scene composition
+
+The reference `demo/world/arena.tscn` owns its local geometry, navigation, target dummies, pickups, pickup snapshots and spawn marker. `demo/main.tscn` instantiates it and the encounter; it retains shared connections and persistent services. Keep level roots ordinary Node3D/PackedScene, with no mandatory subclass. Use the opt-in `Action5ConfigValidator.validate_level` for level diagnostics. Arbitrary sector boundaries remain LEVEL-02 (#43).
+
+D10 geometry debug tools are created on demand (F8) and must disable all polling when hidden. The standalone fixture in `tests/fixtures/blank_project/` is intentionally ignored by the parent editor and copied into a temporary project by `make blank-addon`; it verifies actual movement and five-view selection without demo dependencies.

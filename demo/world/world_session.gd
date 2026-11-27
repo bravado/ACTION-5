@@ -9,7 +9,7 @@ signal encounter_activation_changed(active: bool)
 
 @export var player_path: NodePath = ^"../Player"
 @export var encounter_sector_path: NodePath = ^"../EncounterSector"
-@export var arena_spawn_path: NodePath = ^"../ArenaSpawn"
+@export var arena_spawn_path: NodePath = ^"../Arena/ArenaSpawn"
 @export var encounter_spawn_path: NodePath = ^"../EncounterSpawn"
 @export var encounter_scene: PackedScene
 @export var discovery_filter_path: NodePath = ^"../EncounterDoor/AcquisitionFilter"

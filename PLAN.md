@@ -800,7 +800,7 @@ door when switching back to F2–F5; they are removed after separation.
 This adds no camera-, AI-, or combat-core conditional.
 
 
-D08 extends the existing D07-equipped NPCs without changing the reusable actor, combat, locomotion or equipment cores. The playable scene `demo/main.tscn` hosts one persistent Player, Camera/ViewManager, inventory and the embedded `demo/world/encounter_sector.tscn` dungeon. The arena and dungeon meet on world X=14 at the same elevation, with a bridging floor and a single two-sided `WorldDoor` whose frame remains visible; E toggles an actual collision panel and navigation link, while the player walks through without being teleported.
+D08 extends the existing D07-equipped NPCs without changing the reusable actor, combat, locomotion or equipment cores. The playable scene `demo/main.tscn` hosts one persistent Player, Camera/ViewManager and inventory, and instances `demo/world/arena.tscn` and `demo/world/encounter_sector.tscn`. The arena and dungeon meet on world X=14 at the same elevation, with a bridging floor and a single two-sided `WorldDoor` whose frame remains visible; E toggles an actual collision panel and navigation link, while the player walks through without being teleported.
 
 `WorldSession` detects physical sector transitions, preloads nearby NPC physics, preserves live enemy state on ordinary revisits and supports an explicit destination-only fresh/restore policy. The `Action5Interactor` handles doors, switches, portals and prefab-local weapon pickups with real range and line-of-sight validation. An optional `LocationPortal` loads a cached environment PackedScene without duplicating Player, equipment or camera. Disabled remote locations are isolated by Godot `DISABLE_MODE_REMOVE` for collision objects and explicit navigation state handling. A location-owned drop-parent provider resolves the active world at drop time.
 
@@ -899,7 +899,7 @@ specified 20-minute exploratory native/Web run.
 **D09-02 side-scroller accessibility follow-up (2026-11-12):** The arena Gun pickup is now at Z=1.0, matching Bat/Shovel and reachable through the default F1 Z=0 side lane. The dungeon's central block is 1.1 m high with coincident BoxMesh/BoxShape and floor-aligned center Y=0.55; the normal 6.3 m/s jump and movement traverse it without a gameplay/physics bypass. [Checks #43340690231](https://github.com/bravado/ACTION-5/actions/runs/43340690231) passed **1,331/1,331** assertions, including an actual F1 E pickup, grounded jump over the collision block and run to the EXIT. Verify the final native/WebGL2 smoke and owner visuals before squash merge. [full-e2e]
 
 
-## D09-03 — HUD (PR #38, ready for review)
+## D09-03 — Merged HUD
 
 The D09-01 text-heavy status/debug overlay is being replaced by an original PS1/DOS-era **HUD** inspired by Diablo's restrained engraved-metal decoration and Symphony of the Night's compact status readability. Do not copy copyrighted UI graphics. Core gameplay does not depend on the demo UI.
 
@@ -955,3 +955,7 @@ automatic migration from the legacy schema-2 names.
 All source and scene references plus the resource-loading regression suite
 must use the renamed assets; owners of external scenes must change any old
 hardcoded paths.
+
+## LEVEL-01 / D10-01 implementation handoff
+
+Scope: independent arena scene and existing connected world, optional level/configuration diagnostics, F7 HUD and F8 world geometry overlay, and addon-only playable example. Generic arbitrary sector connections remain LEVEL-02 (#43). Verification commands: `make check`, `make blank-addon`, full native/WebGL2 E2E via the pinned workflow. Inspect CI evidence for measured disabled diagnostic callback counts and CPU timing; manual five-view and blank-project editor acceptance remain separate. No release claim or issue closure is implied by implementation alone.

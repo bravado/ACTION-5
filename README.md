@@ -2,7 +2,7 @@
 
 **A five-perspective 3D action framework for Godot.** One world, one character, five ways to play.
 
-> **Project status (November 2026): D01–D09-03 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun Top-Down directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. **Next: D10 diagnostics and editor tooling**, then D11–D12 packaging/distribution. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
+> **Project status (November 2026): D01–D09-03 implemented.** The five-view reference demo includes persistent arena/dungeon traversal, doors and portals, AI encounters, Sword/Bat/Shovel/Gun equipment, four-way Sword/eight-way Gun Top-Down directional combat, F5 independent movement/aim and a responsive HUD. Pinned Godot tests and native/WebGL2 smoke have passed on the D09 implementation; prolonged owner exploratory acceptance remains a separate release gate. D10 diagnostics and level composition are implemented in source; see [debugging and validation](docs/debugging-and-validation.md) and [level authoring](docs/level-authoring.md). Manual acceptance and the latest-head CI remain required; D11–D12 cover final regressions and packaging. Actor, Combat, Equipment, Animation and Camera cores remain independent of demo composition.
 
 ACTION-5 is a planned open-source framework for creating action games that share the **same 3D characters, animations, physics, combat, weapons, AI and level geometry** across several styles of play. The player switches between views at runtime without changing maps, recreating the character, or resetting combat.
 
@@ -156,17 +156,20 @@ New NPC regression scenarios must extend the **same dungeon scene**
 without authoring a second encounter map. See
 [AI authoring](docs/ai.md).
 
+### Developer diagnostics
+
+In debug builds, **F7** toggles the read-only actor HUD, **F8** toggles world geometry diagnostics and **B** toggles combat hitboxes. They are optional and disabled by default. `make blank-addon` exercises a standalone project with real movement and five views. See [debugging and validation](docs/debugging-and-validation.md).
+
 ### D08 connected persistent world
 
-`demo/main.tscn` contains the arena (X=-14..14) and the instanced
+`demo/main.tscn` instances `demo/world/arena.tscn` (X=-14..14) and
 `demo/world/encounter_sector.tscn` dungeon (X=14..38), on the
 **same floor elevation and global axes**. The former ten-unit void and
 dungeon's far-side return door are removed. A single physical gate at
 **X=14, Z=0** joins both floors; its split flanking wall segments
 and overlapping floor slab form a real passable doorway. **E opens or
 closes the gate; walking across switches the active sector**, without
-replacing/teleporting the original player. The frame and two-sided
-signage remain visible from both rooms.
+replacing/teleporting the original player. The gate frame remains visible from both rooms; direct physical doors do not need labels.
 
 Health, Combat, Equipment and enemy nodes retain their live instances
 on normal visits. A world-local `SectorCameraBounds` now configures

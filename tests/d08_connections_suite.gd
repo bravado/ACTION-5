@@ -139,16 +139,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(session.travel_to(player, &"encounter"),
         "Scripted test warp enters dungeon with original player")
     await _ticks(tree, 4)
-    verify.call(room.get_node("Floor").visible and not stage.get_node("Floor").visible
-        and not stage.get_node("NearDummy").visible
-        and stage.get_node("Floor/CollisionShape3D") is CollisionShape3D,
+    verify.call(room.get_node("Floor").visible and not stage.get_node("Arena/Floor").visible
+        and not stage.get_node("Arena/NearDummy").visible
+        and stage.get_node("Arena/Floor/CollisionShape3D") is CollisionShape3D,
         "Dungeon side sees only dungeon through closed door, without removing arena physics")
     player.global_position = door.global_position + Vector3(1.55, 0.15, 0)
     player.velocity = Vector3.ZERO
     await _ticks(tree, 3)
     _press_e()
     await _ticks(tree, 5)
-    verify.call(door.open and stage.get_node("Floor").visible,
+    verify.call(door.open and stage.get_node("Arena/Floor").visible,
         "E works from the dungeon side and re-reveals the adjoining arena")
 
     # Detached connections are separately scripted portals, NEVER
@@ -156,7 +156,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(session.travel_to(player, &"arena"),
         "Test warp returns actor for detached-location experiment")
     await _ticks(tree, 3)
-    var bat_pickup: Node3D = stage.get_node("BatPickup") as Node3D
+    var bat_pickup: Node3D = stage.get_node("Arena/BatPickup") as Node3D
     player.global_position = bat_pickup.global_position
     stage.call("_unhandled_input", _key_down(KEY_E))
     var equipment: Node = player.get_node("Equipment")
@@ -176,7 +176,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(portal_label.visible,
         "Remote portal label can be re-enabled without recreating the scene")
     var manager: Node = stage.get_node("LocationManager")
-    var switch := stage.get_node("LightSwitch") as Node3D
+    var switch := stage.get_node("Arena/LightSwitch") as Node3D
     verify.call(portal.global_position.distance_to(switch.global_position)
         > 2.0 * float(interactor.get("maximum_distance")),
         "Detached portal and light switch no longer share interaction range")
@@ -199,7 +199,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and (equipment.get("inventory") as Array).size() == inventory_count
         and player.global_position.distance_to(before_location) > 30.0,
         "Explicit remote transition moves same player without inventory or combat replacement")
-    verify.call(not stage.get_node("Floor").visible and not room.get_node("Floor").visible
+    verify.call(not stage.get_node("Arena/Floor").visible and not room.get_node("Floor").visible
         and not stage.get_node("EncounterDoor").visible,
         "Detached location hides the connected world without removing its physics")
     var remote_id: int = detached.get_instance_id()

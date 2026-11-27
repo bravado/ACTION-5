@@ -32,8 +32,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var combat: Node = actor.get_node("CombatController")
     var views: Node = level.get_node("ViewManager")
     var aim: Node = actor.get_node("AimTargetProvider")
-    var gun: Node3D = level.get_node("GunPickup") as Node3D
-    var dummy := level.get_node("NearDummy") as Node3D
+    var gun: Node3D = level.get_node("Arena/GunPickup") as Node3D
+    var dummy := level.get_node("Arena/NearDummy") as Node3D
     var health: Node = dummy.get_node("Health")
     # Input polling is irrelevant to an authored damage/physics fixture.
     level.get_node("ActorInput").call("set_enabled", false)

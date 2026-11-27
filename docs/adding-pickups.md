@@ -9,7 +9,7 @@ ownership policies, not a weapon-shaped workaround.
 
 ## Quick path: place another copy of an existing weapon
 
-1. Open `demo/main.tscn` in the Godot editor. Drag an existing reusable
+1. Open `demo/world/arena.tscn` in the Godot editor. Drag an existing reusable
    scene, e.g. `demo/equipment/bat.tscn`, into the **Scene** tree as a child
    of the arena root. This must be a **scene instance**, not a new empty
    `Node3D` or a copy of only its meshes.
@@ -18,11 +18,11 @@ ownership policies, not a weapon-shaped workaround.
    already contains its world meshes, weapon definition, pickup group and
    `PickupInteraction` child.
 3. For **arena pickups that must respawn when the arena uses Start fresh**,
-   select the existing `PickupSpawns` node in `demo/main.tscn`.
+   select the existing `PickupSpawns` node in `demo/world/arena.tscn`.
    In the Inspector, append `../SecondBatPickup` to **Pickup Paths**
    (an `Array[NodePath]`, resolved relative to `PickupSpawns`).
    Do not create a `SecondBatPickupWorldState` node.
-4. Run the game and approach the weapon. **E** should pick it up, **Q**
+4. Run the main project (F5, not the standalone arena with F6) and approach the weapon. **E** should pick it up, **Q**
    should change weapons when you carry more than one, and **G** should
    drop the selected instance back into the world. The default player
    equipment capacity is two; a full inventory is not a pickup failure.
@@ -78,7 +78,7 @@ to a group by itself does not make E work.** There is no separate direct
 
 | Where the pickup lives | What to configure | What happens |
 | --- | --- | --- |
-| Main arena (`demo/main.tscn`) with Start fresh support | Add its instance path to the single `PickupSpawns.pickup_paths` array | `WorldSession` captures availability and calls `reset_to_initial()` for fresh arena entries. New world copies are created from the saved prefab, transform and name; carried items are untouched. |
+| Main arena (`demo/world/arena.tscn`) with Start fresh support | Add its instance path to the single `PickupSpawns.pickup_paths` array | `WorldSession` captures availability and calls `reset_to_initial()` for fresh arena entries. New world copies are created from the saved prefab, transform and name; carried items are untouched. |
 | Connected dungeon (`demo/world/encounter_sector.tscn`) | Just instance the prefab in that scene | Ordinary travel retains the live dungeon; **Start fresh recreates the entire authored encounter scene**, including its pickups. No per-weapon state node or `PickupSpawns` is needed. |
 | Cached detached room (for example `demo/world/remote_chamber.tscn`) | Just instance the prefab if retaining the cached room is desired | Cached scene instances survive travel by default. Do not register them in the arena's `PickupSpawns`. |
 | Dynamically spawned weapon or dropped inventory item | No authored spawn registration | Interactions remain prefab-local; world-drop location and loose-item cleanup are managed by Equipment and world/session composition, not the original pickup slot. |

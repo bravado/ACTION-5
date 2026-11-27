@@ -36,7 +36,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _frames(tree, 9)
     var player := stage.get_node("Player") as CharacterBody3D
     var equipment := player.get_node("Equipment")
-    var pickup_spawns := stage.get_node("PickupSpawns")
+    var pickup_spawns := stage.get_node("Arena/PickupSpawns")
     var initial_pickups: Dictionary = pickup_spawns.call("capture_state")
     verify.call(initial_pickups.size() == 4
         and bool(initial_pickups.get("../BatPickup"))
@@ -121,10 +121,10 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         equipment.call("drop_current")
     blocked_weapon.free()
 
-    player.global_position = stage.get_node("BatPickup").global_position
+    player.global_position = stage.get_node("Arena/BatPickup").global_position
     _press(stage, KEY_E)
     var bat := equipment.get("current_weapon") as Node3D
-    player.global_position = stage.get_node("GunPickup").global_position
+    player.global_position = stage.get_node("Arena/GunPickup").global_position
     _press(stage, KEY_E)
     var collected_pickups: Dictionary = pickup_spawns.call("capture_state")
     verify.call(not bool(collected_pickups.get("../BatPickup"))
@@ -349,7 +349,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # Player and NPC/script callers share the exact same component contract.
     var interactor := stage.get_node("Interactor")
-    var switch := stage.get_node("LightSwitch") as Node3D
+    var switch := stage.get_node("Arena/LightSwitch") as Node3D
     var switch_label := switch.get_node_or_null("Label3D") as Label3D
     var switch_off := switch.get_node_or_null("IndicatorOff") as MeshInstance3D
     var switch_on := switch.get_node_or_null("IndicatorOn") as MeshInstance3D
@@ -435,7 +435,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and bool(fresh_pickups.get("../ShovelPickup"))
         and bool(fresh_pickups.get("../GunPickup"))
         and bool(fresh_pickups.get("../SwordPickup"))
-        and stage.has_node("BatPickup") and stage.has_node("GunPickup")
+        and stage.has_node("Arena/BatPickup") and stage.has_node("Arena/GunPickup")
         and equipment.inventory.size() == 1 and equipment.inventory.has(gun),
         "Fresh arena re-creates all named spawn instances without clearing carried Gun")
     pickup_spawns.call("restore_state", collected_pickups)
@@ -444,13 +444,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not bool(restored_pickups.get("../GunPickup"))
         and bool(restored_pickups.get("../ShovelPickup"))
         and bool(restored_pickups.get("../SwordPickup"))
-        and not stage.has_node("BatPickup") and not stage.has_node("GunPickup")
+        and not stage.has_node("Arena/BatPickup") and not stage.has_node("Arena/GunPickup")
         and equipment.inventory.has(gun) and gun.equipment_owner == equipment,
         "Restoring a partial pickup snapshot removes only world copies, never inventory")
     pickup_spawns.call("reset_to_initial")
     var reset_pickups: Dictionary = pickup_spawns.call("capture_state")
     verify.call(reset_pickups == initial_pickups
-        and stage.has_node("BatPickup") and stage.has_node("GunPickup")
+        and stage.has_node("Arena/BatPickup") and stage.has_node("Arena/GunPickup")
         and equipment.inventory.has(gun),
         "Repeated fresh reset restores stable named spawns without duplicating owned gear")
     verify.call(world.current_sector == &"arena" and tree.current_scene == stage,
