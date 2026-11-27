@@ -144,12 +144,12 @@ try {
     errors.push('Right-click in gameplay did not trigger Kick');
   }
   const beforeHudClick = combatStarts.length;
-  await page.keyboard.press('F6'); // on-demand HUD controls
-  await page.waitForTimeout(220);
-  await page.mouse.click(350, 169); // SIDE in the new controls panel
-  await page.waitForTimeout(250);
-  await page.keyboard.press('F6');
-  await page.waitForTimeout(250);
+  // A top-center camera button must consume its mouse click (not punch).
+  await page.mouse.click(395, 43); // 1 · FIRST
+  await page.waitForTimeout(350);
+  if (!cameraChanges.at(-1)?.includes('index=4')) {
+    errors.push('Clicking top camera button 1 did not switch to First-Person');
+  }
   if (combatStarts.length !== beforeHudClick) {
     errors.push('Clicking a HUD view button unexpectedly activated Punch');
   }
@@ -684,13 +684,25 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_D03_LOCOMOTION_OK walk=1 jump=1');
 
-  // The view selector remains available in the toggleable F6 help overlay.
+  // F6 is now a formatted field guide; the five camera controls remain
+  // visible on the main view without opening an overlay.
   await page.keyboard.press('F6');
-  await page.waitForTimeout(220);
-  await page.mouse.click(350, 169);
-  await page.waitForTimeout(220);
+  await page.waitForTimeout(280);
+  const guidePng = await page.screenshot({
+    path: 'build/evidence/web-hud-field-guide.png', fullPage: true,
+  });
   await page.keyboard.press('F6');
+  await page.waitForTimeout(300);
+  const guideClosed = await page.screenshot();
+  if (createHash('sha256').update(guidePng).digest('hex') ===
+      createHash('sha256').update(guideClosed).digest('hex')) {
+    errors.push('F6 help guide did not open/close visibly');
+  }
+  await page.mouse.click(395, 43); // Top-center 1 · FIRST
   await page.waitForTimeout(350);
+  if (!cameraChanges.at(-1)?.includes('index=4')) {
+    errors.push('Top-center camera button 1 did not select First-Person');
+  }
   const buttonPng = await page.screenshot({
     path: 'build/evidence/web-selector-view-1.png',
     fullPage: true,
@@ -705,7 +717,7 @@ try {
   await page.keyboard.press('2');
   await page.waitForTimeout(500);
   const collapsed = createHash('sha256').update(await page.screenshot()).digest('hex');
-  // Camera settings use the existing C action; no persistent large top bar.
+  // Camera Settings still works via C; its new shortcut button is under Vitality.
   await page.keyboard.press('c');
   await page.waitForTimeout(350);
   const openPng = await page.screenshot({
@@ -722,14 +734,22 @@ try {
   if (closedHash === openHash) {
     errors.push('Camera settings C shortcut did not close controls');
   }
+  // The small C button below Vitality calls the same settings port.
+  await page.mouse.click(105, 85);
+  await page.waitForTimeout(350);
+  if (!settingsVisibility.at(-1)?.includes('open')) {
+    errors.push('C Camera Settings button under Vitality did not open controls');
+  }
+  await page.keyboard.press('c');
+  await page.waitForTimeout(350);
+  if (!settingsVisibility.at(-1)?.includes('closed')) {
+    errors.push('C shortcut did not close settings opened from the Vitality button');
+  }
   if (errors.length) throw Error(errors.join('\\n'));
-  // Reproduce the user-reported focus bug with *real* canvas events.
-  // Selecting view 3 via F6, pressing 2, then jumping must not reactivate 3.
-  await page.keyboard.press('F6');
-  await page.waitForTimeout(220);
-  await page.mouse.click(590, 169);
+  // Reproduce the focus bug using the new permanent camera buttons:
+  // click view 3, press 2, jump; Space must never re-activate view 3.
+  await page.mouse.click(640, 43); // 3 · ISOMETRIC
   await page.waitForTimeout(200);
-  await page.keyboard.press('F6');
   await page.keyboard.press('2');
   await page.waitForTimeout(300);
   const cameraCountBeforeSpace = cameraChanges.length;
