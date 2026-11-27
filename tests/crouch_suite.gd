@@ -28,7 +28,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var eye_presenter := actor.get_node("EyeHeightPresenter") as Action5EyeHeightPresenter
     var camera_rig := view_manager.get_node("CameraRig") as Action5CameraRig
     var camera: Camera3D = camera_rig.camera
-    var first_person_height: float = view_manager.profiles[3].eye_height
+    var first_person_height: float = view_manager.profiles[0].eye_height
 
     verify.call(is_equal_approx(eye_offset.position.y, 0.0)
         and is_equal_approx(eye_presenter.target_offset_y, 0.0)
@@ -45,7 +45,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(camera.global_position.is_equal_approx(f3_position),
         "Actor eye offset never affects third-person framing")
     eye_offset.position.y = 0.0
-    view_manager.switch_view(3)
+    view_manager.switch_view(0)
     verify.call(is_equal_approx(camera.global_position.y,
         actor.global_position.y + first_person_height),
         "F4 keeps the editable profile eye height when not crouched")
@@ -174,7 +174,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(is_equal_approx(eye_presenter.target_offset_y, -0.45)
         and eye_offset.position.y < -0.05,
         "Crouch automatically lowers the view anchor without camera references")
-    view_manager.switch_view(3)
+    view_manager.switch_view(0)
     verify.call(absf(camera.global_position.y -
         (actor.global_position.y + first_person_height + eye_offset.position.y)) < 0.02,
         "Switching directly into F4 while crouched uses its lowered anchor")
@@ -210,7 +210,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             and animation.base_clip == &"crouch_walk"
             and actor.get_instance_id() == actor_id,
             "Crouch-walk survives view %d with one authoritative actor" % [index + 1])
-        if index == 3:
+        if index == 0:
             verify.call(absf(camera.global_position.y -
                 (actor.global_position.y + first_person_height + eye_offset.position.y)) < 0.02,
                 "F3 -> F4 preserves the currently crouched eye anchor")
@@ -308,7 +308,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and not controller.move_changed.is_connected(
             Callable(eye_presenter, "_on_move_changed")),
         "Removing eye presenter restores its anchor and disconnects signals")
-    view_manager.switch_view(3)
+    view_manager.switch_view(0)
     verify.call(absf(camera.global_position.y -
         (actor.global_position.y + first_person_height)) < 0.02,
         "F4 reverts to profile eye height after optional presenter is removed")
