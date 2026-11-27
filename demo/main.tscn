@@ -402,7 +402,6 @@ current = true
 
 [node name="ViewInput" type="Node" parent="."]
 script = ExtResource("5_input")
-shortcut_profile_indices = PackedInt32Array(3, 1, 2, 0, 4)
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")
@@ -453,7 +452,6 @@ offset_top = 82.0
 offset_right = -18.0
 offset_bottom = 638.0
 script = ExtResource("6_settings")
-shortcut_input_path = NodePath("../../ViewInput")
 
 [node name="DeathOverlay" parent="." instance=ExtResource("17_death")]
 
