@@ -89,6 +89,17 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(Validator.validate_weapon(camera_free, gun)["valid"]
         and Validator.validate_weapon(camera_free, gun)["warnings"].is_empty(),
         "D10 camera-free weapon needs no F4 viewmodel")
+    var facing = preload("res://addons/action5/combat/view_facing_policy.gd").new()
+    var duplicate_facing: Resource = definition.duplicate(true)
+    duplicate_facing.view_facing_policies = [facing, facing]
+    verify.call(_has(Validator.validate_weapon(duplicate_facing), "duplicate view facing policy"),
+        "D10 duplicate directional overrides report the view")
+    verify.call(_has(Validator.validate_direction_source(actor, ^"MissingPolicy"), "get_sectors")
+        and Validator.validate_direction_source(actor, ^"")["valid"],
+        "D10 missing configured direction port fails while absence is optional")
+    var limb = preload("res://addons/action5/animation/first_person_limb_profile.gd").new()
+    verify.call(_has(Validator.validate_limb_profile(limb), "strictly increasing"),
+        "D10 invalid first-person pose profile is diagnosed")
     var duplicate: Resource = definition.duplicate(true)
     duplicate.attacks.append(definition.attacks[0])
     verify.call(_has(Validator.validate_weapon(duplicate), "duplicate attack_id")

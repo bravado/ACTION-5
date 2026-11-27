@@ -70,12 +70,10 @@ AnimationPlayer per imported actor**. Multi-rig retargeting is not provided.
    see [moves](adding-moves.md) and [cameras](cameras.md) for authoring.
 5. Call the optional validators against your authored resources and nodes.
 6. In this repository, `make blank-addon` copies only the addon to an
-   isolated temporary project and performs import/script smoke. It must
+   isolated temporary project and performs import and real scene smoke. It must
    succeed without `demo/`, the real project `tests/`, or a plugin UI.
 
-This check establishes dependency isolation, **not** a complete playable
-blank-project walkthrough. The latter still requires manual verification.
-Level authoring remains independent; see [LEVEL-01](https://github.com/bravado/ACTION-5/issues/42).
+The isolated fixture now instantiates the example, verifies floor contact and actual movement, and switches all five views on one camera. To run it manually, copy `project.godot`, `example.gd`, `example.tscn` from `tests/fixtures/blank_project/` and `addons/action5/` into an empty directory (do not copy `.gdignore`), then open the project and press F5. WASD moves in world coordinates; keys 1–5 select the view. The simple capsule intentionally needs no imported rig or demo assets. Manual visual/editor verification remains an independent acceptance gate. Level authoring remains independent; see [the level authoring guide](level-authoring.md).
 
 ## Level diagnostics
 

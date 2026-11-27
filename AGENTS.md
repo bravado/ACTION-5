@@ -842,3 +842,5 @@ references; preserve only the settings-file migration.
 ## LEVEL-01 scene composition
 
 The reference `demo/world/arena.tscn` owns its local geometry, navigation, target dummies, pickups, pickup snapshots and spawn marker. `demo/main.tscn` instantiates it and the encounter; it retains shared connections and persistent services. Keep level roots ordinary Node3D/PackedScene, with no mandatory subclass. Use the opt-in `Action5ConfigValidator.validate_level` for level diagnostics. Arbitrary sector boundaries remain LEVEL-02 (#43).
+
+D10 geometry debug tools are created on demand (F8) and must disable all polling when hidden. The standalone fixture in `tests/fixtures/blank_project/` is intentionally ignored by the parent editor and copied into a temporary project by `make blank-addon`; it verifies actual movement and five-view selection without demo dependencies.
