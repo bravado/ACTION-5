@@ -2,6 +2,9 @@ extends RefCounted
 class_name Action5ConfigValidator
 ## Opt-in, read-only authoring checks. No runtime component imports this tool.
 
+const FacingPolicy = preload("res://addons/action5/combat/view_facing_policy.gd")
+const LimbProfile = preload("res://addons/action5/animation/first_person_limb_profile.gd")
+const VisibilityTarget = preload("res://addons/action5/world/visibility_target.gd")
 const View = preload("res://addons/action5/camera/view_profile.gd")
 const Attack = preload("res://addons/action5/combat/attack_definition.gd")
 const Weapon = preload("res://addons/action5/equipment/weapon_definition.gd")
@@ -95,6 +98,14 @@ static func validate_weapon(definition: Resource, world: Node = null,
                 definition.weapon_id, entry.input_action])
         else:
             bindings[entry.input_action] = true
+    var view_modes: Dictionary = {}
+    for policy in definition.view_facing_policies:
+        if not policy is FacingPolicy or not policy.valid():
+            errors.append("Weapon '%s': invalid view facing policy (mode 0–4; sectors 0 or 2–32)" % definition.weapon_id)
+            continue
+        if view_modes.has(policy.view_mode):
+            errors.append("Weapon '%s': duplicate view facing policy for mode %d" % [definition.weapon_id, policy.view_mode])
+        view_modes[policy.view_mode] = true
     if world != null:
         var meshes: Array = world.find_children("*", "MeshInstance3D", true, false)
         if world is MeshInstance3D:
@@ -212,12 +223,13 @@ static func validate_level(root: Node3D, require_collision: bool = true,
         return _result(errors, warnings)
     var has_collision := false
     var has_navigation := false
-    var targets: Array[Action5VisibilityTarget] = []
+    var targets: Array[VisibilityTarget] = []
     var pending: Array[Node] = [root]
     while not pending.is_empty():
         var node: Node = pending.pop_back()
         if node is CollisionShape3D and node.shape != null and not node.disabled \
-                and node.get_parent() is StaticBody3D:
+                and node.get_parent() is StaticBody3D \
+                and (node.get_parent() as StaticBody3D).collision_layer != 0:
             has_collision = true
         if node is GridMap and node.mesh_library != null and node.collision_layer != 0:
             for item in node.mesh_library.get_item_list():
@@ -228,7 +240,7 @@ static func validate_level(root: Node3D, require_collision: bool = true,
             has_navigation = true
             if node.navigation_mesh == null or node.navigation_mesh.get_polygon_count() == 0:
                 warnings.append("%s: assign or bake a NavigationMesh before play" % root.get_path_to(node))
-        if node is Action5VisibilityTarget:
+        if node is VisibilityTarget:
             targets.append(node)
         for child in node.get_children():
             pending.append(child)
@@ -258,4 +270,22 @@ static func validate_level(root: Node3D, require_collision: bool = true,
                     [context, owners[id], root.get_path_to(visual)])
             else:
                 owners[id] = context
+    return _result(errors, warnings)
+
+
+static func validate_limb_profile(profile: Resource) -> Dictionary:
+    var errors: Array[String] = []
+    var warnings: Array[String] = []
+    if not profile is LimbProfile or not profile.valid():
+        errors.append("FirstPersonLimbProfile: set animation_key, valid finite poses strictly increasing from 0 to 1, positive dimensions and near-plane-safe geometry")
+    return _result(errors, warnings)
+
+
+static func validate_direction_source(owner: Node, path: NodePath) -> Dictionary:
+    var errors: Array[String] = []
+    var warnings: Array[String] = []
+    if not path.is_empty():
+        var source: Node = owner.get_node_or_null(path) if owner != null else null
+        if source == null or not source.has_method("get_sectors"):
+            errors.append("Direction policy path '%s': must resolve to get_sectors(view_mode, fallback)" % path)
     return _result(errors, warnings)

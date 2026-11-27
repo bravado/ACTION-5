@@ -2,6 +2,7 @@ extends RefCounted
 ## Real resources and scene nodes, including malformed user-authored fixtures.
 
 const Validator = preload("res://addons/action5/debug/config_validator.gd")
+const Geometry = preload("res://addons/action5/debug/debug_geometry.gd")
 const DebugHud = preload("res://addons/action5/debug/debug_hud.gd")
 const Attack = preload("res://addons/action5/combat/attack_definition.gd")
 const Weapon = preload("res://addons/action5/equipment/weapon_definition.gd")
@@ -40,6 +41,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(_has(Validator.validate_level(authored), "overlapping visibility target"),
         "D10 two owners of the same visual are diagnosed")
     duplicate_target.free()
+    authored.position = Vector3(500, 0, 500)
     tree.root.add_child(authored)
     await tree.process_frame
     verify.call(authored.get_node("ArenaNavigation").navigation_mesh != null,
@@ -149,5 +151,31 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.process_frame
         verify.call(not overlay.is_processing() and overlay.sample_count() == old_samples,
             "D10 disabled overlay has zero frame-poll work")
+        var geometry := Geometry.new()
+        level.add_child(geometry)
+        geometry.bind_sources(actor, level.get_node("ViewManager"))
+        geometry.set_enabled(true)
+        for tick in range(8):
+            await tree.physics_frame
+        verify.call(geometry.sample_count() > 0 and geometry.line_count() > 0,
+            "D10 enabled geometry renders actual actor bounds")
+        geometry.set_section_enabled(&"hurtboxes", false)
+        geometry.set_section_enabled(&"bounds", false)
+        for tick in range(8):
+            await tree.physics_frame
+        verify.call(geometry.line_count() == 0, "D10 independent geometry categories")
+        geometry.set_enabled(false)
+        var idle_samples: int = geometry.sample_count()
+        var hud_idle_samples: int = overlay.sample_count()
+        var start: int = Time.get_ticks_usec()
+        for tick in range(60):
+            await tree.physics_frame
+        print("ACTION5_D10_IDLE ticks=60 elapsed_usec=", Time.get_ticks_usec() - start,
+            " geometry_samples=", geometry.sample_count() - idle_samples,
+            " hud_samples=", overlay.sample_count() - hud_idle_samples)
+        verify.call(not geometry.is_physics_processing() and geometry.line_count() == 0
+            and geometry.sample_count() == idle_samples and overlay.sample_count() == hud_idle_samples,
+            "D10 disabled diagnostics perform zero periodic samples across 60 physics ticks")
+        geometry.queue_free()
         overlay.queue_free()
         await tree.process_frame

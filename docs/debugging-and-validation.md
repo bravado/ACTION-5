@@ -24,8 +24,7 @@ You can pass a third AI controller source to `bind_sources`. Each category
 (movement/combat/AI) can be disabled independently. Hidden overlays have
 processing disabled, and release builds discard the HUD immediately.
 The demo's B key still toggles the existing melee hitbox debug rendering,
-but only in debug builds. Further geometric overlays (hurtboxes, muzzle/aim
-rays, camera/world bounds) and quantitative idle benchmarks remain pending.
+but only in debug builds. The separate F8 geometry overlay is described below.
 
 ## Read-only authoring checks
 
@@ -81,3 +80,9 @@ Level authoring remains independent; see [LEVEL-01](https://github.com/bravado/A
 ## Level diagnostics
 
 Call `Validator.validate_level(level_root, true, true, [^"Arrival"])` explicitly to inspect an authored level for static collision, navigation, configured marker paths and visibility target ownership. Pass false for collision/navigation on decorative scenes and omit marker paths when not needed. A missing baked navigation mesh is a warning because the reference arena creates its navigation at runtime. The check is read-only and performs no per-frame work. It does not validate arbitrary sector traversal (LEVEL-02).
+
+## World geometry diagnostics
+
+F8 toggles the optional geometry overlay independently from F7 and B. Bind an actor, view manager, optional equipment and aim port using `bind_sources`. The categories `hurtboxes`, `aim` and `bounds` may be independently toggled with `set_section_enabled`. Green outlines show the conservative hurtbox motion bounds, orange the selected target direction from the world muzzle (not an authoritative damage prediction), yellow the muzzle marker and cyan the active camera target bounds. The overlay draws world-space lines with depth testing and does not create collisions or modify gameplay. It samples at 10 Hz while enabled and clears all geometry and disables physics processing when hidden. The test logs elapsed time and zero-sample counts over 60 physics ticks; this is callback-work evidence, not a GPU frame-time benchmark.
+
+Additional checks: `validate_limb_profile` checks the existing first-person pose contract, `validate_direction_source` checks explicitly configured direction policy ports, and `validate_weapon` checks duplicate/invalid view-facing policies.
