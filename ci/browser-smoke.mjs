@@ -843,7 +843,7 @@ try {
     await page.waitForTimeout(170);
     const report = rigViews.slice(before).findLast(line =>
       line.includes('view=2 ') && line.includes('actor_x='));
-    const match = report?.match(/actor_x=(-?\\d+(?:\\.\\d+)?) actor_z=(-?\\d+(?:\\.\\d+)?)/);
+    const match = report?.match(/actor_x=(-?\d+(?:\.\d+)?) actor_z=(-?\d+(?:\.\d+)?)/);
     return match
       ? { x: Number(match[1]), z: Number(match[2]), report }
       : { x: Number.NaN, z: Number.NaN, report: report || '(no fresh view diagnostic)' };
