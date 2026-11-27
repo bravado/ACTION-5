@@ -55,7 +55,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and not InputMap.event_is_action(key_left, &"move_left")
         and not InputMap.event_is_action(key_right, &"move_right"),
         "D09 arrow turn InputMap actions do not overlap A/D strafe")
-    views.switch_view(3)
+    views.switch_view(0)
     await _ticks(tree, 2)
     var rig: Node = views.get("camera_rig")
     var original_yaw: float = rig.get("orbit_yaw")
@@ -106,7 +106,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     await _ticks(tree, 2)
 
     # Per-view input roles are data-defined; no change to Actor or Crouch.
-    views.switch_view(0)
+    views.switch_view(3)
     await _ticks(tree, 6)
     var side_controls: Resource = input_adapter.call("get_active_controls") as Resource
     verify.call(not bool(side_controls.get("vertical_movement"))
@@ -187,7 +187,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
 
     # F1 locks the player to Z=0. The authored arena Gun must be in the
     # same physical pickup row as the Bat/Shovel, not stranded at Z=3.
-    views.switch_view(0)
+    views.switch_view(3)
     var arena_gun := stage.get_node("GunPickup") as Node3D
     var arena_bat := stage.get_node("BatPickup") as Node3D
     var arena_shovel := stage.get_node("ShovelPickup") as Node3D
@@ -231,7 +231,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # Traverse the real 2D X/Y dungeon lane, jumping over the central
     # obstacle rather than teleporting to the EXIT. The world geometry,
     # collision shape, jump speed, gravity and lane controller all participate.
-    views.switch_view(0)
+    views.switch_view(3)
     var block := room.get_node("Obstacle") as StaticBody3D
     var block_shape := block.get_node("CollisionShape3D").shape as BoxShape3D
     var block_mesh := block.get_node("Mesh").mesh as BoxMesh
