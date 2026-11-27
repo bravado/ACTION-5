@@ -30,6 +30,9 @@ const FIELDS = [
 ]
 
 @export var manager_path: NodePath = ^"../../ViewManager"
+## Optional input provider with shortcut_for_profile_index(index). When absent,
+## display the manager's original 1-based profile order for reusable scenes.
+@export var shortcut_input_path: NodePath
 @export var save_user_settings: bool = true
 @export var preferences_path: String = "user://action5_camera_settings.cfg"
 
@@ -252,11 +255,24 @@ func _on_view_changed(_current: ViewProfileScript, _previous: ViewProfileScript)
     refresh_controls()
 
 
+func _display_shortcut_number() -> int:
+    var index: int = _manager.active_index
+    if not shortcut_input_path.is_empty():
+        var input: Node = get_node_or_null(shortcut_input_path)
+        if input != null and input.has_method("shortcut_for_profile_index"):
+            var slot: int = int(input.call("shortcut_for_profile_index", index))
+            if slot >= 0 and slot < _manager.profiles.size():
+                return slot + 1
+    return index + 1
+
+
 func refresh_controls() -> void:
     if _manager == null or _manager.current_profile == null or _title == null:
         return
     var profile: ViewProfileScript = _manager.current_profile
-    _title.text = "%d / 5 · %s" % [_manager.active_index + 1, profile.display_name]
+    _title.text = "%d / %d · %s" % [
+        _display_shortcut_number(), _manager.profiles.size(), profile.display_name
+    ]
     _invert_y_row.visible = profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     _invert_y_checkbox.set_pressed_no_signal(profile.invert_y)
     for field in FIELDS:
