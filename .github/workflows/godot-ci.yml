@@ -182,7 +182,8 @@ jobs:
           test -s build/evidence/native-d06-bat-f4-horizontal.png
           test -s build/evidence/native-d06-bat-f4-near-wall.png
           test -s build/evidence/native-d06-shovel-f4-overhead.png
-          for view in 1 2 3 5; do
+          # All four exterior views; canonical view 1 is the FPS viewmodel.
+          for view in 2 3 4 5; do
             test -s "build/evidence/native-d06-bat-bat_vertical-view-$view.png"
             test -s "build/evidence/native-d06-bat-bat_horizontal-view-$view.png"
             test -s "build/evidence/native-d06-shovel-overhead-view-$view.png"
@@ -192,7 +193,7 @@ jobs:
           grep -q 'ACTION5_D06_WORLD_POSE_NATIVE_OK view=5 attack=shovel_overhead' build/evidence/native-screenshot.log
           test -s build/evidence/native-d06-dropped-f4.png
           grep -q 'ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1' build/evidence/native-screenshot.log
-          for view in 1 2 3 5; do
+          for view in 2 3 4 5; do
             test -s "build/evidence/native-d06-gun-view-$view.png"
           done
           for shot in idle fire reload near-wall; do
