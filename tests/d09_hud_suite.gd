@@ -96,7 +96,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(hp_panel.position.is_equal_approx(health_pos)
             and objective_panel.position.is_equal_approx(objective_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
-            and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
+            and display.get("_view").text.begins_with("%d" % (i + 1)),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
     # Changing Health must not rebuild stable help/InputMap metadata.
     var stable_help: RichTextLabel = display.get("_help_text") as RichTextLabel
