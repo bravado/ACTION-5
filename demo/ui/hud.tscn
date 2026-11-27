@@ -22,7 +22,7 @@ script = ExtResource("1_script")
 offset_left = 24.0
 offset_top = 18.0
 offset_right = 307.0
-offset_bottom = 99.0
+offset_bottom = 132.0
 theme_override_styles/panel = ExtResource("2_frame")
 mouse_filter = 2
 
@@ -58,11 +58,31 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="Footer" type="Label" parent="HealthPanel/Content"]
+[node name="ShortcutRow" type="HBoxContainer" parent="HealthPanel/Content"]
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="CameraSettings" type="Button" parent="HealthPanel/Content/ShortcutRow"]
+custom_minimum_size = Vector2(132, 24)
+theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+theme_override_font_sizes/font_size = 10
+focus_mode = 0
+flat = true
+text = "C · CAMERA SETTINGS"
+
+[node name="Footer" type="Label" parent="HealthPanel/Content/ShortcutRow"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
+theme_override_font_sizes/font_size = 10
+text = "H · HUD  F6 · HELP"
+vertical_alignment = 1
+
+[node name="Status" type="Label" parent="HealthPanel/Content"]
+visible = false
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
 theme_override_font_sizes/font_size = 11
-text = "H · HUD    F6 · HELP"
+text_overrun_behavior = 3
 
 [node name="EquipmentPanel" type="PanelContainer" parent="."]
 anchor_left = 1.0
@@ -168,6 +188,29 @@ custom_minimum_size = Vector2(298, 30)
 autowrap_mode = 3
 text_overrun_behavior = 0
 
+
+[node name="ViewButtonsPanel" type="PanelContainer" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -328.0
+offset_top = 18.0
+offset_right = 328.0
+offset_bottom = 67.0
+theme_override_styles/panel = ExtResource("2_frame")
+mouse_filter = 2
+
+[node name="Content" type="MarginContainer" parent="ViewButtonsPanel"]
+mouse_filter = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 0
+
+[node name="ViewSelector" type="HBoxContainer" parent="ViewButtonsPanel/Content"]
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
+
 [node name="ViewPanel" type="PanelContainer" parent="."]
 anchor_left = 1.0
 anchor_right = 1.0
@@ -245,41 +288,42 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -248.0
-offset_right = 350.0
-offset_bottom = 248.0
+offset_left = -415.0
+offset_top = -294.0
+offset_right = 415.0
+offset_bottom = 294.0
 mouse_filter = 0
 theme_override_styles/panel = ExtResource("2_frame")
 
 [node name="Content" type="VBoxContainer" parent="HelpPanel"]
 mouse_filter = 1
-theme_override_constants/separation = 4
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="HelpPanel/Content"]
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
 theme_override_font_sizes/font_size = 18
-text = "HUD · CONTROLS"
+text = "FIELD GUIDE · ACTION-5"
 
-[node name="ViewSelector" type="HBoxContainer" parent="HelpPanel/Content"]
-mouse_filter = 1
-theme_override_constants/separation = 6
-
-[node name="CameraSettings" type="Button" parent="HelpPanel/Content"]
-text = "CAMERA SETTINGS [C]"
-theme_override_colors/font_color = Color(0.729, 0.604, 0.376, 1)
+[node name="Subtitle" type="Label" parent="HelpPanel/Content"]
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.663, 0.627, 0.655, 1)
+theme_override_font_sizes/font_size = 12
+text = "Explore the same world through five views · Scroll for controls and objectives"
 
 [node name="Scroll" type="ScrollContainer" parent="HelpPanel/Content"]
 size_flags_vertical = 3
 mouse_filter = 0
 
-[node name="HelpText" type="Label" parent="HelpPanel/Content/Scroll"]
+[node name="HelpText" type="RichTextLabel" parent="HelpPanel/Content/Scroll"]
+custom_minimum_size = Vector2(750, 0)
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.91, 0.87, 0.79, 1)
-theme_override_font_sizes/font_size = 14
-custom_minimum_size = Vector2(610, 0)
-autowrap_mode = 3
+size_flags_horizontal = 3
+fit_content = true
+scroll_active = false
+bbcode_enabled = true
+theme_override_colors/default_color = Color(0.91, 0.87, 0.79, 1)
+theme_override_font_sizes/normal_font_size = 14
 
 [node name="NoticeTimer" type="Timer" parent="."]
 wait_time = 2.0

@@ -30,6 +30,9 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var hp_panel := display.get_node("HealthPanel") as PanelContainer
     var equip_panel := display.get_node("EquipmentPanel") as PanelContainer
     var objective_panel := display.get_node("ObjectivePanel") as PanelContainer
+    var view_buttons := display.get_node("ViewButtonsPanel") as PanelContainer
+    var view_panel := display.get_node("ViewPanel") as PanelContainer
+    var camera_button := display.get_node("HealthPanel/Content/ShortcutRow/CameraSettings") as Button
     var hp_bar := display.get("_health_bar") as ProgressBar
     var hp_text := display.get("_hp_text") as Label
     var objective := display.get("_objective") as Label
@@ -55,11 +58,16 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var expected_labels := ["1 · FIRST", "2 · BEAT",
         "3 · ISOMETRIC", "4 · SIDE", "5 · TOP-DOWN"]
     var expected_indices := [3, 1, 2, 0, 4]
-    verify.call(selector.get_child_count() == 5,
-        "D09-03 F6 help exposes exactly five input-mapped view choices")
+    verify.call(selector.get_child_count() == 5 and selector.get_parent().get_parent() == view_buttons
+        and view_buttons.visible and not display.get_node("HelpPanel").visible,
+        "HUD top-center exposes five camera buttons without opening help")
+    verify.call(camera_button.text.contains("CAMERA SETTINGS") and camera_button.text.contains("C")
+        and (display.get("_health_footer") as Label).text.contains("F6"),
+        "Camera Settings, H HUD and F6 HELP are presented below Vitality")
     for slot in range(5):
         var button := selector.get_child(slot) as Button
         verify.call(button.text == expected_labels[slot]
+            and button.focus_mode == Control.FOCUS_NONE
             and int(input_adapter.call("profile_index_for_shortcut", slot)) ==
                 expected_indices[slot],
             "D09-03 selector %d label matches input adapter mapping" % (slot + 1))
@@ -74,18 +82,24 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and equip_panel.anchor_right == 1.0 and equip_panel.anchor_bottom == 1.0
         and hp_panel.position.y < objective_panel.position.y
         and objective_panel.position.y + objective_panel.size.y <= display.size.y
-        and equip_panel.position.x > objective_panel.position.x + objective_panel.size.x + 80.0,
+        and equip_panel.position.x > objective_panel.position.x + objective_panel.size.x + 80.0
+        and view_buttons.position.x > hp_panel.position.x + hp_panel.size.x
+        and view_buttons.position.x + view_buttons.size.x < view_panel.position.x
+        and absf(view_buttons.position.y - view_panel.position.y) < 1.0,
         "D09-03 vitality sits top-left, objective bottom-left and equipment bottom-right with clear gap")
     for i in range(5):
         views.call("switch_view", i)
         await _frames(tree, 2)
+        verify.call((selector.get_child(expected_indices.find(i)) as Button).button_pressed
+            and view_buttons.visible,
+            "Top-center camera selection follows real ViewManager changes")
         verify.call(hp_panel.position.is_equal_approx(health_pos)
             and objective_panel.position.is_equal_approx(objective_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
             and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
     # Changing Health must not rebuild stable help/InputMap metadata.
-    var stable_help: Label = display.get("_help_text") as Label
+    var stable_help: RichTextLabel = display.get("_help_text") as RichTextLabel
     var saved_hud_keys: Array = InputMap.action_get_events(&"hud_toggle")
     var saved_help_keys: Array = InputMap.action_get_events(&"hud_help")
     InputMap.action_erase_events(&"hud_toggle")
@@ -105,6 +119,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call((display.get("_help_title") as Label).text.contains("F7")
         and (display.get("_health_footer") as Label).text.contains("J"),
         "D09-03 remapped HUD/help hints follow real InputMap actions")
+    var help_content: String = stable_help.get_parsed_text()
+    verify.call(help_content.contains("MISSION") and help_content.contains("Views:")
+        and help_content.contains("MOVEMENT & AIM")
+        and help_content.contains("Actions:") and help_content.contains("EXPLORE THE DEMO")
+        and help_content.contains("DISPLAY & CAMERA TOOLS")
+        and help_content.contains("Closed doors"),
+        "Help guide explains mission, views, movement, combat and interactive world")
     hud.call("set_help_open", false)
     InputMap.action_erase_events(&"hud_toggle")
     InputMap.action_erase_events(&"hud_help")
@@ -113,6 +134,21 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for event in saved_help_keys:
         InputMap.action_add_event(&"hud_help", event)
     hud.call("refresh")
+    # Camera buttons route through HudAdapter/Main to ViewManager, never to combat.
+    (selector.get_child(0) as Button).emit_signal("pressed")
+    verify.call(int(views.get("active_index")) == expected_indices[0]
+        and (selector.get_child(0) as Button).button_pressed,
+        "Clicking top button 1 switches to First-Person through the existing view port")
+    (selector.get_child(4) as Button).emit_signal("pressed")
+    verify.call(int(views.get("active_index")) == expected_indices[4]
+        and (selector.get_child(4) as Button).button_pressed,
+        "Clicking top button 5 switches to Top-Down and updates selection")
+    camera_button.emit_signal("pressed")
+    verify.call(stage.get_node("Hud/CameraSettings").visible,
+        "C Camera Settings button below Vitality opens the existing panel")
+    camera_button.emit_signal("pressed")
+    verify.call(not stage.get_node("Hud/CameraSettings").visible,
+        "Camera Settings button closes the same panel without a new settings UI")
     verify.call(is_equal_approx(hp_bar.value, 74.0)
         and hp_bar.max_value == 100.0, "D09-03 HP bar projects current/max Health")
     var bat := (load("res://demo/equipment/bat.tscn") as PackedScene).instantiate() as Node3D
@@ -162,11 +198,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     hide_key.pressed = true
     hud.call("_unhandled_input", hide_key)
     verify.call(not hp_panel.visible and not equip_panel.visible
-        and not objective_panel.visible,
+        and not objective_panel.visible and not view_buttons.visible,
         "D09-03 H hidden mode removes gameplay chrome")
     for i in range(5):
         views.call("switch_view", i)
-        verify.call(not hp_panel.visible and not equip_panel.visible,
+        verify.call(not hp_panel.visible and not equip_panel.visible and not view_buttons.visible,
             "D09-03 hidden HUD stays hidden on view %d" % (i + 1))
     health.current_health = 42.0
     health.health_changed.emit(42.0, 74.0)
@@ -177,7 +213,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         "D09-03 help remains accessible while gameplay HUD hidden")
     hud.call("set_help_open", false)
     hud.call("_unhandled_input", hide_key)
-    verify.call(hp_panel.visible and equip_panel.visible
+    verify.call(hp_panel.visible and equip_panel.visible and view_buttons.visible
         and is_equal_approx(hp_bar.value, 42.0),
         "D09-03 HUD returns with latest state")
     # Avoid a separate prompt target selector: use exactly Interactor.get_target.

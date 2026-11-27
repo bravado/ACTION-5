@@ -163,69 +163,92 @@ func _refresh_view() -> void:
     var profile: Resource = views.get("current_profile") as Resource
     display.set_view("%d · %s" % [_shortcut_number(int(views.get("active_index"))),
         str(profile.get("display_name")).to_upper()])
+    display.set_active_view(int(views.get("active_index")))
 
 
 ## Help and command metadata update on view/equipment/attack registration,
-## input-remap (explicit refresh), and opening F6, not on HP/reload ticks.
+## explicit remaps, and opening F6. Rich sections stay data-driven.
+func _help_heading(value: String) -> String:
+    return "[color=#BA9A60][b]" + value + "[/b][/color]\n"
+
+
 func _refresh_help() -> void:
     if not is_instance_valid(views) or not is_instance_valid(combat) or not is_instance_valid(equipment):
         return
-    var instructions: String = "ACTION-5 | " + _objective_text()
+    var instructions: String = _help_heading("MISSION")
+    instructions += _objective_text() + "\n\n"
+    instructions += _help_heading("Views:  1–5 or the camera buttons at the top")
     var view_hints := PackedStringArray()
     for slot in range((views.get("profiles") as Array).size()):
         var index: int = _profile_index_for_shortcut(slot)
         if index < 0:
             continue
         var item: Resource = (views.get("profiles") as Array)[index] as Resource
-        view_hints.append("%s %s" % [
+        var detail: String = ""
+        match int(item.get("mode")):
+            ViewProfileScript.Mode.FIRST_PERSON:
+                detail = "eye-level look; arrows turn, A/D strafe"
+            ViewProfileScript.Mode.BEAT_EM_UP:
+                detail = "arcade brawler with free X/Z movement"
+            ViewProfileScript.Mode.ISOMETRIC:
+                detail = "angled 3D view; camera zoom and shoulder framing"
+            ViewProfileScript.Mode.SIDE:
+                detail = "2D lane; W jumps, S crouches"
+            ViewProfileScript.Mode.TOP_DOWN:
+                detail = "overhead view; independent direction/aim"
+        view_hints.append("  %s  %s — %s" % [
             _binding(StringName("view_" + str(slot + 1))),
-            str(item.get("display_name"))
+            str(item.get("display_name")), detail
         ])
-    instructions += "\nViews: " + "  ·  ".join(view_hints) + " | Controller: " + _binding(&"view_previous") + "/" + _binding(&"view_next")
-    var controls: Resource = null
-    if is_instance_valid(actor_input):
-        controls = actor_input.call("get_active_controls") as Resource
+    instructions += "\n".join(view_hints)
+    instructions += "\nGamepad shoulders: %s / %s to cycle views.\n\n" % [
+        _binding(&"view_previous"), _binding(&"view_next")
+    ]
+
+    var controls: Resource = actor_input.call("get_active_controls") as Resource \
+        if is_instance_valid(actor_input) else null
+    var movement := PackedStringArray()
     if controls != null:
-        var horizontal: String = "%s/%s" % [
+        var horizontal: String = "%s / %s" % [
             _binding(controls.get("move_left_action")),
             _binding(controls.get("move_right_action"))
         ]
         if not str(controls.get("extra_left_action")).is_empty():
-            horizontal += " or %s/%s" % [
+            horizontal += " or %s / %s" % [
                 _binding(controls.get("extra_left_action")),
                 _binding(controls.get("extra_right_action"))
             ]
-        instructions += "\nMove left/right: %s" % horizontal
+        movement.append("Move left/right: " + horizontal)
         if bool(controls.get("vertical_movement")):
-            instructions += " | Forward/back: %s/%s" % [
+            movement.append("Forward/back: %s / %s" % [
                 _binding(controls.get("move_up_action")),
                 _binding(controls.get("move_down_action"))
-            ]
+            ])
         var jump_keys: String = _binding(controls.get("jump_action"))
         if not str(controls.get("extra_jump_action")).is_empty():
             jump_keys += " or " + _binding(controls.get("extra_jump_action"))
-        instructions += " | Jump: %s" % jump_keys
+        movement.append("Jump: " + jump_keys)
         if not str(controls.get("held_move_action")).is_empty():
-            instructions += " | Hold %s: %s" % [
+            movement.append("Hold %s: %s" % [
                 str(controls.get("held_move_id")).capitalize(),
                 _binding(controls.get("held_move_action"))
-            ]
+            ])
         if not str(controls.get("extra_aim_left_action")).is_empty():
-            instructions += " | Independent aim: %s/%s/%s/%s" % [
+            movement.append("Independent aim: %s / %s / %s / %s" % [
                 _binding(controls.get("extra_aim_left_action")),
                 _binding(controls.get("extra_aim_right_action")),
                 _binding(controls.get("extra_aim_up_action")),
                 _binding(controls.get("extra_aim_down_action"))
-            ]
+            ])
         if not str(controls.get("turn_left_action")).is_empty():
-            instructions += " | Turn: %s/%s" % [
+            movement.append("Turn: %s / %s" % [
                 _binding(controls.get("turn_left_action")),
                 _binding(controls.get("turn_right_action"))
-            ]
-    instructions += " | Run: %s | Interact: %s | Swap: %s | Drop: %s" % [
-        _binding(&"actor_run"), _binding(&"demo_interact"),
-        _binding(&"demo_swap"), _binding(&"demo_drop")
-    ]
+            ])
+    movement.append("Run: " + _binding(&"actor_run"))
+    instructions += _help_heading("MOVEMENT & AIM  (current view)")
+    instructions += "\n".join(movement) + "\n\n"
+
     var actions := PackedStringArray()
     if combat.has_method("get_attacks"):
         var seen: Dictionary = {}
@@ -245,16 +268,39 @@ func _refresh_help() -> void:
                     str(selected.get("attack_id")).replace("_", " ").capitalize(), _binding(action)
                 ])
     var commands: PackedStringArray = command_hints(_weapon)
-    instructions += "\nActions: " + (" | ".join(actions) if not actions.is_empty() else "none")
-    if not commands.is_empty():
-        instructions += " | " + " | ".join(commands)
+    instructions += _help_heading("Actions:  COMBAT & EQUIPMENT")
+    if actions.is_empty():
+        instructions += "No attacks registered"
+    else:
+        for action in actions:
+            instructions += "  • " + action.replace(" [", " — ").replace("]", "") + "\n"
+    for command in commands:
+        instructions += "  • " + command.replace(" [", " — ").replace("]", "") + "\n"
+    instructions += "Interact / pick up: %s    Swap: %s    Drop: %s\n" % [
+        _binding(&"demo_interact"), _binding(&"demo_swap"), _binding(&"demo_drop")
+    ]
+    instructions += "Click left/right mouse for the weapon's primary/secondary actions.\n\n"
+
+    instructions += _help_heading("EXPLORE THE DEMO")
+    instructions += "  • Pick up weapons in the arena; equipped actions and ammo change with the item.\n"
+    instructions += "  • Use E on doors to open/close them, on light switches, and on portals to travel.\n"
+    instructions += "  • Closed doors block passage and enemy sight; explore the connected dungeon.\n"
+    instructions += "  • Defeat encounter enemies to unlock EXIT; death offers a Restart option.\n"
+    instructions += "  • The world can preserve pickups and cleared encounters when revisiting scenes.\n\n"
+
+    instructions += _help_heading("DISPLAY & CAMERA TOOLS")
+    instructions += "  • C — Camera Settings: adjust the selected camera's framing and zoom.\n"
+    instructions += "  • %s — toggle gameplay HUD    %s — open/close this guide (Esc also closes).\n" % [
+        _binding(&"hud_toggle"), _binding(&"hud_help")
+    ]
+    instructions += "  • Debug builds: F7 toggles diagnostics; B shows melee hitboxes.\n"
+
     display.set_help_text(instructions)
     display.set_shortcut_hints(_binding(&"hud_toggle"), _binding(&"hud_help"))
     _short_actions.clear()
     for hint in actions:
         var bracket: int = hint.find(" [")
         _short_actions.append((hint.substr(0, bracket) if bracket >= 0 else hint).to_upper())
-
 
 func _refresh_health() -> void:
     display.set_health(float(health.get("current_health")) if is_instance_valid(health) else 0.0,

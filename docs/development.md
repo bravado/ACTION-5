@@ -34,7 +34,7 @@ make test
 make run
 ```
 
-Press **1–5** to switch between five camera modes; the HUD shows the active bindings. In **F1**, W/Up jumps and S/Down holds crouch while A/D or Left/Right moves horizontally. In **F4**, A/D strafes and Left/Right turns. Other views retain normal WASD/arrow movement. **Space** jumps, **Shift** runs, **Alt** dodges, **X** slides and **Ctrl** toggles crouch (**R3** on gamepad). F1 is a true horizontal side-scroller; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five view buttons offer a browser-friendly fallback.
+Press **1–5** to switch between five camera modes; the HUD shows the active bindings. In **F1**, W/Up jumps and S/Down holds crouch while A/D or Left/Right moves horizontally. In **F4**, A/D strafes and Left/Right turns. Other views retain normal WASD/arrow movement. **Space** jumps, **Shift** runs, **Alt** dodges, **X** slides and **Ctrl** toggles crouch (**R3** on gamepad). F1 is a true horizontal side-scroller; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five top-center view buttons provide a browser-friendly fallback and highlight the active view. Below Vitality, **C · CAMERA SETTINGS** opens the same camera panel as the C shortcut; **H** toggles the gameplay HUD and **F6** opens a scrollable field guide explaining views, movement, combat, equipment, doors, switches, portals, objectives and controls.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 

@@ -30,7 +30,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var weapon_text := display.get("_weapon_title") as Label
     var ammo_text := display.get("_ammo_text") as Label
     var view_text := display.get("_view") as Label
-    var help := display.get("_help_text") as Label
+    var help := display.get("_help_text") as RichTextLabel
     var equipment: Node = player.get_node("Equipment")
     var health: Node = player.get_node("Health")
     var session: Node = stage.get_node("WorldSession")
@@ -39,8 +39,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var overlay: Node = stage.get_node("VictoryOverlay")
     verify.call(hp_text.text.contains("100 / 100") and weapon_text.text == "Unarmed",
         "D09 HUD reads real unarmed Health and Equipment state")
-    verify.call(help.text.contains("Find the east gate") and help.text.contains("Actions:")
-        and help.text.contains("Views:"), "D09 objective, views and help are visible")
+    verify.call(help.get_parsed_text().contains("Find the east gate") and help.get_parsed_text().contains("Actions:")
+        and help.get_parsed_text().contains("Views:"), "D09 objective, views and help are visible")
     verify.call(not exit_node.call("is_unlocked")
         and not exit_node.call("can_interact", player),
         "D09 exit requires defeat of live encounter enemies")
@@ -67,7 +67,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         and player.global_position.distance_to(original_position) < 0.15
         and (input_adapter.call("get_movement_axes") as Vector2).is_zero_approx(),
         "D09 F4 right-arrow turns player/camera without lateral translation")
-    verify.call(help.text.contains("Turn:") and help.text.contains("Move left/right:"),
+    verify.call(help.get_parsed_text().contains("Turn:") and help.get_parsed_text().contains("Move left/right:"),
         "D09 HUD explains first-person turning and strafing")
     var yaw_after_turn: float = rig.get("orbit_yaw")
     var movement_before: Vector3 = player.global_position
@@ -161,12 +161,12 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     jump_key.keycode = KEY_P
     InputMap.action_add_event(&"actor_jump", jump_key)
     hud.call("refresh")
-    verify.call(help.text.contains("Jump: P"), "D09 help follows InputMap rebind")
+    verify.call(help.get_parsed_text().contains("Jump: P"), "D09 help follows InputMap rebind")
     InputMap.action_erase_events(&"actor_jump")
     for event in old_jump:
         InputMap.action_add_event(&"actor_jump", event)
     hud.call("refresh")
-    verify.call(not help.text.contains("Jump: P"), "D09 help clears stale binding")
+    verify.call(not help.get_parsed_text().contains("Jump: P"), "D09 help clears stale binding")
 
     var gun := (load("res://demo/equipment/gun_alt.tscn") as PackedScene).instantiate() as Node3D
     stage.add_child(gun)
@@ -174,7 +174,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(equipment.call("pickup", gun), "D09 alternate gun uses normal pickup")
     await _frames(tree, 2)
     verify.call(weapon_text.text.contains("Heavy Pistol") and ammo_text.text.contains("03 / 12")
-        and help.text.contains("Weapon Alt Reload") and help.text.contains("T"),
+        and help.get_parsed_text().contains("Weapon Alt Reload") and help.get_parsed_text().contains("T"),
         "D09 alternate gun ammo and configured command appear without HUD branches")
     verify.call(int((gun.call("get_ammo_status") as Dictionary).get("magazine")) == 3,
         "D09 HUD reading ammo does not mutate it")
@@ -275,7 +275,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(bool(interactor.call("interact", player, exit_node)),
         "D09 exit uses normal physical interaction port")
     verify.call(bool(exit_node.get("complete")) and overlay.get_node("Screen").visible
-        and help.text.contains("COMPLETE") and player.get_instance_id() == actor_id,
+        and help.get_parsed_text().contains("COMPLETE") and player.get_instance_id() == actor_id,
         "D09 completion screen observes same player and state")
     verify.call(not interactor.call("interact", player, exit_node),
         "D09 completion cannot fire twice")

@@ -43,15 +43,17 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     # D09 projects current InputMap and registered AttackDefinitions instead
     # of hardcoded weapon, command, or obsolete demo help strings.
-    var controls: Label = level.get_node("Hud/Display/HelpPanel/Content/Scroll/HelpText") as Label
-    verify.call(controls.text.contains("ACTION-5")
-        and controls.text.contains("Interact: E")
-        and controls.text.contains("Swap: Q")
-        and controls.text.contains("Drop: G")
-        and controls.text.contains("Actions:")
-        and controls.text.contains("Punch")
-        and controls.text.contains("Kick")
-        and not controls.text.contains("F: swing"),
+    var controls: RichTextLabel = level.get_node(
+        "Hud/Display/HelpPanel/Content/Scroll/HelpText") as RichTextLabel
+    var guide_text: String = controls.get_parsed_text()
+    verify.call(guide_text.contains("MISSION")
+        and guide_text.contains("Interact / pick up: E")
+        and guide_text.contains("Swap: Q")
+        and guide_text.contains("Drop: G")
+        and guide_text.contains("Actions:")
+        and guide_text.contains("Punch")
+        and guide_text.contains("Kick")
+        and not guide_text.contains("F: swing"),
         "D06 equipment help remains discoverable after camera switch")
 
     var socket: Node3D = animation.call("get_socket", &"right_hand") as Node3D
