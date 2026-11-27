@@ -661,7 +661,7 @@ func _test_presenter_teardown(tree: SceneTree, level: Node3D, verify: Callable) 
     verify.call(camera.get_cull_mask_value(body_layer)
         and not camera.get_cull_mask_value(view_layer),
         "D04 F3 changes custom initial camera-mask settings")
-    view_manager.call("switch_view", 3)
+    view_manager.call("switch_view", 0)
     verify.call(fps.first_person
         and not camera.get_cull_mask_value(body_layer)
         and camera.get_cull_mask_value(view_layer)
