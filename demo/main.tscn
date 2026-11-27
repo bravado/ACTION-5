@@ -402,7 +402,6 @@ current = true
 
 [node name="ViewInput" type="Node" parent="."]
 script = ExtResource("5_input")
-shortcut_profile_indices = PackedInt32Array(3, 1, 2, 0, 4)
 
 [node name="ActorInput" type="Node" parent="."]
 script = ExtResource("7_actor_input")

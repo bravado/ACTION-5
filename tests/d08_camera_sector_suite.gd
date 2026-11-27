@@ -8,10 +8,10 @@ const INPUTS = [
     Vector2(0, -1), Vector2(-1, 0), Vector2(0, 1), Vector2(1, 0),
 ]
 const PROFILES = [
-    "res://addons/action5/views/side.tres",
+    "res://addons/action5/views/first_person.tres",
     "res://addons/action5/views/beat_em_up.tres",
     "res://addons/action5/views/isometric.tres",
-    "res://addons/action5/views/first_person.tres",
+    "res://addons/action5/views/side.tres",
     "res://addons/action5/views/top_down.tres",
 ]
 
@@ -186,11 +186,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             verify.call(camera.global_basis.y.distance_to(Vector3.FORWARD) < 0.001
                 and camera.global_basis.z.distance_to(Vector3.UP) < 0.001,
                 "F5 overhead camera remains world-vertical")
-        elif index == 3:
+        elif index == 0:
             verify.call(camera.global_basis.z.distance_to(before_heading.z) < 0.001,
-                "F4 first-person look never resets at the doorway")
+                "View 1 first-person look never resets at the doorway")
 
-    # F1 aligns all living opponents to the same world-Z plane as the
+    # View 4 Side-Scroller aligns all living opponents to the same world-Z plane as the
     # player's punches/kicks. The demo-level adapter uses Locomotion's
     # existing side lock and temporarily prevents NPCs from blocking one
     # another in that single-file lane. F2 releases lane confinement.
@@ -202,7 +202,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     player.global_position = world.to_global(Vector3(17.0, 0.15, 2.8))
     melee.global_position = world.to_global(Vector3(21.0, 0.15, -2.0))
     ranged.global_position = world.to_global(Vector3(20.0, 0.15, 3.0))
-    views.switch_view(0)
+    views.switch_view(3)
     await _physics_frames(tree, 3)
     var side_z: float = world.to_global(Vector3(0, 0, 0)).z
     verify.call(absf(player.global_position.z - side_z) < 0.08
@@ -300,7 +300,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(south_visual.get_surface_override_material(0) == original_south,
         "Moving away restores the exact opaque outer-wall material override")
     player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
-    views.switch_view(3)
+    views.switch_view(0)
     fader.call("_process", 1.0)
     verify.call(south_visual.get_surface_override_material(0) == original_south,
         "First-person wall remains opaque at point-blank range")
@@ -334,7 +334,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var room_visibility: Node = world.get_node("RoomVisibility")
     var dungeon_north := dungeon.get_node("NorthWall/Mesh") as MeshInstance3D
     var arena_north := world.get_node("NorthWall/MeshInstance3D") as MeshInstance3D
-    views.switch_view(0)
+    views.switch_view(3)
     doorway.call("set_open", true)
     doorway.call("set_open", false)
     await _frames(tree, 2)
@@ -414,7 +414,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             "Fresh sector prunes its replaced mesh and room-visibility cache entries")
     # Fresh sector recreation while F1 is already active must also
     # align newly instantiated opponents without another camera switch.
-    views.switch_view(0)
+    views.switch_view(3)
     verify.call(bool(session.call("_reset_encounter")),
         "Fresh-entry can recreate dungeon while F1 side lane remains active")
     await _frames(tree, 4)

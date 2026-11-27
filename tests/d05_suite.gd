@@ -156,7 +156,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     # 3D camera rays retain vertical information; F5 never projects camera
     # forward onto the ground plane at exact overhead pitch.
-    views.switch_view(3)
+    views.switch_view(0)
     var ray: Dictionary = AimScript.camera_ray(views.get_active_camera())
     verify.call(ray.has("origin") and ray.has("direction")
         and (ray["direction"] as Vector3).length() > 0.99,
@@ -338,7 +338,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(combat.current_id == &"kick"
         and animation.get("action_clip") == &"kick",
         "Jump+Kick selects a full-body clip without owning vertical velocity")
-    views.switch_view(3)
+    views.switch_view(0)
     verify.call(combat.current_id == &"kick"
         and animation.get("action_clip") == &"kick",
         "F4 preserves Jump+Kick action clock, not a recreated actor")
@@ -489,7 +489,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         2.0, near, punch, Vector2.RIGHT, 4.0, 12
     )
     var knock_before: int = actor.locomotion._impulse_ticks_left
-    views.switch_view(3)
+    views.switch_view(0)
     verify.call(knock_ok and knock_before == 12
         and actor.locomotion._impulse_ticks_left == knock_before,
         "Knockback is queued in locomotion and unaffected by camera switching")
@@ -603,7 +603,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.global_position = Vector3(0, 0.15, 0)
     actor.velocity = Vector3.ZERO
     actor.clear_motion()
-    views.switch_view(0)
+    views.switch_view(3)
     health.take_hit(1.0, near, punch, Vector2(0, -1), 8.0, 8)
     for tick in range(4):
         await tree.physics_frame

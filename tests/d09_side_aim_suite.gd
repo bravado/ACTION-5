@@ -37,7 +37,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var health: Node = dummy.get_node("Health")
     # Input polling is irrelevant to an authored damage/physics fixture.
     level.get_node("ActorInput").call("set_enabled", false)
-    views.switch_view(0)
+    views.switch_view(3)
     dummy.position = Vector3(5.5, 0, 0)
     var source := ContextSourceScript.new()
     level.add_child(source)

@@ -323,7 +323,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for view_index in range(5):
         view_manager.switch_view(view_index)
         await _frames(tree, 2)
-        var expected_visible: bool = view_index != 3
+        var expected_visible: bool = view_index != 0
         tint_visible_per_view = (
             tint_visible_per_view
             and tint.visible == expected_visible

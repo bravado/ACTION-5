@@ -26,7 +26,7 @@ All modes use **one shared 3D scene and authoritative player actor**. Camera cha
 
 **Camera tuning:** Press **C** (or click **C · CAMERA SETTINGS** below Vitality) to adjust each mode live. In **mode 3**, zoom from wide isometric to close over-the-shoulder and customize the wide/close camera distances, viewing angles, shoulder offset and look-ahead. User overrides persist by stable profile ID; existing five-mode settings are migrated automatically.
 
-**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five compact camera buttons are visible **top-center between Vitality and the active-view indicator**; gamepad shoulder-button cycling follows the same numbered order. The internal camera-profile array keeps its established ordering; only the input shortcuts are remapped. See [camera documentation](docs/cameras.md).
+**Camera controls:** **1 = First-Person, 2 = Beat 'em Up, 3 = Isometric / Third-Person, 4 = Side-Scroller, 5 = Top-Down.** The F1–F5 keys use the same selection actions as optional alternatives (browsers may reserve function keys). Five compact camera buttons are visible **top-center between Vitality and the active-view indicator**; gamepad shoulder-button cycling follows the same numbered order. ViewManager's canonical profile order now matches the 1–5 shortcut order; no demo-only permutation is needed. See [camera documentation](docs/cameras.md).
 
 ## What ACTION-5 will provide
 
@@ -173,7 +173,7 @@ on normal visits. A world-local `SectorCameraBounds` now configures
 one **continuous** F1/F2/F5 camera clamp spanning both areas, so there
 is no camera snap or WASD orientation change when crossing the wall.
 The dungeon now uses a **full-screen 18%-opacity blue ceiling tint**
-in external views (1/2/3/5), removed in first person (4). Its
+in external views (2/3/4/5), removed in first person (1). Its
 CanvasLayer covers the entire viewport below the HUD instead of drawing
 a horizontal 3D roof, which previously tinted only the top half of
 side/arcade cameras. The overhead roof still has its **physical
@@ -185,7 +185,7 @@ WebGL2 exports remain subject to the standard CI gates.
 
 ### F1 shared combat lane
 
-Switching to side-scroller (view 1) aligns the player and living
+Switching to side-scroller (view 4) aligns the player and living
 enemies on a single collision-tested world-Z plane so punches and kicks
 can reach enemies that spawned at different beat'em-up depths.
 `SideLaneController` composes the existing Locomotion lock; the
@@ -253,7 +253,7 @@ the door panel never fade. The F2 camera's lateral peek has also
 been reduced to **6°**, adjustable per profile in Camera Settings.
 The optional outer-wall presenter now hides foreground perimeter meshes
 in **all three** F1 areas (arena, dungeon and remote chamber), leaving
-rear scenery and solid collision intact. F4 first-person and F5
+rear scenery and solid collision intact. view 1 First-Person and F5
 top-down walls remain opaque; proximity opacity only applies to the
 other eligible views. Neither the door frame nor its collider disappears.
 
@@ -282,7 +282,7 @@ from InputMap, active view-control resources and AttackDefinitions.
 
 **Space** also jumps in every view; **Ctrl** toggles crouch and Shift
 runs. F1 S/Down holds crouch, including crouch-walk while moving;
-F4 arrow turning defaults to 135°/s while A/D remain strafing. The
+First-Person arrow turning defaults to 135°/s while A/D remain strafing. The
 `Action5ViewControlProfile` resources in
 `addons/action5/input/profiles/` map globally remappable InputMap
 actions onto view-local roles. New view-specific bindings require
@@ -291,7 +291,7 @@ See [locomotion](docs/locomotion.md) and [cameras](docs/cameras.md).
 
 ### Gun targeting and physical correctness
 
-F4 selects its target through the screen-center Camera3D ray.
+First-Person selects its target through the screen-center Camera3D ray.
 F1's orthographic center ray points through Z depth, so the F1 aim
 provider instead selects a horizontal target along the shared X/Y
 combat lane at configurable **1.25-unit upper-torso height**
@@ -326,7 +326,7 @@ The arena light switch is the labelled **LIGHT SWITCH [E]** console on the south
 
 **Top-down Gun aiming (D09-02):** In view 5, the visible tracer starts at the **real gun muzzle**. The aim provider selects the first target on the player's *forward horizontal centerline* (or the centerline's far point when unobstructed); the existing Gun then fires its physical muzzle ray toward that point, respecting muzzle-side obstruction. This aligns projectiles with targets in front of the player without spawning them inside the body. F4 still uses the camera-local barrel tip for tracer visuals; other exterior views and camera-free guns still use the physical muzzle. Gun damage, ammunition and the combat clock are unchanged.
 
-**First-person Gun reload (view 4):** Press **R** with the Pistol equipped after firing at least one round (Heavy Pistol uses **T**). The gripped Gun and arm should lower/tilt during the per-weapon reload countdown, then return to the idle grip as ammunition refills. The shared `gun_reload_grip.tres` animation must contain valid pose keys spanning **0.0 to 1.0**; an endpoint at 0.8 silently invalidates its pose sampling. This F4 animation is presentation-only; ammo, command timing and cancellation stay with the Gun, and both Gun variants reuse the same authored reload profile.
+**First-person Gun reload (view 1):** Press **R** with the Pistol equipped after firing at least one round (Heavy Pistol uses **T**). The gripped Gun and arm should lower/tilt during the per-weapon reload countdown, then return to the idle grip as ammunition refills. The shared `gun_reload_grip.tres` animation must contain valid pose keys spanning **0.0 to 1.0**; an endpoint at 0.8 silently invalidates its pose sampling. This F4 animation is presentation-only; ammo, command timing and cancellation stay with the Gun, and both Gun variants reuse the same authored reload profile.
 
 **D09-02 F1 arena-to-exit traversal:** The arena Gun pickup is authored at `Z = 1.0`, matching the Bat/Shovel row so a player locked to the F1 `Z = 0` lane can collect it with **E**. The dungeon's central Obstacle is **1.1 m tall** (matching mesh and collision, resting on the floor), permitting the normal grounded jump and horizontal movement in F1 to cross it and reach the physical EXIT. No view-specific collision bypass, teleport or movement tuning is required. The reference suite performs a real F1 Gun pickup and a physics-driven running jump to the exit.
 

@@ -156,7 +156,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Isometric screen-up camera projection produces finite movement")
     var same_player_id: int = player.get_instance_id()
     var world_pos: Vector3 = player.global_position
-    manager.switch_view(0)
+    manager.switch_view(3)
     verify.call(player.locomotion.side_lane_locked
         and absf(player.locomotion.side_lane_z - world_pos.z) < 0.0001,
         "Entering F1 captures current Z lane without teleporting")
@@ -181,8 +181,15 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         manager.switch_view(index)
         verify.call(player.global_position.distance_to(current_position) < 0.0001,
             "Moving camera switch %d never teleports the actor" % (index + 1))
-        verify.call(player.velocity == current_velocity,
-            "Moving camera switch %d never changes physical velocity" % (index + 1))
+        # The scene's SideLaneController deliberately stops depth velocity
+        # when entering view 4. All other views keep the exact velocity.
+        var velocity_valid: bool = player.velocity == current_velocity
+        if manager.current_profile.mode == ViewProfileScript.Mode.SIDE:
+            velocity_valid = is_equal_approx(player.velocity.x, current_velocity.x) \
+                and is_equal_approx(player.velocity.y, current_velocity.y) \
+                and is_zero_approx(player.velocity.z)
+        verify.call(velocity_valid,
+            "Moving camera switch %d retains velocity except authored side-lane depth lock" % (index + 1))
         var held: MoveIntentScript = adapter.compose_intent(Vector2.RIGHT)
         player.apply_move_intent(held)
         await tree.physics_frame

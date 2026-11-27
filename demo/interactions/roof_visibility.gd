@@ -11,7 +11,7 @@ extends CanvasLayer
 @export var session_path: NodePath = ^"../WorldSession"
 @export var view_manager_path: NodePath = ^"../ViewManager"
 @export var tinted_sector: StringName = &"encounter"
-@export var tinted_view_indices: PackedInt32Array = PackedInt32Array([0, 1, 2, 4])
+@export var tinted_view_indices: PackedInt32Array = PackedInt32Array([1, 2, 3, 4])
 
 @onready var session: Node = get_node_or_null(session_path)
 @onready var views: Node = get_node_or_null(view_manager_path)

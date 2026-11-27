@@ -27,11 +27,12 @@ func _ready() -> void:
         push_error("ACTION5: ViewManager actor_path does not resolve to Node3D")
         return
     if profiles.is_empty():
+        # Canonical 0-based profile index == number-row camera shortcut - 1.
         for path in [
-            "res://addons/action5/views/side.tres",
+            "res://addons/action5/views/first_person.tres",
             "res://addons/action5/views/beat_em_up.tres",
             "res://addons/action5/views/isometric.tres",
-            "res://addons/action5/views/first_person.tres",
+            "res://addons/action5/views/side.tres",
             "res://addons/action5/views/top_down.tres",
         ]:
             profiles.append(load(path) as ViewProfileScript)

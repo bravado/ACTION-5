@@ -77,7 +77,7 @@ func _capture() -> void:
     if not _save_image(output_dir.path_join("native-f3-near-wall.png")):
         quit(1)
         return
-    if not manager.switch_view(3):
+    if not manager.switch_view(0):
         push_error("VT-12: cannot enter F4")
         quit(1)
         return
@@ -224,7 +224,7 @@ func _capture() -> void:
     # F4 camera-local articulated arm/leg evidence. Capture the idle
     # baseline, then compare large central/lower viewport regions during
     # Punch/Kick, not just the HUD or a debug log.
-    manager.switch_view(3)
+    manager.switch_view(0)
     for frame in range(12):
         await physics_frame
         await process_frame
@@ -352,7 +352,7 @@ func _capture() -> void:
     var world_socket: Node3D = actor.get_node("AnimationPresenter").call(
         "get_socket", &"right_hand") as Node3D
     var world_animator: Node = actor.get_node("AnimationPresenter")
-    for world_view_index in [0, 1, 2, 4]:
+    for world_view_index in [1, 2, 3, 4]:
         if not manager.switch_view(world_view_index):
             push_error("D06: cannot enter world view " + str(world_view_index + 1))
             quit(1)
@@ -406,7 +406,7 @@ func _capture() -> void:
     manager.switch_view(2)
     for settle in range(10):
         await process_frame
-    manager.switch_view(3)
+    manager.switch_view(0)
     for frame in range(10):
         await process_frame
 
@@ -600,7 +600,7 @@ func _capture() -> void:
         push_error("D06: cannot pick up Shovel for native world pose matrix")
         quit(1)
         return
-    for world_view_index in [0, 1, 2, 4]:
+    for world_view_index in [1, 2, 3, 4]:
         if not manager.switch_view(world_view_index):
             push_error("D06: cannot enter Shovel world view " + str(world_view_index + 1))
             quit(1)
@@ -641,7 +641,7 @@ func _capture() -> void:
             " attack=shovel_overhead")
         combat.call("cancel")
 
-    manager.switch_view(3)
+    manager.switch_view(0)
     for settle in range(10):
         await process_frame
     if not equipment.call("request_equipped_action", 0, Vector2(0, -1)):
@@ -692,7 +692,7 @@ func _capture() -> void:
         push_error("D06-02: missing physical Gun muzzle or camera-only hand/grip")
         quit(1)
         return
-    for gun_view_index in [0, 1, 2, 4]:
+    for gun_view_index in [1, 2, 3, 4]:
         if not manager.switch_view(gun_view_index):
             push_error("D06-02: cannot enter Gun view " + str(gun_view_index + 1))
             quit(1)
@@ -737,7 +737,7 @@ func _capture() -> void:
     for tick in range(20):
         await physics_frame
 
-    manager.switch_view(3)
+    manager.switch_view(0)
     for settle in range(15):
         await process_frame
     await RenderingServer.frame_post_draw

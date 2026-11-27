@@ -57,7 +57,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var selector := display.get("_view_selector") as HBoxContainer
     var expected_labels := ["1 · FIRST", "2 · BEAT",
         "3 · ISOMETRIC", "4 · SIDE", "5 · TOP-DOWN"]
-    var expected_indices := [3, 1, 2, 0, 4]
+    var expected_indices := [0, 1, 2, 3, 4]
     verify.call(selector.get_child_count() == 5 and selector.get_parent().get_parent() == view_buttons
         and view_buttons.visible and not display.get_node("HelpPanel").visible,
         "HUD top-center exposes five camera buttons without opening help")
@@ -96,7 +96,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         verify.call(hp_panel.position.is_equal_approx(health_pos)
             and objective_panel.position.is_equal_approx(objective_pos)
             and equip_panel.position.is_equal_approx(equip_pos)
-            and display.get("_view").text.begins_with("%d" % ([4, 2, 3, 1, 5][i])),
+            and display.get("_view").text.begins_with("%d" % (i + 1)),
             "D09-03 view %d uses identical fixed HUD anchors" % (i + 1))
     # Changing Health must not rebuild stable help/InputMap metadata.
     var stable_help: RichTextLabel = display.get("_help_text") as RichTextLabel
@@ -186,7 +186,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     hud.call("refresh")
     verify.call(display.get("_weapon_icon").texture != null,
         "D09-03 weapon image uses optional definition icon")
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     hud.call("refresh")
     verify.call(display.get_node("AimReticle").visible,
         "D09-03 first-person gun displays contextual centered reticle")

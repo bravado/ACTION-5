@@ -6,9 +6,11 @@ class_name Action5CameraSettingsPanel
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
-const PROFILE_IDS = ["side", "beat_em_up", "isometric", "first_person", "top_down"]
+const PROFILE_IDS = ["first_person", "beat_em_up", "isometric", "side", "top_down"]
 # Previous on-disk names are read once; subsequent saves use PROFILE_IDS.
-const LEGACY_PROFILE_IDS = ["side", "beatemup", "isometric", "first_person", "retro_topdown"]
+const LEGACY_PROFILE_IDS = ["first_person", "beatemup", "isometric", "side", "retro_topdown"]
+# Schema-1 six-slot camera order, keyed by current canonical profile index.
+const LEGACY_VIEW_SLOTS = [5, 2, 3, 1, 6]
 const SETTINGS_SCHEMA = 3
 
 const FIELDS = [
@@ -299,11 +301,8 @@ func _load_preferences() -> void:
         var section: String = "profile_" + PROFILE_IDS[i]
         if not current_schema:
             # v1 had six numbered slots: old F4 shoulder -> new F3 isometric,
-            # old F5 first person -> new F4, old F6 overhead -> new F5.
-            var old_slot: int = i + 1
-            if i >= 3:
-                old_slot += 1
-            section = "view_%d" % old_slot
+            # old view 5 first person -> canonical 1, old view 6 overhead -> 5.
+            section = "view_%d" % LEGACY_VIEW_SLOTS[i]
         elif schema < SETTINGS_SCHEMA:
             section = "profile_" + LEGACY_PROFILE_IDS[i]
 

@@ -117,8 +117,8 @@ func _run_tests() -> void:
     if manager != null and player != null:
         _check(manager.profiles.size() == 5, "Exactly five camera profiles")
         var expected_names := [
-            "Side-Scroller", "Beat 'em Up", "Isometric / Third-Person",
-            "First-Person", "Top-Down"
+            "First-Person", "Beat 'em Up", "Isometric / Third-Person",
+            "Side-Scroller", "Top-Down"
         ]
         for index in range(5):
             _check(manager.profiles[index].display_name == expected_names[index],
@@ -127,9 +127,9 @@ func _run_tests() -> void:
         _check(manager.camera_rig.camera == level.get_node("ViewManager/CameraRig/Camera3D"),
             "One persistent Camera3D across all five views")
         _check(manager.profiles[2].mode == ViewProfileScript.Mode.ISOMETRIC
-            and manager.profiles[3].mode == ViewProfileScript.Mode.FIRST_PERSON
+            and manager.profiles[0].mode == ViewProfileScript.Mode.FIRST_PERSON
             and manager.profiles[4].mode == ViewProfileScript.Mode.TOP_DOWN,
-            "Mode 3 is shared isometric/shoulder, 4 is FPS, 5 retro top-down")
+            "Canonical profiles: 1 First-Person, 3 Isometric and 5 Top-Down")
         var player_id: int = player.get_instance_id()
         var camera_id: int = manager.get_active_camera().get_instance_id()
         var original_transform: Transform3D = player.global_transform
@@ -162,11 +162,11 @@ func _run_tests() -> void:
         _check(world_right.is_finite() and world_right.x > 0.95,
             "F5 screen-right maps to finite world +X movement")
 
-        manager.switch_view(3)
+        manager.switch_view(0)
         _check(manager.current_profile.mode == ViewProfileScript.Mode.FIRST_PERSON,
-            "F4 is first-person")
+            "View 1 is First-Person")
         _check(manager.get_active_camera().projection == Camera3D.PROJECTION_PERSPECTIVE,
-            "F4 uses perspective rendering")
+            "View 1 uses perspective rendering")
         var fps_presenter = player.get_node("FirstPersonPresenter")
         _check(player.get_node("Visual").visible
             and fps_presenter.first_person
@@ -194,13 +194,13 @@ func _run_tests() -> void:
         var saved_fps_pitch: float = fps_rig.orbit_pitch
         var saved_fps_basis: Basis = manager.get_active_camera().global_basis
         manager.switch_view(2)
-        manager.switch_view(3)
+        manager.switch_view(0)
         _check(is_equal_approx(fps_rig.orbit_yaw, saved_fps_yaw)
             and is_equal_approx(fps_rig.orbit_pitch, saved_fps_pitch)
             and manager.get_active_camera().global_basis.is_equal_approx(saved_fps_basis),
-            "F4 restores mouse yaw/pitch and camera look after visiting F3")
+            "First-Person preserves mouse look after visiting view 3")
         manager.switch_view(4)
-        manager.switch_view(3)
+        manager.switch_view(0)
         _check(is_equal_approx(fps_rig.orbit_yaw, saved_fps_yaw)
             and is_equal_approx(fps_rig.orbit_pitch, saved_fps_pitch)
             and manager.get_active_camera().global_basis.is_equal_approx(saved_fps_basis)
@@ -244,7 +244,7 @@ func _run_tests() -> void:
             "F3 mouse orbit is non-default before the round trip")
         var prior_fps_pitch: float = 0.0
         for repeat_index in range(3):
-            manager.switch_view(3)
+            manager.switch_view(0)
             await physics_frame
             var fps_forward: Vector3 = -manager.get_active_camera().global_basis.z
             _check(Vector2(fps_forward.x, fps_forward.z).distance_to(Vector2.RIGHT) < 0.01,
@@ -272,7 +272,7 @@ func _run_tests() -> void:
         # first-person pitch or the already established isometric orbit.
         player.facing.set_facing(Vector2.LEFT)
         player.facing._process(1.0)
-        manager.switch_view(3)
+        manager.switch_view(0)
         var west_forward: Vector3 = -manager.get_active_camera().global_basis.z
         _check(Vector2(west_forward.x, west_forward.z).distance_to(Vector2.LEFT) < 0.01
             and is_equal_approx(fps_rig.orbit_pitch, prior_fps_pitch),
@@ -285,7 +285,7 @@ func _run_tests() -> void:
 
         # Actual F4 mouse look still directs the character, and that new
         # intentional facing must remain when returning to F3.
-        manager.switch_view(3)
+        manager.switch_view(0)
         fps_rig.apply_mouse_motion(Vector2(150.0, 0.0))
         fps_rig._update_camera(1.0 / 60.0)
         var looked_intent = actor_input.compose_intent(Vector2.ZERO)
@@ -313,7 +313,7 @@ func _run_tests() -> void:
         var selector := level.get_node("Hud/Display/ViewButtonsPanel/Content/ViewSelector") as HBoxContainer
         var side_button := selector.get_child(3) as Button
         side_button.pressed.emit()
-        _check(manager.active_index == 0, "Top-center camera button chooses side-scroller")
+        _check(manager.active_index == 3, "Top-center camera button chooses side-scroller")
         _check((level.get_node("Hud/Display") as Control).get("_view").text.begins_with("4"),
             "HUD displays remapped shortcut and active camera")
         _check(selector.get_child_count() == 5,
@@ -333,39 +333,41 @@ func _run_tests() -> void:
                 and InputMap.event_is_action(key_four, &"view_4")
                 and InputMap.event_is_action(key_five, &"view_5"),
                 "Number keys 1, 4 and 5 remain primary view bindings")
-            _check(input_adapter.profile_index_for_shortcut(0) == 3
-                and input_adapter.profile_index_for_shortcut(3) == 0
-                and input_adapter.shortcut_for_profile_index(3) == 0
-                and input_adapter.shortcut_for_profile_index(0) == 3,
-                "Input mapping swaps shortcuts 1/4 without reordering camera profiles")
+            _check(input_adapter.profile_index_for_shortcut(0) == 0
+                and input_adapter.profile_index_for_shortcut(3) == 3
+                and input_adapter.shortcut_for_profile_index(3) == 3
+                and input_adapter.shortcut_for_profile_index(0) == 0
+                and input_adapter.shortcut_profile_indices.is_empty(),
+                "Canonical ViewManager index matches view shortcuts without permutation")
             input_adapter._unhandled_input(key_five)
             _check(manager.active_index == 4, "Key 5 selects retro top-down")
             input_adapter._unhandled_input(key_one)
-            _check(manager.active_index == 3, "Key 1 selects first-person")
+            _check(manager.active_index == 0, "Key 1 selects first-person")
             _check(input_adapter.cycle_shortcut_view(1) and manager.active_index == 1,
                 "Camera shortcut next from key 1 selects key 2 beat-em-up")
-            _check(input_adapter.cycle_shortcut_view(-1) and manager.active_index == 3,
+            _check(input_adapter.cycle_shortcut_view(-1) and manager.active_index == 0,
                 "Camera shortcut previous from key 2 returns to key 1 first-person")
             input_adapter._unhandled_input(key_four)
-            _check(manager.active_index == 0, "Key 4 selects side-scroller")
+            _check(manager.active_index == 3, "Key 4 selects side-scroller")
+            manager.switch_view(0)
             _check(manager.cycle_view(-1) and manager.active_index == 4,
-                "Camera cycle wraps backward F1 to F5")
+                "Camera cycle wraps backward First-Person to Top-Down")
             _check(manager.cycle_view(1) and manager.active_index == 0,
-                "Camera cycle wraps forward F5 to F1")
+                "Camera cycle wraps forward Top-Down to First-Person")
 
         # F1 keeps the strict horizontal Mario/Altered Beast camera.
-        manager.switch_view(0)
+        manager.switch_view(3)
         var side_cam: Camera3D = manager.get_active_camera()
         _check(side_cam.global_basis == Basis.IDENTITY,
-            "F1 remains an exactly horizontal X/Y side camera")
+            "View 4 remains an exactly horizontal X/Y side camera")
         _check(is_zero_approx(manager.current_profile.fixed_offset.y),
-            "F1 side view has no downward pitch")
+            "View 4 side camera has no downward pitch")
         _check(level.call("_map_demo_movement", Vector2(0.0, 1.0)) == Vector2.ZERO,
-            "F1 movement ignores depth input")
+            "View 4 side movement ignores depth input")
         var front_wall := level.get_node("SouthWall/MeshInstance3D") as MeshInstance3D
         _check(not front_wall.visible
             and (level.get_node("SouthWall") as StaticBody3D).collision_layer != 0,
-            "F1 foreground wall hidden visually, still physical")
+            "View 4 foreground wall hides visually but remains physical")
         manager.switch_view(1)
         _check(front_wall.visible, "F2 keeps the outer wall rendered for proximity fading")
         _check(manager.current_profile.orthographic_size <= 7.0,
@@ -378,6 +380,15 @@ func _run_tests() -> void:
         _check(not actor_input.enabled
             and player_locomotion.desired.world_move.is_zero_approx(),
             "Opening camera settings clears input immediately, without demo polling")
+        # Canonical ViewManager index + 1 is shared by HUD and settings titles.
+        var settings_title: Label = settings.get("_title") as Label
+        for index in range(manager.profiles.size()):
+            manager.switch_view(index)
+            _check(settings_title.text == "%d / 5 · %s" % [
+                    index + 1, manager.profiles[index].display_name
+                ], "Settings title matches canonical ViewManager index %d" % (index + 1))
+        manager.switch_view(1)
+
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
@@ -419,7 +430,7 @@ func _run_tests() -> void:
         var fps_checkbox := settings.get_node("Padding/Controls/Row_invert_y/InvertY") as CheckBox
         var fps_row := settings.get_node("Padding/Controls/Row_invert_y") as HBoxContainer
         _check(not fps_row.visible, "Invert Y-axis option is hidden for beat'em up")
-        manager.switch_view(3)
+        manager.switch_view(0)
         var fps_profile: ViewProfileScript = manager.current_profile
         var fps_actor_before: Transform3D = player.global_transform
         _check(fps_row.visible and not fps_checkbox.button_pressed
@@ -450,7 +461,7 @@ func _run_tests() -> void:
         _check(not fps_row.visible
             and not settings.call("set_current_invert_y", false),
             "Other camera modes cannot change first-person inversion")
-        manager.switch_view(3)
+        manager.switch_view(0)
         _check(fps_checkbox.button_pressed and fps_profile.invert_y,
             "First-person inversion survives switching away and back")
         settings.call("reset_current_camera")
@@ -561,8 +572,8 @@ func _run_tests() -> void:
             and absf(manager.profiles[2].close_pitch_degrees - 21.0) < 0.01
             and absf(manager.profiles[2].shoulder_offset + 0.45) < 0.01,
             "Old mode-4 shoulder controls migrated to mode-3 isometric")
-        _check(absf(manager.profiles[3].eye_height - 1.9) < 0.01,
-            "Old first-person view 5 preferences migrated to new view 4")
+        _check(absf(manager.profiles[0].eye_height - 1.9) < 0.01,
+            "Legacy view 5 preferences migrate to canonical First-Person")
         _check(absf(manager.profiles[4].orthographic_size - 12.0) < 0.01,
             "Old retro view 6 preferences migrated to new view 5")
         var migrated := ConfigFile.new()
