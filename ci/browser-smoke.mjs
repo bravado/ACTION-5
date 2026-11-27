@@ -822,44 +822,83 @@ try {
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_FPS_NEAR_WALL_OK z=' + finalZ.toFixed(2)
     + ' body_culled=1 wall=1 screenshots=2');
-  // D06-02 separate browser run. This reloads the arena to avoid changing
-  // the existing D05/D06-01 two-pickup flow or carrying earlier equipment.
+  // D06-02: exercise the actual E-key interaction in a fresh browser scene.
+  // The Gun is at (3, 0.45, 1) and the Bat/Shovel start within pickup
+  // distance of the spawn. Do NOT spam E while walking toward the Gun:
+  // two incidental pickups fill the real two-item inventory, so a later
+  // Gun pickup becomes impossible. Variable software-WebGL2 frame rates
+  // made the old timed walk-and-press loop pass or fail nondeterministically.
   await page.reload({ waitUntil: 'load', timeout: 90_000 });
   await page.waitForTimeout(7000);
-  await page.keyboard.press('2');
-  // The Gun is on the same starting row as the Bat (x=3, z=1).
-  // Move along +X in small real input steps. Previous diagonal D+S
-  // movement could overshoot the Gun's Z lane after picking up the Bat,
-  // making this test fail even though the E interaction was valid.
-  // Small steps tolerate variable WebGL2 frame rates without teleporting
-  // the actor, injecting a test-only bridge or weakening pickup assertions.
+  await page.keyboard.press('2'); // Beat'em up: D moves along world +X.
+
+  // Sample the player through the demo's existing view-switch diagnostic.
+  // Use only real browser keys and public console output, never a test-only
+  // teleport, injected gameplay object, scene manipulation or HTTP bridge.
+  async function readActorPosition() {
+    const before = rigViews.length;
+    await page.keyboard.press('3');
+    await page.waitForTimeout(170);
+    await page.keyboard.press('2');
+    await page.waitForTimeout(170);
+    const report = rigViews.slice(before).findLast(line =>
+      line.includes('view=2 ') && line.includes('actor_x='));
+    const match = report?.match(/actor_z=(-?\d+(?:\.\d+)?) actor_x=(-?\d+(?:\.\d+)?)/);
+    return match
+      ? { x: Number(match[2]), z: Number(match[1]), report }
+      : { x: Number.NaN, z: Number.NaN, report: report || '(no fresh view diagnostic)' };
+  }
+
+  let gunApproach = await readActorPosition();
+  if (!Number.isFinite(gunApproach.x) || !Number.isFinite(gunApproach.z)) {
+    errors.push('Gun test could not read fresh player position: ' + gunApproach.report);
+    throw Error(errors.join('\\n'));
+  }
+
+  // Approach X=2.7, where Gun is the nearest eligible pickup. Re-measure
+  // between bounded movement bursts rather than assuming any particular
+  // wall-clock duration produces a stable number of Godot physics frames.
+  const targetGunX = 2.7;
+  const gunTolerance = 0.4;
+  for (let attempt = 0;
+    attempt < 18 && Math.abs(gunApproach.x - targetGunX) > gunTolerance;
+    attempt++) {
+    const key = gunApproach.x < targetGunX ? 'd' : 'a';
+    await page.keyboard.down(key);
+    await page.waitForTimeout(145);
+    await page.keyboard.up(key);
+    await page.waitForTimeout(170);
+    gunApproach = await readActorPosition();
+    if (!Number.isFinite(gunApproach.x) || !Number.isFinite(gunApproach.z)) break;
+  }
+  if (!Number.isFinite(gunApproach.x) ||
+      Math.abs(gunApproach.x - targetGunX) > gunTolerance ||
+      Math.abs(gunApproach.z) > 0.75) {
+    errors.push('D06-02 real-key Gun approach failed to reach its X/Z pickup lane: ' +
+      gunApproach.report);
+    throw Error(errors.join('\\n'));
+  }
+  await page.screenshot({
+    path: 'build/evidence/web-d06-gun-approach.png', fullPage: true,
+  });
+
+  // Inventory is still empty: one physical E-key request must collect
+  // and auto-equip the Gun. This also catches accidental Bat/Shovel pickups.
   const beforeGun = weaponEvents.length;
-  for (let attempt = 0; attempt < 9; attempt++) {
-    await page.keyboard.down('d');
-    await page.waitForTimeout(230);
-    await page.keyboard.up('d');
-    await page.waitForTimeout(140);
-    await page.keyboard.press('e', { delay: 110 });
-    await page.waitForTimeout(240);
-    if (weaponEvents.slice(beforeGun).some(line =>
-        line.includes('ACTION5_WEAPON_PICKUP id=gun'))) break;
-    // An earlier E may legitimately pick up the Bat; keep it in inventory
-    // and continue toward the Gun with subsequent real movement presses.
-  }
-  if (weaponEvents.slice(beforeGun).some(line =>
-      line.includes('ACTION5_WEAPON_PICKUP id=gun')) &&
-      !weaponEvents.slice(beforeGun).some(line =>
-        line.includes('ACTION5_WEAPON_EQUIPPED id=gun'))) {
-    // EquipmentController retains the first weapon; Q selects the
-    // second equipped item using the exact public gameplay input.
-    await page.keyboard.press('q');
-    await page.waitForTimeout(450);
-  }
-  const equippedGun = weaponEvents.slice(beforeGun).find(line =>
+  await page.keyboard.press('e', { delay: 110 });
+  await page.waitForTimeout(350);
+  const gunEvents = weaponEvents.slice(beforeGun);
+  const gunPickedUp = gunEvents.some(line => line.includes('ACTION5_WEAPON_PICKUP id=gun'));
+  const equippedGun = gunEvents.find(line =>
     line.includes('ACTION5_WEAPON_EQUIPPED id=gun'));
-  if (!equippedGun || !equippedGun.includes('f4_visual=1')) {
-    errors.push('D06-02 browser E-key did not pick up the independent Gun: ' +
-      weaponEvents.slice(beforeGun).join(' | '));
+  if (!gunPickedUp || !equippedGun || !equippedGun.includes('f4_visual=1') ||
+      gunEvents.some(line =>
+        line.includes('ACTION5_WEAPON_PICKUP id=bat') ||
+        line.includes('ACTION5_WEAPON_PICKUP id=shovel'))) {
+    errors.push('D06-02 E-key must pick up and auto-equip Gun near x=' +
+      gunApproach.x.toFixed(2) + ', z=' + gunApproach.z.toFixed(2) +
+      ': ' + gunEvents.join(' | '));
+    throw Error(errors.join('\\n'));
   }
   await page.keyboard.press('1');
   await page.waitForTimeout(500);
