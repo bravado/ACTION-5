@@ -72,8 +72,8 @@ try {
   // Verify the user's numeric shortcut order using actual browser keyboard
   // events and runtime camera logs, not merely different screenshots.
   for (const [key, index, mode] of [
-    ['1', 4, 'First-Person'],
-    ['4', 1, 'Side-Scroller'],
+    ['1', 1, 'First-Person'],
+    ['4', 4, 'Side-Scroller'],
     ['5', 5, 'Top-Down'],
   ]) {
     await page.keyboard.press(key);
@@ -82,13 +82,13 @@ try {
     if (!lastChange.includes('index=' + index) ||
         !lastChange.includes('mode=' + mode)) {
       errors.push('Key ' + key + ' must select ' + mode +
-        ' (internal profile ' + index + '): ' + lastChange);
+        ' (view ' + index + '): ' + lastChange);
     }
   }
   if (errors.length) throw Error(errors.join('\\n'));
   console.log('ACTION5_BROWSER_SHORTCUTS_OK 1=first-person 4=side-scroller 5=top-down');
   if (!rigViews.some(line => line.includes('view=3 body_hidden=0 rig=1 tool=1')) ||
-      !rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
+      !rigViews.some(line => line.includes('view=1 body_hidden=1 rig=1 tool=1') &&
         line.includes('viewmodel=1'))) {
     errors.push('D04 imported rig, F4 camera-local weapon, or body culling failed');
   }
@@ -147,7 +147,7 @@ try {
   // A top-center camera button must consume its mouse click (not punch).
   await page.mouse.click(395, 43); // 1 · FIRST
   await page.waitForTimeout(350);
-  if (!cameraChanges.at(-1)?.includes('index=4')) {
+  if (!cameraChanges.at(-1)?.includes('index=1')) {
     errors.push('Clicking top camera button 1 did not switch to First-Person');
   }
   if (combatStarts.length !== beforeHudClick) {
@@ -628,7 +628,7 @@ try {
       createHash('sha256').update(f4Jumping).digest('hex')) {
     errors.push('F4 jump screenshot did not change after real Space input');
   }
-  if (!rigViews.some(line => line.includes('view=4 body_hidden=1 rig=1 tool=1') &&
+  if (!rigViews.some(line => line.includes('view=1 body_hidden=1 rig=1 tool=1') &&
       line.includes('viewmodel=1'))) {
     errors.push('F4 persistent camera-local arm was not presented');
   }
@@ -700,7 +700,7 @@ try {
   }
   await page.mouse.click(395, 43); // Top-center 1 · FIRST
   await page.waitForTimeout(350);
-  if (!cameraChanges.at(-1)?.includes('index=4')) {
+  if (!cameraChanges.at(-1)?.includes('index=1')) {
     errors.push('Top-center camera button 1 did not select First-Person');
   }
   const buttonPng = await page.screenshot({
@@ -810,7 +810,7 @@ try {
     await page.keyboard.press('1');
     await page.waitForTimeout(250);
     const report = [...rigViews].reverse().find(line =>
-      line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
+      line.includes('view=1 body_hidden=1 rig=1 tool=1 actor_z='));
     const match = report?.match(/actor_z=(-?\d+(?:\.\d+)?)/);
     nearWallZ = match ? Number(match[1]) : Number.NaN;
     if (nearWallZ <= -7.5 && nearWallZ > -8.7) break;
@@ -829,7 +829,7 @@ try {
     path: 'build/evidence/web-f4-near-wall.png', fullPage: true,
   });
   const finalF4 = [...rigViews].reverse().find(line =>
-    line.includes('view=4 body_hidden=1 rig=1 tool=1 actor_z='));
+    line.includes('view=1 body_hidden=1 rig=1 tool=1 actor_z='));
   const finalMatch = finalF4?.match(/actor_z=(-?\d+(?:\.\d+)?)/);
   const finalZ = finalMatch ? Number(finalMatch[1]) : Number.NaN;
   if (!(finalZ <= -7.5 && finalZ > -8.7)) {
