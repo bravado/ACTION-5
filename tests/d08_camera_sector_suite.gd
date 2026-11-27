@@ -8,10 +8,10 @@ const INPUTS = [
     Vector2(0, -1), Vector2(-1, 0), Vector2(0, 1), Vector2(1, 0),
 ]
 const PROFILES = [
-    "res://addons/action5/views/side.tres",
+    "res://addons/action5/views/first_person.tres",
     "res://addons/action5/views/beat_em_up.tres",
     "res://addons/action5/views/isometric.tres",
-    "res://addons/action5/views/first_person.tres",
+    "res://addons/action5/views/side.tres",
     "res://addons/action5/views/top_down.tres",
 ]
 
