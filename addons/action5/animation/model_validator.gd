@@ -35,6 +35,18 @@ static func validate(root: Node, profile: ProfileScript) -> Dictionary:
 
     var skeleton: Skeleton3D = find_skeleton(root)
     var player: AnimationPlayer = find_animation_player(root)
+    var skeletons: Array[Node] = []
+    var players: Array[Node] = []
+    if root is Skeleton3D:
+        skeletons.append(root)
+    if root is AnimationPlayer:
+        players.append(root)
+    skeletons.append_array(root.find_children("*", "Skeleton3D", true, false))
+    players.append_array(root.find_children("*", "AnimationPlayer", true, false))
+    if skeletons.size() != 1:
+        errors.append("Model requires exactly one Skeleton3D; found %d. Re-export as one rig." % skeletons.size())
+    if players.size() != 1:
+        errors.append("Model requires exactly one AnimationPlayer; found %d. Merge animation tracks on export." % players.size())
     if skeleton == null:
         errors.append("A Skeleton3D is required for skeletal animation")
     elif skeleton.get_bone_count() == 0:
