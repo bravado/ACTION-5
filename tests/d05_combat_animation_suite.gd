@@ -82,7 +82,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(combat.request_attack(&"punch", Vector2.RIGHT),
         "Combat can restart independently of previous animation")
     await tree.physics_frame
-    var near: Node = level.get_node("NearDummy")
+    var near: Node = level.get_node("Arena/NearDummy")
     health.call("take_hit", 1.0, near, punch, Vector2.ZERO, 0.0, 0, 4)
     verify.call(combat.current_attack == null
         and recorder.upper_body_clip == &""

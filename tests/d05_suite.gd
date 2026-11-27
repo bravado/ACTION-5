@@ -18,8 +18,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var combat: CombatScript = actor.get_node("CombatController") as CombatScript
     var health: HealthScript = actor.get_node("Health") as HealthScript
     var input: CombatInputScript = level.get_node("CombatInput") as CombatInputScript
-    var near: Node3D = level.get_node("NearDummy") as Node3D
-    var far: Node3D = level.get_node("FarDummy") as Node3D
+    var near: Node3D = level.get_node("Arena/NearDummy") as Node3D
+    var far: Node3D = level.get_node("Arena/FarDummy") as Node3D
     var target: HealthScript = near.get_node("Health") as HealthScript
 
     verify.call(combat != null and health != null and input != null,

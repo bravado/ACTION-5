@@ -447,8 +447,8 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(actor.global_position.x <= 13.5,
         "CharacterBody3D cannot pass through solid east wall outside the dungeon opening")
-    verify.call(level.get_node("Ramp/CollisionShape3D") is CollisionShape3D
-        and level.get_node("LowStep/CollisionShape3D") is CollisionShape3D,
+    verify.call(level.get_node("Arena/Ramp/CollisionShape3D") is CollisionShape3D
+        and level.get_node("Arena/LowStep/CollisionShape3D") is CollisionShape3D,
         "Shared D03 arena contains a physical slope and low step")
     verify.call(actor.locomotion.floor_snap_distance > 0.0
         and actor.floor_max_angle >= deg_to_rad(40.0),
