@@ -271,13 +271,13 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # GeometryInstance3D.transparency is ignored. The material override
     # remains per mesh; collision and the interior props never change.
     var fader: Node = world.get_node("VisibilityController")
-    var south := world.get_node("SouthWall") as StaticBody3D
+    var south := world.get_node("Arena/SouthWall") as StaticBody3D
     var south_visual := south.get_node("MeshInstance3D") as MeshInstance3D
     var original_south: Material = south_visual.get_surface_override_material(0)
     var south_collider := south.get_node("CollisionShape3D") as CollisionShape3D
-    var pillar := world.get_node("PillarA/MeshInstance3D") as MeshInstance3D
+    var pillar := world.get_node("Arena/PillarA/MeshInstance3D") as MeshInstance3D
     var pillar_material: Material = pillar.get_surface_override_material(0)
-    var shared_wall := world.get_node("EastWall/Upper/MeshInstance3D") as MeshInstance3D
+    var shared_wall := world.get_node("Arena/EastWall/Upper/MeshInstance3D") as MeshInstance3D
     var shared_material: Material = shared_wall.get_surface_override_material(0)
     views.switch_view(1)
     player.global_position = world.to_global(Vector3(0, 0.15, 7.6))
@@ -333,7 +333,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # real physics/AI collision and room-root visibility stay untouched.
     var room_visibility: Node = world.get_node("RoomVisibility")
     var dungeon_north := dungeon.get_node("NorthWall/Mesh") as MeshInstance3D
-    var arena_north := world.get_node("NorthWall/MeshInstance3D") as MeshInstance3D
+    var arena_north := world.get_node("Arena/NorthWall/MeshInstance3D") as MeshInstance3D
     views.switch_view(3)
     doorway.call("set_open", true)
     doorway.call("set_open", false)

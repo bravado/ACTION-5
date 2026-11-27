@@ -198,8 +198,8 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     var actor := level.get_node("Player") as CharacterBody3D
     var equipment: Node = actor.get_node("Equipment")
     var combat: Node = actor.get_node("CombatController")
-    var gun := level.get_node("GunPickup") as GunScript
-    var target := level.get_node("NearDummy") as Node3D
+    var gun := level.get_node("Arena/GunPickup") as GunScript
+    var target := level.get_node("Arena/NearDummy") as Node3D
     var health: Node = target.get_node("Health")
     var views: Node = level.get_node("ViewManager")
     var world_visual: Node = actor.get_node("EquipmentVisualAdapter")

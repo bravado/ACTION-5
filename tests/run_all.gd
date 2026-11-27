@@ -79,16 +79,16 @@ func _run_tests() -> void:
     _check(player != null, "One CharacterBody3D exists in the world")
     _check(player_locomotion != null, "Player has one authoritative locomotion component")
     _check(actor_input != null, "Input adapter handles game input and window focus")
-    _check(level.get_node_or_null("Floor/CollisionShape3D") is CollisionShape3D,
+    _check(level.get_node_or_null("Arena/Floor/CollisionShape3D") is CollisionShape3D,
         "Floor includes a physical collision shape")
-    _check(level.get_node_or_null("NorthWall/CollisionShape3D") is CollisionShape3D,
+    _check(level.get_node_or_null("Arena/NorthWall/CollisionShape3D") is CollisionShape3D,
         "North wall includes a physical collision shape")
-    _check(level.get_node_or_null("SouthWall/CollisionShape3D") is CollisionShape3D,
+    _check(level.get_node_or_null("Arena/SouthWall/CollisionShape3D") is CollisionShape3D,
         "South wall includes a physical collision shape")
-    _check(level.get_node_or_null("WestWall/CollisionShape3D") is CollisionShape3D,
+    _check(level.get_node_or_null("Arena/WestWall/CollisionShape3D") is CollisionShape3D,
         "West wall includes a physical collision shape")
-    _check(level.get_node_or_null("EastWall/Upper/CollisionShape3D") is CollisionShape3D
-        and level.get_node_or_null("EastWall/Lower/CollisionShape3D") is CollisionShape3D
+    _check(level.get_node_or_null("Arena/EastWall/Upper/CollisionShape3D") is CollisionShape3D
+        and level.get_node_or_null("Arena/EastWall/Lower/CollisionShape3D") is CollisionShape3D
         and level.get_node_or_null("PassageFloor/CollisionShape3D") is CollisionShape3D,
         "East wall has two physical sections around a collidable shared doorway")
     _check(level.get_node_or_null("ViewManager/CameraRig/Camera3D") is Camera3D,
@@ -364,9 +364,9 @@ func _run_tests() -> void:
             "View 4 side camera has no downward pitch")
         _check(level.call("_map_demo_movement", Vector2(0.0, 1.0)) == Vector2.ZERO,
             "View 4 side movement ignores depth input")
-        var front_wall := level.get_node("SouthWall/MeshInstance3D") as MeshInstance3D
+        var front_wall := level.get_node("Arena/SouthWall/MeshInstance3D") as MeshInstance3D
         _check(not front_wall.visible
-            and (level.get_node("SouthWall") as StaticBody3D).collision_layer != 0,
+            and (level.get_node("Arena/SouthWall") as StaticBody3D).collision_layer != 0,
             "View 4 foreground wall hides visually but remains physical")
         manager.switch_view(1)
         _check(front_wall.visible, "F2 keeps the outer wall rendered for proximity fading")

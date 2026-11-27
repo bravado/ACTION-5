@@ -10,10 +10,10 @@ extends Node
 @export var dungeon_path: NodePath = ^"../EncounterSector"
 @export var equipment_path: NodePath = ^"../Player/Equipment"
 @export var arena_visual_paths: Array[NodePath] = [
-    ^"../Floor", ^"../NorthWall", ^"../SouthWall", ^"../WestWall",
-    ^"../EastWall", ^"../PassageFloor", ^"../PillarA", ^"../PillarB",
-    ^"../Ramp", ^"../LowStep", ^"../NearDummy", ^"../FarDummy",
-    ^"../LightSwitch", ^"../RemotePortal"
+    ^"../Arena/Floor", ^"../Arena/NorthWall", ^"../Arena/SouthWall", ^"../Arena/WestWall",
+    ^"../Arena/EastWall", ^"../PassageFloor", ^"../Arena/PillarA", ^"../Arena/PillarB",
+    ^"../Arena/Ramp", ^"../Arena/LowStep", ^"../Arena/NearDummy", ^"../Arena/FarDummy",
+    ^"../Arena/LightSwitch", ^"../RemotePortal"
 ]
 @export var dungeon_visual_paths: Array[NodePath] = [
     ^"../EncounterSector/Floor",

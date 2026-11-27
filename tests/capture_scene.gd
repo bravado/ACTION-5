@@ -92,7 +92,7 @@ func _capture() -> void:
     var fps: Node = actor.get_node("FirstPersonPresenter")
     var body_layer: int = int(fps.get("local_body_render_layer"))
     if not (
-        hit.get("collider") == scene.get_node("NorthWall")
+        hit.get("collider") == scene.get_node("Arena/NorthWall")
         and not eye.get_cull_mask_value(body_layer)
         and eye.get_cull_mask_value(1)
         and actor.get_node("Visual").visible
@@ -172,7 +172,7 @@ func _capture() -> void:
         (mesh as MeshInstance3D).visible = true
     if socket_shadow != null:
         socket_shadow.visible = true
-    var dummy: Node3D = scene.get_node("NearDummy") as Node3D
+    var dummy: Node3D = scene.get_node("Arena/NearDummy") as Node3D
     dummy.global_position = Vector3(0, 0, -1.0)
     var target_health: Node = dummy.get_node("Health")
     actor.global_position = Vector3(0, 0.15, 0)
@@ -329,7 +329,7 @@ func _capture() -> void:
     # after dropping, while the original D04 training tool returns.
     var equipment: Node = actor.get_node("Equipment")
     var equipment_visual: Node = actor.get_node("EquipmentVisualAdapter")
-    var bat: Node3D = scene.get_node("BatPickup") as Node3D
+    var bat: Node3D = scene.get_node("Arena/BatPickup") as Node3D
     if not equipment.call("pickup", bat):
         push_error("D06: cannot pick up Bat in native arena")
         quit(1)
@@ -595,7 +595,7 @@ func _capture() -> void:
     print("ACTION5_D06_NATIVE_EQUIPMENT_OK world=1 f4=1 drop=1 pixels=", delta)
 
     # Shovel also uses a dedicated world overhead clip, not unarmed Punch.
-    var shovel: Node3D = scene.get_node("ShovelPickup") as Node3D
+    var shovel: Node3D = scene.get_node("Arena/ShovelPickup") as Node3D
     if not equipment.call("pickup", shovel):
         push_error("D06: cannot pick up Shovel for native world pose matrix")
         quit(1)
@@ -680,7 +680,7 @@ func _capture() -> void:
     # D06-02 actual-render evidence: the same physical Gun is socket-mounted
     # in four exterior views and has one camera-local F4 gripping arm.
     # Rendering never supplies the authoritative muzzle or a second weapon.
-    var gun: Node3D = scene.get_node("GunPickup") as Node3D
+    var gun: Node3D = scene.get_node("Arena/GunPickup") as Node3D
     gun.global_position = actor.global_position + Vector3(0.4, 0.4, 0)
     if not equipment.call("pickup", gun):
         push_error("D06-02: cannot pick up Gun after Shovel drop")
