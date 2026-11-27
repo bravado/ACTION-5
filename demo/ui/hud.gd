@@ -174,7 +174,7 @@ func set_view_choices(choices: Array[Dictionary]) -> void:
         var index: int = int(choice.get("index", -1))
         var button := Button.new()
         button.text = str(choice.get("label", ""))
-        button.custom_minimum_size = Vector2(116, 36)
+        button.custom_minimum_size = Vector2(116, 28)
         button.focus_mode = Control.FOCUS_NONE
         button.toggle_mode = true
         button.set_meta("view_index", index)
