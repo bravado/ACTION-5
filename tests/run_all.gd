@@ -378,6 +378,30 @@ func _run_tests() -> void:
         _check(not actor_input.enabled
             and player_locomotion.desired.world_move.is_zero_approx(),
             "Opening camera settings clears input immediately, without demo polling")
+        # The settings header follows the same configurable 1–5 shortcut order
+        # as ViewInput and the HUD, not ViewManager's internal profile order.
+        var settings_title: Label = settings.get("_title") as Label
+        var expected_shortcuts := [4, 2, 3, 1, 5]
+        var expected_names := ["Side-Scroller", "Beat 'em Up", "Isometric",
+            "First-Person", "Top-Down"]
+        for index in range(5):
+            manager.switch_view(index)
+            _check(settings_title.text.begins_with("%d / 5" % expected_shortcuts[index])
+                and settings_title.text.contains(expected_names[index]),
+                "Camera Settings title uses the correct shortcut and profile at index %d" % index)
+        # Optional provider must not be a dependency for a standalone addon.
+        manager.switch_view(3)
+        var shortcut_path: NodePath = settings.shortcut_input_path
+        settings.shortcut_input_path = NodePath()
+        settings.call("refresh_controls")
+        _check(settings_title.text.begins_with("4 / 5"),
+            "Camera Settings without ViewInput falls back to internal profile numbering")
+        settings.shortcut_input_path = shortcut_path
+        settings.call("refresh_controls")
+        _check(settings_title.text.begins_with("1 / 5"),
+            "Camera Settings restores mapped shortcut numbering when configured")
+        manager.switch_view(1)
+
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
             "F2 stage elevation can be adjusted")
         _check(not settings.get_node("Padding/Controls/Row_shoulder_offset").visible,
