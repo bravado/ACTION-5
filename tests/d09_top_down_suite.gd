@@ -183,7 +183,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     verify.call(presenter.call("_visual_origin", muzzle.global_position).is_equal_approx(
         muzzle.global_position),
         "D09-02 F3 still launches from the physical weapon muzzle")
-    views.switch_view(3)
+    views.switch_view(0)
     var expected_f4: Vector3 = world_visual.call(
         "get_projectile_visual_origin", gun, muzzle.global_position
     )
