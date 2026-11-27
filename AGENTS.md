@@ -838,3 +838,7 @@ the old paths no longer exist. Enum members and InputMap actions should also use
 for old preferences. External integrations loading old resource paths,
 enum member names, exported properties or action names must update their
 references; preserve only the settings-file migration.
+
+## LEVEL-01 scene composition
+
+The reference `demo/world/arena.tscn` owns its local geometry, navigation, target dummies, pickups, pickup snapshots and spawn marker. `demo/main.tscn` instantiates it and the encounter; it retains shared connections and persistent services. Keep level roots ordinary Node3D/PackedScene, with no mandatory subclass. Use the opt-in `Action5ConfigValidator.validate_level` for level diagnostics. Arbitrary sector boundaries remain LEVEL-02 (#43).

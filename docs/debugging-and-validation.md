@@ -77,3 +77,7 @@ AnimationPlayer per imported actor**. Multi-rig retargeting is not provided.
 This check establishes dependency isolation, **not** a complete playable
 blank-project walkthrough. The latter still requires manual verification.
 Level authoring remains independent; see [LEVEL-01](https://github.com/bravado/ACTION-5/issues/42).
+
+## Level diagnostics
+
+Call `Validator.validate_level(level_root, true, true, [^"Arrival"])` explicitly to inspect an authored level for static collision, navigation, configured marker paths and visibility target ownership. Pass false for collision/navigation on decorative scenes and omit marker paths when not needed. A missing baked navigation mesh is a warning because the reference arena creates its navigation at runtime. The check is read-only and performs no per-frame work. It does not validate arbitrary sector traversal (LEVEL-02).
