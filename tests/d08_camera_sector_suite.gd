@@ -186,11 +186,11 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
             verify.call(camera.global_basis.y.distance_to(Vector3.FORWARD) < 0.001
                 and camera.global_basis.z.distance_to(Vector3.UP) < 0.001,
                 "F5 overhead camera remains world-vertical")
-        elif index == 3:
+        elif index == 0:
             verify.call(camera.global_basis.z.distance_to(before_heading.z) < 0.001,
-                "F4 first-person look never resets at the doorway")
+                "View 1 first-person look never resets at the doorway")
 
-    # F1 aligns all living opponents to the same world-Z plane as the
+    # View 4 Side-Scroller aligns all living opponents to the same world-Z plane as the
     # player's punches/kicks. The demo-level adapter uses Locomotion's
     # existing side lock and temporarily prevents NPCs from blocking one
     # another in that single-file lane. F2 releases lane confinement.
