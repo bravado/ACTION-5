@@ -214,7 +214,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
         ).instantiate() as CharacterBody3D
     remote_enemy.position = Vector3(4.0, 0.15, 3.0)
     detached.add_child(remote_enemy)
-    views.switch_view(0)
+    views.switch_view(3)
     await _ticks(tree, 3)
     verify.call(absf(remote_enemy.global_position.z - player.global_position.z) < 0.08
         and bool(remote_enemy.get_node("Locomotion").get("side_lane_locked"))
@@ -270,7 +270,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     # The same opt-in foreground group is active for cached PackedScenes,
     # without a hard-coded path or cloned side-scroller camera.
     var remote_north := detached.get_node("NorthWall/Mesh") as MeshInstance3D
-    views.switch_view(0)
+    views.switch_view(3)
     stage.get_node("VisibilityController").call("_process", 0.0)
     verify.call(not remote_wall_mesh.visible and remote_north.visible
         and remote_south.collision_layer != 0
