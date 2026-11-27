@@ -80,7 +80,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for tick in range(3):
         await tree.physics_frame
     var airborne: bool = not actor.is_on_floor()
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     verify.call(airborne and bat.get_parent() == socket
         and equipment.get("current_weapon") == bat
         and fps.world_visual_shadows.size() == baseline_shadows + 1,
@@ -110,7 +110,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     actor.call("apply_move_intent", crouch_walk)
     for tick in range(5):
         await tree.physics_frame
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     verify.call(controller.get("active_id") == &"crouch_walk"
         and fps.first_person and equipment.get("current_weapon") == bat
         and visual.get("_viewmodel") != null,
