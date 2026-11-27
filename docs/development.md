@@ -34,7 +34,7 @@ make test
 make run
 ```
 
-Press **1–5** to switch between five camera modes; the HUD shows the active bindings. In **F1**, W/Up jumps and S/Down holds crouch while A/D or Left/Right moves horizontally. In **F4**, A/D strafes and Left/Right turns. Other views retain normal WASD/arrow movement. **Space** jumps, **Shift** runs, **Alt** dodges, **X** slides and **Ctrl** toggles crouch (**R3** on gamepad). F1 is a true horizontal side-scroller; F2 is the elevated beat'em-up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five top-center view buttons provide a browser-friendly fallback and highlight the active view. Below Vitality, **C · CAMERA SETTINGS** opens the same camera panel as the C shortcut; **H** toggles the gameplay HUD and **F6** opens a scrollable field guide explaining views, movement, combat, equipment, doors, switches, portals, objectives and controls.
+Press **1–5** to switch between five camera modes; the HUD shows the active bindings. In **view 4 (Side-Scroller)**, W/Up jumps and S/Down holds crouch while A/D or Left/Right moves horizontally. In **view 1 (First-Person)**, A/D strafes and Left/Right turns. Other views retain normal WASD/arrow movement. **Space** jumps, **Shift** runs, **Alt** dodges, **X** slides and **Ctrl** toggles crouch (**R3** on gamepad). View 4 is a true horizontal side-scroller; view 2 is the elevated Beat 'em Up camera. Click to capture the mouse in F3/F4 and press Esc to release it. The five top-center view buttons provide a browser-friendly fallback and highlight the active view. Below Vitality, **C · CAMERA SETTINGS** opens the same camera panel as the C shortcut; **H** toggles the gameplay HUD and **F6** opens a scrollable field guide explaining views, movement, combat, equipment, doors, switches, portals, objectives and controls.
 
 `make run` launches the **game**, not the editor. Use `make editor` when you want the scene tree and inspector.
 
@@ -189,7 +189,7 @@ ViewManager and a separately authored `demo/world/encounter_sector.tscn`
 dungeon. The arena and dungeon now **share a world-space boundary**:
 the arena floor ends at X=14, and the dungeon (origin X=26, floor
 half-width 12) starts at X=14 on the same height and orientation. The gateway is centered on Z=0,
-so the default F1 side-scroller lane can reach it without switching views.
+so the default view 4 Side-Scroller lane can reach it without switching views.
 The arena east wall is split above and below a real opening at
 **X=14, Z=0**, with an overlapping `PassageFloor` slab so there
 is no unsupported physics seam. The dungeon supplies its other three
@@ -407,7 +407,7 @@ both motions against the same physical colliders, and physical
 obstructions/closed doors are never disabled or traversed. Actors
 keep their HP, inventory, AI target and instance identities.
 
-While F1 is active, every actor's existing solver locks to its new
+While view 4 is active, every actor's existing solver locks to its new
 Z lane, and newly spawned/reactivated NPCs are registered on
 SceneTree/activation events. Enemy-to-enemy physical collision
 exceptions prevent same-line NPCs blocking one another; they persist
