@@ -400,6 +400,17 @@ func _run_tests() -> void:
         settings.call("refresh_controls")
         _check(settings_title.text.begins_with("1 / 5"),
             "Camera Settings restores mapped shortcut numbering when configured")
+        # A custom ViewInput map is read on refresh, not duplicated in the panel.
+        var shortcut_input: Node = level.get_node("ViewInput")
+        var original_mapping: PackedInt32Array = shortcut_input.shortcut_profile_indices
+        shortcut_input.shortcut_profile_indices = PackedInt32Array()
+        settings.call("refresh_controls")
+        _check(settings_title.text.begins_with("4 / 5"),
+            "Camera Settings respects a custom identity shortcut mapping")
+        shortcut_input.shortcut_profile_indices = original_mapping
+        settings.call("refresh_controls")
+        _check(settings_title.text.begins_with("1 / 5"),
+            "Camera Settings reflects restored custom shortcut mapping")
         manager.switch_view(1)
 
         _check(settings.get_node("Padding/Controls/Row_fixed_height").visible,
