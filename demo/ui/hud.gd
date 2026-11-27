@@ -13,9 +13,11 @@ const GOLD := Color("#BA9A60")
 @onready var _equip_panel: PanelContainer = $EquipmentPanel
 @onready var _objective_panel: PanelContainer = $ObjectivePanel
 @onready var _view_panel: PanelContainer = $ViewPanel
+@onready var _view_buttons_panel: PanelContainer = $ViewButtonsPanel
 @onready var _health_bar: ProgressBar = $HealthPanel/Content/HealthBar
 @onready var _hp_text: Label = $HealthPanel/Content/Row/HP
-@onready var _health_footer: Label = $HealthPanel/Content/Footer
+@onready var _health_footer: Label = $HealthPanel/Content/ShortcutRow/Footer
+@onready var _health_status: Label = $HealthPanel/Content/Status
 @onready var _weapon_icon: TextureRect = $EquipmentPanel/Content/Row/IconFrame/IconCenter/Icon
 @onready var _weapon_fallback: Label = $EquipmentPanel/Content/Row/IconFrame/IconCenter/Fallback
 @onready var _weapon_title: Label = $EquipmentPanel/Content/Row/Details/WeaponTitle
@@ -32,15 +34,16 @@ const GOLD := Color("#BA9A60")
 @onready var _reticle: Label = $AimReticle
 @onready var _help_panel: PanelContainer = $HelpPanel
 @onready var _help_title: Label = $HelpPanel/Content/Title
-@onready var _help_text: Label = $HelpPanel/Content/Scroll/HelpText
-@onready var _view_selector: HBoxContainer = $HelpPanel/Content/ViewSelector
-@onready var _camera_button: Button = $HelpPanel/Content/CameraSettings
+@onready var _help_text: RichTextLabel = $HelpPanel/Content/Scroll/HelpText
+@onready var _view_selector: HBoxContainer = $ViewButtonsPanel/Content/ViewSelector
+@onready var _camera_button: Button = $HealthPanel/Content/ShortcutRow/CameraSettings
 
 var _gameplay_visible: bool = true
 var _reticle_requested: bool = false
 var _health_critical: bool = false
 var _player_state: String = ""
 var _input_hint: String = ""
+var _active_view_index: int = -1
 
 
 func _ready() -> void:
@@ -53,7 +56,7 @@ func _ready() -> void:
 ## Presentation-only visibility. Menus and death/victory overlays are separate.
 func set_gameplay_visible(value: bool) -> void:
     _gameplay_visible = value
-    for panel in [_health_panel, _equip_panel, _objective_panel, _view_panel]:
+    for panel in [_health_panel, _equip_panel, _objective_panel, _view_panel, _view_buttons_panel]:
         panel.visible = value
     _reticle.visible = value and _reticle_requested
     _interaction_panel.visible = value and not _interaction.text.is_empty()
@@ -77,8 +80,8 @@ func set_help_open(value: bool) -> void:
 
 
 func set_shortcut_hints(hud_hint: String, help_hint: String) -> void:
-    _input_hint = "%s · HUD    %s · HELP" % [hud_hint, help_hint]
-    _help_title.text = "HUD · CONTROLS  [%s TO CLOSE]" % help_hint
+    _input_hint = "%s · HUD   %s · HELP" % [hud_hint, help_hint]
+    _help_title.text = "FIELD GUIDE · ACTION-5   [%s TO CLOSE]" % help_hint
     _render_player_state()
 
 
@@ -103,9 +106,10 @@ func set_player_state(value: String) -> void:
 
 
 func _render_player_state() -> void:
-    _health_footer.text = "LOW HEALTH · " + _input_hint if _health_critical else (
-        _player_state if not _player_state.is_empty() else _input_hint
-    )
+    # Shortcut keys stay visible even during attacks or critical health.
+    _health_footer.text = _input_hint
+    _health_status.text = "LOW HEALTH" if _health_critical else _player_state
+    _health_status.visible = not _health_status.text.is_empty()
 
 
 func set_reticle(value: bool) -> void:
@@ -156,19 +160,43 @@ func notify(value: String) -> void:
         _notice_timer.start()
 
 
-## Button instances are the only dynamic part of the otherwise authored scene.
+## The single view selector is always on the gameplay HUD, not inside F6.
+## Indices come from ViewInput; no duplicated, hard-coded camera ordering.
 func set_view_choices(choices: Array[Dictionary]) -> void:
     for child in _view_selector.get_children():
         _view_selector.remove_child(child)
         child.queue_free()
+    var selected_style: StyleBoxFlat = FRAME.duplicate() as StyleBoxFlat
+    selected_style.bg_color = Color("#29241F")
+    selected_style.border_color = GOLD
+    selected_style.set_border_width_all(2)
     for choice in choices:
+        var index: int = int(choice.get("index", -1))
         var button := Button.new()
         button.text = str(choice.get("label", ""))
         button.custom_minimum_size = Vector2(116, 36)
+        button.focus_mode = Control.FOCUS_NONE
+        button.toggle_mode = true
+        button.set_meta("view_index", index)
+        button.add_theme_font_size_override("font_size", 12)
         button.add_theme_color_override("font_color", GOLD)
+        button.add_theme_color_override("font_pressed_color", Color("#F3D7A5"))
         button.add_theme_stylebox_override("normal", FRAME)
-        button.pressed.connect(_request_view.bind(int(choice.get("index", -1))))
+        button.add_theme_stylebox_override("pressed", selected_style)
+        button.pressed.connect(_request_view.bind(index))
         _view_selector.add_child(button)
+    # Rebuilds are rare; make the selected state correct even at startup.
+    _active_view_index = -1
+
+
+func set_active_view(index: int) -> void:
+    if _active_view_index == index:
+        return
+    _active_view_index = index
+    for child in _view_selector.get_children():
+        var button := child as Button
+        if button != null:
+            button.set_pressed_no_signal(int(button.get_meta("view_index", -1)) == index)
 
 
 func _request_view(index: int) -> void:
