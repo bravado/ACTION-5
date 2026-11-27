@@ -171,7 +171,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     combat.cancel()
 
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     await tree.process_frame
     unarmed_limb.call("refresh_presentation")
     var bat_view: Node3D = visual._viewmodel as Node3D
@@ -218,7 +218,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
 
     # F3 <-> F4 only changes rendering, never item identity, socket or action.
     views.call("switch_view", 2)
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     verify.call(equipment.current_weapon == bat and bat.get_parent() == socket
         and fps.first_person and visual._viewmodel != null,
         "F3/F4 switching preserves one authoritative equipped world Bat")
@@ -396,7 +396,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "Shovel keeps right-click Kick while the Bat had its own horizontal attack")
 
     # F4 still renders a default Kick for weapons without a right binding.
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     verify.call(combat.request_attack(&"kick", Vector2.RIGHT),
         "Shovel leaves the unassigned secondary input mapped to normal Kick")
     for tick in range(4):
@@ -480,7 +480,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(fps.world_visual_shadows.size() == starting_shadows
         and visual._registered_meshes.is_empty() and visual._viewmodel == null,
         "Dropping all equipment removes FPS registrations and restores D04 baseline")
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     await tree.process_frame
     unarmed_limb.call("refresh_presentation")
     verify.call(selector.call("get_attack_for_input", &"actor_punch",
@@ -542,7 +542,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             world_fallback_visible and mesh.visible and mesh.layers == 1
             and mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
         )
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     await tree.process_frame
     unarmed_limb.call("refresh_presentation")
     # The demo training tool is hidden while equipped; without an F4
@@ -642,7 +642,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
             combat.get_attack(&"kick")) == alias_attack
         and visual._viewmodel != null,
         "Right-only weapon reuses the Punch world clip without claiming left input")
-    views.call("switch_view", 3)
+    views.call("switch_view", 0)
     verify.call(combat.request_attack(&"punch", Vector2.RIGHT),
         "Unassigned Punch starts normally while holding the right-only weapon")
     for tick in range(4):
