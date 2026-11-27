@@ -6,9 +6,11 @@ class_name Action5CameraSettingsPanel
 const ViewManagerScript = preload("res://addons/action5/camera/view_manager.gd")
 const ViewProfileScript = preload("res://addons/action5/camera/view_profile.gd")
 
-const PROFILE_IDS = ["side", "beat_em_up", "isometric", "first_person", "top_down"]
+const PROFILE_IDS = ["first_person", "beat_em_up", "isometric", "side", "top_down"]
 # Previous on-disk names are read once; subsequent saves use PROFILE_IDS.
-const LEGACY_PROFILE_IDS = ["side", "beatemup", "isometric", "first_person", "retro_topdown"]
+const LEGACY_PROFILE_IDS = ["first_person", "beatemup", "isometric", "side", "retro_topdown"]
+# Schema-1 six-slot camera order, keyed by current canonical profile index.
+const LEGACY_VIEW_SLOTS = [5, 2, 3, 1, 6]
 const SETTINGS_SCHEMA = 3
 
 const FIELDS = [
@@ -30,9 +32,6 @@ const FIELDS = [
 ]
 
 @export var manager_path: NodePath = ^"../../ViewManager"
-## Optional input provider with shortcut_for_profile_index(index). When absent,
-## display the manager's original 1-based profile order for reusable scenes.
-@export var shortcut_input_path: NodePath
 @export var save_user_settings: bool = true
 @export var preferences_path: String = "user://action5_camera_settings.cfg"
 
@@ -255,24 +254,11 @@ func _on_view_changed(_current: ViewProfileScript, _previous: ViewProfileScript)
     refresh_controls()
 
 
-func _display_shortcut_number() -> int:
-    var index: int = _manager.active_index
-    if not shortcut_input_path.is_empty():
-        var input: Node = get_node_or_null(shortcut_input_path)
-        if input != null and input.has_method("shortcut_for_profile_index"):
-            var slot: int = int(input.call("shortcut_for_profile_index", index))
-            if slot >= 0 and slot < _manager.profiles.size():
-                return slot + 1
-    return index + 1
-
-
 func refresh_controls() -> void:
     if _manager == null or _manager.current_profile == null or _title == null:
         return
     var profile: ViewProfileScript = _manager.current_profile
-    _title.text = "%d / %d · %s" % [
-        _display_shortcut_number(), _manager.profiles.size(), profile.display_name
-    ]
+    _title.text = "%d / 5 · %s" % [_manager.active_index + 1, profile.display_name]
     _invert_y_row.visible = profile.mode == ViewProfileScript.Mode.FIRST_PERSON
     _invert_y_checkbox.set_pressed_no_signal(profile.invert_y)
     for field in FIELDS:
@@ -315,11 +301,8 @@ func _load_preferences() -> void:
         var section: String = "profile_" + PROFILE_IDS[i]
         if not current_schema:
             # v1 had six numbered slots: old F4 shoulder -> new F3 isometric,
-            # old F5 first person -> new F4, old F6 overhead -> new F5.
-            var old_slot: int = i + 1
-            if i >= 3:
-                old_slot += 1
-            section = "view_%d" % old_slot
+            # old view 5 first person -> canonical 1, old view 6 overhead -> 5.
+            section = "view_%d" % LEGACY_VIEW_SLOTS[i]
         elif schema < SETTINGS_SCHEMA:
             section = "profile_" + LEGACY_PROFILE_IDS[i]
 
