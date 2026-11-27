@@ -193,11 +193,12 @@ func _on_view_changed(current: ViewProfileScript, _previous: ViewProfileScript) 
             resting_arm != null and resting_arm.visible
             and camera.get_cull_mask_value(int(fps.get("first_person_render_layer")))
         )
-        print("ACTION5_D04_PRESENTATION view=%d body_hidden=%d rig=%d tool=%d actor_z=%.2f viewmodel=%d" % [
+        print("ACTION5_D04_PRESENTATION view=%d body_hidden=%d rig=%d tool=%d actor_x=%.2f actor_z=%.2f viewmodel=%d" % [
             _views.active_index + 1,
             int(body_hidden),
             int(anim.get("skeleton") != null),
             int(attached),
+            _player.global_position.x,
             _player.global_position.z,
             int(arm_in_view),
         ])
