@@ -152,7 +152,7 @@ func run_tests(tree: SceneTree, verify: Callable) -> void:
     for i in range(5):
         views.switch_view(i)
         hud.call("refresh")
-        verify.call(view_text.text.begins_with("%d" % ([4, 2, 3, 1, 5][i]))
+        verify.call(view_text.text.begins_with("%d" % (i + 1))
             and player.get_instance_id() == actor_id,
             "D09 view %d HUD never replaces the actor" % (i + 1))
     var old_jump: Array = InputMap.action_get_events(&"actor_jump")
