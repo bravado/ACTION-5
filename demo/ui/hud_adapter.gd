@@ -293,7 +293,8 @@ func _refresh_help() -> void:
     instructions += "  • %s — toggle gameplay HUD    %s — open/close this guide (Esc also closes).\n" % [
         _binding(&"hud_toggle"), _binding(&"hud_help")
     ]
-    instructions += "  • Debug builds: F7 toggles diagnostics; B shows melee hitboxes.\n"
+    if OS.has_feature("debug"):
+        instructions += "  • F7: diagnostic HUD; F8: world geometry; B: melee hitboxes.\n"
 
     display.set_help_text(instructions)
     display.set_shortcut_hints(_binding(&"hud_toggle"), _binding(&"hud_help"))
