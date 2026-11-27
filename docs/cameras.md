@@ -14,9 +14,9 @@ ACTION-5 provides **five interchangeable camera modes in one persistent 3D world
 
 **Number row 1–5** is the primary shortcut on desktop and Web, in the order shown above: **1 First-Person, 2 Beat 'em Up, 3 Isometric/Third-Person, 4 Side-Scroller, 5 Top-Down**. F1–F5 use the same configured actions as optional secondary bindings (browsers can reserve function keys). The five selector buttons are always visible in a compact **top-center strip between Vitality and the active-view status** when gameplay HUD is enabled; **F6** opens a separate scrollable field guide; gamepad shoulder-button cycling follows this same **1 → 2 → 3 → 4 → 5** shortcut order. `Ctrl+1–5` is *not* supported: browsers use Ctrl+number for tab navigation.
 
-**Internal architecture:** The `ViewManager.profiles` array retains its stable index order (`side, beat_em_up, isometric, first_person, top_down`) so view-specific logic, camera overrides and settings identities are not reordered. The camera resource filenames are now descriptive; older projects that directly load `beatemup.tres` or `retro_topdown.tres` must update those paths. Saved settings now use `profile_beat_em_up` and `profile_top_down`, and old schema-2 sections (`profile_beatemup` and `profile_retro_topdown`) are migrated on load. The demo instead configures `Action5ViewInput.shortcut_profile_indices = [3, 1, 2, 0, 4]` (zero-based), a validated permutation of indices. The camera input component maps both number and optional F-key shortcuts, while the HUD queries that same mapping to display the correct labels and selectors. Other projects can omit this property to preserve the default one-to-one order.
+**Canonical ViewManager order:** The shipped `ViewManager.profiles` array is now `first_person, beat_em_up, isometric, side, top_down` (zero-based indexes `0, 1, 2, 3, 4`), directly matching number keys, top HUD buttons, camera cycling, logs and Camera Settings titles `1–5`. The demo does **not** configure a shortcut permutation. `Action5ViewInput.shortcut_profile_indices` remains an optional extension for a project that deliberately remaps shortcuts, but is not used by ACTION-5. Camera preferences remain named by **profile ID**, not numbered index: schema-3 sections such as `profile_first_person` and `profile_side` remain compatible with earlier installations. Schema-1 and schema-2 migrations still resolve by stable camera identity, so reordering does not swap a user's saved adjustments.
 
-Controls are view-local: in F1 W/Up jumps and S/Down holds crouch; in F4 A/D strafes while Left/Right arrows turn. F2/F3 retain directional movement; in F5 WASD moves independently of arrow-key aiming (or left/right sticks). See [locomotion](locomotion.md). Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to F3 or F4, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering F4 for the first time, or after the player turns in another view, F4 aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, F4 keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in F4, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reusable movement adapter and control profiles are delivered by D03 and D09-01.
+Controls are view-local: in **view 4 (Side-Scroller)** W/Up jumps and S/Down holds crouch; in **view 1 (First-Person)** A/D strafes while Left/Right arrows turn. Views 2/3 retain directional movement; in view 5 WASD moves independently of arrow-key aiming (or left/right sticks). See [locomotion](locomotion.md). Click the game in mode 3 or 4 for mouse-look; press **Esc** or switch to a fixed camera to release the pointer. When returning to view 3 or view 1, each camera restores its own previous mouse-look yaw and pitch instead of resetting to the profile's default angle. Defaults apply on first entry only; mouse-look direction is not persisted between game launches. When entering view 1 for the first time, or after the player turns in another view, First-Person aligns its horizontal heading with the actor's visible facing instead of defaulting to north. If the player has not turned, First-Person keeps its previous manual yaw; its pitch is preserved in either case. An idle view switch does not turn the player to face the camera: in First-Person, actual movement, right-stick aim or mouse look can intentionally change the actor's facing, which then remains when returning to F3. The reusable movement adapter and control profiles are delivered by D03 and D09-01.
 
 ## Optional F2 side-wall camera peek (D08)
 
@@ -58,7 +58,7 @@ The close-camera wall raycast prevents passing through world geometry. It exclud
 
 Click **C · CAMERA SETTINGS** below Vitality, or press **C**, to open the Godot UI panel. It changes the **selected view resource live** and never changes the actor transform or velocity. Use **Reset this camera** to restore the shipped defaults, or **Close** to hide it.
 
-The settings title uses the same **1–5 shortcut number** as the HUD and keyboard: **1 / 5 · First-Person** and **4 / 5 · Side-Scroller**, despite those profiles occupying internal ViewManager indices 3 and 0. The reusable panel accepts an optional `shortcut_input_path` pointing to a provider exposing `shortcut_for_profile_index(index)`; without one it retains the internal 1-based numbering and has no dependency on the demo's input scene.
+The settings title uses the **canonical ViewManager index plus one** — exactly **1 / 5 · First-Person** and **4 / 5 · Side-Scroller**. This is the same order as the HUD and number keys; the panel does not require an input adapter or a separate view-number translation.
 
 - **Mode 1 and 5:** orthographic zoom and follow speed.
 - **Mode 2:** orthographic zoom, camera height, camera depth and follow speed. **Side peek (deg)** and **Peek response** are editable live, saved per-profile, and resettable (6° and 8 by default). Set the angle to 0 for no horizontal tilt.
@@ -69,7 +69,7 @@ The source component is `addons/action5/camera/camera_settings_panel.gd`. An app
 
 **Persistence:** The panel stores **only user overrides** in `user://action5_camera_settings.cfg`, using schema-3 named sections (`profile_side`, `profile_beat_em_up`, `profile_isometric`, `profile_first_person`, `profile_top_down`). The previous schema-2 names and schema-1 numbered slots migrate automatically. Values that match defaults are not written so future default camera tuning is not frozen. The first-person checkbox is stored as a boolean `profile_first_person/invert_y=true` only when explicitly enabled; existing settings files without this key keep the non-inverted default.
 
-A one-time migration from the original *six-numbered-slot* configuration moves old third-person shoulder settings from former view 4 into the close settings of isometric view 3; old first-person view 5 and overhead view 6 settings move to the new modes 4 and 5. Existing wide isometric zoom is preserved. The settings UI can be instantiated in another project using the exported `manager_path` and can disable persistence using `save_user_settings = false`. The shipped `.tres` resource files are never overwritten at runtime.
+A one-time migration from the original *six-numbered-slot* configuration moves old third-person shoulder settings from former view 4 into the close settings of isometric view 3; old first-person view 5 and overhead view 6 settings move to canonical views 1 and 5. Existing wide isometric zoom is preserved. The settings UI can be instantiated in another project using the exported `manager_path` and can disable persistence using `save_user_settings = false`. The shipped `.tres` resource files are never overwritten at runtime.
 
 ## Integration
 
@@ -85,11 +85,11 @@ To install the camera system in a Godot scene, create a `ViewManager` Node with 
 
 ## Optional movement-driven F4 eye offset
 
-The F4 camera normally follows the actor at
+The First-Person (view 1) camera normally follows the actor at
 `ViewProfile.eye_height`. `Action5CameraRig` optionally reads
 `eye_offset_path` (default `EyeOffset`, resolved relative to the
 **followed actor**, not the CameraRig) and adds that Node3D's local
-Y to the F4 eye position. **Only F4** uses it; all other view
+Y to the First-Person eye position. **Only view 1** uses it; all other view
 profiles ignore the offset. With no node present, the original
 camera behavior is unchanged.
 
@@ -136,7 +136,7 @@ current camera and browser test matrix.
 ## D06-02 view aim versus world muzzle (D06-02)
 
 The view-specific `Action5ViewAimTargetProvider` reads the existing
-`ActionInputContext`: F4 uses the center Camera3D ray to find a target,
+`ActionInputContext`: First-Person uses the center Camera3D ray to find a target,
 F1 resolves a horizontal X/Y combat-lane upper-torso target at configurable
 1.25-unit height, F2/F3 use continuous world aim/facing, and F5 can
 apply 8-way quantization only in this provider. In every mode a **separate** world-space ray from
@@ -216,10 +216,10 @@ mapping or any shared Combat/AI code.
 InputMap action names onto movement, jump, yaw and optional held-move
 roles. Defaults live in `addons/action5/input/profiles/`:
 `default.tres` for F2/F3 fallback, `side.tres` for F1 and
-`first_person.tres` for F4. The demo assigns `demo/input/top_down.tres`
+`first_person.tres` for view 1. The demo assigns `demo/input/top_down.tres`
 for F5 directly on the `ActorInput` node in `demo/main.tscn`.
 The view-local input profile is scene configuration, not runtime mutation. F1 W/Up jumps and S/Down
-holds crouch instead of moving in world Z; F4 arrows turn the
+holds crouch instead of moving in world Z; view 1 arrows turn the
 existing CameraRig's persistent yaw while A/D continue to strafe.
 The player and camera are never reconstructed by switching views.
 To add per-view controls, author an input profile resource rather
@@ -229,4 +229,4 @@ than branching the Actor, CameraRig or attack component.
 
 The shipped retro view is a vertical orthographic camera over the **same connected world**. The existing CameraRig and sector bounds scroll with the player without recreating the actor, enemy state, combat or equipment. In view 5, **WASD moves** and **arrow keys/right stick aim independently**; the left stick still moves. The equipped weapon's optional `Action5ViewFacingPolicy` resource selects quantization (four cardinal Sword headings, eight Gun headings). One actor-local `Action5EquippedViewFacing` provider supplies the actor-facing, attack and target-selection inputs. A sector count of zero selects continuous heading, and absent policies preserve their original fallbacks.
 
-For ranged attacks the F5 aim provider selects a target on the player's forward X/Z centerline at muzzle height. The Gun then fires **from the actual world muzzle** toward that point, respecting nearer walls; its visible tracer likewise starts at the muzzle. In F4, only the tracer can use the separate visible viewmodel barrel tip. The camera never owns ammo, hit resolution or projectile state. See [equipment authoring](equipment.md).
+For ranged attacks the F5 aim provider selects a target on the player's forward X/Z centerline at muzzle height. The Gun then fires **from the actual world muzzle** toward that point, respecting nearer walls; its visible tracer likewise starts at the muzzle. In view 1 (First-Person), only the tracer can use the separate visible viewmodel barrel tip. The camera never owns ammo, hit resolution or projectile state. See [equipment authoring](equipment.md).
