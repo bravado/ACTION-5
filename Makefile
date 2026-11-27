@@ -15,7 +15,7 @@ PORT ?= 8765
 WEB_EXPORT := build/web/index.html
 LINUX_EXPORT := build/linux/action5-demo.x86_64
 
-.PHONY: help verify-assets check import test run editor web linux build serve-web clean-build
+.PHONY: help verify-assets check blank-addon import test run editor web linux build serve-web clean-build
 
 help:
 	@printf '%s\n' \
@@ -23,6 +23,7 @@ help:
 		'  make import       Import resources and refresh the GDScript class registry' \
 		'  make test         Import, then run all Godot headless tests' \
 		'  make check        Run the same checks as CI / Checks (asset + Godot)' \
+		'  make blank-addon  Import and smoke-test the addon in an isolated Godot project' \
 		'  make run          Import, then run the game' \
 		'  make editor       Import, then open the Godot editor' \
 		'  make web          Import, then export the browser build' \
@@ -40,7 +41,10 @@ verify-assets:
 	@echo ACTION5_D04_GLB_REPRO_OK
 
 # Run the same quick checks as PR CI. Godot's import happens just once.
-check: verify-assets test
+check: verify-assets test blank-addon
+
+blank-addon:
+	@GODOT=$(GODOT) PYTHON=$(PYTHON) bash tools/check_blank_addon.sh
 
 import:
 	@$(PYTHON) tools/check_resource_comments.py
