@@ -232,8 +232,10 @@ static func validate_level(root: Node3D, require_collision: bool = true,
                 and (node.get_parent() as StaticBody3D).collision_layer != 0:
             has_collision = true
         if node is GridMap and node.mesh_library != null and node.collision_layer != 0:
-            for item in node.mesh_library.get_item_list():
-                if not node.mesh_library.get_item_shapes(item).is_empty():
+            for cell in node.get_used_cells():
+                var item: int = node.get_cell_item(cell)
+                if item >= 0 and node.mesh_library.has_item(item) \
+                        and not node.mesh_library.get_item_shapes(item).is_empty():
                     has_collision = true
                     break
         if node is NavigationRegion3D and node.enabled:

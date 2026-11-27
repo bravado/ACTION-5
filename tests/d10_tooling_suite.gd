@@ -91,7 +91,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         "D10 camera-free weapon needs no F4 viewmodel")
     var facing = preload("res://addons/action5/combat/view_facing_policy.gd").new()
     var duplicate_facing: Resource = definition.duplicate(true)
-    duplicate_facing.view_facing_policies = [facing, facing]
+    duplicate_facing.view_facing_policies.clear()
+    duplicate_facing.view_facing_policies.append(facing)
+    duplicate_facing.view_facing_policies.append(facing)
     verify.call(_has(Validator.validate_weapon(duplicate_facing), "duplicate view facing policy"),
         "D10 duplicate directional overrides report the view")
     verify.call(_has(Validator.validate_direction_source(actor, ^"MissingPolicy"), "get_sectors")
@@ -144,6 +146,10 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     actor.collision_layer = original_layer
 
     if OS.has_feature("debug"):
+        var baseline_cpu := 0.0
+        for tick in range(60):
+            await tree.physics_frame
+            baseline_cpu += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
         var overlay := DebugHud.new()
         level.add_child(overlay)
         overlay.bind_sources(actor, level.get_node("ViewManager"))
@@ -178,10 +184,12 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         geometry.set_enabled(false)
         var idle_samples: int = geometry.sample_count()
         var hud_idle_samples: int = overlay.sample_count()
-        var start: int = Time.get_ticks_usec()
+        var disabled_cpu := 0.0
         for tick in range(60):
             await tree.physics_frame
-        print("ACTION5_D10_IDLE ticks=60 elapsed_usec=", Time.get_ticks_usec() - start,
+            disabled_cpu += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
+        print("ACTION5_D10_IDLE ticks=60 baseline_mean_physics_usec=", baseline_cpu * 1000000.0 / 60.0,
+            " disabled_mean_physics_usec=", disabled_cpu * 1000000.0 / 60.0,
             " geometry_samples=", geometry.sample_count() - idle_samples,
             " hud_samples=", overlay.sample_count() - hud_idle_samples)
         verify.call(not geometry.is_physics_processing() and geometry.line_count() == 0
