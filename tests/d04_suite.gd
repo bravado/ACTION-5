@@ -195,7 +195,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         and camera.get_cull_mask_value(body_layer)
         and not camera.get_cull_mask_value(view_layer) and body_on_isolated_layer,
         "F3 renders the world tool/body but excludes the F4 camera model")
-    manager.switch_view(3)
+    manager.switch_view(0)
     verify.call(fps.first_person and actor.get_node("Visual").visible
         and not camera.get_cull_mask_value(body_layer)
         and body_on_isolated_layer and is_instance_valid(right_socket),
@@ -390,7 +390,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
         await tree.physics_frame
     verify.call(not actor.is_on_floor() and presenter.current_clip == &"idle",
         "Airborne fallback uses Idle when no jump/fall animations are mapped")
-    manager.switch_view(3)
+    manager.switch_view(0)
     await tree.physics_frame
     await tree.process_frame
     var fist := arm_view.get_node("Extremity") as Node3D
@@ -497,7 +497,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     verify.call(not other.is_on_floor() and other_presenter.current_clip == &"jump",
         "Airborne ascent uses a configured Jump clip when available")
     var other_fps: FirstPersonScript = other.get_node("FirstPersonPresenter")
-    manager.switch_view(3)
+    manager.switch_view(0)
     var npc_meshes: Array[Node] = other.get_node("Visual/Model").find_children(
         "*", "MeshInstance3D", true, false
     )
@@ -523,7 +523,7 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     for i in range(8):
         await tree.physics_frame
     var near_wall_position: Vector3 = actor.global_position
-    verify.call(manager.switch_view(2) and manager.switch_view(3),
+    verify.call(manager.switch_view(2) and manager.switch_view(0),
         "VT-12 switches from third-person to first-person beside a real wall")
     var near_wall_camera: Camera3D = manager.get_active_camera()
     # This collision fixture intentionally looks north at NorthWall.
