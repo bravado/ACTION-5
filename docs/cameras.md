@@ -58,6 +58,8 @@ The close-camera wall raycast prevents passing through world geometry. It exclud
 
 Click **C · CAMERA SETTINGS** below Vitality, or press **C**, to open the Godot UI panel. It changes the **selected view resource live** and never changes the actor transform or velocity. Use **Reset this camera** to restore the shipped defaults, or **Close** to hide it.
 
+The settings title uses the same **1–5 shortcut number** as the HUD and keyboard: **1 / 5 · First-Person** and **4 / 5 · Side-Scroller**, despite those profiles occupying internal ViewManager indices 3 and 0. The reusable panel accepts an optional `shortcut_input_path` pointing to a provider exposing `shortcut_for_profile_index(index)`; without one it retains the internal 1-based numbering and has no dependency on the demo's input scene.
+
 - **Mode 1 and 5:** orthographic zoom and follow speed.
 - **Mode 2:** orthographic zoom, camera height, camera depth and follow speed. **Side peek (deg)** and **Peek response** are editable live, saved per-profile, and resettable (6° and 8 by default). Set the angle to 0 for no horizontal tilt.
 - **Mode 3:** orthographic zoom, wide/close orbit distances, wide isometric pitch, close shoulder pitch, left/right shoulder offset, shoulder lift, look-ahead and follow speed.
