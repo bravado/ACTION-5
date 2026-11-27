@@ -202,7 +202,9 @@ func run_tests(tree: SceneTree, level: Node3D, verify: Callable) -> void:
     var live_combat: Node = player.get_node("CombatController")
     var fps: Node = player.get_node("FirstPersonPresenter")
     var visual: Node = player.get_node("EquipmentVisualAdapter")
-    var bat: WeaponScript = level.get_node("Arena/BatPickup")
+    # D06 equipment suite has dropped the authored Bat through LocationManager.
+    # Dropped items belong to the shared world, not their original spawn slot.
+    var bat: WeaponScript = level.get_node("BatPickup")
     var shadows_before: int = fps.world_visual_shadows.size()
     verify.call(live_equipment.pickup(bat)
         and live_equipment.current_weapon == bat
